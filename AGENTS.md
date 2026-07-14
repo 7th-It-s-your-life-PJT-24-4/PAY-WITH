@@ -4,10 +4,14 @@
 
 ## 운영 구조
 
+- AI 스킬과 서브에이전트는 반드시 `.agents` 아래에 원본을 추가한다.
 - `.agents/skills`는 프로젝트 스킬의 원본 위치다.
-- `.claude/skills`는 `.agents/skills`의 각 스킬을 참조한다. 스킬을 추가하거나 수정할 때는 `.agents/skills/<name>/SKILL.md`를 원본으로 관리한다.
 - `.agents/agents`는 프로젝트 전용 서브에이전트 정의의 원본 위치다.
-- `.claude/agents`는 `.agents/agents`의 각 에이전트를 참조한다.
+- `.claude/skills`는 `.agents/skills`의 각 스킬을 symlink로 참조한다.
+- `.claude/agents`는 `.agents/agents`의 각 에이전트를 symlink로 참조한다.
+- `.claude/skills`와 `.claude/agents`에는 원본 파일을 직접 작성하지 않는다. Claude 호환을 위해 필요한 항목만 `.agents` 원본을 가리키는 symlink로 둔다.
+- 스킬을 추가하거나 수정할 때는 `.agents/skills/<name>/SKILL.md`를 수정하고, Claude에서 써야 하면 `.claude/skills/<name>` symlink만 추가한다.
+- 서브에이전트를 추가하거나 수정할 때는 `.agents/agents/<name>.md`를 수정하고, Claude에서 써야 하면 `.claude/agents/<name>.md` symlink만 추가한다.
 - 루트 문서와 스킬 문서가 충돌하면 더 구체적인 스킬 문서를 우선하되, 한국어 응답, 검증, 기존 구조 유지 원칙은 항상 지킨다.
 
 ## 기본 원칙
@@ -69,7 +73,7 @@
 | 현재 브랜치 변경분으로 커밋 정리 후 새 PR 생성 | `.agents/skills/pr-create/SKILL.md` | `gh` CLI로 인증 확인, 커밋, push, PR 생성까지 수행한다. |
 | 기존 PR 리뷰 코멘트 반영 및 답글 작성 | `.agents/skills/comment/SKILL.md` | `gh api`로 리뷰 코멘트를 읽고 수정, 답글, push를 수행한다. |
 
-스킬이 겹치면 제외 조건을 우선한다. 예를 들어 API 훅과 테스트가 모두 필요하면 먼저 `fe-api-layer`로 프로덕션 코드를 만들고, 이어서 `fe-test`로 테스트를 작성한다. 새 PR 생성과 기존 PR 리뷰 코멘트 대응은 섞지 않는다.
+스킬이 겹치면 제외 조건을 우선한다. 예를 들어 API 훅과 테스트가 모두 필요하면 먼저 `fe-api-layer`로 프로덕션 코드를 만들고, 이어서 `fe-test`로 테스트를 작성한다. 커밋, push, PR 생성, PR 본문 작성, PR 제목 생성, 현재 변경분으로 PR 올리기 요청은 반드시 `pr-create`를 사용한다. 새 PR 생성과 기존 PR 리뷰 코멘트 대응은 섞지 않는다.
 
 ## 서브에이전트 라우팅
 
