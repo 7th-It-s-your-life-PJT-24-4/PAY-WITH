@@ -1,11 +1,11 @@
 ---
 name: pr-create
-description: "Pull request creation workflow for this repository. Use when the user asks to create/open a PR, prepare current branch changes for PR, commit changes, push a branch, or generate a PR body from the current diff. Uses gh CLI by default and GitHub REST API only if gh cannot cover a required step. Do not use for addressing existing PR review comments; use comment. Do not use for initial code review or writing review feedback."
+description: "Mandatory pull request creation workflow for this repository. Always use when the user asks to create/open a PR, prepare current branch changes for PR, commit changes, push a branch, generate a PR title/body, or turn local changes into a PR. Uses gh CLI by default and GitHub REST API only if gh cannot cover a required step. Do not use for addressing existing PR review comments; use comment. Do not use for initial code review or writing review feedback."
 ---
 
 # pr-create
 
-Use this skill to turn current branch changes into a GitHub PR.
+Use this skill to turn current branch changes into a GitHub PR. This skill is mandatory for commit, push, and new PR requests in this repository.
 
 ## Workflow
 
@@ -16,6 +16,7 @@ Use this skill to turn current branch changes into a GitHub PR.
 git status --short
 git branch --show-current
 gh auth status
+gh api user --jq .login
 ```
 
 If the working directory is not a Git repository, stop and report that PR creation cannot proceed from the current directory.
@@ -53,7 +54,7 @@ git commit -m "feat: add user api layer"
 git push -u origin "$(git branch --show-current)"
 ```
 
-8. Create PR with `gh pr create`.
+8. Create PR with `gh pr create` and assign it to the authenticated GitHub user. Prefer `--assignee @me`; if that fails, resolve the login with `gh api user --jq .login` and retry with `--assignee "$LOGIN"`.
 
 ## PR body template
 
@@ -110,7 +111,8 @@ gh pr create \
   --base main \
   --head "$(git branch --show-current)" \
   --title "feat: add user api layer" \
-  --body-file /tmp/pr-body.md
+  --body-file /tmp/pr-body.md \
+  --assignee @me
 ```
 
 ## Rules
@@ -119,5 +121,6 @@ gh pr create \
 - Do not include unrelated changes in the commit. If unrelated files are modified, ask before staging them.
 - Do not rewrite user commits unless explicitly requested.
 - If `gh auth status` fails, tell the user to authenticate and stop before staging/committing.
+- Every newly created PR must be assigned to the authenticated GitHub user using `--assignee @me` or the login from `gh api user --jq .login`.
 - If validation fails, fix the issue or report the failure; do not create a PR that claims passing tests.
 - For documentation-only changes, skip FE/BE validation unless the changed docs describe executable examples that should be checked.
