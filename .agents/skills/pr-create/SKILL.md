@@ -60,50 +60,50 @@ git push -u origin "$(git branch --show-current)"
 Write only facts visible in the diff or command output.
 
 ```md
-## 개요
+## 📝 작업 내용 요약
 
 - 
 
-## 변경사항
+## ✅ 체크리스트
 
-- 
+- [ ] `develop` 브랜치의 최신 코드를 `pull` 받았나요?
+- [ ] 빌드가 통과했나요?
 
-## 테스트
+## 🤖 AI 리뷰
 
-- [ ] `cd fe && pnpm lint`
-- [ ] `cd fe && pnpm build`
-- [ ] `cd fe && pnpm test`
-- [ ] `cd fe && pnpm test:e2e`
+<!-- 발견 사항. 자동 생성 시 채워짐 -->
 
-## 참고
+## 💬 기타 코멘트
 
-- 
+<!-- 후속 작업·리뷰어에게 남길 메모 등 (없으면 비움) -->
 ```
 
-Use checked boxes only for commands actually run and passed. If a command was not run, leave it unchecked and add a short reason.
+Use checked boxes only for items that are true:
+- Check the `develop` pull item only when `develop` exists and the branch was updated from it.
+- Check the build item only when relevant build/validation commands actually ran and passed.
+- When `develop` does not exist, leave the item unchecked and explain the actual base branch in `기타 코멘트`.
+- Put AI-generated review findings or validation notes under `AI 리뷰`.
 
 ## Command pattern
 
 ```bash
 cat > /tmp/pr-body.md <<'EOF'
-## 개요
+## 📝 작업 내용 요약
 
 - 현재 diff 기반 요약
 
-## 변경사항
+## ✅ 체크리스트
 
-- 변경 파일과 동작 기준으로 작성
+- [ ] `develop` 브랜치의 최신 코드를 `pull` 받았나요?
+- [x] 빌드가 통과했나요?
 
-## 테스트
+## 🤖 AI 리뷰
 
-- [x] `cd fe && pnpm lint`
-- [x] `cd fe && pnpm build`
-- [x] `cd fe && pnpm test`
-- [ ] `cd fe && pnpm test:e2e` - E2E 영향 없음
+- `cd fe && pnpm lint`, `pnpm build`, `pnpm test` 통과
 
-## 참고
+## 💬 기타 코멘트
 
-- 없음
+- `develop` 브랜치가 없어 base branch는 `main` 기준으로 생성
 EOF
 
 gh pr create \
