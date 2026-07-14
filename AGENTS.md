@@ -4,10 +4,14 @@
 
 ## 운영 구조
 
+- AI 스킬과 서브에이전트는 반드시 `.agents` 아래에 원본을 추가한다.
 - `.agents/skills`는 프로젝트 스킬의 원본 위치다.
-- `.claude/skills`는 `.agents/skills`의 각 스킬을 참조한다. 스킬을 추가하거나 수정할 때는 `.agents/skills/<name>/SKILL.md`를 원본으로 관리한다.
 - `.agents/agents`는 프로젝트 전용 서브에이전트 정의의 원본 위치다.
-- `.claude/agents`는 `.agents/agents`의 각 에이전트를 참조한다.
+- `.claude/skills`는 `.agents/skills`의 각 스킬을 symlink로 참조한다.
+- `.claude/agents`는 `.agents/agents`의 각 에이전트를 symlink로 참조한다.
+- `.claude/skills`와 `.claude/agents`에는 원본 파일을 직접 작성하지 않는다. Claude 호환을 위해 필요한 항목만 `.agents` 원본을 가리키는 symlink로 둔다.
+- 스킬을 추가하거나 수정할 때는 `.agents/skills/<name>/SKILL.md`를 수정하고, Claude에서 써야 하면 `.claude/skills/<name>` symlink만 추가한다.
+- 서브에이전트를 추가하거나 수정할 때는 `.agents/agents/<name>.md`를 수정하고, Claude에서 써야 하면 `.claude/agents/<name>.md` symlink만 추가한다.
 - 루트 문서와 스킬 문서가 충돌하면 더 구체적인 스킬 문서를 우선하되, 한국어 응답, 검증, 기존 구조 유지 원칙은 항상 지킨다.
 
 ## 기본 원칙
