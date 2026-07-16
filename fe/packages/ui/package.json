@@ -13,7 +13,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "vue-tsc --declaration --emitDeclarationOnly && vite build",
+    "build": "vite build && vue-tsc -p tsconfig.build.json --declaration --emitDeclarationOnly",
     "test": "vitest run",
     "typecheck": "vue-tsc --noEmit"
   },
