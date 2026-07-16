@@ -98,7 +98,7 @@
 
 - FE 루트 명령은 `fe`에서 실행한다.
 - 기본 앱은 `fe/apps/web`이다.
-- 패키지 내부 소스와 테스트 import는 `src` 기준 alias `@/`를 사용한다. 상대 import는 같은 파일의 스타일·에셋 등 별칭 적용이 불가능한 경우에만 쓴다.
+- 패키지 내부 소스와 테스트 import는 `src` 기준 alias `@/`를 사용한다. 파일 시스템 절대경로 import는 사용하지 않으며, 상대 import는 같은 파일의 스타일·에셋 등 별칭 적용이 불가능한 경우에만 쓴다.
 - 워크스페이스 간 import는 공개 API인 `@pay-with/*` 패키지명만 사용한다. 다른 패키지의 `src`를 상대경로로 직접 import하지 않는다.
 - Vite, TypeScript, Storybook 설정 파일의 파일 탐색 경로는 이동 가능한 설정을 위해 `fileURLToPath(new URL(..., import.meta.url))` 또는 설정 기준 상대경로를 사용한다. 개발 머신의 절대 파일 시스템 경로를 커밋하지 않는다.
 - 외부 의존성 버전은 `fe/pnpm-workspace.yaml`의 `catalog`에서만 관리한다. 각 패키지는 실제 사용하는 의존성만 `catalog:`로 선언하고, 워크스페이스 내부 의존성은 `workspace:*`를 쓴다.
