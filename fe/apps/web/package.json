@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tanstack/vue-query": "catalog:",
+    "ky": "catalog:",
     "pinia": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:",

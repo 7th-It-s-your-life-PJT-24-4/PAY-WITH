@@ -4,13 +4,19 @@ test('renders store interactions and queried users', async ({ page }) => {
   await page.route('**/users', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
-      json: [
-        {
-          id: 1,
-          name: 'Grace Hopper',
-          email: 'grace@example.com',
-        },
-      ],
+      json: {
+        success: true,
+        data: [
+          {
+            id: 1,
+            name: 'Grace Hopper',
+            email: 'grace@example.com',
+            createdAt: '2026-07-16T10:00:00',
+            updatedAt: '2026-07-16T10:00:00',
+          },
+        ],
+        message: null,
+      },
     })
   })
 
