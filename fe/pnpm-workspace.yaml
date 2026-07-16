@@ -2,6 +2,9 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+overrides:
+  'glob@^10.4.2': ^13.0.6
+
 catalog:
   '@eslint/js': ^10.0.1
   '@playwright/test': ^1.61.1
@@ -19,6 +22,7 @@ catalog:
   eslint-config-prettier: ^10.1.8
   eslint-plugin-vue: ^10.9.2
   jsdom: ^29.1.1
+  ky: ^2.0.2
   pinia: ^3.0.4
   playwright: ^1.61.1
   postcss: ^8.5.18
