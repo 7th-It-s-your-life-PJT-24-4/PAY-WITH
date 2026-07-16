@@ -1,0 +1,24 @@
+{
+  "name": "@pay-with/storybook",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "storybook dev -p 6006",
+    "build": "storybook build",
+    "build-storybook": "storybook build",
+    "chromatic": "chromatic"
+  },
+  "dependencies": {
+    "@pay-with/ui": "workspace:*",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@storybook/vue3-vite": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "chromatic": "catalog:",
+    "storybook": "catalog:",
+    "tailwindcss": "catalog:"
+  }
+}
