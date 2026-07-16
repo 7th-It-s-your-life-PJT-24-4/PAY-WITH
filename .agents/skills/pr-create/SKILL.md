@@ -21,7 +21,10 @@ gh api user --jq .login
 
 If the working directory is not a Git repository, stop and report that PR creation cannot proceed from the current directory.
 
-3. If not on a branch matching `<type>/<short-desc>`, create or rename only after confirming intent if the current branch has a meaningful existing name.
+3. Identify the PR type and follow the matching Git flow:
+   - Feature PR: branch from `develop`, branch format `[개발 파트]접두어/기능명` (for example, `fe/feat/user-api-layer`), and create a PR to `develop`.
+   - Release PR: create a `develop` to `main` release PR body only when requested. Do not merge it through GitHub; the user must complete the local rebase flow in root `AGENTS.md`.
+   - If the current branch has a meaningful existing name but does not match the required format, confirm before creating or renaming it.
 4. Inspect the diff. PR content must be based only on actual diff:
 
 ```bash
@@ -41,11 +44,11 @@ pnpm test
 Run `pnpm test:e2e` when UI flow, routing, or Playwright tests changed.
 Run `cd be && mvn test && mvn -B clean package` when backend code changed.
 
-6. Stage and commit with Conventional Commits:
+6. Stage and commit with the project convention. The development part must be `fe` or `be`; the prefix must be one of `feat`, `refac`, `chore`, `docs`, `style`, `fix`, `hotfix`, `revert`, or `ai`:
 
 ```bash
 git add <changed-files>
-git commit -m "feat: add user api layer"
+git commit -m "[fe]feat: 사용자 API 레이어 추가"
 ```
 
 7. Push the branch:
@@ -54,7 +57,9 @@ git commit -m "feat: add user api layer"
 git push -u origin "$(git branch --show-current)"
 ```
 
-8. Create PR with `gh pr create` and assign it to the authenticated GitHub user. Prefer `--assignee @me`; if that fails, resolve the login with `gh api user --jq .login` and retry with `--assignee "$LOGIN"`.
+8. Create a feature PR with `gh pr create` using `develop` as its base branch and a title following `[개발 파트]접두어: 기능명`. Assign it to the authenticated GitHub user. Prefer `--assignee @me`; if that fails, resolve the login with `gh api user --jq .login` and retry with `--assignee "$LOGIN"`.
+
+Feature PRs must use squash merge and receive at least one approval before merging. Do not merge PRs unless the user explicitly asks and the repository permissions permit it.
 
 ## PR body template
 
@@ -85,6 +90,32 @@ Use checked boxes only for items that are true:
 - When `develop` does not exist, leave the item unchecked and explain the actual base branch in `기타 코멘트`.
 - Put AI-generated review findings or validation notes under `AI 리뷰`.
 
+## Release PR body template
+
+Use this only for a requested `develop` → `main` release PR. Replace the version fields only with values supplied by the user or confirmed from repository release metadata.
+
+```md
+## Release v0.0.0
+
+> 배포 대상: `develop` → `main`
+> 릴리스 일자: YYYY-MM-DD
+
+## 📦 버전
+
+- Version: `v0.0.0`
+- 이전 버전: `v0.0.0`
+- 변경 범위: <!-- major / minor / patch -->
+```
+
+The release merge is performed locally to preserve the intended linear history:
+
+```bash
+git checkout main
+git fetch origin
+git rebase origin/develop
+git push origin main
+```
+
 ## Command pattern
 
 ```bash
@@ -108,9 +139,9 @@ cat > /tmp/pr-body.md <<'EOF'
 EOF
 
 gh pr create \
-  --base main \
+  --base develop \
   --head "$(git branch --show-current)" \
-  --title "feat: add user api layer" \
+  --title "[fe]feat: 사용자 API 레이어 추가" \
   --body-file /tmp/pr-body.md \
   --assignee @me
 ```
