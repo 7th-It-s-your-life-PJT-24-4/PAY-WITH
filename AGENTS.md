@@ -161,12 +161,45 @@ mvn -B clean package
 docker compose up --build
 ```
 
-## 브랜치와 커밋
+## Git 컨벤션과 흐름
 
-- 브랜치 형식: `<type>/<short-desc>`
-- 허용 type: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `style`
-- 커밋 형식: Conventional Commits
-- 예: `feat/user-api-layer`, `fix/login-validation`, `feat: add user query hooks`
+### 접두어
+
+브랜치, 커밋, PR 제목에는 다음 접두어만 사용한다.
+
+| 접두어 | 설명 |
+| --- | --- |
+| `feat` | 기능 개발 |
+| `refac` | 리팩토링 |
+| `chore` | 기타 환경 설정 |
+| `docs` | 문서 |
+| `style` | 스타일(FE) |
+| `fix` | 버그 수정 |
+| `hotfix` | 핫픽스 |
+| `revert` | 리버트 |
+| `ai` | AI 관련 설정(Claude, Codex 등) |
+
+### 브랜치와 커밋
+
+- 브랜치는 `develop`에서 생성하며 형식은 `[개발 파트]접두어/기능명`이다. 개발 파트는 `fe` 또는 `be`를 사용하고 기능명은 케밥 케이스로 작성한다.
+- 예: `be/feat/transaction-form`, `fe/fix/date-filter`
+- 커밋 메시지 형식은 `[개발 파트]접두어: 기능명`이다.
+- 예: `[be]feat: 로그인 API 연동`, `[fe]fix: 날짜 필터 수정`
+- PR 제목도 커밋과 같은 `[개발 파트]접두어: 기능명` 형식을 사용한다.
+
+### Git 흐름
+
+- `develop`과 `main`은 선형 히스토리로 관리한다.
+- 기능 작업은 `develop`에서 기능 브랜치를 생성하고, 세부 기능 단위로 커밋·push한다.
+- 기능 PR은 기능 브랜치에서 `develop`으로 생성하며 squash merge를 사용한다. 최소 1명의 리뷰어 승인을 받은 뒤 머지한다.
+- 릴리스는 `develop`에서 `main`으로 반영하며 rebase merge를 사용한다. GitHub에서 머지하지 않고 로컬에서 다음 순서로 반영한다.
+
+```bash
+git checkout main
+git fetch origin
+git rebase origin/develop
+git push origin main
+```
 
 ## 검증
 
