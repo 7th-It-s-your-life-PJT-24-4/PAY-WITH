@@ -23,6 +23,7 @@ catalog:
   eslint-plugin-vue: ^10.9.2
   jsdom: ^29.1.1
   ky: ^2.0.2
+  lefthook: ^2.1.10
   pinia: ^3.0.4
   playwright: ^1.61.1
   postcss: ^8.5.18
@@ -42,4 +43,5 @@ catalog:
 
 allowBuilds:
   esbuild: true
+  lefthook: true
   vue-demi: true
