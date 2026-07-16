@@ -9,9 +9,11 @@
     "preview": "turbo run preview",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
+    "lefthook": "catalog:",
     "turbo": "catalog:"
   }
 }

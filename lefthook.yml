@@ -1,0 +1,23 @@
+pre-commit:
+  parallel: true
+  commands:
+    format-frontend:
+      root: fe
+      glob: '*.{css,html,js,json,md,ts,vue,yaml,yml}'
+      run: apps/web/node_modules/.bin/prettier --write {staged_files}
+      stage_fixed: true
+    lint-frontend:
+      root: fe/apps/web
+      glob: '*.{js,ts,vue}'
+      run: node_modules/.bin/eslint --config eslint.config.js --fix {staged_files}
+      stage_fixed: true
+
+commit-msg:
+  commands:
+    validate:
+      run: ./scripts/validate-commit-message.sh {1}
+
+pre-push:
+  commands:
+    validate-branch:
+      run: ./scripts/validate-git-branch.sh
