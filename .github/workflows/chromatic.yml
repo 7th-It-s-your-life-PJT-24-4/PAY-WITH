@@ -1,0 +1,38 @@
+name: Chromatic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fe/**'
+      - '.github/workflows/chromatic.yml'
+  pull_request:
+    paths:
+      - 'fe/**'
+      - '.github/workflows/chromatic.yml'
+
+concurrency:
+  group: chromatic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromatic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+          cache-dependency-path: fe/pnpm-lock.yaml
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install frontend dependencies
+        run: pnpm --dir fe install --frozen-lockfile
+      - name: Publish Storybook to Chromatic
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          workingDir: fe/apps/storybook
