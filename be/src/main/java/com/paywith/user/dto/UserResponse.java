@@ -1,6 +1,6 @@
-package com.paywith.dto;
+package com.paywith.user.dto;
 
-import com.paywith.domain.User;
+import com.paywith.user.domain.User;
 import java.time.LocalDateTime;
 
 public class UserResponse {

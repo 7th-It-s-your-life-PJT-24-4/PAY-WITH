@@ -1,4 +1,4 @@
-package com.paywith.dto;
+package com.paywith.auth.dto;
 
 public class TokenResponse {
 

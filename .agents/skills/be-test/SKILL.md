@@ -26,8 +26,8 @@ find src/main/java/com/paywith -type f | sort
    - Mapper layer: only add MyBatis-backed tests when the user explicitly asks for DB-integration coverage; otherwise leave mapper XML untested at the unit level.
 5. Add tests without changing production code unless a real bug blocks the test. If production changes are needed, stop and explain the bug before editing.
 6. Place test files mirroring the main package path:
-   - `src/test/java/com/paywith/service/<Name>ServiceTest.java`
-   - `src/test/java/com/paywith/controller/<Name>ControllerTest.java`
+   - `src/test/java/com/paywith/<domain>/service/<Name>ServiceTest.java`
+   - `src/test/java/com/paywith/<domain>/controller/<Name>ControllerTest.java`
 7. Run:
 
 ```bash

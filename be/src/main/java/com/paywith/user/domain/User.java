@@ -1,4 +1,4 @@
-package com.paywith.domain;
+package com.paywith.user.domain;
 
 import java.time.LocalDateTime;
 

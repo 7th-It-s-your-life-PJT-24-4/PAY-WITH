@@ -1,11 +1,11 @@
-package com.paywith.service;
+package com.paywith.user.service;
 
-import com.paywith.domain.User;
-import com.paywith.dto.UserCreateRequest;
-import com.paywith.dto.UserResponse;
-import com.paywith.dto.UserUpdateRequest;
 import com.paywith.exception.BusinessException;
-import com.paywith.mapper.UserMapper;
+import com.paywith.user.domain.User;
+import com.paywith.user.dto.UserCreateRequest;
+import com.paywith.user.dto.UserResponse;
+import com.paywith.user.dto.UserUpdateRequest;
+import com.paywith.user.mapper.UserMapper;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;

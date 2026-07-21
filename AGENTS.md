@@ -73,7 +73,11 @@
     ├── build.gradle
     ├── settings.gradle
     ├── gradlew
-    └── src/main/{java,resources}
+    └── src/main/
+        ├── java/com/paywith/
+        │   ├── common/, config/, exception/, security/   (도메인 공용 인프라)
+        │   └── <domain>/{controller,service,mapper,domain,dto}   (예: user/, auth/)
+        └── resources/mappers/<domain>/<Name>Mapper.xml
 ```
 
 ## 스킬 라우팅
@@ -156,7 +160,7 @@ pnpm test:e2e
 
 - BE 루트는 `be`다.
 - Java 17, Spring Framework 5.3.x, Spring Security 5.8.x, MyBatis, WAR 패키징을 기준으로 한다.
-- 계층은 `controller -> service -> mapper -> domain/dto` 흐름을 유지한다.
+- 패키지는 도메인 단위로 나누고(`com.paywith.<domain>`), 각 도메인 안에서 `controller -> service -> mapper -> domain/dto` 흐름을 유지한다. `common`, `config`, `exception`, `security`는 도메인 공용 인프라라 도메인 패키지로 옮기지 않는다.
 - API 응답은 기존 `ApiResponse<T>` 패턴을 따른다.
 - DB 스키마와 seed 데이터는 `be/src/main/resources/db`를 확인한다.
 - Docker Compose 로컬 실행은 `be/docker-compose.yml`을 기준으로 한다.
