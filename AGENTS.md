@@ -46,6 +46,8 @@
 │       ├── fe-scaffold/
 │       ├── fe-api-layer/
 │       ├── fe-test/
+│       ├── be-scaffold/
+│       ├── be-test/
 │       ├── pr-create/
 │       └── comment/
 ├── .claude/
@@ -78,10 +80,12 @@
 | Vue 3 `<script setup>` 컴포넌트, 페이지, route, Pinia store, FE 전용 Zod 스키마 생성/수정 | `.agents/skills/fe-scaffold/SKILL.md`  | UI/페이지 중심 FE 파일을 정해진 폴더 구조에 생성한다.      |
 | REST endpoint 기반 API 클라이언트, Zod 응답 스키마, endpoint 함수, TanStack Query 훅 생성 | `.agents/skills/fe-api-layer/SKILL.md` | API 연동 세트를 한 번에 만든다.                            |
 | Vitest 단위 테스트 또는 Playwright E2E 테스트 작성/수정                                   | `.agents/skills/fe-test/SKILL.md`      | 기존 컴포넌트/훅/사용자 플로우에 대한 테스트를 작성한다.   |
+| Spring Legacy 리소스의 controller-service-mapper-domain/dto 풀스택 생성/수정             | `.agents/skills/be-scaffold/SKILL.md`  | `ApiResponse<T>` 계약을 따르는 BE 리소스 계층을 한 번에 만든다. |
+| JUnit/Mockito 단위 테스트 작성/수정                                                       | `.agents/skills/be-test/SKILL.md`      | 기존 controller/service/mapper에 대한 BE 테스트를 작성한다. |
 | 현재 브랜치 변경분으로 커밋 정리 후 새 PR 생성                                            | `.agents/skills/pr-create/SKILL.md`    | `gh` CLI로 인증 확인, 커밋, push, PR 생성까지 수행한다.    |
 | 기존 PR 리뷰 코멘트 반영 및 답글 작성                                                     | `.agents/skills/comment/SKILL.md`      | `gh api`로 리뷰 코멘트를 읽고 수정, 답글, push를 수행한다. |
 
-스킬이 겹치면 제외 조건을 우선한다. 예를 들어 API 훅과 테스트가 모두 필요하면 먼저 `fe-api-layer`로 프로덕션 코드를 만들고, 이어서 `fe-test`로 테스트를 작성한다. 커밋, push, PR 생성, PR 본문 작성, PR 제목 생성, 현재 변경분으로 PR 올리기 요청은 반드시 `pr-create`를 사용한다. 새 PR 생성과 기존 PR 리뷰 코멘트 대응은 섞지 않는다.
+스킬이 겹치면 제외 조건을 우선한다. 예를 들어 API 훅과 테스트가 모두 필요하면 먼저 `fe-api-layer`로 프로덕션 코드를 만들고, 이어서 `fe-test`로 테스트를 작성한다. BE도 동일하게 신규 리소스와 테스트가 모두 필요하면 먼저 `be-scaffold`로 프로덕션 코드를 만들고, 이어서 `be-test`로 테스트를 작성한다. 커밋, push, PR 생성, PR 본문 작성, PR 제목 생성, 현재 변경분으로 PR 올리기 요청은 반드시 `pr-create`를 사용한다. 새 PR 생성과 기존 PR 리뷰 코멘트 대응은 섞지 않는다.
 
 ## 서브에이전트 라우팅
 
