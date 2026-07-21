@@ -1,18 +1,50 @@
 <script setup lang="ts">
-defineProps<{
-  title: string
+withDefaults(
+  defineProps<{
+    title: string
+    showBack?: boolean
+    showProfile?: boolean
+  }>(),
+  {
+    showBack: false,
+    showProfile: false,
+  },
+)
+
+const emit = defineEmits<{
+  back: []
+  profile: []
 }>()
 </script>
 
 <template>
-  <header class="border-b border-slate-200 bg-white">
-    <div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-      <RouterLink to="/" class="text-lg font-semibold text-slate-950">
-        {{ title }}
-      </RouterLink>
-      <span class="rounded bg-emerald-50 px-2 py-1 text-sm text-emerald-700">
-        Vue 3 + Vite
-      </span>
-    </div>
+  <header
+    class="grid h-header w-full grid-cols-[var(--spacing-button-small)_1fr_var(--spacing-button-small)] items-center border-b border-border bg-surface px-mobile-gutter"
+  >
+    <button
+      v-if="showBack"
+      class="flex size-button-small items-center justify-center rounded-full text-2xl text-primary-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+      type="button"
+      aria-label="뒤로 가기"
+      @click="emit('back')"
+    >
+      ←
+    </button>
+    <span v-else aria-hidden="true" />
+
+    <p class="type-h3 text-center text-primary-300">
+      {{ title }}
+    </p>
+
+    <button
+      v-if="showProfile"
+      class="flex size-button-small items-center justify-center rounded-full text-lg font-semibold text-primary-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+      type="button"
+      aria-label="내 정보"
+      @click="emit('profile')"
+    >
+      ○
+    </button>
+    <span v-else aria-hidden="true" />
   </header>
 </template>
