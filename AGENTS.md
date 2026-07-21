@@ -33,6 +33,7 @@
 - State/Data: Pinia, TanStack Query `@tanstack/vue-query`
 - Validation/Test: Zod, Vitest, Playwright
 - Backend: Spring Framework 5.x 기반 Legacy WAR, Java 17, MyBatis, Spring Security, JWT, MySQL
+- Build: Gradle(Groovy DSL), Gradle Wrapper(`./gradlew`) 기준
 - GitHub: `gh` CLI 기본 사용, 필요 시 GitHub REST API
 
 ## 저장소 구조
@@ -69,7 +70,9 @@
 │       ├── src/{components,index.ts}
 │       └── tests/unit/
 └── be/
-    ├── pom.xml
+    ├── build.gradle
+    ├── settings.gradle
+    ├── gradlew
     └── src/main/{java,resources}
 ```
 
@@ -160,8 +163,8 @@ pnpm test:e2e
 
 ```bash
 cd be
-mvn test
-mvn -B clean package
+./gradlew test
+./gradlew clean build
 docker compose up --build
 ```
 
@@ -227,8 +230,8 @@ pnpm test:e2e
 
 ```bash
 cd be
-mvn test
-mvn -B clean package
+./gradlew test
+./gradlew clean build
 ```
 
 - 문서/스킬/에이전트만 변경한 경우에는 관련 파일 링크 구조와 Markdown 내용을 확인하고, 코드 빌드는 생략해도 된다.

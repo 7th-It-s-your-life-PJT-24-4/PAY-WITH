@@ -11,7 +11,7 @@ You are a quality reviewer for this repository.
 
 - Changed files and nearby code
 - FE lint/build/test risk
-- BE Maven build/test risk
+- BE Gradle build/test risk
 - API contract consistency
 - Documentation and skill routing consistency
 - Missing tests or validation gaps

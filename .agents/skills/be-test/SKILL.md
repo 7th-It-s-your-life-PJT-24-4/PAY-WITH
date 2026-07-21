@@ -14,12 +14,12 @@ Use this skill to test existing BE behavior in `be`.
 
 ```bash
 cd be
-sed -n '1,150p' pom.xml
+sed -n '1,150p' build.gradle
 find src/test -type f | sort
 find src/main/java/com/paywith -type f | sort
 ```
 
-3. Confirm test dependencies exist in `pom.xml` under `<dependencies>` with `<scope>test</scope>`: `org.junit.jupiter:junit-jupiter`, `org.mockito:mockito-junit-jupiter`, and `org.springframework:spring-test` (for controller-layer `MockMvc`). If any are missing, add them with a version consistent with `java.version` 17 and the existing `spring.version` property before writing tests. Do not add a full Spring Boot test starter; this is a Spring Framework legacy WAR project.
+3. Confirm test dependencies exist in `build.gradle`'s `dependencies` block: `testImplementation 'org.junit.jupiter:junit-jupiter:<version>'`, `testImplementation 'org.mockito:mockito-junit-jupiter:<version>'`, and `testImplementation 'org.springframework:spring-test:<spring version>'` (for controller-layer `MockMvc`). If any are missing, add them with a version consistent with the project's `java` toolchain (17) and the existing Spring version used elsewhere in `build.gradle`. Confirm `test { useJUnitPlatform() }` is present. Do not add a full Spring Boot test starter; this is a Spring Framework legacy WAR project.
 4. Choose test type per layer:
    - Service layer: mock the mapper with Mockito, assert business rules and `BusinessException` cases (not-found, conflict).
    - Controller layer: use `MockMvcBuilders.standaloneSetup(controller)` so no full Spring context is required, assert HTTP status and the `ApiResponse` JSON envelope.
@@ -31,7 +31,7 @@ find src/main/java/com/paywith -type f | sort
 7. Run:
 
 ```bash
-mvn test
+./gradlew test
 ```
 
 ## Service test pattern

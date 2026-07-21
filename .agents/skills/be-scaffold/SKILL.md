@@ -38,7 +38,7 @@ sed -n '1,80p' src/main/resources/db/schema.sql
 10. Run validation from `be`:
 
 ```bash
-mvn -B clean package
+./gradlew clean build
 ```
 
 ## Layer pattern

@@ -25,8 +25,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: 'gradle'
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
       - name: Build WAR
-        run: mvn -B clean package -DskipTests
+        run: ./gradlew clean war -x test
       - name: Docker build
         run: docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
 

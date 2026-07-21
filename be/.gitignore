@@ -1,4 +1,5 @@
-target/
+.gradle/
+build/
 .env
 .env.*
 !.env.example

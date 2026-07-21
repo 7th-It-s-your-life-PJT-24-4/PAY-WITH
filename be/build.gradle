@@ -1,0 +1,65 @@
+plugins {
+    id 'java'
+    id 'war'
+}
+
+group = 'com.paywith'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+war {
+    archiveFileName = 'pay-with-api.war'
+}
+
+jar {
+    enabled = false
+}
+
+compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
+
+ext {
+    springVersion = '5.3.39'
+    springSecurityVersion = '5.8.16'
+    jacksonVersion = '2.17.3'
+    jjwtVersion = '0.11.5'
+    mybatisVersion = '3.5.16'
+    mybatisSpringVersion = '2.1.2'
+    springfoxVersion = '3.0.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.springframework:spring-webmvc:${springVersion}"
+    implementation "org.springframework:spring-jdbc:${springVersion}"
+    implementation "org.springframework.security:spring-security-web:${springSecurityVersion}"
+    implementation "org.springframework.security:spring-security-config:${springSecurityVersion}"
+    implementation "org.mybatis:mybatis:${mybatisVersion}"
+    implementation "org.mybatis:mybatis-spring:${mybatisSpringVersion}"
+    implementation 'com.mysql:mysql-connector-j:8.0.33'
+    implementation 'com.zaxxer:HikariCP:5.1.0'
+    implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
+    runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
+    runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
+    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
+    implementation "io.springfox:springfox-swagger2:${springfoxVersion}"
+    implementation "io.springfox:springfox-swagger-ui:${springfoxVersion}"
+    providedCompile 'javax.servlet:javax.servlet-api:4.0.1'
+    implementation 'javax.validation:validation-api:2.0.1.Final'
+    implementation 'org.hibernate.validator:hibernate-validator:6.2.5.Final'
+    implementation 'org.slf4j:slf4j-api:2.0.16'
+    implementation 'ch.qos.logback:logback-classic:1.5.16'
+}
+
+test {
+    useJUnitPlatform()
+}
