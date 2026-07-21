@@ -1,28 +1,77 @@
 <script setup lang="ts">
-withDefaults(
+import { computed } from 'vue'
+
+const props = withDefaults(
   defineProps<{
     label: string
-    variant?: 'primary' | 'secondary'
+    variant?:
+      | 'primary'
+      | 'secondary'
+      | 'outline-primary'
+      | 'danger'
+      | 'outline-danger'
+      | 'text'
+    size?: 'small' | 'default' | 'large'
+    pill?: boolean
     disabled?: boolean
+    type?: 'button' | 'submit' | 'reset'
   }>(),
   {
     variant: 'primary',
+    size: 'default',
+    pill: false,
     disabled: false,
+    type: 'button',
   },
 )
+
+const variantClass = computed(
+  () =>
+    ({
+      primary:
+        'border-action bg-action text-on-action hover:bg-action-active active:bg-action-active',
+      secondary:
+        'border-disabled bg-disabled text-body hover:border-border-strong',
+      'outline-primary':
+        'border-primary-500 bg-surface-card text-primary-500 hover:bg-primary-900',
+      danger:
+        'border-error bg-error text-on-semantic hover:brightness-95 active:brightness-90',
+      'outline-danger':
+        'border-error bg-surface-card text-error hover:bg-error/10',
+      text: 'border-transparent bg-transparent text-primary-300 hover:bg-primary-900',
+    })[props.variant],
+)
+
+const sizeClass = computed(() => {
+  if (props.variant === 'text')
+    return 'type-body-medium min-h-touch-target px-sm'
+
+  return {
+    small: 'type-h4 min-h-button-small px-xl',
+    default: 'type-h4 min-h-button-default px-xl',
+    large: 'type-h1 min-h-button-large px-xxl',
+  }[props.size]
+})
 </script>
 
 <template>
   <button
-    class="inline-flex min-h-10 items-center justify-center rounded-md border px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-    :class="
-      variant === 'primary'
-        ? 'border-slate-900 bg-slate-900 text-white hover:bg-slate-800'
-        : 'border-slate-300 bg-white text-slate-950 hover:bg-slate-50'
-    "
+    class="inline-flex items-center justify-center gap-xs border-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:border-disabled disabled:bg-disabled disabled:text-on-disabled disabled:opacity-[var(--opacity-disabled)]"
+    :class="[
+      variantClass,
+      sizeClass,
+      pill
+        ? 'rounded-full'
+        : size === 'large'
+          ? 'rounded-large'
+          : 'rounded-medium',
+      size === 'large' && variant.startsWith('outline') ? 'border-[3px]' : '',
+    ]"
     :disabled="disabled"
-    type="button"
+    :type="type"
   >
-    {{ label }}
+    <slot name="leading" />
+    <span>{{ label }}</span>
+    <slot name="trailing" />
   </button>
 </template>
