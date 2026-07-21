@@ -52,14 +52,29 @@ const sizeClass = computed(() => {
     large: 'type-h1 min-h-button-large px-xxl',
   }[props.size]
 })
+
+const contentGapClass = computed(() =>
+  props.size === 'large' ? 'gap-md' : 'gap-xs',
+)
+
+const iconSizeClass = computed(() => {
+  if (props.variant === 'text') return 'size-lg'
+
+  return {
+    small: 'size-lg',
+    default: 'size-xl',
+    large: 'size-xxl',
+  }[props.size]
+})
 </script>
 
 <template>
   <button
-    class="inline-flex items-center justify-center gap-xs border-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:border-disabled disabled:bg-disabled disabled:text-on-disabled disabled:opacity-[var(--opacity-disabled)]"
+    class="inline-flex items-center justify-center border-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:border-disabled disabled:bg-disabled disabled:text-on-disabled disabled:opacity-[var(--opacity-disabled)]"
     :class="[
       variantClass,
       sizeClass,
+      contentGapClass,
       pill
         ? 'rounded-full'
         : size === 'large'
@@ -70,8 +85,22 @@ const sizeClass = computed(() => {
     :disabled="disabled"
     :type="type"
   >
-    <slot name="leading" />
+    <span
+      v-if="$slots.leading"
+      class="inline-flex shrink-0 items-center justify-center [&>img]:size-full [&>svg]:size-full"
+      :class="iconSizeClass"
+      aria-hidden="true"
+    >
+      <slot name="leading" />
+    </span>
     <span>{{ label }}</span>
-    <slot name="trailing" />
+    <span
+      v-if="$slots.trailing"
+      class="inline-flex shrink-0 items-center justify-center [&>img]:size-full [&>svg]:size-full"
+      :class="iconSizeClass"
+      aria-hidden="true"
+    >
+      <slot name="trailing" />
+    </span>
   </button>
 </template>

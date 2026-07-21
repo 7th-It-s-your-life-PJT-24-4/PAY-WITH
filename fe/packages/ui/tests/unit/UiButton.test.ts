@@ -28,4 +28,28 @@ describe('UiButton', () => {
 
     expect(wrapper.get('button').attributes('disabled')).toBeDefined()
   })
+
+  it('renders decorative icons before and after the label', () => {
+    const wrapper = mount(UiButton, {
+      props: {
+        label: 'Continue',
+      },
+      slots: {
+        leading: '<svg data-icon="leading" />',
+        trailing: '<svg data-icon="trailing" />',
+      },
+    })
+
+    const buttonChildren = wrapper.get('button').element.children
+
+    expect(
+      buttonChildren[0]?.querySelector('[data-icon="leading"]'),
+    ).not.toBeNull()
+    expect(buttonChildren[1]?.textContent).toBe('Continue')
+    expect(
+      buttonChildren[2]?.querySelector('[data-icon="trailing"]'),
+    ).not.toBeNull()
+    expect(buttonChildren[0]?.getAttribute('aria-hidden')).toBe('true')
+    expect(buttonChildren[2]?.getAttribute('aria-hidden')).toBe('true')
+  })
 })
