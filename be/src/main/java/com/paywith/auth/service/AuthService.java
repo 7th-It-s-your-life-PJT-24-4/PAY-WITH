@@ -7,8 +7,9 @@ import com.paywith.exception.BusinessException;
 import com.paywith.security.JwtTokenProvider;
 import com.paywith.user.domain.User;
 import com.paywith.user.mapper.UserMapper;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.time.Duration;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,19 +17,26 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthService {
 
+    private static final String REFRESH_TOKEN_KEY_PREFIX = "refresh:";
+
     private final UserMapper userMapper;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
-    private final Map<Long, String> refreshTokenStore = new ConcurrentHashMap<>();
+    private final StringRedisTemplate redisTemplate;
+    private final long refreshTokenValidityMs;
 
     public AuthService(
         UserMapper userMapper,
         JwtTokenProvider jwtTokenProvider,
-        PasswordEncoder passwordEncoder
+        PasswordEncoder passwordEncoder,
+        StringRedisTemplate redisTemplate,
+        @Value("${jwt.refresh-token-validity-ms}") long refreshTokenValidityMs
     ) {
         this.userMapper = userMapper;
         this.jwtTokenProvider = jwtTokenProvider;
         this.passwordEncoder = passwordEncoder;
+        this.redisTemplate = redisTemplate;
+        this.refreshTokenValidityMs = refreshTokenValidityMs;
     }
 
     public TokenResponse login(LoginRequest request) {
@@ -39,7 +47,7 @@ public class AuthService {
 
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId(), user.getEmail());
-        refreshTokenStore.put(user.getId(), refreshToken);
+        storeRefreshToken(user.getId(), refreshToken);
         return new TokenResponse(accessToken, refreshToken);
     }
 
@@ -50,7 +58,7 @@ public class AuthService {
         }
 
         Long userId = jwtTokenProvider.getUserId(refreshToken);
-        String savedRefreshToken = refreshTokenStore.get(userId);
+        String savedRefreshToken = redisTemplate.opsForValue().get(REFRESH_TOKEN_KEY_PREFIX + userId);
         if (!refreshToken.equals(savedRefreshToken)) {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 일치하지 않습니다.");
         }
@@ -62,8 +70,16 @@ public class AuthService {
 
         String newAccessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail());
         String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getId(), user.getEmail());
-        refreshTokenStore.put(user.getId(), newRefreshToken);
+        storeRefreshToken(user.getId(), newRefreshToken);
         return new TokenResponse(newAccessToken, newRefreshToken);
+    }
+
+    private void storeRefreshToken(Long userId, String refreshToken) {
+        redisTemplate.opsForValue().set(
+            REFRESH_TOKEN_KEY_PREFIX + userId,
+            refreshToken,
+            Duration.ofMillis(refreshTokenValidityMs)
+        );
     }
 
     private boolean matchesPassword(String rawPassword, String savedPassword) {

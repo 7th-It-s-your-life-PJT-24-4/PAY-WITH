@@ -67,4 +67,6 @@ jobs:
               -e DB_USERNAME='${{ secrets.PROD_DB_USERNAME }}' \
               -e DB_PASSWORD='${{ secrets.PROD_DB_PASSWORD }}' \
               -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
+              -e REDIS_HOST='${{ secrets.REDIS_HOST }}' \
+              -e REDIS_PORT='${{ secrets.REDIS_PORT }}' \
               ${{ secrets.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
