@@ -13,10 +13,16 @@ export default defineMain({
   viteFinal: async (config) => {
     config.plugins = [...(config.plugins ?? []), vue(), tailwindcss()]
     config.resolve ??= {}
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@pay-with/ui': uiSource,
-    }
+    const existingAliases = Array.isArray(config.resolve.alias)
+      ? config.resolve.alias
+      : Object.entries(config.resolve.alias ?? {}).map(
+          ([find, replacement]) => ({ find, replacement }),
+        )
+
+    config.resolve.alias = [
+      { find: /^@pay-with\/ui$/, replacement: uiSource },
+      ...existingAliases,
+    ]
 
     return config
   },
