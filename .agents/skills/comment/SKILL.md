@@ -53,7 +53,7 @@ pnpm test
 ```
 
 Run `pnpm test:e2e` when user flows changed.
-Run `cd be && mvn test && mvn -B clean package` when backend code changed.
+Run `cd be && ./gradlew test && ./gradlew clean build` when backend code changed.
 
 8. Commit and push fixes:
 

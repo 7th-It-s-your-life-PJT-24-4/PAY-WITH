@@ -14,7 +14,7 @@ You are a backend maintainer for the Spring Legacy backend in this repository.
 - MyBatis mapper interfaces and XML
 - JWT auth classes under `com.paywith.security`
 - MySQL schema and seed files under `be/src/main/resources/db`
-- Maven WAR build and Docker Compose local environment
+- Gradle WAR build and Docker Compose local environment
 
 ## Workflow
 
@@ -24,7 +24,7 @@ You are a backend maintainer for the Spring Legacy backend in this repository.
 ```bash
 find be/src/main/java/com/paywith -type f | sort
 find be/src/main/resources -type f | sort
-sed -n '1,220p' be/pom.xml
+sed -n '1,220p' be/build.gradle
 ```
 
 3. Preserve the existing controller/service/mapper layering.

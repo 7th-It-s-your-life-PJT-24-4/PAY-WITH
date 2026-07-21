@@ -42,7 +42,7 @@ pnpm test
 ```
 
 Run `pnpm test:e2e` when UI flow, routing, or Playwright tests changed.
-Run `cd be && mvn test && mvn -B clean package` when backend code changed.
+Run `cd be && ./gradlew test && ./gradlew clean build` when backend code changed.
 
 6. Stage and commit with the project convention. The development part must be `fe` or `be`; the prefix must be one of `feat`, `refac`, `chore`, `docs`, `style`, `fix`, `hotfix`, `revert`, or `ai`:
 
