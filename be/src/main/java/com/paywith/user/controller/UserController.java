@@ -1,10 +1,10 @@
-package com.paywith.controller;
+package com.paywith.user.controller;
 
 import com.paywith.common.ApiResponse;
-import com.paywith.dto.UserCreateRequest;
-import com.paywith.dto.UserResponse;
-import com.paywith.dto.UserUpdateRequest;
-import com.paywith.service.UserService;
+import com.paywith.user.dto.UserCreateRequest;
+import com.paywith.user.dto.UserResponse;
+import com.paywith.user.dto.UserUpdateRequest;
+import com.paywith.user.service.UserService;
 import java.util.List;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;

@@ -1,12 +1,12 @@
-package com.paywith.service;
+package com.paywith.auth.service;
 
-import com.paywith.domain.User;
-import com.paywith.dto.LoginRequest;
-import com.paywith.dto.RefreshTokenRequest;
-import com.paywith.dto.TokenResponse;
+import com.paywith.auth.dto.LoginRequest;
+import com.paywith.auth.dto.RefreshTokenRequest;
+import com.paywith.auth.dto.TokenResponse;
 import com.paywith.exception.BusinessException;
-import com.paywith.mapper.UserMapper;
 import com.paywith.security.JwtTokenProvider;
+import com.paywith.user.domain.User;
+import com.paywith.user.mapper.UserMapper;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.HttpStatus;

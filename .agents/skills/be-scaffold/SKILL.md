@@ -15,24 +15,25 @@ Use this skill to add or modify production BE files in `be` using the convention
 ```bash
 cd be
 find src/main/java/com/paywith -type f | sort
-sed -n '1,80p' src/main/java/com/paywith/controller/UserController.java
-sed -n '1,80p' src/main/java/com/paywith/service/UserService.java
-sed -n '1,40p' src/main/java/com/paywith/mapper/UserMapper.java
-sed -n '1,60p' src/main/resources/mappers/UserMapper.xml
+sed -n '1,80p' src/main/java/com/paywith/user/controller/UserController.java
+sed -n '1,80p' src/main/java/com/paywith/user/service/UserService.java
+sed -n '1,40p' src/main/java/com/paywith/user/mapper/UserMapper.java
+sed -n '1,60p' src/main/resources/mappers/user/UserMapper.xml
 sed -n '1,80p' src/main/resources/db/schema.sql
 ```
 
-3. Decide the file targets for resource `<Name>`:
-   - Controller: `src/main/java/com/paywith/controller/<Name>Controller.java`
-   - Service: `src/main/java/com/paywith/service/<Name>Service.java`
-   - Mapper interface: `src/main/java/com/paywith/mapper/<Name>Mapper.java`
-   - Mapper XML: `src/main/resources/mappers/<Name>Mapper.xml`
-   - Domain: `src/main/java/com/paywith/domain/<Name>.java`
-   - DTOs: `src/main/java/com/paywith/dto/<Name>CreateRequest.java`, `<Name>UpdateRequest.java`, `<Name>Response.java`
+3. Decide the file targets for resource `<Name>` under its own domain package `<domain>` (kebab/lowercase, e.g. `user`, `payment`):
+   - Controller: `src/main/java/com/paywith/<domain>/controller/<Name>Controller.java`
+   - Service: `src/main/java/com/paywith/<domain>/service/<Name>Service.java`
+   - Mapper interface: `src/main/java/com/paywith/<domain>/mapper/<Name>Mapper.java`
+   - Mapper XML: `src/main/resources/mappers/<domain>/<Name>Mapper.xml`
+   - Domain: `src/main/java/com/paywith/<domain>/domain/<Name>.java`
+   - DTOs: `src/main/java/com/paywith/<domain>/dto/<Name>CreateRequest.java`, `<Name>UpdateRequest.java`, `<Name>Response.java`
+   - A new domain that only needs auth/orchestration logic and reuses another domain's mapper/entity (like `auth` reusing `user`) does not need its own `mapper`/`domain` subpackage — import the other domain's class directly (e.g. `com.paywith.user.mapper.UserMapper`).
 4. Create only the files needed by the request. Do not add a layer the request does not touch.
-5. Keep the `controller -> service -> mapper -> domain/dto` flow. Controllers stay thin and only call the service, then wrap the result with `ApiResponse.success(...)`. Put validation annotations (`@Valid`, Bean Validation) on request DTOs, not in the controller body.
-6. Put business rules, existence checks, and `@Transactional` boundaries in the service layer. Throw `BusinessException` with an appropriate `HttpStatus` for not-found/conflict cases; do not catch and reformat it in the controller, `GlobalExceptionHandler` already handles it.
-7. Keep the mapper interface method signatures and the XML `id`s in 1:1 sync. Match the `resultMap` columns (snake_case) to domain fields (camelCase) the way `UserMapper.xml` does.
+5. Keep the `controller -> service -> mapper -> domain/dto` flow inside the domain package. Controllers stay thin and only call the service, then wrap the result with `ApiResponse.success(...)`. Put validation annotations (`@Valid`, Bean Validation) on request DTOs, not in the controller body.
+6. Put business rules, existence checks, and `@Transactional` boundaries in the service layer. Throw `BusinessException` with an appropriate `HttpStatus` for not-found/conflict cases; do not catch and reformat it in the controller, `GlobalExceptionHandler` already handles it (`GlobalExceptionHandler`/`BusinessException`/`ApiResponse`/`security` stay shared under `com.paywith.exception`/`com.paywith.common`/`com.paywith.security`, not per-domain).
+7. Keep the mapper interface method signatures and the XML `id`s in 1:1 sync. Match the `resultMap` columns (snake_case) to domain fields (camelCase) the way `UserMapper.xml` does. `MyBatisConfig`'s `@MapperScan("com.paywith")` and `setTypeAliasesPackage("com.paywith")` already cover every domain package, so a new domain's mapper needs no extra scan configuration.
 8. If the resource needs a new table or column, update `src/main/resources/db/schema.sql` (and `data.sql` only if seed rows are actually needed for local dev). Do not rename or drop existing columns without explicit confirmation from the user.
 9. If the endpoint needs auth rules beyond the current defaults, check `src/main/java/com/paywith/config/SecurityConfig.java` before editing it; do not loosen JWT/security matchers without the user's explicit request.
 10. Run validation from `be`:
@@ -45,6 +46,8 @@ sed -n '1,80p' src/main/resources/db/schema.sql
 
 ```java
 // controller
+package com.paywith.<domain>.controller;
+
 @RestController
 @RequestMapping("/api/<resources>")
 public class <Name>Controller {
@@ -64,6 +67,8 @@ public class <Name>Controller {
 
 ```java
 // service
+package com.paywith.<domain>.service;
+
 @Service
 public class <Name>Service {
 
@@ -82,6 +87,8 @@ public class <Name>Service {
 
 ```java
 // mapper interface
+package com.paywith.<domain>.mapper;
+
 public interface <Name>Mapper {
     List<Name> findAll();
     <Name> findById(@Param("id") Long id);

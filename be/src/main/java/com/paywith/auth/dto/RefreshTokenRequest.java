@@ -1,4 +1,4 @@
-package com.paywith.dto;
+package com.paywith.auth.dto;
 
 import javax.validation.constraints.NotBlank;
 

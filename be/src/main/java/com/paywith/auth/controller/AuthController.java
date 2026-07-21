@@ -1,10 +1,10 @@
-package com.paywith.controller;
+package com.paywith.auth.controller;
 
+import com.paywith.auth.dto.LoginRequest;
+import com.paywith.auth.dto.RefreshTokenRequest;
+import com.paywith.auth.dto.TokenResponse;
+import com.paywith.auth.service.AuthService;
 import com.paywith.common.ApiResponse;
-import com.paywith.dto.LoginRequest;
-import com.paywith.dto.RefreshTokenRequest;
-import com.paywith.dto.TokenResponse;
-import com.paywith.service.AuthService;
 import javax.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

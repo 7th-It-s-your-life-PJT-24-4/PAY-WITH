@@ -1,6 +1,6 @@
-package com.paywith.mapper;
+package com.paywith.user.mapper;
 
-import com.paywith.domain.User;
+import com.paywith.user.domain.User;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
