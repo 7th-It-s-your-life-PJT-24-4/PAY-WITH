@@ -18,6 +18,7 @@ const actions = [
 ]
 
 function handleAction(value: string) {
+  if (value === 'transfer') router.push({ name: 'ward-transfer' })
   if (value === 'payment') router.push({ name: 'ward-payment' })
 }
 </script>
