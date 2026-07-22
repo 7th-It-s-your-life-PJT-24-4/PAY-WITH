@@ -28,7 +28,13 @@ test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ 
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/ward/transfer')
 
-  await page.getByRole('button', { name: '박지연 연락처 추가' }).click()
+  const addContactButton = page.getByRole('button', {
+    name: '박지연 연락처 추가',
+  })
+  await expect(addContactButton).toContainText('연락처 추가')
+  const buttonBox = await addContactButton.boundingBox()
+  expect(buttonBox?.height).toBeGreaterThanOrEqual(48)
+  await addContactButton.click()
 
   const dialog = page.getByRole('dialog', { name: '연락처 추가' })
   await expect(dialog).toBeVisible()

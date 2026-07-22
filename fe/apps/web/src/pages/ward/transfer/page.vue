@@ -88,14 +88,14 @@ function selectRecipient(recipient: TransferRecipient) {
 
     <section aria-labelledby="recent-transfer-title">
       <h3 id="recent-transfer-title" class="type-h4 mb-md">최근 보낸 사람</h3>
-      <div class="flex gap-md overflow-x-auto pb-xs">
+      <div class="flex snap-x gap-md overflow-x-auto pb-xs">
         <div
           v-for="recipient in recipients.slice(0, 4)"
           :key="recipient.id"
-          class="relative flex w-20 shrink-0 flex-col items-center gap-xs"
+          class="flex w-32 shrink-0 snap-start flex-col items-center gap-sm"
         >
           <button
-            class="flex flex-col items-center gap-xs"
+            class="flex w-full flex-col items-center gap-xs rounded-medium outline-none focus-visible:ring-2 focus-visible:ring-focus"
             type="button"
             :aria-label="`${recipient.name}에게 송금`"
             @click="selectRecipient(recipient)"
@@ -109,13 +109,15 @@ function selectRecipient(recipient: TransferRecipient) {
           </button>
           <button
             v-if="!isContact(recipient)"
-            class="type-caption absolute right-0 top-14 flex size-8 items-center justify-center rounded-full border-2 border-surface-card bg-primary-500 text-on-action shadow-card"
+            class="type-h4 flex min-h-touch-target w-full items-center justify-center gap-xs rounded-full border-2 border-primary-500 bg-surface-card px-sm text-primary-500 outline-none focus-visible:ring-2 focus-visible:ring-focus"
             type="button"
             :aria-label="`${recipient.name} 연락처 추가`"
             @click="openContactModal(recipient)"
           >
-            <span class="text-xl leading-none" aria-hidden="true">+</span>
+            <span class="type-h2 leading-none" aria-hidden="true">+</span>
+            <span>연락처 추가</span>
           </button>
+          <span v-else class="min-h-touch-target" aria-hidden="true" />
         </div>
       </div>
     </section>
