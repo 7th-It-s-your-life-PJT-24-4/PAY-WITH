@@ -1,5 +1,29 @@
 import { expect, test } from '@playwright/test'
 
+test('모달이 열려도 고정 헤더와 하단 내비게이션 위치를 유지한다', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 844 })
+  await page.goto('/ward/transfer')
+
+  const header = page.locator('header')
+  const main = page.locator('main')
+  const navigation = page.locator('nav[aria-label="시니어 주요 기능"]')
+  const headerBefore = await header.boundingBox()
+  const mainBefore = await main.boundingBox()
+  const navigationBefore = await navigation.boundingBox()
+
+  await page.getByRole('button', { name: '박지연 연락처 추가' }).click()
+  await expect(page.getByRole('dialog', { name: '연락처 추가' })).toBeVisible()
+
+  const headerAfter = await header.boundingBox()
+  const mainAfter = await main.boundingBox()
+  const navigationAfter = await navigation.boundingBox()
+  expect(headerAfter?.x).toBeCloseTo(headerBefore?.x ?? 0, 1)
+  expect(mainAfter?.x).toBeCloseTo(mainBefore?.x ?? 0, 1)
+  expect(navigationAfter?.x).toBeCloseTo(navigationBefore?.x ?? 0, 1)
+})
+
 test('계좌번호로 은행을 찾고 계좌를 확인한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/ward/transfer/account')
