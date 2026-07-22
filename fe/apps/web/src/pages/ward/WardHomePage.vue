@@ -23,7 +23,9 @@ function goBack() {
     >
       <AppHeader title="PayWith" show-back show-profile @back="goBack" />
 
-      <main class="flex flex-1 flex-col gap-xl px-mobile-gutter py-xl">
+      <main
+        class="flex flex-1 flex-col gap-xl px-mobile-gutter pb-[calc(var(--spacing-bottom-nav)+var(--spacing-section)+var(--spacing-xl)+env(safe-area-inset-bottom))] pt-xl"
+      >
         <section aria-labelledby="ward-welcome-title">
           <p class="type-body-medium text-body-secondary">환영합니다</p>
           <h1 id="ward-welcome-title" class="type-h1 mt-xs text-body">

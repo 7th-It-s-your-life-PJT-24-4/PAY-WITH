@@ -31,12 +31,16 @@ function handleNavigate(value: string) {
 </script>
 
 <template>
-  <BottomNavigation
-    :items="items"
-    :active="active"
-    variant="ward"
-    center-action-value="payment"
-    aria-label="시니어 주요 기능"
-    @navigate="handleNavigate"
-  />
+  <div
+    class="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[390px] bg-surface-card pb-[env(safe-area-inset-bottom)]"
+  >
+    <BottomNavigation
+      :items="items"
+      :active="active"
+      variant="ward"
+      center-action-value="payment"
+      aria-label="시니어 주요 기능"
+      @navigate="handleNavigate"
+    />
+  </div>
 </template>
