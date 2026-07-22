@@ -5,6 +5,7 @@ import WardBalanceCard from '@/pages/ward/-components/WardBalanceCard.vue'
 
 const wardName = '김시니어'
 const balance = '100,000'
+const isWalletLocked = false
 const actions = ['송금하기', '충전하기', '결제하기', '내역 조회']
 </script>
 
@@ -18,7 +19,7 @@ const actions = ['송금하기', '충전하기', '결제하기', '내역 조회'
       </h1>
     </section>
 
-    <WardBalanceCard :balance="balance" />
+    <WardBalanceCard :balance="balance" :locked="isWalletLocked" />
 
     <section class="grid gap-md" aria-label="홈 주요 기능">
       <Button
