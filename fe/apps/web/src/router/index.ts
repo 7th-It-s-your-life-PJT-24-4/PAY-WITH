@@ -2,26 +2,24 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import WardLayout from '@/pages/ward/layout.vue'
 import WardPage from '@/pages/ward/page.vue'
-import WardHomePage from '@/pages/ward/WardHomePage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/',
+      path: '/ward',
       component: WardLayout,
       children: [
         {
-          path: '',
-          name: 'home',
+          path: 'home',
+          name: 'ward-home',
           component: WardPage,
         },
       ],
     },
     {
-      path: '/ward/home',
-      name: 'ward-home',
-      component: WardHomePage,
+      path: '/',
+      redirect: '/ward/home',
     },
   ],
 })

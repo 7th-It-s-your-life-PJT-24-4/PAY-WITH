@@ -17,9 +17,7 @@ defineProps<{
         나의 잔액
       </h2>
       <p class="mt-sm flex items-baseline gap-xs text-body">
-        <strong class="type-amount">
-          {{ balance }}
-        </strong>
+        <strong class="type-amount">{{ balance }}</strong>
         <span class="type-h2 font-medium">원</span>
       </p>
     </div>

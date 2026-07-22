@@ -12,10 +12,7 @@ withDefaults(
   },
 )
 
-const items: Array<{
-  label: string
-  value: WardNavigationValue
-}> = [
+const items: Array<{ label: string; value: WardNavigationValue }> = [
   { label: '송금', value: 'transfer' },
   { label: '결제', value: 'payment' },
   { label: '내역', value: 'history' },
