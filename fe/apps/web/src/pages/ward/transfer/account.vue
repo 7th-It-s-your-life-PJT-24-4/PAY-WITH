@@ -20,9 +20,15 @@ const transferStore = useTransferStore()
     </section>
 
     <div
-      class="type-numeric-input-large min-h-[68px] rounded-large border border-border-strong bg-surface-card px-xl py-md text-body"
+      class="flex h-[72px] shrink-0 items-center rounded-large border border-border-strong bg-surface-card px-xl"
     >
-      {{ transferStore.accountNumber || '숫자만 입력' }}
+      <span
+        v-if="transferStore.accountNumber"
+        class="type-numeric-input-large font-number text-body"
+      >
+        {{ transferStore.accountNumber }}
+      </span>
+      <span v-else class="type-h3 text-body-muted">숫자만 입력</span>
     </div>
 
     <NumericKeypad
