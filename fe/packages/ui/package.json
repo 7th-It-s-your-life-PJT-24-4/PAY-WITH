@@ -8,6 +8,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./svg/kakao-logo.svg": "./src/svg/kakao-logo.svg",
     "./theme.css": "./src/styles/theme.css"
   },
   "files": [

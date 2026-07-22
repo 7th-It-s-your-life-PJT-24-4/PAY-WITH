@@ -58,7 +58,7 @@ function updateValue(event: Event) {
             : 'type-numeric-input'
           : large
             ? 'type-h3'
-            : 'type-h4',
+            : 'text-[16px] font-normal leading-[1.2] tracking-[-0.32px]',
         error
           ? 'border-error focus:border-error focus:ring-error/20'
           : 'border-border-strong',
