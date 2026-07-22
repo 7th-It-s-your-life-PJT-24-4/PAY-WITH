@@ -1,6 +1,11 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
+import {
+  confirmMockTransferStatus,
+  submitMockTransfer,
+} from '@/mocks/transfer.mock'
+
 export interface TransferRecipient {
   id: number
   name: string
@@ -10,6 +15,8 @@ export interface TransferRecipient {
 }
 
 const initialBalance = 1_250_000
+export type TransferProcessingStatus =
+  'idle' | 'pending' | 'unknown' | 'success' | 'error'
 
 export const useTransferStore = defineStore('transfer', () => {
   const recipient = ref<TransferRecipient | null>(null)
@@ -18,6 +25,9 @@ export const useTransferStore = defineStore('transfer', () => {
   const amount = ref(0)
   const memo = ref('')
   const balance = ref(initialBalance)
+  const bankCandidates = ref<string[]>([])
+  const processingStatus = ref<TransferProcessingStatus>('idle')
+  const processingError = ref('')
 
   const remainingBalance = computed(() => balance.value - amount.value)
   const canTransfer = computed(
@@ -41,6 +51,32 @@ export const useTransferStore = defineStore('transfer', () => {
       bank: selectedBank,
       accountNumber: accountNumber.value,
     }
+  }
+
+  function setBankCandidates(value: string[]) {
+    bankCandidates.value = value
+  }
+
+  function setVerifiedRecipient(name: string, selectedBank: string) {
+    selectManualRecipient(selectedBank)
+    if (recipient.value) recipient.value.name = name
+  }
+
+  async function beginMockTransfer(pin: string) {
+    processingStatus.value = 'pending'
+    processingError.value = ''
+    try {
+      processingStatus.value = await submitMockTransfer(pin)
+    } catch (error) {
+      processingStatus.value = 'error'
+      processingError.value =
+        error instanceof Error ? error.message : '송금을 완료하지 못했어요.'
+    }
+  }
+
+  async function confirmMockStatus() {
+    processingStatus.value = 'pending'
+    processingStatus.value = await confirmMockTransferStatus()
   }
 
   function appendAccountDigit(value: string) {
@@ -71,6 +107,9 @@ export const useTransferStore = defineStore('transfer', () => {
     amount.value = 0
     memo.value = ''
     balance.value = initialBalance
+    bankCandidates.value = []
+    processingStatus.value = 'idle'
+    processingError.value = ''
   }
 
   return {
@@ -80,10 +119,17 @@ export const useTransferStore = defineStore('transfer', () => {
     amount,
     memo,
     balance,
+    bankCandidates,
+    processingStatus,
+    processingError,
     remainingBalance,
     canTransfer,
     selectRecipient,
     selectManualRecipient,
+    setBankCandidates,
+    setVerifiedRecipient,
+    beginMockTransfer,
+    confirmMockStatus,
     appendAccountDigit,
     removeAccountDigit,
     appendAmountDigit,

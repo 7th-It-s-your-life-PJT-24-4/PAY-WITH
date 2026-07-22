@@ -1,11 +1,12 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useTransferStore } from '@/stores/transfer.store'
 
 describe('transfer store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.useRealTimers()
   })
 
   it('선택한 수취인의 계좌 정보를 저장한다', () => {
@@ -59,5 +60,18 @@ describe('transfer store', () => {
     expect(store.amount).toBe(0)
     expect(store.memo).toBe('')
     expect(store.balance).toBe(1_250_000)
+  })
+
+  it('비밀번호 입력 후 Mock 송금 처리 상태를 갱신한다', async () => {
+    vi.useFakeTimers()
+    const store = useTransferStore()
+
+    const request = store.beginMockTransfer('123456')
+
+    expect(store.processingStatus).toBe('pending')
+    await vi.advanceTimersByTimeAsync(500)
+    await request
+
+    expect(store.processingStatus).toBe('success')
   })
 })

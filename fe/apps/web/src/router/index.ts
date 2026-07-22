@@ -17,6 +17,7 @@ import WardTransferCompletePage from '@/pages/ward/transfer/complete.vue'
 import WardTransferConfirmPage from '@/pages/ward/transfer/confirm.vue'
 import WardTransferPage from '@/pages/ward/transfer/page.vue'
 import WardTransferPasswordPage from '@/pages/ward/transfer/password.vue'
+import WardTransferProcessingPage from '@/pages/ward/transfer/processing.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -130,6 +131,16 @@ const router = createRouter({
           component: WardTransferPasswordPage,
           meta: {
             title: '비밀번호 입력',
+            activeNavigation: 'transfer',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'transfer/processing',
+          name: 'ward-transfer-processing',
+          component: WardTransferProcessingPage,
+          meta: {
+            title: '송금 처리',
             activeNavigation: 'transfer',
             showBottomNavigation: false,
           },

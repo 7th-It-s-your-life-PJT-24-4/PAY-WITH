@@ -3,12 +3,15 @@ import { Button } from '@pay-with/ui'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { validateMockTransferAccount } from '@/mocks/transfer.mock'
+import TransferErrorModal from '@/pages/ward/transfer/-components/TransferErrorModal.vue'
+import TransferLoadingModal from '@/pages/ward/transfer/-components/TransferLoadingModal.vue'
 import { useTransferStore } from '@/stores/transfer.store'
 
 const router = useRouter()
 const transferStore = useTransferStore()
 const selectedBank = ref('')
-const banks = [
+const defaultBanks = [
   'KB국민은행',
   '우리은행',
   '하나은행',
@@ -16,10 +19,29 @@ const banks = [
   '신한은행',
   '카카오뱅크',
 ]
+const banks = transferStore.bankCandidates.length
+  ? transferStore.bankCandidates
+  : defaultBanks
+const isLoading = ref(false)
+const errorMessage = ref('')
 
-function proceed() {
-  transferStore.selectManualRecipient(selectedBank.value)
-  router.push({ name: 'ward-transfer-amount' })
+async function proceed() {
+  if (!selectedBank.value || isLoading.value) return
+  isLoading.value = true
+  errorMessage.value = ''
+  try {
+    const account = await validateMockTransferAccount(
+      selectedBank.value,
+      transferStore.accountNumber,
+    )
+    transferStore.setVerifiedRecipient(account.recipientName, account.bank)
+    await router.push({ name: 'ward-transfer-amount' })
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : '계좌를 확인하지 못했습니다.'
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -51,6 +73,7 @@ function proceed() {
             : 'border-border'
         "
         type="button"
+        :disabled="isLoading"
         @click="selectedBank = bankName"
       >
         <span
@@ -65,10 +88,22 @@ function proceed() {
 
     <Button
       class="w-full"
-      label="다음으로"
       size="large"
-      :disabled="!selectedBank"
+      :label="isLoading ? '계좌 확인 중' : '다음으로'"
+      :disabled="!selectedBank || isLoading"
       @click="proceed"
+    />
+
+    <TransferLoadingModal
+      :open="isLoading"
+      title="계좌를 확인하고 있습니다"
+      description="선택한 은행과 계좌번호를 확인하고 있습니다."
+    />
+    <TransferErrorModal
+      :open="Boolean(errorMessage)"
+      :description="errorMessage"
+      @retry="proceed"
+      @cancel="errorMessage = ''"
     />
   </div>
 </template>

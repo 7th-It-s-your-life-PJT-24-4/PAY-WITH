@@ -1,5 +1,29 @@
 import { expect, test } from '@playwright/test'
 
+test('계좌번호로 은행을 찾고 계좌를 확인한다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/ward/transfer/account')
+
+  for (const digit of '12345678') {
+    await page.getByRole('button', { name: digit, exact: true }).click()
+  }
+  await page.getByRole('button', { name: '다음으로' }).click()
+
+  await expect(
+    page.getByRole('dialog', { name: '은행을 찾고 있습니다' }),
+  ).toBeVisible()
+  await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
+
+  await page.getByRole('button', { name: /하나은행/ }).click()
+  await page.getByRole('button', { name: '다음으로' }).click()
+
+  await expect(
+    page.getByRole('dialog', { name: '계좌를 확인하고 있습니다' }),
+  ).toBeVisible()
+  await expect(page).toHaveURL(/\/ward\/transfer\/amount$/)
+  await expect(page.getByText('김준호')).toBeVisible()
+})
+
 test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/ward/transfer')
@@ -55,6 +79,7 @@ test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다',
     await page.getByRole('button', { name: digit, exact: true }).click()
   }
 
+  await expect(page.getByText('안전하게 송금하고 있습니다')).toBeVisible()
   await expect(page.getByRole('heading', { name: '송금 완료' })).toBeVisible()
   await expect(page.getByText('김민수')).toBeVisible()
 

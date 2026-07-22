@@ -3,15 +3,20 @@ import { NumericKeypad } from '@pay-with/ui'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { useTransferStore } from '@/stores/transfer.store'
+
 const router = useRouter()
+const transferStore = useTransferStore()
 const pin = ref('')
 const pinLength = 6
 
 function input(value: string) {
   if (pin.value.length >= pinLength) return
   pin.value += value
-  if (pin.value.length === pinLength)
-    router.push({ name: 'ward-transfer-complete' })
+  if (pin.value.length === pinLength) {
+    void transferStore.beginMockTransfer(pin.value)
+    router.push({ name: 'ward-transfer-processing' })
+  }
 }
 </script>
 
@@ -19,7 +24,7 @@ function input(value: string) {
   <div
     class="flex min-h-[calc(100vh-var(--spacing-header)-var(--spacing-xl))] flex-col"
   >
-    <h2 class="type-h1 text-center">비밀번호를<br />입력해주세요</h2>
+    <h2 class="type-h1 text-center">비밀번호를<br />입력해 주세요</h2>
     <div
       class="mt-16 flex justify-center gap-md"
       role="status"
