@@ -153,6 +153,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@pay-with/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@tanstack/vue-query':
         specifier: 'catalog:'
         version: 5.101.2(vue@3.5.39(typescript@6.0.3))

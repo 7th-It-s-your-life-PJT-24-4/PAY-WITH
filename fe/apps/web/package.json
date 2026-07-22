@@ -12,6 +12,7 @@
     "lint": "eslint . --fix && prettier . --write --ignore-path ../../.prettierignore"
   },
   "dependencies": {
+    "@pay-with/ui": "workspace:*",
     "@tanstack/vue-query": "catalog:",
     "ky": "catalog:",
     "pinia": "catalog:",
