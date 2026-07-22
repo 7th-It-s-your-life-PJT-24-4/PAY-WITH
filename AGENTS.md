@@ -129,7 +129,7 @@ pnpm test:e2e
 ### FE 폴더와 네이밍
 
 - Vue 컴포넌트: `fe/apps/web/src/components/PascalName.vue`
-- 페이지 컴포넌트: `fe/apps/web/src/pages/PascalNamePage.vue`
+- 페이지 컴포넌트: 역할별 페이지 구조는 `fe/AGENTS.md`를 따른다.
 - Composable 및 Query 훅: `fe/apps/web/src/composables/useThing.ts`, `useThingQuery.ts`, `useThingMutation.ts`
 - Pinia store: `fe/apps/web/src/stores/thing.store.ts`, export는 `useThingStore`
 - API 모듈: `fe/apps/web/src/api/<resources>.ts`
