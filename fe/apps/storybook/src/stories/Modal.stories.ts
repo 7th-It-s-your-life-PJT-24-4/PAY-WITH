@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { UiButton, UiInput, UiModal } from '@pay-with/ui'
+import { Button, Input, Modal } from '@pay-with/ui'
 import { ref } from 'vue'
 
 const meta = {
-  title: 'Components/UiModal',
-  component: UiModal,
+  title: 'Components/Modal',
+  component: Modal,
   args: {
     open: true,
     size: 'large',
@@ -15,29 +15,29 @@ const meta = {
   parameters: {
     layout: 'fullscreen',
   },
-} satisfies Meta<typeof UiModal>
+} satisfies Meta<typeof Modal>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
 export const Information: Story = {
   render: (args) => ({
-    components: { UiButton, UiModal },
+    components: { Button, Modal },
     setup() {
       const open = ref(args.open)
       return { args, open }
     },
     template: `
       <div class="flex min-h-screen items-center justify-center bg-background">
-        <UiButton label="모달 열기" @click="open = true" />
-        <UiModal v-bind="args" v-model:open="open" icon-tone="error">
+        <Button label="모달 열기" @click="open = true" />
+        <Modal v-bind="args" v-model:open="open" icon-tone="error">
           <template #icon>
             <span class="type-h1" aria-hidden="true">!</span>
           </template>
           <template #actions="{ buttonSize, close }">
-            <UiButton class="w-full" label="확인" :size="buttonSize" pill @click="close" />
+            <Button class="w-full" label="확인" :size="buttonSize" pill @click="close" />
           </template>
-        </UiModal>
+        </Modal>
       </div>
     `,
   }),
@@ -52,25 +52,25 @@ export const Confirmation: Story = {
     iconTone: 'success',
   },
   render: (args) => ({
-    components: { UiButton, UiModal },
+    components: { Button, Modal },
     setup() {
       const open = ref(args.open)
       return { args, open }
     },
     template: `
       <div class="flex min-h-screen items-center justify-center bg-background">
-        <UiButton label="모달 열기" @click="open = true" />
-        <UiModal v-bind="args" v-model:open="open">
+        <Button label="모달 열기" @click="open = true" />
+        <Modal v-bind="args" v-model:open="open">
           <template #icon>
             <span class="type-h2" aria-hidden="true">✓</span>
           </template>
           <template #actions="{ buttonSize, close }">
             <div class="grid grid-cols-2 gap-sm">
-              <UiButton class="w-full" label="아니오" :size="buttonSize" variant="outline-primary" pill @click="close" />
-              <UiButton class="w-full" label="예" :size="buttonSize" pill @click="close" />
+              <Button class="w-full" label="아니오" :size="buttonSize" variant="outline-primary" pill @click="close" />
+              <Button class="w-full" label="예" :size="buttonSize" pill @click="close" />
             </div>
           </template>
-        </UiModal>
+        </Modal>
       </div>
     `,
   }),
@@ -83,7 +83,7 @@ export const Form: Story = {
     description: '아래 계좌를 연락처에 추가할까요?',
   },
   render: (args) => ({
-    components: { UiButton, UiInput, UiModal },
+    components: { Button, Input, Modal },
     setup() {
       const open = ref(args.open)
       const alias = ref('')
@@ -91,8 +91,8 @@ export const Form: Story = {
     },
     template: `
       <div class="flex min-h-screen items-center justify-center bg-background">
-        <UiButton label="모달 열기" @click="open = true" />
-        <UiModal v-bind="args" v-model:open="open">
+        <Button label="모달 열기" @click="open = true" />
+        <Modal v-bind="args" v-model:open="open">
           <template #icon>
             <span class="type-h1" aria-hidden="true">+</span>
           </template>
@@ -100,7 +100,7 @@ export const Form: Story = {
             <p class="type-h2 text-body">홍길동</p>
             <p class="type-h3 mt-xs text-body-muted">우리은행 1002-123-456789</p>
           </div>
-          <UiInput
+          <Input
             v-model="alias"
             label="연락처 별칭"
             placeholder="연락처 별칭 입력(선택)"
@@ -108,11 +108,11 @@ export const Form: Story = {
           />
           <template #actions="{ buttonSize, close }">
             <div class="flex flex-col gap-md">
-              <UiButton class="w-full" label="추가하기" :size="buttonSize" pill @click="close" />
-              <UiButton class="w-full" label="취소" :size="buttonSize" variant="outline-primary" pill @click="close" />
+              <Button class="w-full" label="추가하기" :size="buttonSize" pill @click="close" />
+              <Button class="w-full" label="취소" :size="buttonSize" variant="outline-primary" pill @click="close" />
             </div>
           </template>
-        </UiModal>
+        </Modal>
       </div>
     `,
   }),

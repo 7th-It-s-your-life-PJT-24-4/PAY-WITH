@@ -1,11 +1,11 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import UiButton from '@/components/UiButton.vue'
+import Button from '@/components/Button.vue'
 
-describe('UiButton', () => {
+describe('Button', () => {
   it('renders the provided label and forwards clicks', async () => {
-    const wrapper = mount(UiButton, {
+    const wrapper = mount(Button, {
       props: {
         label: 'Continue',
       },
@@ -19,7 +19,7 @@ describe('UiButton', () => {
   })
 
   it('sets the native disabled state', () => {
-    const wrapper = mount(UiButton, {
+    const wrapper = mount(Button, {
       props: {
         disabled: true,
         label: 'Continue',
@@ -30,7 +30,7 @@ describe('UiButton', () => {
   })
 
   it('renders decorative icons before and after the label', () => {
-    const wrapper = mount(UiButton, {
+    const wrapper = mount(Button, {
       props: {
         label: 'Continue',
       },

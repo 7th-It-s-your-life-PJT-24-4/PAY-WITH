@@ -1,16 +1,16 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import UiAppHeader from '@/components/UiAppHeader.vue'
-import UiBadge from '@/components/UiBadge.vue'
-import UiBottomNavigation from '@/components/UiBottomNavigation.vue'
-import UiInput from '@/components/UiInput.vue'
-import UiNumericKeypad from '@/components/UiNumericKeypad.vue'
-import UiTabs from '@/components/UiTabs.vue'
+import AppHeader from '@/components/AppHeader.vue'
+import Badge from '@/components/Badge.vue'
+import BottomNavigation from '@/components/BottomNavigation.vue'
+import Input from '@/components/Input.vue'
+import NumericKeypad from '@/components/NumericKeypad.vue'
+import Tabs from '@/components/Tabs.vue'
 
-describe('UiInput', () => {
+describe('Input', () => {
   it('connects its label and emits input updates', async () => {
-    const wrapper = mount(UiInput, {
+    const wrapper = mount(Input, {
       props: {
         label: '이름',
         modelValue: '',
@@ -26,7 +26,7 @@ describe('UiInput', () => {
   })
 
   it('exposes an error to assistive technology', () => {
-    const wrapper = mount(UiInput, {
+    const wrapper = mount(Input, {
       props: {
         error: '필수 입력값입니다.',
         label: '이름',
@@ -38,9 +38,9 @@ describe('UiInput', () => {
   })
 })
 
-describe('UiBadge', () => {
+describe('Badge', () => {
   it('renders the semantic status label', () => {
-    const wrapper = mount(UiBadge, {
+    const wrapper = mount(Badge, {
       props: { label: 'Safe', status: 'safe' },
     })
 
@@ -49,9 +49,9 @@ describe('UiBadge', () => {
   })
 })
 
-describe('UiTabs', () => {
+describe('Tabs', () => {
   it('emits the selected tab value', async () => {
-    const wrapper = mount(UiTabs, {
+    const wrapper = mount(Tabs, {
       props: {
         ariaLabel: '거래 필터',
         items: [
@@ -70,9 +70,9 @@ describe('UiTabs', () => {
   })
 })
 
-describe('UiAppHeader', () => {
+describe('AppHeader', () => {
   it('emits navigation actions', async () => {
-    const wrapper = mount(UiAppHeader, {
+    const wrapper = mount(AppHeader, {
       props: { title: 'PayWith', showBack: true, showProfile: true },
     })
 
@@ -84,9 +84,9 @@ describe('UiAppHeader', () => {
   })
 })
 
-describe('UiBottomNavigation', () => {
+describe('BottomNavigation', () => {
   it('marks the active item and emits navigation', async () => {
-    const wrapper = mount(UiBottomNavigation, {
+    const wrapper = mount(BottomNavigation, {
       props: {
         active: 'home',
         items: [
@@ -103,9 +103,9 @@ describe('UiBottomNavigation', () => {
   })
 })
 
-describe('UiNumericKeypad', () => {
+describe('NumericKeypad', () => {
   it('emits number, cancel, and backspace actions', async () => {
-    const wrapper = mount(UiNumericKeypad)
+    const wrapper = mount(NumericKeypad)
 
     await wrapper.get('[aria-label="1"]').trigger('click')
     await wrapper.get('button:nth-of-type(10)').trigger('click')

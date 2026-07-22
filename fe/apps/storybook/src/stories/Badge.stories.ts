@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { UiBadge } from '@pay-with/ui'
+import { Badge } from '@pay-with/ui'
 
 const meta = {
-  title: 'Components/UiBadge',
-  component: UiBadge,
+  title: 'Components/Badge',
+  component: Badge,
   args: {
     label: 'Success',
     status: 'success',
@@ -14,7 +14,7 @@ const meta = {
       options: ['success', 'warning', 'error', 'safe'],
     },
   },
-} satisfies Meta<typeof UiBadge>
+} satisfies Meta<typeof Badge>
 
 export default meta
 type Story = StoryObj<typeof meta>

@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { UiNumericKeypad } from '@pay-with/ui'
+import { NumericKeypad } from '@pay-with/ui'
 
 const meta = {
-  title: 'Components/UiNumericKeypad',
-  component: UiNumericKeypad,
+  title: 'Components/NumericKeypad',
+  component: NumericKeypad,
   args: {
     cancelLabel: '취소',
   },
-} satisfies Meta<typeof UiNumericKeypad>
+} satisfies Meta<typeof NumericKeypad>
 
 export default meta
 type Story = StoryObj<typeof meta>

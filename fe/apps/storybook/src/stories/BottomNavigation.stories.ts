@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { UiBottomNavigation } from '@pay-with/ui'
+import { BottomNavigation } from '@pay-with/ui'
 
 const guardianItems = [
   { value: 'home', label: '홈' },
@@ -15,8 +15,8 @@ const wardItems = [
 ]
 
 const meta = {
-  title: 'Components/UiBottomNavigation',
-  component: UiBottomNavigation,
+  title: 'Components/BottomNavigation',
+  component: BottomNavigation,
   args: {
     active: 'home',
     items: guardianItems,
@@ -28,15 +28,15 @@ const meta = {
     }),
   ],
   render: (args) => ({
-    components: { UiBottomNavigation },
+    components: { BottomNavigation },
     setup: () => ({ args }),
     template: `
-      <UiBottomNavigation v-bind="args">
+      <BottomNavigation v-bind="args">
         <template #icon>●</template>
-      </UiBottomNavigation>
+      </BottomNavigation>
     `,
   }),
-} satisfies Meta<typeof UiBottomNavigation>
+} satisfies Meta<typeof BottomNavigation>
 
 export default meta
 type Story = StoryObj<typeof meta>

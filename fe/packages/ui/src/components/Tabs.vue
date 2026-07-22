@@ -2,14 +2,14 @@
 import { TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { computed, ref, watch } from 'vue'
 
-interface UiTabItem {
+interface TabItem {
   value: string
   label: string
   disabled?: boolean
 }
 
 const props = defineProps<{
-  items: UiTabItem[]
+  items: TabItem[]
   modelValue?: string
   ariaLabel: string
 }>()

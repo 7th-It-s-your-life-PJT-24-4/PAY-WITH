@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 
-interface UiNavigationItem {
+interface NavigationItem {
   value: string
   label: string
   icon?: Component
@@ -9,7 +9,7 @@ interface UiNavigationItem {
 
 withDefaults(
   defineProps<{
-    items: UiNavigationItem[]
+    items: NavigationItem[]
     active: string
     variant?: 'guardian' | 'ward'
     centerActionValue?: string

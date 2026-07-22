@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { UiInput } from '@pay-with/ui'
+import { Input } from '@pay-with/ui'
 
 const meta = {
-  title: 'Components/UiInput',
-  component: UiInput,
+  title: 'Components/Input',
+  component: Input,
   args: {
     label: '이름',
     modelValue: '',
@@ -14,7 +14,7 @@ const meta = {
       template: '<div class="w-[320px]"><story /></div>',
     }),
   ],
-} satisfies Meta<typeof UiInput>
+} satisfies Meta<typeof Input>
 
 export default meta
 type Story = StoryObj<typeof meta>

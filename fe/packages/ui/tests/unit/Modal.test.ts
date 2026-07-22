@@ -2,7 +2,7 @@ import { mount, type VueWrapper } from '@vue/test-utils'
 import { h, nextTick } from 'vue'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import UiModal from '@/components/UiModal.vue'
+import Modal from '@/components/Modal.vue'
 
 const wrappers: VueWrapper[] = []
 
@@ -11,10 +11,8 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-function mountModal(
-  props: Partial<InstanceType<typeof UiModal>['$props']> = {},
-) {
-  const wrapper = mount(UiModal, {
+function mountModal(props: Partial<InstanceType<typeof Modal>['$props']> = {}) {
+  const wrapper = mount(Modal, {
     attachTo: document.body,
     props: {
       open: true,
@@ -30,7 +28,7 @@ function mountModal(
   return wrapper
 }
 
-describe('UiModal', () => {
+describe('Modal', () => {
   it('renders an accessible dialog title and description', async () => {
     mountModal()
     await nextTick()
@@ -76,7 +74,7 @@ describe('UiModal', () => {
   })
 
   it('provides a close action to the actions slot', async () => {
-    const wrapper = mount(UiModal, {
+    const wrapper = mount(Modal, {
       attachTo: document.body,
       props: { open: true, title: '확인' },
       slots: {
@@ -95,7 +93,7 @@ describe('UiModal', () => {
   })
 
   it('provides the large button size to senior modal actions', async () => {
-    const wrapper = mount(UiModal, {
+    const wrapper = mount(Modal, {
       attachTo: document.body,
       props: { open: true, title: '연락처 추가', size: 'large' },
       slots: {

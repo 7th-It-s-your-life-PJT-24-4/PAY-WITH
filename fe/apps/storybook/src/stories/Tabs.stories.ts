@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { UiTabs } from '@pay-with/ui'
+import { Tabs } from '@pay-with/ui'
 
 const items = [
   { value: 'all', label: '전체' },
@@ -9,14 +9,14 @@ const items = [
 ]
 
 const meta = {
-  title: 'Components/UiTabs',
-  component: UiTabs,
+  title: 'Components/Tabs',
+  component: Tabs,
   args: {
     ariaLabel: '거래 유형 필터',
     items,
     modelValue: 'all',
   },
-} satisfies Meta<typeof UiTabs>
+} satisfies Meta<typeof Tabs>
 
 export default meta
 type Story = StoryObj<typeof meta>

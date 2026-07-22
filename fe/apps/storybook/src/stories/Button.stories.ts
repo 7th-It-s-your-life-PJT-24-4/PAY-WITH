@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { UiButton } from '@pay-with/ui'
+import { Button } from '@pay-with/ui'
 
 const meta = {
-  title: 'Components/UiButton',
-  component: UiButton,
+  title: 'Components/Button',
+  component: Button,
   args: {
     label: 'Continue',
   },
@@ -24,7 +24,7 @@ const meta = {
       options: ['small', 'default', 'large'],
     },
   },
-} satisfies Meta<typeof UiButton>
+} satisfies Meta<typeof Button>
 
 export default meta
 type Story = StoryObj<typeof meta>
@@ -65,16 +65,16 @@ export const LeadingIcon: Story = {
     pill: true,
   },
   render: (args) => ({
-    components: { UiButton },
+    components: { Button },
     setup: () => ({ args }),
     template: `
-      <UiButton v-bind="args">
+      <Button v-bind="args">
         <template #leading>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
         </template>
-      </UiButton>
+      </Button>
     `,
   }),
 }
@@ -86,16 +86,16 @@ export const TrailingIcon: Story = {
     pill: true,
   },
   render: (args) => ({
-    components: { UiButton },
+    components: { Button },
     setup: () => ({ args }),
     template: `
-      <UiButton v-bind="args">
+      <Button v-bind="args">
         <template #trailing>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
         </template>
-      </UiButton>
+      </Button>
     `,
   }),
 }

@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { UiAppHeader } from '@pay-with/ui'
+import { AppHeader } from '@pay-with/ui'
 
 const meta = {
-  title: 'Components/UiAppHeader',
-  component: UiAppHeader,
+  title: 'Components/AppHeader',
+  component: AppHeader,
   args: {
     title: 'PayWith',
     showBack: true,
@@ -14,7 +14,7 @@ const meta = {
       template: '<div class="w-[390px]"><story /></div>',
     }),
   ],
-} satisfies Meta<typeof UiAppHeader>
+} satisfies Meta<typeof AppHeader>
 
 export default meta
 type Story = StoryObj<typeof meta>
