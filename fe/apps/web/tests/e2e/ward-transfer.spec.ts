@@ -1,5 +1,25 @@
 import { expect, test } from '@playwright/test'
 
+test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/ward/transfer')
+
+  await page.getByRole('button', { name: '박지연 연락처 추가' }).click()
+
+  const dialog = page.getByRole('dialog', { name: '연락처 추가' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText('신한은행 110-234-567890')).toBeVisible()
+
+  await dialog.getByLabel('연락처 별칭').fill('지연 이모')
+  await dialog.getByRole('button', { name: '추가하기' }).click()
+
+  await expect(dialog).toBeHidden()
+  await expect(page.getByText('지연 이모')).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '박지연 연락처 추가' }),
+  ).toBeHidden()
+})
+
 test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/ward/home')

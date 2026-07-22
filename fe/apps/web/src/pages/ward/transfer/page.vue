@@ -3,6 +3,7 @@ import { Button, Input } from '@pay-with/ui'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import AddTransferContactModal from '@/pages/ward/transfer/-components/AddTransferContactModal.vue'
 import TransferRecipientCard from '@/pages/ward/transfer/-components/TransferRecipientCard.vue'
 import {
   useTransferStore,
@@ -12,6 +13,8 @@ import {
 const router = useRouter()
 const transferStore = useTransferStore()
 const search = ref('')
+const contactModalOpen = ref(false)
+const pendingContact = ref<TransferRecipient | null>(null)
 
 const recipients: TransferRecipient[] = [
   {
@@ -36,13 +39,37 @@ const recipients: TransferRecipient[] = [
   { id: 5, name: '정미숙', bank: '우리은행', accountNumber: '1002-456-234567' },
 ]
 
+const contacts = ref<TransferRecipient[]>(
+  recipients.filter((recipient) => recipient.id !== 2),
+)
+
 const filteredRecipients = computed(() => {
   const keyword = search.value.trim()
-  if (!keyword) return recipients
-  return recipients.filter((item) =>
+  if (!keyword) return contacts.value
+  return contacts.value.filter((item) =>
     `${item.name}${item.bank}${item.accountNumber}`.includes(keyword),
   )
 })
+
+function isContact(recipient: TransferRecipient) {
+  return contacts.value.some((contact) => contact.id === recipient.id)
+}
+
+function openContactModal(recipient: TransferRecipient) {
+  pendingContact.value = recipient
+  contactModalOpen.value = true
+}
+
+function addContact(alias: string) {
+  if (!pendingContact.value || isContact(pendingContact.value)) return
+
+  contacts.value.push({
+    ...pendingContact.value,
+    name: alias || pendingContact.value.name,
+  })
+  contactModalOpen.value = false
+  pendingContact.value = null
+}
 
 function selectRecipient(recipient: TransferRecipient) {
   transferStore.selectRecipient(recipient)
@@ -62,20 +89,34 @@ function selectRecipient(recipient: TransferRecipient) {
     <section aria-labelledby="recent-transfer-title">
       <h3 id="recent-transfer-title" class="type-h4 mb-md">최근 보낸 사람</h3>
       <div class="flex gap-md overflow-x-auto pb-xs">
-        <button
+        <div
           v-for="recipient in recipients.slice(0, 4)"
           :key="recipient.id"
-          class="flex w-20 shrink-0 flex-col items-center gap-xs"
-          type="button"
-          @click="selectRecipient(recipient)"
+          class="relative flex w-20 shrink-0 flex-col items-center gap-xs"
         >
-          <span
-            class="type-h2 flex size-20 items-center justify-center rounded-full border-2 border-primary-500 bg-surface-card"
+          <button
+            class="flex flex-col items-center gap-xs"
+            type="button"
+            :aria-label="`${recipient.name}에게 송금`"
+            @click="selectRecipient(recipient)"
           >
-            {{ recipient.name.slice(0, 1) }}
-          </span>
-          <span class="type-h4">{{ recipient.name }}</span>
-        </button>
+            <span
+              class="type-h2 flex size-20 items-center justify-center rounded-full border-2 border-primary-500 bg-surface-card"
+            >
+              {{ recipient.name.slice(0, 1) }}
+            </span>
+            <span class="type-h4">{{ recipient.name }}</span>
+          </button>
+          <button
+            v-if="!isContact(recipient)"
+            class="type-caption absolute right-0 top-14 flex size-8 items-center justify-center rounded-full border-2 border-surface-card bg-primary-500 text-on-action shadow-card"
+            type="button"
+            :aria-label="`${recipient.name} 연락처 추가`"
+            @click="openContactModal(recipient)"
+          >
+            <span class="text-xl leading-none" aria-hidden="true">+</span>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -104,5 +145,11 @@ function selectRecipient(recipient: TransferRecipient) {
         />
       </div>
     </section>
+
+    <AddTransferContactModal
+      v-model:open="contactModalOpen"
+      :recipient="pendingContact"
+      @confirm="addContact"
+    />
   </div>
 </template>
