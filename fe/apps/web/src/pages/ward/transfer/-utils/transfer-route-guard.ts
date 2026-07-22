@@ -4,6 +4,16 @@ import { useTransferStore } from '@/stores/transfer.store'
 
 const transferStart = { name: 'ward-transfer' }
 
+export const isValidTransferAccountNumber = (accountNumber: string) =>
+  /^\d{8,16}$/.test(accountNumber)
+
+export const requireTransferAccount: NavigationGuard = () => {
+  const store = useTransferStore()
+  return isValidTransferAccountNumber(store.accountNumber)
+    ? true
+    : { name: 'ward-transfer-account' }
+}
+
 export const requireTransferDraft: NavigationGuard = () => {
   const store = useTransferStore()
   return store.recipient && store.canTransfer ? true : transferStart

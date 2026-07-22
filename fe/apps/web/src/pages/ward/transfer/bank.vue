@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { Landmark } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { validateMockTransferAccount } from '@/mocks/transfer.mock'
 import TransferErrorModal from '@/pages/ward/transfer/-components/TransferErrorModal.vue'
 import TransferLoadingModal from '@/pages/ward/transfer/-components/TransferLoadingModal.vue'
+import { isValidTransferAccountNumber } from '@/pages/ward/transfer/-utils/transfer-route-guard'
 import { useTransferStore } from '@/stores/transfer.store'
 
 const router = useRouter()
@@ -25,9 +26,13 @@ const banks = transferStore.bankCandidates.length
   : defaultBanks
 const isLoading = ref(false)
 const errorMessage = ref('')
+const canValidateAccount = computed(() =>
+  isValidTransferAccountNumber(transferStore.accountNumber),
+)
 
 async function proceed() {
-  if (!selectedBank.value || isLoading.value) return
+  if (!canValidateAccount.value || !selectedBank.value || isLoading.value)
+    return
   isLoading.value = true
   errorMessage.value = ''
   try {
@@ -93,7 +98,7 @@ async function proceed() {
       class="w-full"
       size="large"
       :label="isLoading ? '계좌 확인 중' : '다음으로'"
-      :disabled="!selectedBank || isLoading"
+      :disabled="!canValidateAccount || !selectedBank || isLoading"
       @click="proceed"
     />
 

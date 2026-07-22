@@ -126,6 +126,9 @@ test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다',
 test('처리 상태 없이 민감한 송금 라우트에 직접 접근할 수 없다', async ({
   page,
 }) => {
+  await page.goto('/ward/transfer/bank')
+  await expect(page).toHaveURL(/\/ward\/transfer\/account$/)
+
   await page.goto('/ward/transfer/processing')
   await expect(page).toHaveURL(/\/ward\/transfer$/)
 

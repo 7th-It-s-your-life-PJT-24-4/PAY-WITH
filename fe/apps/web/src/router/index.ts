@@ -21,6 +21,7 @@ import WardTransferProcessingPage from '@/pages/ward/transfer/processing.vue'
 import {
   requireCompletedTransfer,
   requireProcessingTransfer,
+  requireTransferAccount,
   requireTransferDraft,
   requireTransferIntent,
   requireTransferRecipient,
@@ -106,6 +107,7 @@ const router = createRouter({
           path: 'transfer/bank',
           name: 'ward-transfer-bank',
           component: WardTransferBankPage,
+          beforeEnter: requireTransferAccount,
           meta: {
             title: '은행 선택',
             activeNavigation: 'transfer',
