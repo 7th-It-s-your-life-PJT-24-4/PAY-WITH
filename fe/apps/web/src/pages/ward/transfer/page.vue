@@ -128,7 +128,7 @@ function selectRecipient(recipient: TransferRecipient) {
     />
 
     <Button
-      class="w-full"
+      class="type-h2 w-full"
       label="계좌 번호 직접 입력하기"
       size="large"
       @click="router.push({ name: 'ward-transfer-account' })"
