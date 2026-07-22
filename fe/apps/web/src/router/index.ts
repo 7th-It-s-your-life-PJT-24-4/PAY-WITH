@@ -7,15 +7,19 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/',
+      path: '/ward',
       component: WardLayout,
       children: [
         {
-          path: '',
-          name: 'home',
+          path: 'home',
+          name: 'ward-home',
           component: WardPage,
         },
       ],
+    },
+    {
+      path: '/',
+      redirect: '/ward/home',
     },
   ],
 })

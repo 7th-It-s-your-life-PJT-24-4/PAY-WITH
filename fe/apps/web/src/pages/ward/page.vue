@@ -1,78 +1,34 @@
 <script setup lang="ts">
-import AppHeader from '@/components/AppHeader.vue'
-import { useUsersQuery } from '@/composables/useUsersQuery'
-import { useCounterStore } from '@/stores/counter.store'
+import { Button } from '@pay-with/ui'
 
-const counter = useCounterStore()
-const usersQuery = useUsersQuery()
+import WardBalanceCard from '@/pages/ward/-components/WardBalanceCard.vue'
+
+const wardName = '김시니어'
+const balance = '100,000'
+const actions = ['송금하기', '충전하기', '결제하기', '내역 조회']
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50">
-    <AppHeader title="pay-with frontend" />
+  <div class="flex flex-col gap-xl">
+    <section aria-labelledby="ward-welcome-title">
+      <p class="type-body-medium text-body-secondary">환영합니다</p>
+      <h1 id="ward-welcome-title" class="type-h1 mt-xs text-body">
+        <span class="text-primary-500">{{ wardName }}</span
+        >님 안녕하세요
+      </h1>
+    </section>
 
-    <main
-      class="mx-auto grid max-w-5xl gap-6 px-6 py-8 md:grid-cols-[320px_1fr]"
-    >
-      <section class="rounded-lg border border-slate-200 bg-white p-5">
-        <p class="text-sm font-medium text-slate-500">Pinia store</p>
-        <h1 class="mt-2 text-3xl font-semibold text-slate-950">
-          Count: {{ counter.count }}
-        </h1>
-        <p class="mt-1 text-slate-600">Double: {{ counter.doubleCount }}</p>
+    <WardBalanceCard :balance="balance" />
 
-        <div class="mt-5 flex gap-2">
-          <button
-            class="rounded bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-            type="button"
-            @click="counter.increment"
-          >
-            Increment
-          </button>
-          <button
-            class="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-            type="button"
-            @click="counter.reset"
-          >
-            Reset
-          </button>
-        </div>
-      </section>
-
-      <section class="rounded-lg border border-slate-200 bg-white p-5">
-        <div class="flex items-center justify-between gap-4">
-          <div>
-            <p class="text-sm font-medium text-slate-500">TanStack Query</p>
-            <h2 class="mt-2 text-2xl font-semibold text-slate-950">
-              Users from API
-            </h2>
-          </div>
-          <button
-            class="rounded border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-            type="button"
-            @click="usersQuery.refetch()"
-          >
-            Refetch
-          </button>
-        </div>
-
-        <p v-if="usersQuery.isPending.value" class="mt-5 text-slate-600">
-          Loading users...
-        </p>
-        <p v-else-if="usersQuery.isError.value" class="mt-5 text-red-600">
-          Failed to load users.
-        </p>
-        <ul v-else class="mt-5 divide-y divide-slate-100">
-          <li
-            v-for="user in usersQuery.data.value?.slice(0, 5)"
-            :key="user.id"
-            class="py-3"
-          >
-            <p class="font-medium text-slate-950">{{ user.name }}</p>
-            <p class="text-sm text-slate-500">{{ user.email }}</p>
-          </li>
-        </ul>
-      </section>
-    </main>
+    <section class="grid gap-md" aria-label="홈 주요 기능">
+      <Button
+        v-for="action in actions"
+        :key="action"
+        class="w-full"
+        :label="action"
+        variant="outline-primary"
+        size="large"
+      />
+    </section>
   </div>
 </template>
