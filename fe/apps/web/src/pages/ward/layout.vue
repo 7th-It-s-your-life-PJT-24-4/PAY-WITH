@@ -1,13 +1,30 @@
 <script setup lang="ts">
 import { AppHeader } from '@pay-with/ui'
-import { useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import WardBottomNavigation from '@/pages/ward/-components/WardBottomNavigation.vue'
 
+type WardNavigationValue = 'transfer' | 'payment' | 'history'
+
 const router = useRouter()
+const route = useRoute()
+
+const headerTitle = computed(() => String(route.meta.title ?? 'PayWith'))
+const showBottomNavigation = computed(
+  () => route.meta.showBottomNavigation !== false,
+)
+const activeNavigation = computed<WardNavigationValue>(() => {
+  const value = route.meta.activeNavigation
+  return value === 'transfer' || value === 'history' ? value : 'payment'
+})
 
 function goBack() {
   router.back()
+}
+
+function handleNavigate(value: string) {
+  if (value === 'payment') router.push({ name: 'ward-payment' })
 }
 </script>
 
@@ -19,16 +36,25 @@ function goBack() {
       <div
         class="fixed inset-x-0 top-0 z-40 mx-auto w-full max-w-[390px] bg-surface-card pt-[env(safe-area-inset-top)]"
       >
-        <AppHeader title="PayWith" show-back show-profile @back="goBack" />
+        <AppHeader :title="headerTitle" show-back show-profile @back="goBack" />
       </div>
 
       <main
-        class="flex flex-1 flex-col px-mobile-gutter pb-[calc(var(--spacing-bottom-nav)+var(--spacing-section)+var(--spacing-xl)+env(safe-area-inset-bottom))] pt-[calc(var(--spacing-header)+var(--spacing-xl)+env(safe-area-inset-top))]"
+        class="flex flex-1 flex-col px-mobile-gutter pt-[calc(var(--spacing-header)+var(--spacing-xl)+env(safe-area-inset-top))]"
+        :class="
+          showBottomNavigation
+            ? 'pb-[calc(var(--spacing-bottom-nav)+var(--spacing-section)+var(--spacing-xl)+env(safe-area-inset-bottom))]'
+            : 'pb-xl'
+        "
       >
         <RouterView />
       </main>
 
-      <WardBottomNavigation active="payment" />
+      <WardBottomNavigation
+        v-if="showBottomNavigation"
+        :active="activeNavigation"
+        @navigate="handleNavigate"
+      />
     </div>
   </div>
 </template>

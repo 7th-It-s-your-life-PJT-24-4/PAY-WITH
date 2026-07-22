@@ -1,12 +1,25 @@
 <script setup lang="ts">
 import { Button } from '@pay-with/ui'
+import { useRouter } from 'vue-router'
 
 import WardBalanceCard from '@/pages/ward/-components/WardBalanceCard.vue'
+
+const router = useRouter()
 
 const wardName = '김시니어'
 const balance = '100,000'
 const isWalletLocked = false
-const actions = ['송금하기', '충전하기', '결제하기', '내역 조회']
+
+const actions = [
+  { label: '송금하기', value: 'transfer' },
+  { label: '충전하기', value: 'charge' },
+  { label: '결제하기', value: 'payment' },
+  { label: '내역 조회', value: 'history' },
+]
+
+function handleAction(value: string) {
+  if (value === 'payment') router.push({ name: 'ward-payment' })
+}
 </script>
 
 <template>
@@ -24,11 +37,12 @@ const actions = ['송금하기', '충전하기', '결제하기', '내역 조회'
     <section class="grid gap-md" aria-label="홈 주요 기능">
       <Button
         v-for="action in actions"
-        :key="action"
+        :key="action.value"
         class="w-full"
-        :label="action"
+        :label="action.label"
         variant="outline-primary"
         size="large"
+        @click="handleAction(action.value)"
       />
     </section>
   </div>
