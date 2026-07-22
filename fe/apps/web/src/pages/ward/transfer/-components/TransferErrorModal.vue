@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CircleAlert } from '@lucide/vue'
 import { Button, Modal } from '@pay-with/ui'
 
 withDefaults(
@@ -31,7 +32,7 @@ const emit = defineEmits<{
     @update:open="!$event && emit('cancel')"
   >
     <template #icon>
-      <span class="type-h1" aria-hidden="true">!</span>
+      <CircleAlert class="size-xxl" :stroke-width="2.5" aria-hidden="true" />
     </template>
     <template #actions>
       <div class="flex flex-col gap-md">

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CircleAlert, CircleQuestionMark, LoaderCircle } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
 import { watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -32,8 +33,9 @@ watch(
     class="flex min-h-[calc(100vh-var(--spacing-header)-var(--spacing-xl))] flex-col items-center justify-center text-center"
   >
     <template v-if="transferStore.processingStatus === 'pending'">
-      <span
-        class="size-20 animate-spin rounded-full border-[6px] border-primary-900 border-t-primary-500"
+      <LoaderCircle
+        class="size-20 animate-spin text-primary-500"
+        :stroke-width="2.5"
         aria-hidden="true"
       />
       <h2 class="type-h1 mt-xl">안전하게 송금하고 있습니다</h2>
@@ -44,10 +46,11 @@ watch(
 
     <template v-else-if="transferStore.processingStatus === 'unknown'">
       <span
-        class="type-h1 flex size-20 items-center justify-center rounded-full bg-primary-900 text-primary-500"
+        class="flex size-20 items-center justify-center rounded-full bg-primary-900 text-primary-500"
         aria-hidden="true"
-        >?</span
       >
+        <CircleQuestionMark class="size-12" :stroke-width="2.25" />
+      </span>
       <h2 class="type-h1 mt-xl">송금 결과를 확인하고 있습니다</h2>
       <p class="type-h3 mt-md text-body-muted">
         같은 송금을 다시 시도하지 마세요.
@@ -62,10 +65,11 @@ watch(
 
     <template v-else-if="transferStore.processingStatus === 'error'">
       <span
-        class="type-h1 flex size-20 items-center justify-center rounded-full bg-error/10 text-error"
+        class="flex size-20 items-center justify-center rounded-full bg-error/10 text-error"
         aria-hidden="true"
-        >!</span
       >
+        <CircleAlert class="size-12" :stroke-width="2.25" />
+      </span>
       <h2 class="type-h1 mt-xl">송금을 완료하지 못했습니다</h2>
       <p class="type-h3 mt-md text-body-muted">
         {{ transferStore.processingError }}

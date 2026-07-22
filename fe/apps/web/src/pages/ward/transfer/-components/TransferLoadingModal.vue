@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { LoaderCircle } from '@lucide/vue'
 import { Modal } from '@pay-with/ui'
 
 defineProps<{
@@ -18,8 +19,9 @@ defineProps<{
     :close-on-escape="false"
   >
     <template #icon>
-      <span
-        class="size-10 animate-spin rounded-full border-4 border-primary-900 border-t-primary-500"
+      <LoaderCircle
+        class="size-xxl animate-spin"
+        :stroke-width="2.5"
         aria-hidden="true"
       />
     </template>

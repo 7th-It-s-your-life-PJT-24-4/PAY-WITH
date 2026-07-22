@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ChevronRight, Landmark, Plus } from '@lucide/vue'
 import { Button, Input } from '@pay-with/ui'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -114,7 +115,7 @@ function selectRecipient(recipient: TransferRecipient) {
             :aria-label="`${recipient.name} 연락처 추가`"
             @click="openContactModal(recipient)"
           >
-            <span class="type-h2 leading-none" aria-hidden="true">+</span>
+            <Plus class="size-lg" :stroke-width="2.5" aria-hidden="true" />
             <span>연락처 추가</span>
           </button>
           <span v-else class="min-h-touch-target" aria-hidden="true" />
@@ -134,7 +135,14 @@ function selectRecipient(recipient: TransferRecipient) {
       label="계좌 번호 직접 입력하기"
       size="large"
       @click="router.push({ name: 'ward-transfer-account' })"
-    />
+    >
+      <template #leading>
+        <Landmark :stroke-width="2.25" />
+      </template>
+      <template #trailing>
+        <ChevronRight :stroke-width="2.25" />
+      </template>
+    </Button>
 
     <section aria-labelledby="contacts-title">
       <h3 id="contacts-title" class="type-h4 mb-md">전체 연락처</h3>

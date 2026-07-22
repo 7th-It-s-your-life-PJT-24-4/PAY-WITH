@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ChevronRight } from '@lucide/vue'
+
 import type { TransferRecipient } from '@/stores/transfer.store'
 
 defineProps<{
@@ -28,6 +30,10 @@ const emit = defineEmits<{
         {{ recipient.bank }} {{ recipient.accountNumber }}
       </span>
     </span>
-    <span class="type-h2 text-body-muted" aria-hidden="true">›</span>
+    <ChevronRight
+      class="size-xl shrink-0 text-body-muted"
+      :stroke-width="2.5"
+      aria-hidden="true"
+    />
   </button>
 </template>

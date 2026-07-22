@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { UserRoundPlus } from '@lucide/vue'
 import { Button, Input, Modal } from '@pay-with/ui'
 import { ref, watch } from 'vue'
 
@@ -37,25 +38,7 @@ function confirm() {
     @update:open="emit('update:open', $event)"
   >
     <template #icon>
-      <svg
-        class="size-xxl"
-        viewBox="0 0 48 48"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M14 8h20a4 4 0 0 1 4 4v24a4 4 0 0 1-4 4H14a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4Z"
-          stroke="currentColor"
-          stroke-width="3"
-        />
-        <path
-          d="M10 16H7m3 8H7m3 8H7m14-12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-6 10c0-4 2.7-7 6-7s6 3 6 7m7-4h8m-4-4v8"
-          stroke="currentColor"
-          stroke-width="3"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
+      <UserRoundPlus class="size-xxl" :stroke-width="2.25" aria-hidden="true" />
     </template>
 
     <div v-if="recipient" class="border-t border-border pt-xl">

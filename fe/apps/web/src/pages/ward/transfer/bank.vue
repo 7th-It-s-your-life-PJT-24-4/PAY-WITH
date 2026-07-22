@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Landmark } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -78,8 +79,10 @@ async function proceed() {
       >
         <span
           class="flex size-12 items-center justify-center rounded-full bg-gray-900 text-primary-300"
-          >₩</span
+          aria-hidden="true"
         >
+          <Landmark class="size-xl" :stroke-width="2.25" />
+        </span>
         {{ bankName }}
       </button>
     </section>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CircleCheckBig } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 
@@ -27,9 +28,14 @@ onBeforeRouteLeave((to) => {
     <section class="rounded-large bg-surface-card p-xl shadow-card">
       <div class="text-center">
         <p
-          class="type-h4 inline-block rounded-full bg-primary-900 px-md py-xs text-primary-500"
+          class="type-h4 inline-flex items-center gap-xs rounded-full bg-primary-900 px-md py-xs text-primary-500"
         >
-          ✓ 송금 완료
+          <CircleCheckBig
+            class="size-lg"
+            :stroke-width="2.5"
+            aria-hidden="true"
+          />
+          송금 완료
         </p>
         <h2 class="type-amount mt-md">
           <span class="font-number">{{
