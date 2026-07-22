@@ -15,7 +15,7 @@ function input(value: string) {
   pin.value += value
   if (pin.value.length === pinLength) {
     void transferStore.beginMockTransfer(pin.value)
-    router.push({ name: 'ward-transfer-processing' })
+    router.replace({ name: 'ward-transfer-processing' })
   }
 }
 </script>

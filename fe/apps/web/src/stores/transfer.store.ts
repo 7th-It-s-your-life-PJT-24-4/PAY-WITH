@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 
 import {
   confirmMockTransferStatus,
+  getMockBankCode,
   submitMockTransfer,
 } from '@/mocks/transfer.mock'
 
@@ -12,6 +13,21 @@ export interface TransferRecipient {
   relation?: string
   bank: string
   accountNumber: string
+}
+
+export interface TransferIntent {
+  idempotencyKey: string
+  bankCode: string
+  bankName: string
+  accountNumber: string
+  amount: number
+  memo: string | null
+}
+
+export interface MockTransferResult {
+  transactionId: number
+  status: 'COMPLETED' | 'HELD'
+  idempotencyKey: string
 }
 
 const initialBalance = 1_250_000
@@ -28,6 +44,9 @@ export const useTransferStore = defineStore('transfer', () => {
   const bankCandidates = ref<string[]>([])
   const processingStatus = ref<TransferProcessingStatus>('idle')
   const processingError = ref('')
+  const transferIntent = ref<TransferIntent | null>(null)
+  const transferResult = ref<MockTransferResult | null>(null)
+  const requestStarted = ref(false)
 
   const remainingBalance = computed(() => balance.value - amount.value)
   const canTransfer = computed(
@@ -62,21 +81,71 @@ export const useTransferStore = defineStore('transfer', () => {
     if (recipient.value) recipient.value.name = name
   }
 
+  function createTransferIntent(idempotencyKey = crypto.randomUUID()) {
+    if (!recipient.value || !canTransfer.value) return null
+
+    const nextIntent: TransferIntent = {
+      idempotencyKey,
+      bankCode: getMockBankCode(bank.value),
+      bankName: bank.value,
+      accountNumber: accountNumber.value.replaceAll('-', ''),
+      amount: amount.value,
+      memo: memo.value.trim() || null,
+    }
+    const currentIntent = transferIntent.value
+    if (
+      currentIntent &&
+      !transferResult.value &&
+      currentIntent.bankCode === nextIntent.bankCode &&
+      currentIntent.accountNumber === nextIntent.accountNumber &&
+      currentIntent.amount === nextIntent.amount &&
+      currentIntent.memo === nextIntent.memo
+    )
+      return currentIntent
+
+    transferIntent.value = nextIntent
+    transferResult.value = null
+    requestStarted.value = false
+    processingStatus.value = 'idle'
+    processingError.value = ''
+    return transferIntent.value
+  }
+
   async function beginMockTransfer(pin: string) {
+    if (!transferIntent.value || requestStarted.value) return
+    requestStarted.value = true
     processingStatus.value = 'pending'
     processingError.value = ''
     try {
-      processingStatus.value = await submitMockTransfer(pin)
+      const result = await submitMockTransfer(
+        pin,
+        transferIntent.value.idempotencyKey,
+      )
+      if (result.status === 'unknown') {
+        processingStatus.value = 'unknown'
+        return
+      }
+      transferResult.value = result
+      processingStatus.value = 'success'
     } catch (error) {
       processingStatus.value = 'error'
       processingError.value =
-        error instanceof Error ? error.message : '송금을 완료하지 못했어요.'
+        error instanceof Error ? error.message : '송금을 완료하지 못했습니다.'
     }
   }
 
   async function confirmMockStatus() {
+    if (!transferIntent.value) return
     processingStatus.value = 'pending'
-    processingStatus.value = await confirmMockTransferStatus()
+    transferResult.value = await confirmMockTransferStatus(
+      transferIntent.value.idempotencyKey,
+    )
+    processingStatus.value = 'success'
+  }
+
+  function restartAfterFailure(idempotencyKey = crypto.randomUUID()) {
+    transferIntent.value = null
+    createTransferIntent(idempotencyKey)
   }
 
   function appendAccountDigit(value: string) {
@@ -110,6 +179,9 @@ export const useTransferStore = defineStore('transfer', () => {
     bankCandidates.value = []
     processingStatus.value = 'idle'
     processingError.value = ''
+    transferIntent.value = null
+    transferResult.value = null
+    requestStarted.value = false
   }
 
   return {
@@ -122,14 +194,19 @@ export const useTransferStore = defineStore('transfer', () => {
     bankCandidates,
     processingStatus,
     processingError,
+    transferIntent,
+    transferResult,
+    requestStarted,
     remainingBalance,
     canTransfer,
     selectRecipient,
     selectManualRecipient,
     setBankCandidates,
     setVerifiedRecipient,
+    createTransferIntent,
     beginMockTransfer,
     confirmMockStatus,
+    restartAfterFailure,
     appendAccountDigit,
     removeAccountDigit,
     appendAmountDigit,

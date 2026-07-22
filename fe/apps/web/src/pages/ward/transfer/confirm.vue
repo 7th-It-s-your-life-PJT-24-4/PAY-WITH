@@ -8,6 +8,11 @@ const router = useRouter()
 const transferStore = useTransferStore()
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
+
+function proceed() {
+  if (!transferStore.createTransferIntent()) return
+  router.push({ name: 'ward-transfer-password' })
+}
 </script>
 
 <template>
@@ -64,7 +69,7 @@ const formatMoney = (value: number) =>
       class="mt-auto w-full"
       label="송금하기"
       size="large"
-      @click="router.push({ name: 'ward-transfer-password' })"
+      @click="proceed"
     />
   </div>
 </template>

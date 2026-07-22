@@ -81,8 +81,24 @@ test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다',
 
   await expect(page.getByText('안전하게 송금하고 있습니다')).toBeVisible()
   await expect(page.getByRole('heading', { name: '송금 완료' })).toBeVisible()
+  await expect(page).toHaveURL(/\/ward\/transfer\/73\/complete$/)
   await expect(page.getByText('김민수')).toBeVisible()
 
-  await page.getByRole('button', { name: '홈으로' }).click()
+  await page.goBack()
   await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(page.getByRole('heading', { name: 'PayWith' })).toBeVisible()
+  await expect(page.getByText('안전하게 송금하고 있습니다')).toBeHidden()
+
+  await page.goBack()
+  await expect(page).toHaveURL(/\/ward\/transfer$/)
+})
+
+test('처리 상태 없이 민감한 송금 라우트에 직접 접근할 수 없다', async ({
+  page,
+}) => {
+  await page.goto('/ward/transfer/processing')
+  await expect(page).toHaveURL(/\/ward\/transfer$/)
+
+  await page.goto('/ward/transfer/73/complete')
+  await expect(page).toHaveURL(/\/ward\/transfer$/)
 })

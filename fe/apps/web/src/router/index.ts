@@ -18,6 +18,13 @@ import WardTransferConfirmPage from '@/pages/ward/transfer/confirm.vue'
 import WardTransferPage from '@/pages/ward/transfer/page.vue'
 import WardTransferPasswordPage from '@/pages/ward/transfer/password.vue'
 import WardTransferProcessingPage from '@/pages/ward/transfer/processing.vue'
+import {
+  requireCompletedTransfer,
+  requireProcessingTransfer,
+  requireTransferDraft,
+  requireTransferIntent,
+  requireTransferRecipient,
+} from '@/pages/ward/transfer/-utils/transfer-route-guard'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -109,6 +116,7 @@ const router = createRouter({
           path: 'transfer/amount',
           name: 'ward-transfer-amount',
           component: WardTransferAmountPage,
+          beforeEnter: requireTransferRecipient,
           meta: {
             title: '송금 금액 입력',
             activeNavigation: 'transfer',
@@ -119,6 +127,7 @@ const router = createRouter({
           path: 'transfer/confirm',
           name: 'ward-transfer-confirm',
           component: WardTransferConfirmPage,
+          beforeEnter: requireTransferDraft,
           meta: {
             title: '송금 확인',
             activeNavigation: 'transfer',
@@ -129,6 +138,7 @@ const router = createRouter({
           path: 'transfer/password',
           name: 'ward-transfer-password',
           component: WardTransferPasswordPage,
+          beforeEnter: requireTransferIntent,
           meta: {
             title: '비밀번호 입력',
             activeNavigation: 'transfer',
@@ -139,6 +149,7 @@ const router = createRouter({
           path: 'transfer/processing',
           name: 'ward-transfer-processing',
           component: WardTransferProcessingPage,
+          beforeEnter: requireProcessingTransfer,
           meta: {
             title: '송금 처리',
             activeNavigation: 'transfer',
@@ -146,9 +157,10 @@ const router = createRouter({
           },
         },
         {
-          path: 'transfer/complete',
+          path: 'transfer/:transactionId/complete',
           name: 'ward-transfer-complete',
           component: WardTransferCompletePage,
+          beforeEnter: requireCompletedTransfer,
           meta: {
             title: '송금 완료',
             activeNavigation: 'transfer',

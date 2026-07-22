@@ -8,10 +8,20 @@ import { useTransferStore } from '@/stores/transfer.store'
 const router = useRouter()
 const transferStore = useTransferStore()
 
+function retryPassword() {
+  transferStore.restartAfterFailure()
+  router.replace({ name: 'ward-transfer-password' })
+}
+
 watch(
   () => transferStore.processingStatus,
   (status) => {
-    if (status === 'success') router.replace({ name: 'ward-transfer-complete' })
+    const transactionId = transferStore.transferResult?.transactionId
+    if (status === 'success' && transactionId)
+      router.replace({
+        name: 'ward-transfer-complete',
+        params: { transactionId },
+      })
   },
   { immediate: true },
 )
@@ -64,7 +74,7 @@ watch(
         class="mt-xl w-full"
         label="비밀번호 다시 입력"
         size="large"
-        @click="router.replace({ name: 'ward-transfer-password' })"
+        @click="retryPassword"
       />
     </template>
   </div>

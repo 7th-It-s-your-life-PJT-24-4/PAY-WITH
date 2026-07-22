@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@pay-with/ui'
-import { useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
 
 import { useTransferStore } from '@/stores/transfer.store'
 
@@ -9,10 +9,17 @@ const transferStore = useTransferStore()
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
 
-function goHome() {
+async function goHome() {
+  await router.replace({ name: 'ward-home' })
   transferStore.reset()
-  router.push({ name: 'ward-home' })
 }
+
+onBeforeRouteLeave((to) => {
+  if (to.name === 'ward-home') return true
+
+  transferStore.reset()
+  return { name: 'ward-home', replace: true }
+})
 </script>
 
 <template>

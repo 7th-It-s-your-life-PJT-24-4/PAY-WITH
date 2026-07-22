@@ -9,6 +9,16 @@ const banks = [
   '카카오뱅크',
 ]
 
+const bankCodes: Record<string, string> = {
+  KB국민은행: '004',
+  우리은행: '020',
+  하나은행: '081',
+  NH농협: '011',
+  신한은행: '088',
+  카카오뱅크: '090',
+  국민은행: '004',
+}
+
 function wait() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, mockDelay))
 }
@@ -25,6 +35,10 @@ export async function findMockBankCandidates(accountNumber: string) {
   ]
 }
 
+export function getMockBankCode(bankName: string) {
+  return bankCodes[bankName] ?? '000'
+}
+
 export async function validateMockTransferAccount(
   bank: string,
   accountNumber: string,
@@ -36,13 +50,22 @@ export async function validateMockTransferAccount(
   return { recipientName: '김준호', bank, accountNumber }
 }
 
-export async function submitMockTransfer(pin: string) {
+export async function submitMockTransfer(pin: string, idempotencyKey: string) {
   await wait()
   if (pin === '111111') throw new Error('비밀번호가 올바르지 않습니다.')
-  return pin === '000000' ? ('unknown' as const) : ('success' as const)
+  if (pin === '000000') return { status: 'unknown' as const }
+  return {
+    transactionId: 73,
+    status: 'COMPLETED' as const,
+    idempotencyKey,
+  }
 }
 
-export async function confirmMockTransferStatus() {
+export async function confirmMockTransferStatus(idempotencyKey: string) {
   await wait()
-  return 'success' as const
+  return {
+    transactionId: 73,
+    status: 'COMPLETED' as const,
+    idempotencyKey,
+  }
 }
