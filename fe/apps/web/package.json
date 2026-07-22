@@ -14,8 +14,10 @@
   "dependencies": {
     "@pay-with/ui": "workspace:*",
     "@tanstack/vue-query": "catalog:",
+    "@lucide/vue": "catalog:",
     "ky": "catalog:",
     "pinia": "catalog:",
+    "reka-ui": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:",
     "zod": "catalog:"
@@ -40,6 +42,7 @@
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
     "vite": "catalog:",
+    "vee-validate": "catalog:",
     "vitest": "catalog:",
     "vue-tsc": "catalog:"
   }
