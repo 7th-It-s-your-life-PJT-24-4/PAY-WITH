@@ -21,10 +21,14 @@ function goBack() {
     <div
       class="mx-auto flex min-h-screen w-full max-w-[390px] flex-col bg-surface text-body shadow-card"
     >
-      <AppHeader title="PayWith" show-back show-profile @back="goBack" />
+      <div
+        class="fixed inset-x-0 top-0 z-40 mx-auto w-full max-w-[390px] bg-surface-card pt-[env(safe-area-inset-top)]"
+      >
+        <AppHeader title="PayWith" show-back show-profile @back="goBack" />
+      </div>
 
       <main
-        class="flex flex-1 flex-col gap-xl px-mobile-gutter pb-[calc(var(--spacing-bottom-nav)+var(--spacing-section)+var(--spacing-xl)+env(safe-area-inset-bottom))] pt-xl"
+        class="flex flex-1 flex-col gap-xl px-mobile-gutter pb-[calc(var(--spacing-bottom-nav)+var(--spacing-section)+var(--spacing-xl)+env(safe-area-inset-bottom))] pt-[calc(var(--spacing-header)+var(--spacing-xl)+env(safe-area-inset-top))]"
       >
         <section aria-labelledby="ward-welcome-title">
           <p class="type-body-medium text-body-secondary">환영합니다</p>
