@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import AppHeader from '@/components/AppHeader.vue'
+import { AppHeader } from '@pay-with/ui'
+
 import { useUsersQuery } from '@/composables/useUsersQuery'
 import { useCounterStore } from '@/stores/counter.store'
 

@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import WardLayout from '@/pages/ward/layout.vue'
 import WardPage from '@/pages/ward/page.vue'
-import WardHomePage from '@/pages/WardHomePage.vue'
+import WardHomePage from '@/pages/ward/WardHomePage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

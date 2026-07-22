@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { UiButton } from '@pay-with/ui'
+import { AppHeader, Button } from '@pay-with/ui'
 import { useRouter } from 'vue-router'
 
-import AppHeader from '@/components/AppHeader.vue'
-import WardBottomNavigation from '@/components/ward/WardBottomNavigation.vue'
-import WardBalanceCard from '@/components/ward/home/WardBalanceCard.vue'
+import WardBalanceCard from '@/pages/ward/components/WardBalanceCard.vue'
+import WardBottomNavigation from '@/pages/ward/components/WardBottomNavigation.vue'
 
 const router = useRouter()
 
@@ -36,12 +35,13 @@ function goBack() {
         <WardBalanceCard :balance="balance" />
 
         <section class="grid gap-md" aria-label="홈 주요 기능">
-          <UiButton
+          <Button
             v-for="action in actions"
             :key="action"
-            class="type-h2 !min-h-button-large w-full !rounded-large !border-action !bg-surface-card !text-primary-500 hover:!bg-primary-900 focus-visible:!outline-focus"
+            class="w-full"
             :label="action"
-            variant="secondary"
+            variant="outline-primary"
+            size="large"
           />
         </section>
       </main>
