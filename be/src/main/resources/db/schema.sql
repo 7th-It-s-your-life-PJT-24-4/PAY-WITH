@@ -1,3 +1,7 @@
+CREATE DATABASE pay_with;
+USE pay_with;
+
+
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS notifications;
@@ -96,6 +100,7 @@ CREATE TABLE linked_accounts (
                                  created_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                  PRIMARY KEY (account_id),
                                  KEY idx_la_user (user_id),
+                                 CONSTRAINT uk_linked_accounts_account UNIQUE (user_id, bank_code, account_no),
                                  CONSTRAINT fk_la_user FOREIGN KEY (user_id)   REFERENCES users (user_id),
                                  CONSTRAINT fk_la_bank FOREIGN KEY (bank_code) REFERENCES banks (bank_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

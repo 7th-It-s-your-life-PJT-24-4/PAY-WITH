@@ -2,17 +2,21 @@ package com.paywith.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.*;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 @Configuration
-@EnableWebMvc
-@ComponentScan(basePackages = "com.paywith")
+@ComponentScan(basePackages = "com.paywith",
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.ANNOTATION,
+                classes = { Controller.class, RestController.class, ControllerAdvice.class, RestControllerAdvice.class }
+        ))
 @PropertySource("classpath:application-${spring.profiles.active:local}.properties")
 public class AppConfig {
 

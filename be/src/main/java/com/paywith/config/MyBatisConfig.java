@@ -14,7 +14,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
-@MapperScan("com.paywith")
+@MapperScan(basePackages = "com.paywith", annotationClass = org.apache.ibatis.annotations.Mapper.class)
 @EnableTransactionManagement
 public class MyBatisConfig {
 
@@ -43,6 +43,12 @@ public class MyBatisConfig {
         factoryBean.setMapperLocations(
             new PathMatchingResourcePatternResolver().getResources("classpath:/mappers/**/*.xml")
         );
+
+        // MyBatis 세부 옵션 설정
+        org.apache.ibatis.session.Configuration configuration = new org.apache.ibatis.session.Configuration();
+        configuration.setMapUnderscoreToCamelCase(true);
+        factoryBean.setConfiguration(configuration);
+
         return factoryBean.getObject();
     }
 

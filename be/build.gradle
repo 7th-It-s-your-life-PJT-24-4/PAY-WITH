@@ -62,6 +62,9 @@ dependencies {
     implementation 'org.hibernate.validator:hibernate-validator:6.2.5.Final'
     implementation 'org.slf4j:slf4j-api:2.0.16'
     implementation 'ch.qos.logback:logback-classic:1.5.16'
+    //lombok
+    compileOnly 'org.projectlombok:lombok:1.18.38'
+    annotationProcessor 'org.projectlombok:lombok:1.18.38'
 }
 
 test {
