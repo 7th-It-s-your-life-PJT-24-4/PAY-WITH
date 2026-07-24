@@ -60,4 +60,14 @@ public class AccountServiceImpl implements AccountService{
     public List<AccountResponse> getAccounts(Long userId) {
         return accountMapper.findAccountsByUserId(userId);
     }
+
+    @Override
+    public boolean verifyOwnership(Long userId, Long accountId) {
+        return accountMapper.existsByUserIdAndAccountId(userId, accountId);
+    }
+
+    @Override
+    public AccountResponse getAccountDetail(Long accountId) {
+        return accountMapper.findAccountById(accountId);
+    }
 }

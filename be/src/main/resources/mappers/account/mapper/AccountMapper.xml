@@ -32,4 +32,20 @@
               and account_no = #{accountNo}
         )
     </select>
+    <select id="findAccountById" parameterType="Long" resultType="com.paywith.account.dto.AccountResponse">
+        select
+        a.account_id AS accountId,
+        a.bank_code  AS bankCode,
+        b.bank_name  AS bankName,
+        a.account_no AS accountNo
+        from linked_accounts a
+        join banks b ON a.bank_code = b.bank_code
+        where a.account_id = #{accountId}
+    </select>
+    <select id="existsByUserIdAndAccountId" resultType="java.lang.Boolean">
+        select exists(
+            select 1 from linked_accounts
+            where user_id = #{userId} and account_id = #{accountId}
+        )
+    </select>
 </mapper>

@@ -1,6 +1,7 @@
 package com.paywith.external.openbanking;
 
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
+import com.paywith.external.openbanking.dto.WithdrawResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -79,6 +80,13 @@ public class OpenBankingClient {
             case "090" -> "카카오뱅크";
             default -> "알 수 없는 은행";
         };
+    }
+
+    public WithdrawResponse withdraw(String bankCodeStd, String accountNum, Long amount) {
+        WithdrawResponse response = new WithdrawResponse();
+        response.setRspCode("A0000");
+        response.setTranAmt(amount);
+        return response;
     }
 
     /**
