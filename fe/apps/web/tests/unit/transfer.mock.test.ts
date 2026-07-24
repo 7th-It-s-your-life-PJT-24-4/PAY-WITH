@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   advanceMockTransferStatus,
@@ -11,6 +11,11 @@ describe('transfer mock API', () => {
   beforeEach(() => {
     resetMockTransferDetails()
     vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.clearAllTimers()
+    vi.useRealTimers()
   })
 
   it('승인 대기 거래를 완료 상태로 갱신해 조회한다', async () => {
