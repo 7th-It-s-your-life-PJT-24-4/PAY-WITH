@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ChevronDown, ChevronUp, Landmark } from '@lucide/vue'
+import { Check, ChevronDown, ChevronsUp, Landmark } from '@lucide/vue'
 import {
   SelectContent,
   SelectItem,
@@ -7,19 +7,23 @@ import {
   SelectItemText,
   SelectPortal,
   SelectRoot,
-  SelectScrollDownButton,
-  SelectScrollUpButton,
   SelectTrigger,
   SelectValue,
   SelectViewport,
 } from 'reka-ui'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import ChargeBankMark from '@/pages/ward/charge/-components/ChargeBankMark.vue'
 
 export interface ChargeBankOption {
   code: string
   name: string
+}
+
+interface ScrollViewport {
+  scrollTop: number
+  scrollHeight: number
+  clientHeight: number
 }
 
 const props = defineProps<{
@@ -34,11 +38,24 @@ const emit = defineEmits<{
 const selectedBank = computed(() =>
   props.banks.find(({ code }) => code === props.modelValue),
 )
+const showScrollHint = ref(true)
+
+function handleOpenChange(open: boolean) {
+  if (open) showScrollHint.value = true
+}
+
+function handleViewportScroll(event: { currentTarget: unknown }) {
+  const viewport = event.currentTarget as ScrollViewport
+  const remaining =
+    viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight
+  showScrollHint.value = remaining > 2
+}
 </script>
 
 <template>
   <SelectRoot
     :model-value="modelValue"
+    @update:open="handleOpenChange"
     @update:model-value="
       emit('update:modelValue', typeof $event === 'string' ? $event : '')
     "
@@ -80,14 +97,10 @@ const selectedBank = computed(() =>
         :side-offset="8"
         align="start"
       >
-        <SelectScrollUpButton
-          class="type-body-medium flex min-h-touch-target items-center justify-center gap-xs border-b border-border bg-primary-900 px-md text-primary-500"
+        <SelectViewport
+          class="max-h-[240px] p-sm"
+          @scroll.passive="handleViewportScroll"
         >
-          <ChevronUp class="size-lg" aria-hidden="true" />
-          위쪽 은행 더 보기
-        </SelectScrollUpButton>
-
-        <SelectViewport class="max-h-[240px] p-sm">
           <SelectItem
             v-for="bank in banks"
             :key="bank.code"
@@ -106,15 +119,16 @@ const selectedBank = computed(() =>
           </SelectItem>
         </SelectViewport>
 
-        <SelectScrollDownButton
-          class="type-body-medium flex min-h-touch-target items-center justify-center gap-xs border-t border-primary-500/20 bg-primary-900 px-md text-primary-500"
+        <div
+          v-if="showScrollHint"
+          class="pointer-events-none flex min-h-touch-target select-none items-center justify-center gap-sm border-t border-primary-500/20 bg-primary-900 px-md text-primary-500"
+          role="note"
         >
-          <span>아래로 내려 더 많은 은행 보기</span>
-          <ChevronDown
-            class="size-lg motion-safe:animate-bounce"
-            aria-hidden="true"
-          />
-        </SelectScrollDownButton>
+          <ChevronsUp class="size-xl shrink-0" aria-hidden="true" />
+          <span class="type-body-medium">
+            목록을 위로 밀어 더 많은 은행 보기
+          </span>
+        </div>
       </SelectContent>
     </SelectPortal>
   </SelectRoot>

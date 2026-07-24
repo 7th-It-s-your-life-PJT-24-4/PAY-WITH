@@ -26,7 +26,13 @@ test('새 계좌를 등록하고 충전 계좌로 사용한다', async ({ page }
   await page.getByRole('button', { name: /KB국민은행/ }).click()
   await page.getByRole('button', { name: '새 계좌 추가' }).click()
   await page.getByRole('combobox', { name: '은행 선택' }).click()
-  await expect(page.getByText('아래로 내려 더 많은 은행 보기')).toBeVisible()
+  await expect(
+    page.getByText('목록을 위로 밀어 더 많은 은행 보기'),
+  ).toBeVisible()
+  await page.getByRole('option', { name: '하나은행' }).scrollIntoViewIfNeeded()
+  await expect(
+    page.getByText('목록을 위로 밀어 더 많은 은행 보기'),
+  ).toBeHidden()
   await page.getByRole('option', { name: '우리은행' }).click()
 
   await page.getByLabel('계좌번호').click()
