@@ -15,12 +15,19 @@ import WardTransferAmountPage from '@/pages/ward/transfer/amount.vue'
 import WardTransferBankPage from '@/pages/ward/transfer/bank.vue'
 import WardTransferCompletePage from '@/pages/ward/transfer/complete.vue'
 import WardTransferConfirmPage from '@/pages/ward/transfer/confirm.vue'
+import WardTransferHeldPage from '@/pages/ward/transfer/held.vue'
 import WardTransferPage from '@/pages/ward/transfer/page.vue'
 import WardTransferPasswordPage from '@/pages/ward/transfer/password.vue'
 import WardTransferProcessingPage from '@/pages/ward/transfer/processing.vue'
+import WardTransferRejectedPage from '@/pages/ward/transfer/rejected.vue'
+import WardTransferRestrictedPage from '@/pages/ward/transfer/restricted.vue'
 import {
+  redirectPendingTransfer,
   requireCompletedTransfer,
+  requireHeldTransfer,
+  requirePendingTransfer,
   requireProcessingTransfer,
+  requireRejectedTransfer,
   requireTransferAccount,
   requireTransferDraft,
   requireTransferIntent,
@@ -91,6 +98,7 @@ const router = createRouter({
           path: 'transfer',
           name: 'ward-transfer',
           component: WardTransferPage,
+          beforeEnter: redirectPendingTransfer,
           meta: { title: '송금 대상 선택', activeNavigation: 'transfer' },
         },
         {
@@ -156,6 +164,41 @@ const router = createRouter({
             title: '송금 처리',
             activeNavigation: 'transfer',
             showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'transfer/:transactionId/held',
+          name: 'ward-transfer-held',
+          component: WardTransferHeldPage,
+          beforeEnter: requireHeldTransfer,
+          meta: {
+            title: '이상 거래 알림',
+            activeNavigation: 'transfer',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
+        },
+        {
+          path: 'transfer/:transactionId/restricted',
+          name: 'ward-transfer-restricted',
+          component: WardTransferRestrictedPage,
+          beforeEnter: requirePendingTransfer,
+          meta: {
+            title: '거래 제한 안내',
+            activeNavigation: 'transfer',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
+        },
+        {
+          path: 'transfer/:transactionId/rejected',
+          name: 'ward-transfer-rejected',
+          component: WardTransferRejectedPage,
+          beforeEnter: requireRejectedTransfer,
+          meta: {
+            title: '거래 거절 안내',
+            activeNavigation: 'transfer',
+            backRouteName: 'ward-home',
           },
         },
         {

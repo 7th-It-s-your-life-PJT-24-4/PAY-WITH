@@ -123,6 +123,46 @@ test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다',
   await expect(page).toHaveURL(/\/ward\/transfer$/)
 })
 
+test('이상 거래 승인 대기와 재송금 제한 화면을 표시한다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/ward/transfer')
+
+  await page
+    .getByRole('button', { name: /김민수/ })
+    .first()
+    .click()
+  await page.getByRole('button', { name: '+5만원', exact: true }).click()
+  await page.getByRole('button', { name: '다음으로' }).click()
+  await page.getByRole('button', { name: '송금하기' }).click()
+
+  for (const digit of ['2', '2', '2', '2', '2', '2']) {
+    await page.getByRole('button', { name: digit, exact: true }).click()
+  }
+
+  await expect(
+    page.getByRole('heading', { name: '이상 거래 알림' }),
+  ).toBeVisible()
+  await expect(page).toHaveURL(/\/ward\/transfer\/74\/held$/)
+  await expect(page.getByText('잠깐 확인해 보세요!')).toBeVisible()
+  await expect(page.getByText('50,000원')).toBeVisible()
+  await expect(
+    page.getByRole('navigation', { name: '시니어 주요 기능' }),
+  ).toBeHidden()
+
+  await page.getByRole('button', { name: '뒤로 가기' }).click()
+  await expect(page).toHaveURL(/\/ward\/home$/)
+
+  await page.getByRole('button', { name: '송금하기' }).click()
+  await expect(page).toHaveURL(/\/ward\/transfer\/74\/restricted$/)
+  await expect(
+    page.getByRole('heading', { name: '거래 제한 안내' }),
+  ).toBeVisible()
+  await expect(page.getByText('거래를 진행할 수 없습니다')).toBeVisible()
+
+  await page.getByRole('button', { name: '홈으로 돌아가기' }).click()
+  await expect(page).toHaveURL(/\/ward\/home$/)
+})
+
 test('처리 상태 없이 민감한 송금 라우트에 직접 접근할 수 없다', async ({
   page,
 }) => {
@@ -133,5 +173,14 @@ test('처리 상태 없이 민감한 송금 라우트에 직접 접근할 수 �
   await expect(page).toHaveURL(/\/ward\/transfer$/)
 
   await page.goto('/ward/transfer/73/complete')
+  await expect(page).toHaveURL(/\/ward\/transfer$/)
+
+  await page.goto('/ward/transfer/74/held')
+  await expect(page).toHaveURL(/\/ward\/transfer$/)
+
+  await page.goto('/ward/transfer/74/restricted')
+  await expect(page).toHaveURL(/\/ward\/transfer$/)
+
+  await page.goto('/ward/transfer/74/rejected')
   await expect(page).toHaveURL(/\/ward\/transfer$/)
 })

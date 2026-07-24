@@ -89,6 +89,39 @@ describe('transfer store', () => {
     expect(store.transferResult?.transactionId).toBe(73)
   })
 
+  it('이상 거래가 감지되면 승인 대기 거래 정보를 저장한다', async () => {
+    vi.useFakeTimers()
+    const store = prepareTransfer()
+    store.createTransferIntent('held-key')
+
+    const request = store.beginMockTransfer('222222')
+    await vi.advanceTimersByTimeAsync(500)
+    await request
+
+    expect(store.processingStatus).toBe('held')
+    expect(store.transferResult?.status).toBe('HELD')
+    expect(store.pendingTransfer).toMatchObject({
+      transactionId: 74,
+      recipientName: '김민수',
+      bankName: '국민은행',
+      amount: 50_000,
+    })
+  })
+
+  it('보호자 거절 결과와 사유를 저장한다', async () => {
+    vi.useFakeTimers()
+    const store = prepareTransfer()
+    store.createTransferIntent('rejected-key')
+
+    const request = store.beginMockTransfer('222222')
+    await vi.advanceTimersByTimeAsync(500)
+    await request
+    store.markTransferRejected('위험한 거래로 추정됩니다')
+
+    expect(store.transferResult?.status).toBe('REJECTED')
+    expect(store.rejectionReason).toBe('위험한 거래로 추정됩니다')
+  })
+
   it('같은 송금 내용에는 기존 요청 식별자를 재사용한다', () => {
     const store = prepareTransfer()
 

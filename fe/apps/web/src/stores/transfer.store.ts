@@ -26,13 +26,21 @@ export interface TransferIntent {
 
 export interface MockTransferResult {
   transactionId: number
-  status: 'COMPLETED' | 'HELD'
+  status: 'COMPLETED' | 'HELD' | 'REJECTED'
   idempotencyKey: string
+}
+
+export interface PendingTransfer {
+  transactionId: number
+  recipientName: string
+  bankName: string
+  amount: number
+  requestedAt: string
 }
 
 const initialBalance = 1_250_000
 export type TransferProcessingStatus =
-  'idle' | 'pending' | 'unknown' | 'success' | 'error'
+  'idle' | 'pending' | 'held' | 'unknown' | 'success' | 'error'
 
 export const useTransferStore = defineStore('transfer', () => {
   const recipient = ref<TransferRecipient | null>(null)
@@ -46,6 +54,9 @@ export const useTransferStore = defineStore('transfer', () => {
   const processingError = ref('')
   const transferIntent = ref<TransferIntent | null>(null)
   const transferResult = ref<MockTransferResult | null>(null)
+  const pendingTransfer = ref<PendingTransfer | null>(null)
+  const rejectionReason = ref('')
+  const guardianContactRequested = ref(false)
   const requestStarted = ref(false)
 
   const remainingBalance = computed(() => balance.value - amount.value)
@@ -126,6 +137,17 @@ export const useTransferStore = defineStore('transfer', () => {
         return
       }
       transferResult.value = result
+      if (result.status === 'HELD') {
+        pendingTransfer.value = {
+          transactionId: result.transactionId,
+          recipientName: recipient.value?.name ?? '',
+          bankName: bank.value,
+          amount: amount.value,
+          requestedAt: '2026.07.24 14:30',
+        }
+        processingStatus.value = 'held'
+        return
+      }
       processingStatus.value = 'success'
     } catch (error) {
       processingStatus.value = 'error'
@@ -146,6 +168,19 @@ export const useTransferStore = defineStore('transfer', () => {
   function restartAfterFailure(idempotencyKey = crypto.randomUUID()) {
     transferIntent.value = null
     createTransferIntent(idempotencyKey)
+  }
+
+  function requestGuardianContact() {
+    guardianContactRequested.value = true
+  }
+
+  function markTransferRejected(reason: string) {
+    if (!transferResult.value || !pendingTransfer.value) return
+    transferResult.value = {
+      ...transferResult.value,
+      status: 'REJECTED',
+    }
+    rejectionReason.value = reason
   }
 
   function appendAccountDigit(value: string) {
@@ -181,6 +216,9 @@ export const useTransferStore = defineStore('transfer', () => {
     processingError.value = ''
     transferIntent.value = null
     transferResult.value = null
+    pendingTransfer.value = null
+    rejectionReason.value = ''
+    guardianContactRequested.value = false
     requestStarted.value = false
   }
 
@@ -196,6 +234,9 @@ export const useTransferStore = defineStore('transfer', () => {
     processingError,
     transferIntent,
     transferResult,
+    pendingTransfer,
+    rejectionReason,
+    guardianContactRequested,
     requestStarted,
     remainingBalance,
     canTransfer,
@@ -207,6 +248,8 @@ export const useTransferStore = defineStore('transfer', () => {
     beginMockTransfer,
     confirmMockStatus,
     restartAfterFailure,
+    requestGuardianContact,
+    markTransferRejected,
     appendAccountDigit,
     removeAccountDigit,
     appendAmountDigit,

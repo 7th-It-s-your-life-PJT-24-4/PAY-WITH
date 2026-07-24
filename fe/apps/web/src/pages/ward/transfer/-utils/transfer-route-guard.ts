@@ -43,3 +43,44 @@ export const requireCompletedTransfer: NavigationGuard = (to) => {
     ? true
     : transferStart
 }
+
+export const redirectPendingTransfer: NavigationGuard = () => {
+  const store = useTransferStore()
+  return store.pendingTransfer
+    ? {
+        name: 'ward-transfer-restricted',
+        params: { transactionId: store.pendingTransfer.transactionId },
+      }
+    : true
+}
+
+export const requireHeldTransfer: NavigationGuard = (to) => {
+  const store = useTransferStore()
+  const result = store.transferResult
+  return result &&
+    result.status === 'HELD' &&
+    store.pendingTransfer &&
+    String(result.transactionId) === String(to.params.transactionId)
+    ? true
+    : transferStart
+}
+
+export const requirePendingTransfer: NavigationGuard = (to) => {
+  const store = useTransferStore()
+  return store.pendingTransfer &&
+    String(store.pendingTransfer.transactionId) ===
+      String(to.params.transactionId)
+    ? true
+    : transferStart
+}
+
+export const requireRejectedTransfer: NavigationGuard = (to) => {
+  const store = useTransferStore()
+  const result = store.transferResult
+  return result &&
+    result.status === 'REJECTED' &&
+    store.pendingTransfer &&
+    String(result.transactionId) === String(to.params.transactionId)
+    ? true
+    : transferStart
+}

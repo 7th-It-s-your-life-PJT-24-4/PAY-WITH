@@ -54,6 +54,12 @@ export async function submitMockTransfer(pin: string, idempotencyKey: string) {
   await wait()
   if (pin === '111111') throw new Error('비밀번호가 올바르지 않습니다.')
   if (pin === '000000') return { status: 'unknown' as const }
+  if (pin === '222222')
+    return {
+      transactionId: 74,
+      status: 'HELD' as const,
+      idempotencyKey,
+    }
   return {
     transactionId: 73,
     status: 'COMPLETED' as const,
