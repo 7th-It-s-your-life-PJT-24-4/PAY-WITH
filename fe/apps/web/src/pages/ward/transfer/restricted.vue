@@ -2,20 +2,26 @@
 import { CircleAlert, House, Info, Phone } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
+import { useTransferStatus } from '@/composables/useTransferStatus'
 import TransferExceptionDetailsCard from '@/pages/ward/transfer/-components/TransferExceptionDetailsCard.vue'
 import TransferExceptionHero from '@/pages/ward/transfer/-components/TransferExceptionHero.vue'
+import { formatTransferDateTime } from '@/pages/ward/transfer/-utils/transfer-status-route'
 import { useTransferStore } from '@/stores/transfer.store'
 
+const route = useRoute()
 const router = useRouter()
 const transferStore = useTransferStore()
-const pendingTransfer = computed(() => transferStore.pendingTransfer)
+const transactionId = computed(() => Number(route.params.transactionId))
+const { transferDetail, errorMessage } = useTransferStatus(transactionId, {
+  pollWhileHeld: true,
+})
 const formatMoney = (value: number) =>
   `${new Intl.NumberFormat('ko-KR').format(value)}원`
 
 const detailRows = computed(() => {
-  const transfer = pendingTransfer.value
+  const transfer = transferDetail.value
   if (!transfer) return []
   return [
     {
@@ -30,7 +36,7 @@ const detailRows = computed(() => {
     },
     {
       label: '요청 시간',
-      value: transfer.requestedAt,
+      value: formatTransferDateTime(transfer.requestedAt),
       numeric: true,
     },
   ]
@@ -100,6 +106,13 @@ const detailRows = computed(() => {
         aria-live="polite"
       >
         보호자 연락을 요청했습니다.
+      </p>
+      <p
+        v-if="errorMessage"
+        class="type-body-medium text-center text-error"
+        role="alert"
+      >
+        {{ errorMessage }}
       </p>
     </div>
   </div>

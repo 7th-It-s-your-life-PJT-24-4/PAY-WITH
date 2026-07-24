@@ -1,6 +1,9 @@
 import type { NavigationGuard } from 'vue-router'
 
+import { getMockTransferDetail } from '@/mocks/transfer.mock'
+import { resolveTransferStatusRoute } from '@/pages/ward/transfer/-utils/transfer-status-route'
 import { useTransferStore } from '@/stores/transfer.store'
+import type { TransferStatus } from '@/types/transfer'
 
 const transferStart = { name: 'ward-transfer' }
 
@@ -34,53 +37,46 @@ export const requireProcessingTransfer: NavigationGuard = () => {
   return store.transferIntent && store.requestStarted ? true : transferStart
 }
 
-export const requireCompletedTransfer: NavigationGuard = (to) => {
-  const store = useTransferStore()
-  const result = store.transferResult
-  return result &&
-    result.status === 'COMPLETED' &&
-    String(result.transactionId) === String(to.params.transactionId)
-    ? true
-    : transferStart
+function getTransactionId(value: unknown) {
+  const transactionId = Number(value)
+  return Number.isSafeInteger(transactionId) && transactionId > 0
+    ? transactionId
+    : null
 }
 
 export const redirectPendingTransfer: NavigationGuard = () => {
   const store = useTransferStore()
-  return store.pendingTransfer
+  return store.transferDetail?.status === 'HELD'
     ? {
         name: 'ward-transfer-restricted',
-        params: { transactionId: store.pendingTransfer.transactionId },
+        params: { transactionId: store.transferDetail.transactionId },
       }
     : true
 }
 
-export const requireHeldTransfer: NavigationGuard = (to) => {
-  const store = useTransferStore()
-  const result = store.transferResult
-  return result &&
-    result.status === 'HELD' &&
-    store.pendingTransfer &&
-    String(result.transactionId) === String(to.params.transactionId)
-    ? true
-    : transferStart
+function requireTransferStatus(...allowedStatuses: TransferStatus[]) {
+  const guard: NavigationGuard = async (to) => {
+    const transactionId = getTransactionId(to.params.transactionId)
+    if (!transactionId) return transferStart
+
+    try {
+      const detail = await getMockTransferDetail(transactionId)
+      const store = useTransferStore()
+      store.setTransferDetail(detail)
+      if (allowedStatuses.includes(detail.status)) return true
+
+      return (
+        resolveTransferStatusRoute(detail.status, transactionId, to.name) ??
+        transferStart
+      )
+    } catch {
+      return transferStart
+    }
+  }
+  return guard
 }
 
-export const requirePendingTransfer: NavigationGuard = (to) => {
-  const store = useTransferStore()
-  return store.pendingTransfer &&
-    String(store.pendingTransfer.transactionId) ===
-      String(to.params.transactionId)
-    ? true
-    : transferStart
-}
-
-export const requireRejectedTransfer: NavigationGuard = (to) => {
-  const store = useTransferStore()
-  const result = store.transferResult
-  return result &&
-    result.status === 'REJECTED' &&
-    store.pendingTransfer &&
-    String(result.transactionId) === String(to.params.transactionId)
-    ? true
-    : transferStart
-}
+export const requireCompletedTransfer = requireTransferStatus('COMPLETED')
+export const requireHeldTransfer = requireTransferStatus('HELD')
+export const requireRejectedTransfer = requireTransferStatus('REJECTED')
+export const requirePendingTransfer = requireTransferStatus('HELD')

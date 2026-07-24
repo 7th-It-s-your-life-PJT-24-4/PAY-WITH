@@ -1,3 +1,9 @@
+import type {
+  TransferCancelResult,
+  TransferDetail,
+  TransferStatus,
+} from '@/types/transfer'
+
 const mockDelay = 500
 
 const banks = [
@@ -21,6 +27,141 @@ const bankCodes: Record<string, string> = {
 
 function wait() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, mockDelay))
+}
+
+const initialMockTransfers = (): TransferDetail[] => [
+  {
+    transactionId: 73,
+    status: 'COMPLETED',
+    recipientName: '김민수',
+    bankCode: '004',
+    bankName: '국민은행',
+    accountNumber: '432102-01-234567',
+    amount: 50_000,
+    memo: null,
+    requestedAt: '2026-07-24T14:30:00+09:00',
+    approvalExpiresAt: '2026-07-24T14:40:00+09:00',
+    respondedAt: '2026-07-24T14:32:00+09:00',
+    completedAt: '2026-07-24T14:32:01+09:00',
+    remainingBalance: 1_200_000,
+    riskAnalysis: { riskScore: 0, reasons: [] },
+    failureCode: null,
+    failureMessage: null,
+  },
+  {
+    transactionId: 74,
+    status: 'HELD',
+    recipientName: '김민수',
+    bankCode: '004',
+    bankName: '국민은행',
+    accountNumber: '432102-01-234567',
+    amount: 50_000,
+    memo: null,
+    requestedAt: '2026-07-24T14:30:00+09:00',
+    approvalExpiresAt: '2026-07-24T14:40:00+09:00',
+    respondedAt: null,
+    completedAt: null,
+    remainingBalance: null,
+    riskAnalysis: {
+      riskScore: 80,
+      reasons: [
+        {
+          code: 'HIGH_AMOUNT',
+          description: '평소보다 큰 금액의 송금입니다.',
+          score: 80,
+        },
+      ],
+    },
+    failureCode: null,
+    failureMessage: null,
+  },
+  {
+    transactionId: 75,
+    status: 'REJECTED',
+    recipientName: '이지혜',
+    bankCode: '004',
+    bankName: 'KB국민은행',
+    accountNumber: '123123890123',
+    amount: 500_000,
+    memo: null,
+    requestedAt: '2026-07-24T14:30:00+09:00',
+    approvalExpiresAt: '2026-07-24T14:40:00+09:00',
+    respondedAt: '2026-07-24T14:36:00+09:00',
+    completedAt: null,
+    remainingBalance: null,
+    riskAnalysis: {
+      riskScore: 80,
+      reasons: [
+        {
+          code: 'NEW_RECIPIENT',
+          description: '처음 송금하는 수취인입니다.',
+          score: 80,
+        },
+      ],
+    },
+    failureCode: null,
+    failureMessage: null,
+  },
+]
+
+const mockTransfers = new Map(
+  initialMockTransfers().map((transfer) => [transfer.transactionId, transfer]),
+)
+
+export function setMockTransferDetail(detail: TransferDetail) {
+  mockTransfers.set(detail.transactionId, structuredClone(detail))
+}
+
+export function resetMockTransferDetails() {
+  mockTransfers.clear()
+  for (const detail of initialMockTransfers())
+    mockTransfers.set(detail.transactionId, detail)
+}
+
+export async function getMockTransferDetail(transactionId: number) {
+  await wait()
+  const detail = mockTransfers.get(transactionId)
+  if (!detail) throw new Error('송금 거래를 찾을 수 없습니다.')
+  return structuredClone(detail)
+}
+
+export async function advanceMockTransferStatus(
+  transactionId: number,
+  status: TransferStatus,
+) {
+  const detail = mockTransfers.get(transactionId)
+  if (!detail) throw new Error('송금 거래를 찾을 수 없습니다.')
+
+  const respondedAt =
+    status === 'COMPLETED' || status === 'REJECTED'
+      ? '2026-07-24T14:36:00+09:00'
+      : detail.respondedAt
+  const next: TransferDetail = {
+    ...detail,
+    status,
+    respondedAt,
+    completedAt:
+      status === 'COMPLETED' ? '2026-07-24T14:36:01+09:00' : detail.completedAt,
+    remainingBalance: status === 'COMPLETED' ? 1_250_000 - detail.amount : null,
+  }
+  setMockTransferDetail(next)
+  return structuredClone(next)
+}
+
+export async function cancelMockTransfer(
+  transactionId: number,
+): Promise<TransferCancelResult> {
+  await wait()
+  const detail = mockTransfers.get(transactionId)
+  if (!detail) throw new Error('송금 거래를 찾을 수 없습니다.')
+  if (detail.status !== 'HELD') {
+    const error = new Error('승인 대기 중인 송금만 취소할 수 있습니다.')
+    error.name = 'TRANSFER_008'
+    throw error
+  }
+
+  setMockTransferDetail({ ...detail, status: 'CANCELED' })
+  return { transactionId, status: 'CANCELED' }
 }
 
 export async function findMockBankCandidates(accountNumber: string) {

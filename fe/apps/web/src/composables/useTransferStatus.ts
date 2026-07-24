@@ -1,0 +1,132 @@
+import { computed, onBeforeUnmount, onMounted, ref, toValue } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import type { MaybeRefOrGetter } from 'vue'
+
+import {
+  cancelMockTransfer,
+  getMockTransferDetail,
+} from '@/mocks/transfer.mock'
+import { resolveTransferStatusRoute } from '@/pages/ward/transfer/-utils/transfer-status-route'
+import { useTransferStore } from '@/stores/transfer.store'
+
+const pollingInterval = 3_000
+
+export function useTransferStatus(
+  transactionId: MaybeRefOrGetter<number>,
+  options: { pollWhileHeld?: boolean } = {},
+) {
+  const route = useRoute()
+  const router = useRouter()
+  const transferStore = useTransferStore()
+  const isLoading = ref(false)
+  const isCancelling = ref(false)
+  const errorMessage = ref('')
+  let pollingTimer: ReturnType<typeof globalThis.setTimeout> | undefined
+  let disposed = false
+
+  const transferDetail = computed(() => {
+    const detail = transferStore.transferDetail
+    return detail?.transactionId === toValue(transactionId) ? detail : null
+  })
+
+  function stopPolling() {
+    if (pollingTimer !== undefined) globalThis.clearTimeout(pollingTimer)
+    pollingTimer = undefined
+  }
+
+  async function syncRoute() {
+    const detail = transferDetail.value
+    if (!detail) return
+    const target = resolveTransferStatusRoute(
+      detail.status,
+      detail.transactionId,
+      route.name,
+    )
+    if (target) await router.replace(target)
+  }
+
+  function schedulePolling() {
+    stopPolling()
+    if (
+      disposed ||
+      !options.pollWhileHeld ||
+      transferDetail.value?.status !== 'HELD'
+    )
+      return
+
+    pollingTimer = globalThis.setTimeout(async () => {
+      await refresh()
+      schedulePolling()
+    }, pollingInterval)
+  }
+
+  async function refresh() {
+    isLoading.value = true
+    errorMessage.value = ''
+    try {
+      const detail = await getMockTransferDetail(toValue(transactionId))
+      transferStore.setTransferDetail(detail)
+      await syncRoute()
+      return detail
+    } catch (error) {
+      errorMessage.value =
+        error instanceof Error
+          ? error.message
+          : '송금 상태를 확인하지 못했습니다.'
+      return null
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function cancel() {
+    if (isCancelling.value) return
+    isCancelling.value = true
+    errorMessage.value = ''
+    stopPolling()
+    try {
+      await cancelMockTransfer(toValue(transactionId))
+      await refresh()
+    } catch (error) {
+      if (error instanceof Error && error.name === 'TRANSFER_008')
+        await refresh()
+      else
+        errorMessage.value =
+          error instanceof Error ? error.message : '거래를 취소하지 못했습니다.'
+    } finally {
+      isCancelling.value = false
+      schedulePolling()
+    }
+  }
+
+  async function handleVisibilityChange() {
+    if (document.visibilityState === 'hidden') {
+      stopPolling()
+      return
+    }
+    await refresh()
+    schedulePolling()
+  }
+
+  onMounted(async () => {
+    await refresh()
+    schedulePolling()
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  })
+
+  onBeforeUnmount(() => {
+    disposed = true
+    stopPolling()
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  })
+
+  return {
+    transferDetail,
+    isLoading,
+    isCancelling,
+    errorMessage,
+    refresh,
+    cancel,
+    stopPolling,
+  }
+}

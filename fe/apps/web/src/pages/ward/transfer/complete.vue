@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { CircleCheckBig } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
-import { onBeforeRouteLeave, useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
+import { useTransferStatus } from '@/composables/useTransferStatus'
+import { formatTransferDateTime } from '@/pages/ward/transfer/-utils/transfer-status-route'
 import { useTransferStore } from '@/stores/transfer.store'
 
+const route = useRoute()
 const router = useRouter()
 const transferStore = useTransferStore()
+const transactionId = computed(() => Number(route.params.transactionId))
+const { transferDetail } = useTransferStatus(transactionId)
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
 
@@ -39,7 +45,7 @@ onBeforeRouteLeave((to) => {
         </p>
         <h2 class="type-amount mt-md">
           <span class="font-number">{{
-            formatMoney(transferStore.amount)
+            formatMoney(transferDetail?.amount ?? 0)
           }}</span
           ><span class="type-h2">원</span>
         </h2>
@@ -47,12 +53,12 @@ onBeforeRouteLeave((to) => {
       <div class="mt-xl flex items-center gap-md border-t border-border pt-md">
         <span
           class="type-h2 flex size-12 items-center justify-center rounded-full bg-primary-900 text-primary-300"
-          >{{ transferStore.recipient?.name.slice(0, 1) }}</span
+          >{{ transferDetail?.recipientName.slice(0, 1) }}</span
         >
         <div>
-          <h3 class="type-h4">{{ transferStore.recipient?.name }}</h3>
+          <h3 class="type-h4">{{ transferDetail?.recipientName }}</h3>
           <p class="type-body-medium text-body-muted">
-            {{ transferStore.bank }} {{ transferStore.accountNumber }}
+            {{ transferDetail?.bankName }} {{ transferDetail?.accountNumber }}
           </p>
         </div>
       </div>
@@ -62,7 +68,13 @@ onBeforeRouteLeave((to) => {
       <dl class="grid gap-xl">
         <div class="flex justify-between">
           <dt>송금 일시</dt>
-          <dd><span class="font-number">2026.07.22 10:05</span></dd>
+          <dd>
+            <span class="font-number">{{
+              transferDetail?.completedAt
+                ? formatTransferDateTime(transferDetail.completedAt)
+                : '-'
+            }}</span>
+          </dd>
         </div>
         <div class="flex justify-between">
           <dt>결제 수단</dt>
@@ -71,7 +83,7 @@ onBeforeRouteLeave((to) => {
         <div>
           <dt>메모</dt>
           <dd class="mt-sm rounded-medium bg-gray-900 p-md">
-            {{ transferStore.memo || '메모 없음' }}
+            {{ transferDetail?.memo || '메모 없음' }}
           </dd>
         </div>
       </dl>

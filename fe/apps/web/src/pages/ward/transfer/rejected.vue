@@ -2,20 +2,24 @@
 import { House, Phone, ShieldAlert } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
 import { computed } from 'vue'
-import { onBeforeRouteLeave, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
+import { useTransferStatus } from '@/composables/useTransferStatus'
 import TransferExceptionDetailsCard from '@/pages/ward/transfer/-components/TransferExceptionDetailsCard.vue'
 import TransferExceptionHero from '@/pages/ward/transfer/-components/TransferExceptionHero.vue'
+import { formatTransferDateTime } from '@/pages/ward/transfer/-utils/transfer-status-route'
 import { useTransferStore } from '@/stores/transfer.store'
 
+const route = useRoute()
 const router = useRouter()
 const transferStore = useTransferStore()
-const pendingTransfer = computed(() => transferStore.pendingTransfer)
+const transactionId = computed(() => Number(route.params.transactionId))
+const { transferDetail } = useTransferStatus(transactionId)
 const formatMoney = (value: number) =>
   `${new Intl.NumberFormat('ko-KR').format(value)}원`
 
 const detailRows = computed(() => {
-  const transfer = pendingTransfer.value
+  const transfer = transferDetail.value
   if (!transfer) return []
   return [
     {
@@ -32,7 +36,7 @@ const detailRows = computed(() => {
     },
     {
       label: '요청 일시',
-      value: transfer.requestedAt,
+      value: formatTransferDateTime(transfer.requestedAt),
       numeric: true,
       large: true,
     },
@@ -71,9 +75,7 @@ onBeforeRouteLeave(() => {
         :stroke-width="2.25"
         aria-hidden="true"
       />
-      <h3 class="type-h2">
-        {{ transferStore.rejectionReason || '위험한 거래로 추정됩니다' }}
-      </h3>
+      <h3 class="type-h2">위험한 거래로 추정됩니다</h3>
     </section>
 
     <TransferExceptionDetailsCard title="취소된 거래 내역" :rows="detailRows" />
