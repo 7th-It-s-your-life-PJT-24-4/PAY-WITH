@@ -1,11 +1,13 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { resetMockTransferDetails } from '@/mocks/transfer.mock'
 import { useTransferStore } from '@/stores/transfer.store'
 
 describe('transfer store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    resetMockTransferDetails()
     vi.useRealTimers()
   })
 
@@ -87,6 +89,27 @@ describe('transfer store', () => {
 
     expect(store.processingStatus).toBe('success')
     expect(store.transferResult?.transactionId).toBe(73)
+    expect(store.transferDetail?.status).toBe('COMPLETED')
+  })
+
+  it('이상 거래가 감지되면 승인 대기 거래 정보를 저장한다', async () => {
+    vi.useFakeTimers()
+    const store = prepareTransfer()
+    store.createTransferIntent('held-key')
+
+    const request = store.beginMockTransfer('222222')
+    await vi.advanceTimersByTimeAsync(500)
+    await request
+
+    expect(store.processingStatus).toBe('held')
+    expect(store.transferResult?.status).toBe('HELD')
+    expect(store.transferDetail).toMatchObject({
+      transactionId: 74,
+      recipientName: '김민수',
+      bankName: '국민은행',
+      amount: 50_000,
+    })
+    expect(store.transferDetail?.status).toBe('HELD')
   })
 
   it('같은 송금 내용에는 기존 요청 식별자를 재사용한다', () => {

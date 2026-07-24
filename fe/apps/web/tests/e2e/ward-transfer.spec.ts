@@ -123,7 +123,133 @@ test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다',
   await expect(page).toHaveURL(/\/ward\/transfer$/)
 })
 
-test('처리 상태 없이 민감한 송금 라우트에 직접 접근할 수 없다', async ({
+test('이상 거래 승인 대기와 재송금 제한 화면을 표시한다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/ward/transfer')
+
+  await page
+    .getByRole('button', { name: /김민수/ })
+    .first()
+    .click()
+  await page.getByRole('button', { name: '+5만원', exact: true }).click()
+  await page.getByRole('button', { name: '다음으로' }).click()
+  await page.getByRole('button', { name: '송금하기' }).click()
+
+  for (const digit of ['2', '2', '2', '2', '2', '2']) {
+    await page.getByRole('button', { name: digit, exact: true }).click()
+  }
+
+  await expect(
+    page.getByRole('heading', { name: '이상 거래 알림' }),
+  ).toBeVisible()
+  await expect(page).toHaveURL(/\/ward\/transfer\/74\/held$/)
+  await expect(page.getByText('잠깐 확인해 보세요!')).toBeVisible()
+  await expect(page.getByText('50,000원')).toBeVisible()
+  await expect(
+    page.getByRole('navigation', { name: '시니어 주요 기능' }),
+  ).toBeHidden()
+
+  await page.getByRole('button', { name: '보호자에게 연락하기' }).click()
+  await expect(
+    page.getByRole('dialog', { name: '보호자에게 전화할까요?' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: '취소', exact: true }).click()
+
+  await page.getByRole('button', { name: '거래 취소하기' }).click()
+  await expect(
+    page.getByRole('dialog', { name: '대기 중인 거래를 취소할까요?' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: '거래 유지하기' }).click()
+
+  await page.getByRole('button', { name: '뒤로 가기' }).click()
+  await expect(page).toHaveURL(/\/ward\/home$/)
+
+  await page.getByRole('button', { name: '송금하기' }).click()
+  await expect(page).toHaveURL(/\/ward\/transfer\/74\/restricted$/)
+  await expect(
+    page.getByRole('heading', { name: '거래 제한 안내' }),
+  ).toBeVisible()
+  await expect(page.getByText('거래를 진행할 수 없습니다')).toBeVisible()
+
+  await page.getByRole('button', { name: '홈으로', exact: true }).click()
+  await expect(page).toHaveURL(/\/ward\/home$/)
+})
+
+test('보호자 전화 확인 후 연결된 번호로 전화를 건다', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.open = (url) => {
+      window.sessionStorage.setItem('last-opened-url', String(url))
+      return null
+    }
+  })
+  await page.goto('/ward/transfer/75/rejected')
+
+  await page.getByRole('button', { name: '보호자에게 연락하기' }).click()
+  const dialog = page.getByRole('dialog', {
+    name: '보호자에게 전화할까요?',
+  })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: '전화 걸기' }).click()
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.sessionStorage.getItem('last-opened-url')),
+    )
+    .toBe('tel:01012345678')
+  await expect(dialog).toBeHidden()
+})
+
+test('승인 대기 거래를 취소하고 홈으로 이동한다', async ({ page }) => {
+  await page.goto('/ward/transfer/76/held')
+  await expect(
+    page.getByRole('heading', { name: '이상 거래 알림' }),
+  ).toBeVisible()
+  await expect(page.getByText('30,000원')).toBeVisible()
+
+  await page.getByRole('button', { name: '거래 취소하기' }).click()
+  const dialog = page.getByRole('dialog', {
+    name: '대기 중인 거래를 취소할까요?',
+  })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: '거래 취소하기' }).click()
+
+  await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(page.getByRole('heading', { name: 'PayWith' })).toBeVisible()
+})
+
+test('거래 번호로 최종 상태 화면을 새로고침해도 복구한다', async ({ page }) => {
+  await page.goto('/ward/transfer/73/complete')
+  await expect(page.getByRole('heading', { name: '송금 완료' })).toBeVisible()
+  await page.reload()
+  await expect(page).toHaveURL(/\/ward\/transfer\/73\/complete$/)
+  await expect(page.getByText('김민수')).toBeVisible()
+
+  await page.goto('/ward/transfer/75/rejected')
+  await expect(
+    page.getByRole('heading', { name: '거래 거절 안내' }),
+  ).toBeVisible()
+  await page.reload()
+  await expect(page).toHaveURL(/\/ward\/transfer\/75\/rejected$/)
+  await expect(page.getByText('위험한 거래로 추정됩니다')).toBeVisible()
+})
+
+test('거래 번호로 승인 대기 화면을 새로고침해도 복구한다', async ({ page }) => {
+  await page.goto('/ward/transfer/74/held')
+  await expect(
+    page.getByRole('heading', { name: '이상 거래 알림' }),
+  ).toBeVisible()
+  await page.reload()
+  await expect(page).toHaveURL(/\/ward\/transfer\/74\/held$/)
+  await expect(page.getByText('잠깐 확인해 보세요!')).toBeVisible()
+
+  await page.goto('/ward/transfer/74/restricted')
+  await expect(
+    page.getByRole('heading', { name: '거래 제한 안내' }),
+  ).toBeVisible()
+  await expect(page.getByText('대기 중인 거래')).toBeVisible()
+})
+
+test('유효한 처리 상태 없이 송금 라우트에 직접 접근할 수 없다', async ({
   page,
 }) => {
   await page.goto('/ward/transfer/bank')
@@ -132,6 +258,9 @@ test('처리 상태 없이 민감한 송금 라우트에 직접 접근할 수 �
   await page.goto('/ward/transfer/processing')
   await expect(page).toHaveURL(/\/ward\/transfer$/)
 
-  await page.goto('/ward/transfer/73/complete')
+  await page.goto('/ward/transfer/999/complete')
+  await expect(page).toHaveURL(/\/ward\/transfer$/)
+
+  await page.goto('/ward/transfer/not-a-number/held')
   await expect(page).toHaveURL(/\/ward\/transfer$/)
 })

@@ -4,8 +4,10 @@ import { defineStore } from 'pinia'
 import {
   confirmMockTransferStatus,
   getMockBankCode,
+  setMockTransferDetail,
   submitMockTransfer,
 } from '@/mocks/transfer.mock'
+import type { TransferDetail } from '@/types/transfer'
 
 export interface TransferRecipient {
   id: number
@@ -32,7 +34,7 @@ export interface MockTransferResult {
 
 const initialBalance = 1_250_000
 export type TransferProcessingStatus =
-  'idle' | 'pending' | 'unknown' | 'success' | 'error'
+  'idle' | 'pending' | 'held' | 'unknown' | 'success' | 'error'
 
 export const useTransferStore = defineStore('transfer', () => {
   const recipient = ref<TransferRecipient | null>(null)
@@ -46,6 +48,7 @@ export const useTransferStore = defineStore('transfer', () => {
   const processingError = ref('')
   const transferIntent = ref<TransferIntent | null>(null)
   const transferResult = ref<MockTransferResult | null>(null)
+  const transferDetail = ref<TransferDetail | null>(null)
   const requestStarted = ref(false)
 
   const remainingBalance = computed(() => balance.value - amount.value)
@@ -111,6 +114,47 @@ export const useTransferStore = defineStore('transfer', () => {
     return transferIntent.value
   }
 
+  function setTransferDetail(detail: TransferDetail) {
+    transferDetail.value = detail
+  }
+
+  function createTransferDetail(
+    transactionId: number,
+    status: 'COMPLETED' | 'HELD',
+  ): TransferDetail {
+    const requestedAt = new Date().toISOString()
+    const completed = status === 'COMPLETED'
+    return {
+      transactionId,
+      status,
+      recipientName: recipient.value?.name ?? '',
+      bankCode: transferIntent.value?.bankCode ?? getMockBankCode(bank.value),
+      bankName: bank.value,
+      accountNumber: accountNumber.value,
+      amount: amount.value,
+      memo: memo.value.trim() || null,
+      requestedAt,
+      approvalExpiresAt: new Date(Date.now() + 10 * 60 * 1_000).toISOString(),
+      respondedAt: completed ? requestedAt : null,
+      completedAt: completed ? requestedAt : null,
+      remainingBalance: completed ? remainingBalance.value : null,
+      riskAnalysis: {
+        riskScore: completed ? 0 : 80,
+        reasons: completed
+          ? []
+          : [
+              {
+                code: 'HIGH_AMOUNT',
+                description: '평소보다 큰 금액의 송금입니다.',
+                score: 80,
+              },
+            ],
+      },
+      failureCode: null,
+      failureMessage: null,
+    }
+  }
+
   async function beginMockTransfer(pin: string) {
     if (!transferIntent.value || requestStarted.value) return
     requestStarted.value = true
@@ -126,6 +170,13 @@ export const useTransferStore = defineStore('transfer', () => {
         return
       }
       transferResult.value = result
+      const detail = createTransferDetail(result.transactionId, result.status)
+      setMockTransferDetail(detail)
+      setTransferDetail(detail)
+      if (result.status === 'HELD') {
+        processingStatus.value = 'held'
+        return
+      }
       processingStatus.value = 'success'
     } catch (error) {
       processingStatus.value = 'error'
@@ -140,6 +191,12 @@ export const useTransferStore = defineStore('transfer', () => {
     transferResult.value = await confirmMockTransferStatus(
       transferIntent.value.idempotencyKey,
     )
+    const detail = createTransferDetail(
+      transferResult.value.transactionId,
+      'COMPLETED',
+    )
+    setMockTransferDetail(detail)
+    setTransferDetail(detail)
     processingStatus.value = 'success'
   }
 
@@ -181,6 +238,7 @@ export const useTransferStore = defineStore('transfer', () => {
     processingError.value = ''
     transferIntent.value = null
     transferResult.value = null
+    transferDetail.value = null
     requestStarted.value = false
   }
 
@@ -196,9 +254,11 @@ export const useTransferStore = defineStore('transfer', () => {
     processingError,
     transferIntent,
     transferResult,
+    transferDetail,
     requestStarted,
     remainingBalance,
     canTransfer,
+    setTransferDetail,
     selectRecipient,
     selectManualRecipient,
     setBankCandidates,

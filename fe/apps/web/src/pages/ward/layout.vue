@@ -20,6 +20,11 @@ const activeNavigation = computed<WardNavigationValue>(() => {
 })
 
 function goBack() {
+  const backRouteName = route.meta.backRouteName
+  if (typeof backRouteName === 'string') {
+    router.replace({ name: backRouteName })
+    return
+  }
   router.back()
 }
 

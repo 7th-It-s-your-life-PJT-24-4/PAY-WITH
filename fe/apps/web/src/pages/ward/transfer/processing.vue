@@ -23,6 +23,11 @@ watch(
         name: 'ward-transfer-complete',
         params: { transactionId },
       })
+    if (status === 'held' && transactionId)
+      router.replace({
+        name: 'ward-transfer-held',
+        params: { transactionId },
+      })
   },
   { immediate: true },
 )
