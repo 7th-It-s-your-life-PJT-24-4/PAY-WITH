@@ -1,13 +1,19 @@
 package com.paywith.domain;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class User {
 
     private Long id;
-    private String email;
+    private Role role;
+    private String phone;
     private String password;
     private String name;
+    private LocalDate birthDate;
+    private String gender;
+    private String fcmToken;
+    private UserStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -19,12 +25,20 @@ public class User {
         this.id = id;
     }
 
-    public String getEmail() {
-        return email;
+    public Role getRole() {
+        return role;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getPassword() {
@@ -41,6 +55,38 @@ public class User {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public LocalDate getBirthDate() {
+        return birthDate;
+    }
+
+    public void setBirthDate(LocalDate birthDate) {
+        this.birthDate = birthDate;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getFcmToken() {
+        return fcmToken;
+    }
+
+    public void setFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
+    }
+
+    public UserStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(UserStatus status) {
+        this.status = status;
     }
 
     public LocalDateTime getCreatedAt() {

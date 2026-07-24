@@ -6,14 +6,14 @@ import java.time.LocalDateTime;
 public class UserResponse {
 
     private final Long id;
-    private final String email;
+    private final String phone;
     private final String name;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public UserResponse(User user) {
         this.id = user.getId();
-        this.email = user.getEmail();
+        this.phone = user.getPhone();
         this.name = user.getName();
         this.createdAt = user.getCreatedAt();
         this.updatedAt = user.getUpdatedAt();
@@ -23,8 +23,8 @@ public class UserResponse {
         return id;
     }
 
-    public String getEmail() {
-        return email;
+    public String getPhone() {
+        return phone;
     }
 
     public String getName() {
