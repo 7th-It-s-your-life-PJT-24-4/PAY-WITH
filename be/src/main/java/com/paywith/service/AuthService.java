@@ -7,11 +7,11 @@ import com.paywith.dto.TokenResponse;
 import com.paywith.exception.BusinessException;
 import com.paywith.mapper.UserMapper;
 import com.paywith.security.JwtTokenProvider;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.RedisTemplate;
+import java.time.Duration;
 
 @Service
 public class AuthService {
@@ -19,27 +19,30 @@ public class AuthService {
     private final UserMapper userMapper;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
-    private final Map<Long, String> refreshTokenStore = new ConcurrentHashMap<>();
+    private final RedisTemplate<String, String> redisTemplate;
 
     public AuthService(
         UserMapper userMapper,
         JwtTokenProvider jwtTokenProvider,
-        PasswordEncoder passwordEncoder
+        PasswordEncoder passwordEncoder,
+        RedisTemplate<String, String> redisTemplate
     ) {
         this.userMapper = userMapper;
         this.jwtTokenProvider = jwtTokenProvider;
         this.passwordEncoder = passwordEncoder;
+        this.redisTemplate = redisTemplate;
+
     }
 
     public TokenResponse login(LoginRequest request) {
-        User user = userMapper.findByEmail(request.getEmail());
+        User user = userMapper.findByPhone(request.getPhone());
         if (user == null || !matchesPassword(request.getPassword(), user.getPassword())) {
-            throw new BusinessException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "전화번호 또는 비밀번호가 올바르지 않습니다.");
         }
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId(), user.getEmail());
-        refreshTokenStore.put(user.getId(), refreshToken);
+        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getPhone());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId(), user.getPhone());
+        redisTemplate.opsForValue().set("refresh:" + user.getId(), refreshToken, Duration.ofMillis(jwtTokenProvider.getRefreshTokenValidityMs()));
         return new TokenResponse(accessToken, refreshToken);
     }
 
@@ -50,7 +53,7 @@ public class AuthService {
         }
 
         Long userId = jwtTokenProvider.getUserId(refreshToken);
-        String savedRefreshToken = refreshTokenStore.get(userId);
+        String savedRefreshToken = redisTemplate.opsForValue().get("refresh:" + userId);
         if (!refreshToken.equals(savedRefreshToken)) {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 일치하지 않습니다.");
         }
@@ -60,13 +63,15 @@ public class AuthService {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다.");
         }
 
-        String newAccessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail());
-        String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getId(), user.getEmail());
-        refreshTokenStore.put(user.getId(), newRefreshToken);
+        String newAccessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getPhone());
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getId(), user.getPhone());
+        redisTemplate.opsForValue().set("refresh:" + user.getId(), newRefreshToken, Duration.ofMillis(jwtTokenProvider.getRefreshTokenValidityMs()));
         return new TokenResponse(newAccessToken, newRefreshToken);
     }
 
+
     private boolean matchesPassword(String rawPassword, String savedPassword) {
-        return passwordEncoder.matches(rawPassword, savedPassword) || rawPassword.equals(savedPassword);
+        return passwordEncoder.matches(rawPassword, savedPassword);
+
     }
 }
