@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ChevronDown, Landmark } from '@lucide/vue'
+import { Check, ChevronDown, ChevronUp, Landmark } from '@lucide/vue'
 import {
   SelectContent,
   SelectItem,
@@ -7,6 +7,8 @@ import {
   SelectItemText,
   SelectPortal,
   SelectRoot,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
   SelectTrigger,
   SelectValue,
   SelectViewport,
@@ -78,7 +80,14 @@ const selectedBank = computed(() =>
         :side-offset="8"
         align="start"
       >
-        <SelectViewport class="max-h-[320px] p-sm">
+        <SelectScrollUpButton
+          class="type-body-medium flex min-h-touch-target items-center justify-center gap-xs border-b border-border bg-primary-900 px-md text-primary-500"
+        >
+          <ChevronUp class="size-lg" aria-hidden="true" />
+          위쪽 은행 더 보기
+        </SelectScrollUpButton>
+
+        <SelectViewport class="max-h-[240px] p-sm">
           <SelectItem
             v-for="bank in banks"
             :key="bank.code"
@@ -96,6 +105,16 @@ const selectedBank = computed(() =>
             </SelectItemIndicator>
           </SelectItem>
         </SelectViewport>
+
+        <SelectScrollDownButton
+          class="type-body-medium flex min-h-touch-target items-center justify-center gap-xs border-t border-primary-500/20 bg-primary-900 px-md text-primary-500"
+        >
+          <span>아래로 내려 더 많은 은행 보기</span>
+          <ChevronDown
+            class="size-lg motion-safe:animate-bounce"
+            aria-hidden="true"
+          />
+        </SelectScrollDownButton>
       </SelectContent>
     </SelectPortal>
   </SelectRoot>
