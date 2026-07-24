@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ArrowRight, Landmark } from '@lucide/vue'
+import { ArrowRight } from '@lucide/vue'
 import { Button, Input, PinKeypad } from '@pay-with/ui'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import ChargeBankSelect from '@/pages/ward/charge/-components/ChargeBankSelect.vue'
 import { useChargeStore } from '@/stores/charge.store'
 
 const banks = [
@@ -59,25 +60,10 @@ async function registerAccount() {
       </p>
     </section>
 
-    <label class="flex flex-col gap-xs">
+    <div class="flex flex-col gap-xs">
       <span class="type-h4">은행</span>
-      <span class="relative">
-        <Landmark
-          class="pointer-events-none absolute left-md top-1/2 size-xl -translate-y-1/2 text-primary-500"
-          aria-hidden="true"
-        />
-        <select
-          v-model="bankCode"
-          class="type-h3 h-[72px] w-full appearance-none rounded-medium border border-border-strong bg-surface-card pl-12 pr-xl text-body outline-none focus:border-focus focus:ring-2 focus:ring-focus/20"
-          aria-label="은행 선택"
-        >
-          <option value="" disabled>은행을 선택해주세요</option>
-          <option v-for="bank in banks" :key="bank.code" :value="bank.code">
-            {{ bank.name }}
-          </option>
-        </select>
-      </span>
-    </label>
+      <ChargeBankSelect v-model="bankCode" :banks="banks" />
+    </div>
 
     <Input
       :model-value="accountNumber"

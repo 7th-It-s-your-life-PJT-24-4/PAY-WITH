@@ -25,7 +25,8 @@ test('새 계좌를 등록하고 충전 계좌로 사용한다', async ({ page }
 
   await page.getByRole('button', { name: /KB국민은행/ }).click()
   await page.getByRole('button', { name: '새 계좌 추가' }).click()
-  await page.getByLabel('은행 선택').selectOption('WOORI')
+  await page.getByRole('combobox', { name: '은행 선택' }).click()
+  await page.getByRole('option', { name: '우리은행' }).click()
   await page.getByLabel('계좌번호').fill('1002123456789')
 
   for (const digit of ['1', '0', '0', '4']) {
