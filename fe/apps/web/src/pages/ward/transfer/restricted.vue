@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { CircleAlert, House, Info, Phone } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useTransferStatus } from '@/composables/useTransferStatus'
 import TransferExceptionDetailsCard from '@/pages/ward/transfer/-components/TransferExceptionDetailsCard.vue'
 import TransferExceptionHero from '@/pages/ward/transfer/-components/TransferExceptionHero.vue'
+import TransferGuardianCallModal from '@/pages/ward/transfer/-components/TransferGuardianCallModal.vue'
 import { formatTransferDateTime } from '@/pages/ward/transfer/-utils/transfer-status-route'
-import { useTransferStore } from '@/stores/transfer.store'
 
 const route = useRoute()
 const router = useRouter()
-const transferStore = useTransferStore()
+const isGuardianCallModalOpen = ref(false)
 const transactionId = computed(() => Number(route.params.transactionId))
 const { transferDetail, errorMessage } = useTransferStatus(transactionId, {
   pollWhileHeld: true,
@@ -82,7 +82,7 @@ const detailRows = computed(() => {
         class="w-full !gap-sm !px-md"
         label="보호자에게 연락하기"
         size="large"
-        @click="transferStore.requestGuardianContact"
+        @click="isGuardianCallModalOpen = true"
       >
         <template #leading>
           <Phone :stroke-width="2.5" />
@@ -100,14 +100,6 @@ const detailRows = computed(() => {
         </template>
       </Button>
       <p
-        v-if="transferStore.guardianContactRequested"
-        class="sr-only"
-        role="status"
-        aria-live="polite"
-      >
-        보호자 연락을 요청했습니다.
-      </p>
-      <p
         v-if="errorMessage"
         class="type-body-medium text-center text-error"
         role="alert"
@@ -115,5 +107,7 @@ const detailRows = computed(() => {
         {{ errorMessage }}
       </p>
     </div>
+
+    <TransferGuardianCallModal v-model:open="isGuardianCallModalOpen" />
   </div>
 </template>

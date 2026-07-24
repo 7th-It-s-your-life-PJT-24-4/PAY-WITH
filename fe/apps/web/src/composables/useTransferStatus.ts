@@ -80,19 +80,21 @@ export function useTransferStatus(
   }
 
   async function cancel() {
-    if (isCancelling.value) return
+    if (isCancelling.value) return null
     isCancelling.value = true
     errorMessage.value = ''
     stopPolling()
     try {
       await cancelMockTransfer(toValue(transactionId))
-      await refresh()
+      return await refresh()
     } catch (error) {
       if (error instanceof Error && error.name === 'TRANSFER_008')
-        await refresh()
-      else
+        return await refresh()
+      else {
         errorMessage.value =
           error instanceof Error ? error.message : '거래를 취소하지 못했습니다.'
+        return null
+      }
     } finally {
       isCancelling.value = false
       schedulePolling()

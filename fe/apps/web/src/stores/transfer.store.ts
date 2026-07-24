@@ -49,7 +49,6 @@ export const useTransferStore = defineStore('transfer', () => {
   const transferIntent = ref<TransferIntent | null>(null)
   const transferResult = ref<MockTransferResult | null>(null)
   const transferDetail = ref<TransferDetail | null>(null)
-  const guardianContactRequested = ref(false)
   const requestStarted = ref(false)
 
   const remainingBalance = computed(() => balance.value - amount.value)
@@ -206,10 +205,6 @@ export const useTransferStore = defineStore('transfer', () => {
     createTransferIntent(idempotencyKey)
   }
 
-  function requestGuardianContact() {
-    guardianContactRequested.value = true
-  }
-
   function appendAccountDigit(value: string) {
     if (accountNumber.value.length < 16) accountNumber.value += value
   }
@@ -244,7 +239,6 @@ export const useTransferStore = defineStore('transfer', () => {
     transferIntent.value = null
     transferResult.value = null
     transferDetail.value = null
-    guardianContactRequested.value = false
     requestStarted.value = false
   }
 
@@ -261,7 +255,6 @@ export const useTransferStore = defineStore('transfer', () => {
     transferIntent,
     transferResult,
     transferDetail,
-    guardianContactRequested,
     requestStarted,
     remainingBalance,
     canTransfer,
@@ -274,7 +267,6 @@ export const useTransferStore = defineStore('transfer', () => {
     beginMockTransfer,
     confirmMockStatus,
     restartAfterFailure,
-    requestGuardianContact,
     appendAccountDigit,
     removeAccountDigit,
     appendAmountDigit,

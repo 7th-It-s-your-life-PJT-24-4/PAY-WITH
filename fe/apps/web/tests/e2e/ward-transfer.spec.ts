@@ -149,6 +149,18 @@ test('이상 거래 승인 대기와 재송금 제한 화면을 표시한다', a
     page.getByRole('navigation', { name: '시니어 주요 기능' }),
   ).toBeHidden()
 
+  await page.getByRole('button', { name: '보호자에게 연락하기' }).click()
+  await expect(
+    page.getByRole('dialog', { name: '보호자에게 전화할까요?' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: '취소', exact: true }).click()
+
+  await page.getByRole('button', { name: '거래 취소하기' }).click()
+  await expect(
+    page.getByRole('dialog', { name: '대기 중인 거래를 취소할까요?' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: '거래 유지하기' }).click()
+
   await page.getByRole('button', { name: '뒤로 가기' }).click()
   await expect(page).toHaveURL(/\/ward\/home$/)
 
@@ -161,6 +173,30 @@ test('이상 거래 승인 대기와 재송금 제한 화면을 표시한다', a
 
   await page.getByRole('button', { name: '홈으로', exact: true }).click()
   await expect(page).toHaveURL(/\/ward\/home$/)
+})
+
+test('보호자 전화 확인 후 연결된 번호로 전화를 건다', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.open = (url) => {
+      window.sessionStorage.setItem('last-opened-url', String(url))
+      return null
+    }
+  })
+  await page.goto('/ward/transfer/75/rejected')
+
+  await page.getByRole('button', { name: '보호자에게 연락하기' }).click()
+  const dialog = page.getByRole('dialog', {
+    name: '보호자에게 전화할까요?',
+  })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: '전화 걸기' }).click()
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.sessionStorage.getItem('last-opened-url')),
+    )
+    .toBe('tel:01012345678')
+  await expect(dialog).toBeHidden()
 })
 
 test('거래 번호로 최종 상태 화면을 새로고침해도 복구한다', async ({ page }) => {
