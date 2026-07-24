@@ -102,6 +102,33 @@ const initialMockTransfers = (): TransferDetail[] => [
     failureCode: null,
     failureMessage: null,
   },
+  {
+    transactionId: 76,
+    status: 'HELD',
+    recipientName: '박지연',
+    bankCode: '088',
+    bankName: '신한은행',
+    accountNumber: '110-234-567890',
+    amount: 30_000,
+    memo: null,
+    requestedAt: '2026-07-24T15:00:00+09:00',
+    approvalExpiresAt: '2026-07-24T15:10:00+09:00',
+    respondedAt: null,
+    completedAt: null,
+    remainingBalance: null,
+    riskAnalysis: {
+      riskScore: 70,
+      reasons: [
+        {
+          code: 'NEW_RECIPIENT',
+          description: '처음 송금하는 수취인입니다.',
+          score: 70,
+        },
+      ],
+    },
+    failureCode: null,
+    failureMessage: null,
+  },
 ]
 
 const mockTransfers = new Map(

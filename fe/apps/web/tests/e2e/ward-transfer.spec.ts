@@ -199,6 +199,24 @@ test('보호자 전화 확인 후 연결된 번호로 전화를 건다', async (
   await expect(dialog).toBeHidden()
 })
 
+test('승인 대기 거래를 취소하고 홈으로 이동한다', async ({ page }) => {
+  await page.goto('/ward/transfer/76/held')
+  await expect(
+    page.getByRole('heading', { name: '이상 거래 알림' }),
+  ).toBeVisible()
+  await expect(page.getByText('30,000원')).toBeVisible()
+
+  await page.getByRole('button', { name: '거래 취소하기' }).click()
+  const dialog = page.getByRole('dialog', {
+    name: '대기 중인 거래를 취소할까요?',
+  })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: '거래 취소하기' }).click()
+
+  await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(page.getByRole('heading', { name: 'PayWith' })).toBeVisible()
+})
+
 test('거래 번호로 최종 상태 화면을 새로고침해도 복구한다', async ({ page }) => {
   await page.goto('/ward/transfer/73/complete')
   await expect(page.getByRole('heading', { name: '송금 완료' })).toBeVisible()
