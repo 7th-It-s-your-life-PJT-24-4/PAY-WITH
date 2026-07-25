@@ -32,7 +32,8 @@ ext {
     mybatisSpringVersion = '2.1.2'
     springfoxVersion = '3.0.0'
     springDataRedisVersion = '2.7.18'
-    lettuceVersion = '6.2.6.RELEASE'
+    lettuceVersion = '6.1.10.RELEASE'
+    lombokVersion = '1.18.34'
 }
 
 repositories {
@@ -48,8 +49,6 @@ dependencies {
     implementation "org.mybatis:mybatis-spring:${mybatisSpringVersion}"
     implementation 'com.mysql:mysql-connector-j:8.0.33'
     implementation 'com.zaxxer:HikariCP:5.1.0'
-    implementation "org.springframework.data:spring-data-redis:${springDataRedisVersion}"
-    implementation "io.lettuce:lettuce-core:${lettuceVersion}"
     implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
     runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
     runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
@@ -57,11 +56,15 @@ dependencies {
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
     implementation "io.springfox:springfox-swagger2:${springfoxVersion}"
     implementation "io.springfox:springfox-swagger-ui:${springfoxVersion}"
+    implementation "org.springframework.data:spring-data-redis:${springDataRedisVersion}"
+    implementation "io.lettuce:lettuce-core:${lettuceVersion}"
     providedCompile 'javax.servlet:javax.servlet-api:4.0.1'
     implementation 'javax.validation:validation-api:2.0.1.Final'
     implementation 'org.hibernate.validator:hibernate-validator:6.2.5.Final'
     implementation 'org.slf4j:slf4j-api:2.0.16'
     implementation 'ch.qos.logback:logback-classic:1.5.16'
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 }
 
 test {

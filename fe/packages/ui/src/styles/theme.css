@@ -1,0 +1,170 @@
+@theme {
+  --font-sans: Pretendard, ui-sans-serif, system-ui, sans-serif;
+  --font-number: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary-50: #001215;
+  --color-primary-100: #00232a;
+  --color-primary-200: #004754;
+  --color-primary-300: #006a7e;
+  --color-primary-400: #008ea8;
+  --color-primary-500: #00b1d2;
+  --color-primary-600: #33c1db;
+  --color-primary-700: #66d0e4;
+  --color-primary-800: #99e0ed;
+  --color-primary-900: #cceff6;
+
+  --color-gray-50: #080d12;
+  --color-gray-100: #121b21;
+  --color-gray-200: #29343d;
+  --color-gray-300: #414e58;
+  --color-gray-400: #5c6770;
+  --color-gray-500: #798086;
+  --color-gray-600: #8f9aa3;
+  --color-gray-700: #abb4bb;
+  --color-gray-800: #c4cdd4;
+  --color-gray-900: #dfe6ec;
+
+  --color-background: #f4f9fa;
+  --color-surface: #f4f9fa;
+  --color-surface-card: #ffffff;
+  --color-subbutton: #bcc9cd;
+  --color-body: #080d12;
+  --color-body-secondary: #414e58;
+  --color-body-muted: #5c6770;
+  --color-border: #dfe6ec;
+  --color-border-strong: #c4cdd4;
+  --color-focus: #00b1d2;
+  --color-action: #00b1d2;
+  --color-action-active: #008ea8;
+  --color-on-action: #ffffff;
+  --color-disabled: #c4cdd4;
+  --color-on-disabled: #5c6770;
+  --color-overlay: #080d12;
+  --color-success: #2fa737;
+  --color-success-alt: #00bc00;
+  --color-warning: #ff9f3f;
+  --color-error: #ff6161;
+  --color-on-semantic: #ffffff;
+
+  --spacing-xxs: 4px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 20px;
+  --spacing-xl: 24px;
+  --spacing-xxl: 32px;
+  --spacing-section: 40px;
+  --spacing-mobile-gutter: 20px;
+  --spacing-tablet-gutter: 24px;
+  --spacing-desktop-gutter: 32px;
+  --spacing-touch-target: 48px;
+  --spacing-header: 60px;
+  --spacing-bottom-nav: 80px;
+  --spacing-button-small: 40px;
+  --spacing-button-default: 56px;
+  --spacing-button-large: 80px;
+
+  --radius-small: 4px;
+  --radius-medium: 8px;
+  --radius-large: 16px;
+  --radius-full: 9999px;
+
+  --shadow-card: 0 2px 8px rgb(8 13 18 / 6%);
+  --shadow-modal: 0 8px 24px rgb(8 13 18 / 12%);
+
+  --container-content: 1200px;
+}
+
+:root {
+  --opacity-disabled: 0.8;
+  --opacity-overlay: 0.35;
+  --opacity-loading: 0.5;
+}
+
+@utility type-hero {
+  font-family: var(--font-sans);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.8px;
+}
+
+@utility type-h1 {
+  font-family: var(--font-sans);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.64px;
+}
+
+@utility type-h2 {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.48px;
+}
+
+@utility type-h3 {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+}
+
+@utility type-h4 {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.32px;
+}
+
+@utility type-body-medium {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.28px;
+}
+
+@utility type-body-regular {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.28px;
+}
+
+@utility type-caption {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.24px;
+}
+
+@utility type-amount {
+  font-family: var(--font-number);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.8px;
+}
+
+@utility type-numeric-input {
+  font-family: var(--font-number);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.48px;
+}
+
+@utility type-numeric-input-large {
+  font-family: var(--font-number);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 1.28px;
+}
