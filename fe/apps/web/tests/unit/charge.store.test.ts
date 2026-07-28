@@ -1,10 +1,12 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { resetMockChargeState } from '@/mocks/charge.mock'
 import { useChargeStore } from '@/stores/charge.store'
 
 describe('charge store', () => {
   beforeEach(() => {
+    resetMockChargeState()
     setActivePinia(createPinia())
     vi.useRealTimers()
   })

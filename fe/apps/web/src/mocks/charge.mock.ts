@@ -7,10 +7,7 @@ import type {
 const wait = (milliseconds: number) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds))
 
-let nextAccountId = 10
-let nextTransactionId = 43
-
-const accounts: ChargeAccount[] = [
+const initialAccounts = (): ChargeAccount[] => [
   {
     accountId: 7,
     bankCode: 'KB',
@@ -25,7 +22,18 @@ const accounts: ChargeAccount[] = [
   },
 ]
 
+let nextAccountId = 10
+let nextTransactionId = 43
+const accounts = initialAccounts()
+
 const chargeResults = new Map<number, ChargeResult>()
+
+export function resetMockChargeState() {
+  nextAccountId = 10
+  nextTransactionId = 43
+  accounts.splice(0, accounts.length, ...initialAccounts())
+  chargeResults.clear()
+}
 
 export async function getMockChargeAccounts() {
   await wait(150)

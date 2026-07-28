@@ -16,7 +16,7 @@ const amountText = computed(() =>
 )
 
 onMounted(async () => {
-  await chargeStore.loadAccounts()
+  if (!chargeStore.accountsLoaded) await chargeStore.loadAccounts()
   if (chargeStore.accounts.length === 0)
     await router.replace({ name: 'ward-charge-account-add' })
 })
