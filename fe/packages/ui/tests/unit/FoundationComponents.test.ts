@@ -101,6 +101,31 @@ describe('BottomNavigation', () => {
 
     expect(wrapper.emitted('navigate')?.[0]).toEqual(['history'])
   })
+
+  it('keeps the ward center action foreground independent from active state', async () => {
+    const wrapper = mount(BottomNavigation, {
+      props: {
+        active: 'payment',
+        variant: 'ward',
+        centerActionValue: 'payment',
+        items: [
+          { value: 'transfer', label: '송금' },
+          { value: 'payment', label: '결제' },
+          { value: 'history', label: '내역' },
+        ],
+      },
+    })
+    const centerAction = wrapper.get('[data-center-action="true"]')
+
+    expect(centerAction.classes()).toContain('text-on-action')
+    expect(centerAction.classes()).not.toContain('text-primary-300')
+
+    await wrapper.setProps({ active: 'transfer' })
+
+    expect(centerAction.classes()).toContain('text-on-action')
+    expect(centerAction.classes()).not.toContain('text-primary-300')
+    expect(wrapper.get('[aria-current="page"]').text()).toContain('송금')
+  })
 })
 
 describe('NumericKeypad', () => {
