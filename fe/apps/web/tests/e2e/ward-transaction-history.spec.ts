@@ -19,6 +19,8 @@ test('결제 내역을 검색하고 차단된 거래 상세를 확인한다', as
 
   await expect(page).toHaveURL(/\/ward\/history\/104$/)
   await expect(page.getByText('거래 차단됨', { exact: true })).toBeVisible()
+  await expect(page.getByText('거래 후 잔액', { exact: true })).toBeVisible()
+  await expect(page.getByText('1,383,000원', { exact: true })).toBeVisible()
   await expect(
     page.getByText('위험한 거래로 판단되어 보호자가 거래를 차단했습니다.'),
   ).toBeVisible()

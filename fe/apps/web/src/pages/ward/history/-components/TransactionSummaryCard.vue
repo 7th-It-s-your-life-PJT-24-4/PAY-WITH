@@ -4,6 +4,7 @@ import { computed } from 'vue'
 
 import {
   formatTransactionAmount,
+  formatTransactionBalance,
   formatTransactionDateTime,
   getTransactionTypeLabel,
 } from '@/pages/ward/history/-utils/transaction-format'
@@ -95,6 +96,15 @@ const counterpartyLabel = computed(() =>
           {{ transaction.methodLabel }}
         </dd>
       </div>
+    </dl>
+
+    <dl
+      class="mt-lg flex items-center justify-between border-t border-border pt-lg"
+    >
+      <dt class="type-body-medium text-body-muted">거래 후 잔액</dt>
+      <dd class="type-body-medium font-number font-bold text-primary-300">
+        {{ formatTransactionBalance(transaction.balanceAfter) }}
+      </dd>
     </dl>
   </section>
 </template>

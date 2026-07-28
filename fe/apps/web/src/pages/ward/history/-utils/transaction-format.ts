@@ -45,6 +45,10 @@ export function formatTransactionAmount(
   return `${sign}${amount.toLocaleString('ko-KR')}원`
 }
 
+export function formatTransactionBalance(balance: number) {
+  return `${balance.toLocaleString('ko-KR')}원`
+}
+
 export function getTransactionTypeLabel(
   type: TransactionType,
   direction: TransactionDirection,

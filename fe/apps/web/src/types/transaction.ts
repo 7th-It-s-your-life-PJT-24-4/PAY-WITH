@@ -22,6 +22,7 @@ export interface WardTransaction {
   direction: TransactionDirection
   title: string
   amount: number
+  balanceAfter: number
   occurredAt: string
   methodLabel: string
   memo: string | null
