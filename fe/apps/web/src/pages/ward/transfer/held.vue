@@ -2,7 +2,7 @@
 import { Phone, ShieldCheck, TriangleAlert, X } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
 import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { useTransferStatus } from '@/composables/useTransferStatus'
 import TransferCancelModal from '@/pages/ward/transfer/-components/TransferCancelModal.vue'
@@ -12,6 +12,7 @@ import TransferGuardianCallModal from '@/pages/ward/transfer/-components/Transfe
 import { formatTransferDateTime } from '@/pages/ward/transfer/-utils/transfer-status-route'
 
 const route = useRoute()
+const router = useRouter()
 const isGuardianCallModalOpen = ref(false)
 const isCancelModalOpen = ref(false)
 const transactionId = computed(() => Number(route.params.transactionId))
@@ -50,6 +51,10 @@ async function confirmCancel() {
   const detail = await cancelTransfer()
   if (detail?.status === 'CANCELED') isCancelModalOpen.value = false
 }
+
+function waitAtHome() {
+  router.push({ name: 'ward-home' })
+}
 </script>
 
 <template>
@@ -73,33 +78,44 @@ async function confirmCancel() {
     />
 
     <section
-      class="flex gap-md rounded-large border border-primary-500/30 bg-primary-500/10 p-lg text-primary-200"
+      class="rounded-large border border-primary-500/30 bg-primary-500/10 p-lg text-primary-200"
     >
-      <ShieldCheck
-        class="mt-xxs size-xl shrink-0"
-        :stroke-width="2.25"
-        aria-hidden="true"
-      />
-      <div>
-        <h3 class="type-h4">PayWith 안전 가이드</h3>
-        <p class="type-body-medium mt-xxs">
-          보호자가 등록한 안전 범위를 벗어난 송금입니다. 잘 모르는 거래라면
-          취소하는 것이 안전합니다.
-        </p>
+      <div class="flex gap-md">
+        <ShieldCheck
+          class="mt-xxs size-xl shrink-0"
+          :stroke-width="2.25"
+          aria-hidden="true"
+        />
+        <div>
+          <h3 class="type-h4">PayWith 안전 가이드</h3>
+          <p class="type-body-medium mt-xxs">
+            보호자가 등록한 안전 범위를 벗어난 송금입니다. 잘 모르는 거래라면
+            취소하는 것이 안전합니다.
+          </p>
+        </div>
       </div>
-    </section>
 
-    <div class="mt-auto flex flex-col gap-md pt-lg">
       <Button
-        class="w-full !gap-sm !px-md"
+        class="mt-lg w-full !gap-sm !px-md"
         label="보호자에게 연락하기"
-        size="large"
+        variant="outline-primary"
+        size="default"
+        pill
         @click="isGuardianCallModalOpen = true"
       >
         <template #leading>
           <Phone :stroke-width="2.5" />
         </template>
       </Button>
+    </section>
+
+    <div class="mt-auto flex flex-col gap-md pt-lg">
+      <Button
+        class="w-full !gap-sm !px-md"
+        label="홈에서 기다리기"
+        size="large"
+        @click="waitAtHome"
+      />
       <Button
         class="w-full !gap-sm !px-md"
         :label="isCancelling ? '거래를 취소하고 있습니다' : '거래 취소하기'"
