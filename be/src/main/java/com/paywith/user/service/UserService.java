@@ -10,7 +10,6 @@ import com.paywith.user.mapper.UserMapper;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,8 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
-
-    private static final Set<String> VALID_GENDER_CODES = Set.of("1", "2", "3", "4");
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
@@ -46,16 +43,12 @@ public class UserService {
             throw new BusinessException(HttpStatus.CONFLICT, "이미 사용 중인 전화번호입니다.");
         }
 
-        if (!VALID_GENDER_CODES.contains(request.getGender())) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "gender는 1/2/3/4 중 하나여야 합니다.");
-        }
-
         User user = new User();
         user.setRole(parseRole(request.getRole()));
         user.setPhone(request.getPhone());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setName(request.getName());
-        user.setBirthDate(parseBirthDate(request.getBirthDate(), request.getGender()));
+        user.setBirthDate(parseBirthDate(request.getBirthDate()));
         user.setGender(request.getGender());
         userMapper.insert(user);
         return new UserResponse(findUser(user.getId()));
@@ -85,21 +78,10 @@ public class UserService {
         }
     }
 
-    private LocalDate parseBirthDate(String birthDate6, String genderCode) {
-        String century;
-        switch (genderCode) {
-            case "3":
-            case "4":
-                century = "20";
-                break;
-            default:
-                century = "19";
-                break;
-        }
-
+    private LocalDate parseBirthDate(String birthDate8) {
         try {
             return LocalDate.parse(
-                century + birthDate6.substring(0, 2) + "-" + birthDate6.substring(2, 4) + "-" + birthDate6.substring(4, 6)
+                birthDate8.substring(0, 4) + "-" + birthDate8.substring(4, 6) + "-" + birthDate8.substring(6, 8)
             );
         } catch (DateTimeParseException exception) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "생년월일이 올바르지 않습니다.");

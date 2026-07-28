@@ -22,10 +22,10 @@ public class UserCreateRequest {
     private String name;
 
     @NotBlank
-    @Pattern(regexp = "\\d{6}", message = "생년월일은 YYMMDD 6자리여야 합니다.")
+    @Pattern(regexp = "\\d{8}", message = "생년월일은 YYYYMMDD 8자리여야 합니다.")
     private String birthDate;
 
     @NotBlank
-    @Pattern(regexp = "[0-9]", message = "gender는 숫자 1자리여야 합니다.")
+    @Pattern(regexp = "[남여]", message = "gender는 남 또는 여여야 합니다.")
     private String gender;
 }
