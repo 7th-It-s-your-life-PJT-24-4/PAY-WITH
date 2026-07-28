@@ -56,5 +56,12 @@ export function getTransactionTypeLabel(
 export const transactionRiskLabel: Record<TransactionRiskLevel, string> = {
   SAFE: '안전',
   CAUTION: '주의',
-  BLOCKED: '거래 차단됨',
+  DANGER: '위험',
+}
+
+export function getTransactionRiskLabel(
+  riskLevel: TransactionRiskLevel,
+  status: 'COMPLETED' | 'BLOCKED',
+) {
+  return status === 'BLOCKED' ? '거래 차단됨' : transactionRiskLabel[riskLevel]
 }

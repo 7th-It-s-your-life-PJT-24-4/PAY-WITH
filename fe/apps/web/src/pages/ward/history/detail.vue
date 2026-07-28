@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { getMockWardTransaction } from '@/mocks/transaction.mock'
+import TransactionBlockedCard from '@/pages/ward/history/-components/TransactionBlockedCard.vue'
 import TransactionRiskCard from '@/pages/ward/history/-components/TransactionRiskCard.vue'
 import TransactionSummaryCard from '@/pages/ward/history/-components/TransactionSummaryCard.vue'
 
@@ -26,6 +27,7 @@ function goToHistory() {
       v-if="transaction.direction !== 'CREDIT'"
       :transaction="transaction"
     />
+    <TransactionBlockedCard v-if="transaction.status === 'BLOCKED'" />
 
     <Button
       class="w-full"

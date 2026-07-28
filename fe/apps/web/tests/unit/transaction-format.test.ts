@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   formatTransactionAmount,
+  getTransactionRiskLabel,
   getTransactionTypeLabel,
-  transactionRiskLabel,
 } from '@/pages/ward/history/-utils/transaction-format'
 
 describe('transaction-format', () => {
@@ -18,7 +18,8 @@ describe('transaction-format', () => {
     expect(getTransactionTypeLabel('TRANSFER', 'DEBIT')).toBe('보낸 돈')
   })
 
-  it('차단 상태를 명확한 문구로 표시한다', () => {
-    expect(transactionRiskLabel.BLOCKED).toBe('거래 차단됨')
+  it('위험 판단과 보호자 차단 결과를 구분한다', () => {
+    expect(getTransactionRiskLabel('DANGER', 'COMPLETED')).toBe('위험')
+    expect(getTransactionRiskLabel('DANGER', 'BLOCKED')).toBe('거래 차단됨')
   })
 })

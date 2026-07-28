@@ -70,7 +70,7 @@ const counterpartyLabel = computed(() =>
         <dd
           class="type-h2 font-number"
           :class="
-            transaction.riskLevel === 'BLOCKED'
+            transaction.riskLevel === 'DANGER'
               ? 'text-error'
               : transaction.direction === 'CREDIT'
                 ? 'text-primary-300'

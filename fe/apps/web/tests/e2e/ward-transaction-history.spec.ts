@@ -20,14 +20,25 @@ test('결제 내역을 검색하고 차단된 거래 상세를 확인한다', as
   await expect(page).toHaveURL(/\/ward\/history\/104$/)
   await expect(page.getByText('거래 차단됨', { exact: true })).toBeVisible()
   await expect(
-    page.getByText('안전을 위해 거래가 중단되었습니다.'),
+    page.getByText('위험한 거래로 판단되어 보호자가 거래를 차단했습니다.'),
   ).toBeVisible()
+  await expect(page.getByText('거절된 거래입니다.')).toBeVisible()
 
   const riskSection = page.getByRole('region', { name: '거래 안전 확인' })
   await expect(riskSection).toHaveClass(/border-error/)
 
   await page.getByRole('button', { name: '뒤로 가기' }).click()
   await expect(page).toHaveURL(/\/ward\/history$/)
+})
+
+test('보호자가 승인한 위험 거래는 위험으로 표시한다', async ({ page }) => {
+  await page.goto('/ward/history/106')
+
+  await expect(page.getByText('위험', { exact: true })).toBeVisible()
+  await expect(
+    page.getByText('위험한 거래로 판단되었지만 보호자가 승인했습니다.'),
+  ).toBeVisible()
+  await expect(page.getByText('거절된 거래입니다.')).toBeHidden()
 })
 
 test('받은 송금 내역에서 은행과 계좌번호를 확인한다', async ({ page }) => {

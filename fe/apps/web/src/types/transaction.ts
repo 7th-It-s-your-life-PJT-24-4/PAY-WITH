@@ -2,7 +2,9 @@ export type TransactionType = 'PAYMENT' | 'TRANSFER'
 
 export type TransactionDirection = 'CREDIT' | 'DEBIT'
 
-export type TransactionRiskLevel = 'SAFE' | 'CAUTION' | 'BLOCKED'
+export type TransactionRiskLevel = 'SAFE' | 'CAUTION' | 'DANGER'
+
+export type TransactionStatus = 'COMPLETED' | 'BLOCKED'
 
 export interface PaymentTransactionDetail {
   merchantName: string
@@ -23,6 +25,7 @@ export interface WardTransaction {
   occurredAt: string
   methodLabel: string
   memo: string | null
+  status: TransactionStatus
   riskLevel: TransactionRiskLevel
   riskScore: number
   riskSummary: string

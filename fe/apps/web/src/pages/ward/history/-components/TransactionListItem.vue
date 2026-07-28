@@ -10,8 +10,8 @@ import { computed } from 'vue'
 import {
   formatTransactionAmount,
   formatTransactionTime,
+  getTransactionRiskLabel,
   getTransactionTypeLabel,
-  transactionRiskLabel,
 } from '@/pages/ward/history/-utils/transaction-format'
 import type { WardTransaction } from '@/types/transaction'
 
@@ -20,7 +20,7 @@ const props = defineProps<{
 }>()
 
 const icon = computed(() => {
-  if (props.transaction.riskLevel === 'BLOCKED') return CircleAlert
+  if (props.transaction.riskLevel === 'DANGER') return CircleAlert
   if (props.transaction.type === 'PAYMENT') return ShoppingBag
   return props.transaction.direction === 'CREDIT'
     ? ArrowDownToLine
@@ -32,7 +32,7 @@ const iconClass = computed(
     ({
       SAFE: 'bg-primary-900 text-primary-300',
       CAUTION: 'bg-warning/10 text-warning',
-      BLOCKED: 'bg-error/10 text-error',
+      DANGER: 'bg-error/10 text-error',
     })[props.transaction.riskLevel],
 )
 
@@ -41,7 +41,7 @@ const riskClass = computed(
     ({
       SAFE: 'bg-success/10 text-success',
       CAUTION: 'bg-warning/10 text-warning',
-      BLOCKED: 'bg-error/10 text-error',
+      DANGER: 'bg-error/10 text-error',
     })[props.transaction.riskLevel],
 )
 </script>
@@ -54,7 +54,7 @@ const riskClass = computed(
     }"
     class="flex min-h-[96px] items-center gap-md rounded-large border bg-surface-card p-md shadow-card outline-none focus-visible:ring-2 focus-visible:ring-focus"
     :class="
-      transaction.riskLevel === 'BLOCKED' ? 'border-error/30' : 'border-border'
+      transaction.riskLevel === 'DANGER' ? 'border-error/30' : 'border-border'
     "
     :aria-label="`${transaction.title} ${formatTransactionAmount(transaction.amount, transaction.direction)} 상세 보기`"
   >
@@ -71,7 +71,7 @@ const riskClass = computed(
         <strong
           class="type-h3 truncate"
           :class="
-            transaction.riskLevel === 'BLOCKED' ? 'text-error' : 'text-body'
+            transaction.riskLevel === 'DANGER' ? 'text-error' : 'text-body'
           "
         >
           {{ transaction.title }}
@@ -79,7 +79,7 @@ const riskClass = computed(
         <strong
           class="type-h3 shrink-0 font-number"
           :class="
-            transaction.riskLevel === 'BLOCKED'
+            transaction.riskLevel === 'DANGER'
               ? 'text-error'
               : transaction.direction === 'CREDIT'
                 ? 'text-primary-300'
@@ -104,7 +104,9 @@ const riskClass = computed(
           class="type-caption shrink-0 rounded-full px-sm py-xxs font-medium"
           :class="riskClass"
         >
-          {{ transactionRiskLabel[transaction.riskLevel] }}
+          {{
+            getTransactionRiskLabel(transaction.riskLevel, transaction.status)
+          }}
         </span>
       </span>
     </span>

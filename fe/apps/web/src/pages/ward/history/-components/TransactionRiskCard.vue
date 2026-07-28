@@ -2,7 +2,7 @@
 import { CircleAlert, ShieldCheck } from '@lucide/vue'
 import { computed } from 'vue'
 
-import { transactionRiskLabel } from '@/pages/ward/history/-utils/transaction-format'
+import { getTransactionRiskLabel } from '@/pages/ward/history/-utils/transaction-format'
 import type { WardTransaction } from '@/types/transaction'
 
 const props = defineProps<{
@@ -26,7 +26,7 @@ const theme = computed(
         note: 'border-warning bg-warning/10',
         icon: CircleAlert,
       },
-      BLOCKED: {
+      DANGER: {
         border: 'border-error',
         header: 'bg-error text-on-semantic',
         text: 'text-error',
@@ -49,7 +49,7 @@ const theme = computed(
     >
       <h2 id="transaction-risk-title" class="type-h3">거래 안전 확인</h2>
       <strong class="type-h3">{{
-        transactionRiskLabel[transaction.riskLevel]
+        getTransactionRiskLabel(transaction.riskLevel, transaction.status)
       }}</strong>
     </header>
 
