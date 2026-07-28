@@ -4,6 +4,7 @@ import com.paywith.account.dto.AccountResponse;
 import com.paywith.account.service.AccountService;
 import com.paywith.charge.dto.ChargeRequest;
 import com.paywith.charge.dto.ChargeResponse;
+import com.paywith.charge.mapper.UserNameMapper;
 import com.paywith.exception.BusinessException;
 import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.guard.service.GuardService;
@@ -26,6 +27,7 @@ public class ChargeServiceImpl implements ChargeService{
     private final TransactionMapper transactionMapper;
     private final OpenBankingClient openBankingClient;
     private final GuardService guardService;
+    private final UserNameMapper userNameMapper;
 
 
     @Override
@@ -44,7 +46,12 @@ public class ChargeServiceImpl implements ChargeService{
                 throw new BusinessException(HttpStatus.FORBIDDEN, "해당 시니어의 보호자가 아닙니다");
 
             }
-            return doCharge(guardId, wardId, request, guardId);
+            ChargeResponse response = doCharge(guardId, wardId, request, guardId);
+
+            response.setWardId(wardId);
+            response.setWardName(userNameMapper.findUserName(wardId));
+
+            return response;
     }
 
     private ChargeResponse doCharge(Long accountOwnerId, Long walletOwnerId,

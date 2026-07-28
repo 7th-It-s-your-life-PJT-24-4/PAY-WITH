@@ -19,4 +19,7 @@ public class ChargeResponse {
     private String bankName;
     private String maskedAccountNo;
     private LocalDateTime createdAt;
+
+    private Long wardId;
+    private String wardName;
 }
