@@ -2,13 +2,16 @@
 import { Button } from '@pay-with/ui'
 import { useRouter } from 'vue-router'
 
+import { getMockHeldTransfers } from '@/mocks/transfer.mock'
 import WardBalanceCard from '@/pages/ward/-components/WardBalanceCard.vue'
+import WardPendingTransferList from '@/pages/ward/-components/WardPendingTransferList.vue'
 
 const router = useRouter()
 
 const wardName = '김시니어'
 const balance = '100,000'
 const isWalletLocked = false
+const pendingTransfers = getMockHeldTransfers()
 
 const actions = [
   { label: '송금하기', value: 'transfer' },
@@ -23,6 +26,13 @@ function handleAction(value: string) {
   if (value === 'payment') router.push({ name: 'ward-payment' })
   if (value === 'history') router.push({ name: 'ward-transaction-history' })
 }
+
+function openPendingTransfer(transactionId: number) {
+  router.push({
+    name: 'ward-transfer-held',
+    params: { transactionId },
+  })
+}
 </script>
 
 <template>
@@ -36,6 +46,11 @@ function handleAction(value: string) {
     </section>
 
     <WardBalanceCard :balance="balance" :locked="isWalletLocked" />
+
+    <WardPendingTransferList
+      :transfers="pendingTransfers"
+      @select="openPendingTransfer"
+    />
 
     <section class="grid gap-md" aria-label="홈 주요 기능">
       <Button

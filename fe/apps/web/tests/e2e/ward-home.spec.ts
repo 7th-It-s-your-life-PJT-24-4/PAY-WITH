@@ -40,3 +40,27 @@ test('keeps the ward header and navigation fixed to the viewport', async ({
   await expect(page).toHaveURL(/\/ward\/transfer$/)
   await expect(paymentAction).toHaveCSS('color', 'rgb(255, 255, 255)')
 })
+
+test('보호자 승인 대기 거래를 상세 화면에서 확인한다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/ward/home')
+
+  const pendingSection = page.getByRole('region', {
+    name: '보호자 승인을 기다리고 있어요',
+  })
+  await expect(pendingSection).toBeVisible()
+  await expect(
+    pendingSection.getByText('확인이 필요한 송금 2건이 있습니다.'),
+  ).toBeVisible()
+
+  const pendingTransfer = pendingSection.getByRole('button', {
+    name: '박지연 님에게 30,000원 송금 상세 확인',
+  })
+  await expect(pendingTransfer.getByText('30,000원')).toBeVisible()
+  await pendingTransfer.click()
+
+  await expect(page).toHaveURL(/\/ward\/transfer\/76\/held$/)
+  await expect(
+    page.getByRole('heading', { name: '잠깐 확인해 보세요!' }),
+  ).toBeVisible()
+})
