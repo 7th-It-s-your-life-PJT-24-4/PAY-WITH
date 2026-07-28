@@ -7,6 +7,7 @@ import com.paywith.account.service.AccountService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,7 +21,7 @@ public class AccountController {
 
     @PostMapping
     public ResponseEntity<AccountResponse> registerAccount(
-            @RequestParam Long userId, // TODO: 로그인 기능 구현되면 여기부터 수정하기 !!
+            @AuthenticationPrincipal Long userId,
             @RequestBody AccountCreateRequest request
             ){
         AccountResponse response = accountService.registerAccount(userId, request);
@@ -29,7 +30,7 @@ public class AccountController {
 
     @GetMapping
     public ResponseEntity<List<AccountResponse>> getAccounts(
-            @RequestParam Long userId // Todo: 로그인 후 인증 정보에서 추출해야 함
+            @AuthenticationPrincipal Long userId
     ){
         List<AccountResponse> response = accountService.getAccounts(userId);
         return ResponseEntity.ok(response);
