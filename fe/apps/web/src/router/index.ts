@@ -11,6 +11,8 @@ import WardChargeCompletePage from '@/pages/ward/charge/complete.vue'
 import WardChargePage from '@/pages/ward/charge/page.vue'
 import WardLayout from '@/pages/ward/layout.vue'
 import WardPage from '@/pages/ward/page.vue'
+import WardTransactionDetailPage from '@/pages/ward/history/detail.vue'
+import WardTransactionHistoryPage from '@/pages/ward/history/page.vue'
 import WardPaymentCompletePage from '@/pages/ward/payment/complete.vue'
 import WardPaymentPage from '@/pages/ward/payment/page.vue'
 import WardPaymentPasswordPage from '@/pages/ward/payment/password.vue'
@@ -25,6 +27,7 @@ import WardTransferPasswordPage from '@/pages/ward/transfer/password.vue'
 import WardTransferProcessingPage from '@/pages/ward/transfer/processing.vue'
 import WardTransferRejectedPage from '@/pages/ward/transfer/rejected.vue'
 import WardTransferRestrictedPage from '@/pages/ward/transfer/restricted.vue'
+import { requireWardTransaction } from '@/pages/ward/history/-utils/transaction-route-guard'
 import {
   requireCompletedCharge,
   requireNewChargeAccount,
@@ -126,6 +129,23 @@ const router = createRouter({
             title: '충전 완료',
             activeNavigation: 'payment',
             backRouteName: 'ward-home',
+          },
+        },
+        {
+          path: 'history',
+          name: 'ward-transaction-history',
+          component: WardTransactionHistoryPage,
+          meta: { title: '거래 내역', activeNavigation: 'history' },
+        },
+        {
+          path: 'history/:transactionId',
+          name: 'ward-transaction-detail',
+          component: WardTransactionDetailPage,
+          beforeEnter: requireWardTransaction,
+          meta: {
+            title: '거래 내역 상세',
+            activeNavigation: 'history',
+            backRouteName: 'ward-transaction-history',
           },
         },
         {
