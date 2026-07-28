@@ -148,12 +148,12 @@ CREATE TABLE transactions (
                               amount         DECIMAL(15,0) NOT NULL,
                               memo           VARCHAR(200)  NULL,
                               balance_after  DECIMAL(15,0) NULL,
-                              status         ENUM('REQUESTED','HELD','APPROVED','REJECTED','COMPLETED','CANCELED','BLOCKED') NOT NULL
-                 COMMENT 'REQUESTED=요청 / HELD=송금FDS 보류(승인대기) / APPROVED=보호자 승인 / REJECTED=보호자 명시 거절 / COMPLETED=완료 / CANCELED=취소(승인만료 후속 등) / BLOCKED=위치FDS 시스템 즉시차단(결제)',
+                              status         ENUM('REQUESTED','HELD','APPROVED','PROCESSING','REJECTED','COMPLETED','CANCELED','BLOCKED') NOT NULL
+                 COMMENT 'REQUESTED=요청 / HELD=송금FDS 보류(승인대기) / APPROVED=보호자 승인 / PROCESSING=외부 이체 실행 중(FDS·승인 통과 후, 최종 확정 전) / REJECTED=보호자 명시 거절 / COMPLETED=완료 / CANCELED=취소(승인만료 후속 등) / BLOCKED=위치FDS 시스템 즉시차단(결제)',
                               latitude       DECIMAL(10,7) NULL,
                               longitude      DECIMAL(10,7) NULL,
                               pg_payment_key VARCHAR(100)  NULL,
-                              risk_score     INT           NULL                  -- [v2.6] 비정규화 복사본. FDS 서비스가 risk_evaluations와 동일 트랜잭션에서 단독 갱신(single writer). 코어 거래 로직은 미갱신.
+                              risk_score     INT           NULL                  -- [v2.6] 비정규화 복사본. TransferService가 FDS 평가 직후 risk_evaluations insert와 동일 트랜잭션에서 단독 갱신(single writer). 코어 거래 로직은 미갱신.
                  COMMENT 'risk_evaluations.total_score 비정규화 복사본(FDS 서비스 단독 갱신)',
                               created_at     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
                               completed_at   DATETIME      NULL,

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.paywith.fds.mapper.FdsHistoryMapper">
+  <resultMap id="RecipientRiskInfoResultMap" type="com.paywith.fds.domain.RecipientRiskInfo">
+    <result property="sendCount" column="send_count" />
+    <result property="registeredSafe" column="is_registered_safe" />
+  </resultMap>
+
+  <!-- REPEATED 룰: 시간창 내 송금 횟수 -->
+  <select id="countRecentTransfers" resultType="int">
+    SELECT COUNT(*)
+    FROM transactions
+    WHERE wallet_id = #{walletId}
+      AND type = 'TRANSFER_OUT'
+      AND created_at &gt;= #{since}
+  </select>
+
+  <!-- DIVISION_TRANSFER 룰: 시간창 내 서로 다른 수취인 수 -->
+  <select id="countRecentDistinctRecipients" resultType="int">
+    SELECT COUNT(DISTINCT recipient_id)
+    FROM transactions
+    WHERE wallet_id = #{walletId}
+      AND type = 'TRANSFER_OUT'
+      AND created_at &gt;= #{since}
+  </select>
+
+  <!-- NEW_RECIPIENT / SAFE_ACCOUNT_CHECK 룰: 수취인 송금 이력과 안심계좌 여부 -->
+  <select id="findRecipientRiskInfo" resultMap="RecipientRiskInfoResultMap">
+    SELECT send_count, is_registered_safe
+    FROM recipients
+    WHERE recipient_id = #{recipientId}
+  </select>
+</mapper>

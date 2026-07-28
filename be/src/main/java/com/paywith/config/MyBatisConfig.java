@@ -14,7 +14,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
-@MapperScan("com.paywith")
+@MapperScan("com.paywith.*.mapper")
 @EnableTransactionManagement
 public class MyBatisConfig {
 
