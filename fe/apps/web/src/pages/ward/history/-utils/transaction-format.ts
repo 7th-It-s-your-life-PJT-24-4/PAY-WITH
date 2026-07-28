@@ -1,6 +1,7 @@
 import type {
   TransactionDirection,
   TransactionRiskLevel,
+  TransactionStatus,
   TransactionType,
 } from '@/types/transaction'
 
@@ -65,7 +66,7 @@ export const transactionRiskLabel: Record<TransactionRiskLevel, string> = {
 
 export function getTransactionRiskLabel(
   riskLevel: TransactionRiskLevel,
-  status: 'COMPLETED' | 'BLOCKED',
+  status: TransactionStatus,
 ) {
   return status === 'BLOCKED' ? '거래 차단됨' : transactionRiskLabel[riskLevel]
 }
