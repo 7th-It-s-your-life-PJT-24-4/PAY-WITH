@@ -111,7 +111,7 @@ export const mockWardTransactions: WardTransaction[] = [
     status: 'COMPLETED',
     riskLevel: 'DANGER',
     riskScore: 91,
-    riskSummary: '해외 결제로 판단됩니다.',
+    riskSummary: '위험한 거래로 판단되었지만 보호자가 승인했습니다.',
     riskReasons: ['이전 거래와 비교해 평소와 다른 방식으로 요청됐어요.'],
     payment: { merchantName: '해외 직구 결제' },
   },
