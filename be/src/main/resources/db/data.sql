@@ -3,6 +3,8 @@
 -- schema.sql 실행 후 적용. banks / risk_rules / payment_anomaly_rules / merchants
 -- =====================================================================
 
+SET NAMES utf8mb4;
+
 -- 1) 은행 마스터 (금융결제원 표준 코드)  [변경 없음]
 INSERT INTO banks (bank_code, bank_name, is_active) VALUES
                                                         ('002', '한국산업은행',   TRUE),

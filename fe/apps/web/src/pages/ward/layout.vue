@@ -20,10 +20,16 @@ const activeNavigation = computed<WardNavigationValue>(() => {
 })
 
 function goBack() {
+  const backRouteName = route.meta.backRouteName
+  if (typeof backRouteName === 'string') {
+    router.replace({ name: backRouteName })
+    return
+  }
   router.back()
 }
 
 function handleNavigate(value: string) {
+  if (value === 'transfer') router.push({ name: 'ward-transfer' })
   if (value === 'payment') router.push({ name: 'ward-payment' })
 }
 </script>

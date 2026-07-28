@@ -27,12 +27,16 @@ public class JwtTokenProvider {
         this.refreshTokenValidityMs = refreshTokenValidityMs;
     }
 
-    public String createAccessToken(Long userId, String email) {
-        return createToken(userId, email, accessTokenValidityMs);
+    public long getRefreshTokenValidityMs() {
+        return refreshTokenValidityMs;
     }
 
-    public String createRefreshToken(Long userId, String email) {
-        return createToken(userId, email, refreshTokenValidityMs);
+    public String createAccessToken(Long userId, String phone) {
+        return createToken(userId, phone, accessTokenValidityMs);
+    }
+
+    public String createRefreshToken(Long userId, String phone) {
+        return createToken(userId, phone, refreshTokenValidityMs);
     }
 
     public boolean validateToken(String token) {
@@ -48,17 +52,17 @@ public class JwtTokenProvider {
         return Long.valueOf(getClaims(token).getSubject());
     }
 
-    public String getEmail(String token) {
-        return getClaims(token).get("email", String.class);
+    public String getPhone(String token) {
+        return getClaims(token).get("phone", String.class);
     }
 
-    private String createToken(Long userId, String email, long validityMs) {
+    private String createToken(Long userId, String phone, long validityMs) {
         Date now = new Date();
         Date expiresAt = new Date(now.getTime() + validityMs);
 
         return Jwts.builder()
             .setSubject(String.valueOf(userId))
-            .claim("email", email)
+            .claim("phone", phone)
             .setIssuedAt(now)
             .setExpiration(expiresAt)
             .signWith(signingKey, SignatureAlgorithm.HS256)

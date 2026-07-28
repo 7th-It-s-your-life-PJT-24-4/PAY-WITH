@@ -1,5 +1,8 @@
 package com.paywith.auth.dto;
 
+import lombok.Getter;
+
+@Getter
 public class TokenResponse {
 
     private final String accessToken;
@@ -10,17 +13,5 @@ public class TokenResponse {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.tokenType = "Bearer";
-    }
-
-    public String getAccessToken() {
-        return accessToken;
-    }
-
-    public String getRefreshToken() {
-        return refreshToken;
-    }
-
-    public String getTokenType() {
-        return tokenType;
     }
 }

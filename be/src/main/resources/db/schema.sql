@@ -1,7 +1,7 @@
 CREATE DATABASE pay_with;
 USE pay_with;
 
-
+SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS notifications;
@@ -20,7 +20,7 @@ DROP TABLE IF EXISTS linked_accounts;
 DROP TABLE IF EXISTS merchants;
 DROP TABLE IF EXISTS banks;
 DROP TABLE IF EXISTS wallets;
-DROP TABLE IF EXISTS guardian_senior;
+DROP TABLE IF EXISTS guard_senior;
 DROP TABLE IF EXISTS users;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -32,10 +32,12 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- 1. users — 회원 (시니어/보호자 공용, 전화번호 로그인)
 CREATE TABLE users (
                        user_id     BIGINT       NOT NULL AUTO_INCREMENT,
-                       role        ENUM('SENIOR','GUARDIAN') NOT NULL,
+                       role        ENUM('SENIOR','GUARD') NOT NULL,
                        name        VARCHAR(50)  NOT NULL,
                        phone       VARCHAR(20)  NOT NULL,
                        password    VARCHAR(255) NOT NULL,               -- BCrypt 해시
+                       birth_date  DATE         NOT NULL,
+                       gender      CHAR(1)      NOT NULL COMMENT '주민등록번호 뒷자리 첫 번째 숫자 (1/2/3/4)',
                        fcm_token   VARCHAR(255) NULL,
                        status      ENUM('PENDING_PAIRING','ACTIVE','WITHDRAWN') NOT NULL DEFAULT 'PENDING_PAIRING',
                        created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -44,10 +46,10 @@ CREATE TABLE users (
                        UNIQUE KEY uk_users_phone (phone)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2. guardian_senior — 시니어-보호자 연동 관계 (N:M 중간 테이블)
-CREATE TABLE guardian_senior (
+-- 2. guard_senior — 시니어-보호자 연동 관계 (N:M 중간 테이블)
+CREATE TABLE guard_senior (
                                  relation_id  BIGINT   NOT NULL AUTO_INCREMENT,
-                                 guardian_id  BIGINT   NOT NULL,
+                                 guard_id     BIGINT   NOT NULL,
                                  senior_id    BIGINT   NOT NULL,
                                  status       ENUM('PENDING','ACTIVE','REJECTED','REVOKED') NOT NULL DEFAULT 'PENDING'
                COMMENT 'PENDING=연동요청 / ACTIVE=승인 / REJECTED=연동거절 / REVOKED=해제. 여기 REJECTED는 페어링 거절이며 transactions.REJECTED와 무관',
@@ -55,9 +57,9 @@ CREATE TABLE guardian_senior (
                                  connected_at DATETIME NULL,
                                  revoked_at   DATETIME NULL,
                                  PRIMARY KEY (relation_id),
-                                 UNIQUE KEY uk_guardian_senior (guardian_id, senior_id),
+                                 UNIQUE KEY uk_guard_senior (guard_id, senior_id),
                                  KEY idx_gs_senior (senior_id),
-                                 CONSTRAINT fk_gs_guardian FOREIGN KEY (guardian_id) REFERENCES users (user_id),
+                                 CONSTRAINT fk_gs_guard   FOREIGN KEY (guard_id)   REFERENCES users (user_id),
                                  CONSTRAINT fk_gs_senior   FOREIGN KEY (senior_id)   REFERENCES users (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -74,6 +76,8 @@ CREATE TABLE wallets (
                          user_id    BIGINT        NOT NULL,                -- SENIOR 회원만 (앱 로직 강제)
                          balance    DECIMAL(15,0) NOT NULL DEFAULT 0,      -- 원화, 소수점 없음
                          status     ENUM('ACTIVE','LOCKED') NOT NULL DEFAULT 'ACTIVE',
+                         pin        VARCHAR(255)  NOT NULL                 -- 송금/결제 확인용 6자리 PIN(BCrypt 해시)
+               COMMENT '송금/결제 확인용 6자리 PIN(BCrypt 해시). users.password(로그인)와 별개',
                          created_at DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
                          updated_at DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                          PRIMARY KEY (wallet_id),

@@ -5,12 +5,17 @@
 @layer base {
   html {
     font-family: var(--font-sans);
+    scrollbar-gutter: stable;
   }
 
   body {
     margin: 0;
     background: var(--color-background);
     color: var(--color-body);
+  }
+
+  html[style*='--scrollbar-width'] body {
+    padding-right: 0 !important;
   }
 
   button,

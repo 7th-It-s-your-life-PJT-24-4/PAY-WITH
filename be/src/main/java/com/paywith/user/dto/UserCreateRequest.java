@@ -1,13 +1,19 @@
 package com.paywith.user.dto;
 
-import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Pattern;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 public class UserCreateRequest {
 
-    @Email
     @NotBlank
-    private String email;
+    private String role;
+
+    @NotBlank
+    private String phone;
 
     @NotBlank
     private String password;
@@ -15,27 +21,11 @@ public class UserCreateRequest {
     @NotBlank
     private String name;
 
-    public String getEmail() {
-        return email;
-    }
+    @NotBlank
+    @Pattern(regexp = "\\d{6}", message = "생년월일은 YYMMDD 6자리여야 합니다.")
+    private String birthDate;
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
+    @NotBlank
+    @Pattern(regexp = "[0-9]", message = "gender는 숫자 1자리여야 합니다.")
+    private String gender;
 }

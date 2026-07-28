@@ -12,7 +12,7 @@ public interface UserMapper {
 
     User findById(@Param("id") Long id);
 
-    User findByEmail(@Param("email") String email);
+    User findByPhone(@Param("phone") String phone);
 
     int insert(User user);
 

@@ -70,7 +70,7 @@ const iconSizeClass = computed(() => {
 
 <template>
   <button
-    class="inline-flex items-center justify-center border-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:border-disabled disabled:bg-disabled disabled:text-on-disabled disabled:opacity-[var(--opacity-disabled)]"
+    class="inline-flex items-center justify-center border-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
     :class="[
       variantClass,
       sizeClass,
