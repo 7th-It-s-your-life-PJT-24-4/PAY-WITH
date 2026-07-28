@@ -22,7 +22,10 @@ function goToHistory() {
 <template>
   <div v-if="transaction" class="flex flex-col gap-xl">
     <TransactionSummaryCard :transaction="transaction" />
-    <TransactionRiskCard :transaction="transaction" />
+    <TransactionRiskCard
+      v-if="transaction.direction !== 'CREDIT'"
+      :transaction="transaction"
+    />
 
     <Button
       class="w-full"

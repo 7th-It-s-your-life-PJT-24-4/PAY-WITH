@@ -36,6 +36,9 @@ test('받은 송금 내역에서 은행과 계좌번호를 확인한다', async 
 
   await expect(page.getByText('받은 돈', { exact: true })).toBeVisible()
   await expect(page.getByText('우리은행 1002123456789')).toBeVisible()
+  await expect(
+    page.getByRole('region', { name: '거래 안전 확인' }),
+  ).toBeHidden()
 
   await page.getByRole('button', { name: '목록으로 돌아가기' }).click()
   await expect(page).toHaveURL(/\/ward\/history$/)
