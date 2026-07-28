@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.paywith.transaction.mapper.TransactionMapper">
+
+    <insert id="insertTransaction" parameterType="com.paywith.transaction.domain.Transaction">
+        <selectKey keyProperty="transactionId" resultType="long" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO transactions (
+        wallet_id, recipient_id, merchant_id, account_id,
+        type, initiated_by, amount, memo, balance_after, status,
+        latitude, longitude, pg_payment_key, risk_score,
+        created_at, completed_at
+        ) VALUES (
+        #{walletId}, #{recipientId}, #{merchantId}, #{accountId},
+        #{type}, #{initiatedBy}, #{amount}, #{memo}, #{balanceAfter}, #{status},
+        #{latitude}, #{longitude}, #{pgPaymentKey}, #{riskScore},
+        #{createdAt}, #{completedAt}
+        )
+    </insert>
+
+</mapper>

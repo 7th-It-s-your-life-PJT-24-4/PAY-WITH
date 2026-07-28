@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.paywith.account.mapper.AccountMapper">
+    <insert id="insertAccount" parameterType="com.paywith.account.domain.Account">
+        <selectKey keyProperty="accountId" resultType="long" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+            INSERT INTO linked_accounts (user_id, bank_code, account_no, holder_name, is_verified)
+            VALUES (#{userId}, #{bankCode}, #{accountNo}, #{holderName}, #{isVerified})
+    </insert>
+    <select id="findAccountsByUserId" parameterType="Long" resultType="com.paywith.account.dto.AccountResponse">
+        select
+        a.account_id AS accountId,
+        a.bank_code  AS bankCode,
+        b.bank_name  AS bankName,
+        a.account_no AS accountNo
+        from linked_accounts a
+        join banks b on a.bank_code = b.bank_code
+        where a.user_id = #{userId}
+        order by a.created_at desc
+    </select>
+
+    <select id="existsByUserIdAndAccount" resultType="boolean">
+        select exists (
+            select 1
+            from linked_accounts
+            where user_id = #{userId}
+              and bank_code = #{bankCode}
+              and account_no = #{accountNo}
+        )
+    </select>
+    <select id="findAccountById" parameterType="Long" resultType="com.paywith.account.dto.AccountResponse">
+        select
+        a.account_id AS accountId,
+        a.bank_code  AS bankCode,
+        b.bank_name  AS bankName,
+        a.account_no AS accountNo
+        from linked_accounts a
+        join banks b ON a.bank_code = b.bank_code
+        where a.account_id = #{accountId}
+    </select>
+    <select id="existsByUserIdAndAccountId" resultType="java.lang.Boolean">
+        select exists(
+            select 1 from linked_accounts
+            where user_id = #{userId} and account_id = #{accountId}
+        )
+    </select>
+</mapper>
