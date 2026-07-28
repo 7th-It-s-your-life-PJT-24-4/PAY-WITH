@@ -31,6 +31,7 @@ function goBack() {
 function handleNavigate(value: string) {
   if (value === 'transfer') router.push({ name: 'ward-transfer' })
   if (value === 'payment') router.push({ name: 'ward-payment' })
+  if (value === 'history') router.push({ name: 'ward-transaction-history' })
 }
 </script>
 
