@@ -34,7 +34,6 @@ import {
   requireRegisteredChargeAccount,
 } from '@/pages/ward/charge/-utils/charge-route-guard'
 import {
-  redirectPendingTransfer,
   requireCompletedTransfer,
   requireHeldTransfer,
   requirePendingTransfer,
@@ -168,7 +167,6 @@ const router = createRouter({
           path: 'transfer',
           name: 'ward-transfer',
           component: WardTransferPage,
-          beforeEnter: redirectPendingTransfer,
           meta: { title: '송금 대상 선택', activeNavigation: 'transfer' },
         },
         {
