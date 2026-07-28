@@ -2,15 +2,17 @@ package com.paywith.user.mapper;
 
 import com.paywith.user.domain.User;
 import java.util.List;
-import org.apache.ibatis.annotations.Param;
 
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+@Mapper
 public interface UserMapper {
 
     List<User> findAll();
 
     User findById(@Param("id") Long id);
 
-    User findByEmail(@Param("email") String email);
+    User findByPhone(@Param("phone") String phone);
 
     int insert(User user);
 

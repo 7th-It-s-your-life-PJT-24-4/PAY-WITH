@@ -1,0 +1,28 @@
+package com.paywith.charge.controller;
+
+import com.paywith.charge.dto.ChargeRequest;
+import com.paywith.charge.dto.ChargeResponse;
+import com.paywith.charge.service.ChargeService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/ward/charges")
+@RequiredArgsConstructor
+public class ChargeController {
+
+    private final ChargeService chargeService;
+
+    @PostMapping
+    public ResponseEntity<ChargeResponse> charge(
+            @RequestParam Long userId, // TODO: 로그인 후 인증 정보에서 추출해야함
+            @RequestBody ChargeRequest request
+            ){
+        ChargeResponse response = chargeService.charge(userId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+    }
+
+}

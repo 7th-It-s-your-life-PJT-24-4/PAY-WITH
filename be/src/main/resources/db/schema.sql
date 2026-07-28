@@ -1,6 +1,10 @@
+CREATE DATABASE pay_with;
+USE pay_with;
+
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS payment_requests;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS payment_anomaly_logs;
 DROP TABLE IF EXISTS merchant_visit_patterns;
@@ -33,6 +37,8 @@ CREATE TABLE users (
                        name        VARCHAR(50)  NOT NULL,
                        phone       VARCHAR(20)  NOT NULL,
                        password    VARCHAR(255) NOT NULL,               -- BCrypt 해시
+                       birth_date  DATE         NOT NULL,
+                       gender      CHAR(1)      NOT NULL COMMENT '주민등록번호 뒷자리 첫 번째 숫자 (1/2/3/4)',
                        fcm_token   VARCHAR(255) NULL,
                        status      ENUM('PENDING_PAIRING','ACTIVE','WITHDRAWN') NOT NULL DEFAULT 'PENDING_PAIRING',
                        created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -99,6 +105,7 @@ CREATE TABLE linked_accounts (
                                  created_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                  PRIMARY KEY (account_id),
                                  KEY idx_la_user (user_id),
+                                 CONSTRAINT uk_linked_accounts_account UNIQUE (user_id, bank_code, account_no),
                                  CONSTRAINT fk_la_user FOREIGN KEY (user_id)   REFERENCES users (user_id),
                                  CONSTRAINT fk_la_bank FOREIGN KEY (bank_code) REFERENCES banks (bank_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -167,6 +174,35 @@ CREATE TABLE transactions (
                               CONSTRAINT fk_tx_merchant  FOREIGN KEY (merchant_id)  REFERENCES merchants (merchant_id),
                               CONSTRAINT fk_tx_account   FOREIGN KEY (account_id)   REFERENCES linked_accounts (account_id),
                               CONSTRAINT fk_tx_initiator FOREIGN KEY (initiated_by) REFERENCES users (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8-1. payment_requests — QR 결제 요청 수명주기 [v2.7 신설 · 결제 파트 소유]
+--      QR 생성은 실제 거래가 아닌 임시 결제 요청 → 생성/만료/취소/성공/실패 상태의 최종 기준은 이 테이블.
+--      transactions에는 실제 완료된 결제와 FDS 차단(BLOCKED) 거래만 원장으로 기록.
+--      Redis qr:{token}(TTL 60초)은 토큰 유효성 보조 저장소 — 중복 결제 최종 판단은
+--      이 테이블의 행 잠금(SELECT ... FOR UPDATE) + 상태 검사로 수행 (2026-07-24 A2 승인).
+CREATE TABLE payment_requests (
+                                  payment_id     BIGINT        NOT NULL AUTO_INCREMENT,
+                                  wallet_id      BIGINT        NOT NULL,
+                                  senior_id      BIGINT        NOT NULL,
+                                  qr_token       VARCHAR(64)   NOT NULL,               -- 일회용 QR 토큰. 토큰 생성 후 INSERT(NOT NULL)
+                                  status         ENUM('PENDING','PROCESSING','COMPLETED','FAILED','EXPIRED','CANCELED') NOT NULL DEFAULT 'PENDING'
+                 COMMENT 'PENDING=생성·미스캔 / PROCESSING=스캔됨 / COMPLETED=차감 완료 / FAILED=잔액 부족·FDS 차단 / EXPIRED=60초 경과 / CANCELED=피보호자 취소',
+                                  transaction_id BIGINT        NULL,                   -- 결제 성공 시 원장 거래 연결. UNIQUE — 거래 1건은 결제 요청 1건에만
+                                  merchant_id    BIGINT        NULL,                   -- 스캔 시 확정 (생성 시점 NULL)
+                                  amount         DECIMAL(15,0) NULL,                   -- 스캔 시 확정 (생성 시점 NULL)
+                                  failure_code   VARCHAR(30)   NULL,                   -- INSUFFICIENT_BALANCE / FDS_BLOCKED(transactions.BLOCKED 행 동반) 등
+                                  expires_at     DATETIME      NOT NULL,               -- 생성 +60초. 경과 시 조회에서 EXPIRED로 lazy 전이
+                                  created_at     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                  updated_at     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                  PRIMARY KEY (payment_id),
+                                  UNIQUE KEY uk_pr_token (qr_token),
+                                  UNIQUE KEY uk_pr_transaction (transaction_id),
+                                  KEY idx_pr_senior_created (senior_id, created_at),
+                                  CONSTRAINT fk_pr_wallet      FOREIGN KEY (wallet_id)      REFERENCES wallets (wallet_id),
+                                  CONSTRAINT fk_pr_senior      FOREIGN KEY (senior_id)      REFERENCES users (user_id),
+                                  CONSTRAINT fk_pr_transaction FOREIGN KEY (transaction_id) REFERENCES transactions (transaction_id),
+                                  CONSTRAINT fk_pr_merchant    FOREIGN KEY (merchant_id)    REFERENCES merchants (merchant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================================

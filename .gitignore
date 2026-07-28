@@ -36,6 +36,7 @@ node_modules/
 
 # Backend
 **/target/
+**/application-local.properties
 
 # Local temp
 *.tmp
