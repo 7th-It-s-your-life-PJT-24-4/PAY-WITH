@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight, Clock3, ShieldAlert } from '@lucide/vue'
+import { ChevronRight, ShieldAlert } from '@lucide/vue'
 
 import type { TransferDetail } from '@/types/transfer'
 
@@ -48,10 +48,6 @@ function formatAmount(amount: number) {
           @click="emit('select', transfer.transactionId)"
         >
           <div class="min-w-0 flex-1">
-            <p class="type-body-medium flex items-center gap-xs text-warning">
-              <Clock3 class="size-5 shrink-0" aria-hidden="true" />
-              승인 대기
-            </p>
             <div class="mt-xs flex items-baseline justify-between gap-md">
               <strong class="type-h3 truncate text-body">
                 {{ transfer.recipientName }} 님에게
