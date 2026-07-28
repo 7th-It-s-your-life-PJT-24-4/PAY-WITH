@@ -17,7 +17,7 @@ public class ChargeResponse {
     private Long chargeAmount;
     private Long balanceAfter;
     private String bankName;
-    private String maskedAccountNo;
+    private String accountNo;
     private LocalDateTime createdAt;
 
     private Long wardId;

@@ -118,16 +118,9 @@ public class ChargeServiceImpl implements ChargeService{
                 .chargeAmount(transaction.getAmount())
                 .balanceAfter(balanceAfter)
                 .bankName(account.getBankName())
-                .maskedAccountNo(maskAccountNo(account.getAccountNo()))
+                .accountNo(account.getAccountNo())
                 .createdAt(transaction.getCreatedAt())
                 .build();
 
-    }
-
-    private String maskAccountNo(String accountNo){
-        if (accountNo == null || accountNo.length() < 4){
-            return accountNo;
-        }
-        return accountNo.substring(accountNo.length()-4);
     }
 }
