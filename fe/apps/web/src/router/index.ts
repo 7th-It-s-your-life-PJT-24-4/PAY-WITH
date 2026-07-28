@@ -5,8 +5,14 @@ import KakaoCallbackPage from '@/pages/auth/kakao/callback/page.vue'
 import SignUpPage from '@/pages/auth/sign-up/page.vue'
 import SignUpDetailsPage from '@/pages/auth/sign-up/details/page.vue'
 import SignUpTermsPage from '@/pages/auth/sign-up/terms/page.vue'
+import WardChargeAccountAddPage from '@/pages/ward/charge/account/add.vue'
+import WardChargeAccountCompletePage from '@/pages/ward/charge/account/complete.vue'
+import WardChargeCompletePage from '@/pages/ward/charge/complete.vue'
+import WardChargePage from '@/pages/ward/charge/page.vue'
 import WardLayout from '@/pages/ward/layout.vue'
 import WardPage from '@/pages/ward/page.vue'
+import WardTransactionDetailPage from '@/pages/ward/history/detail.vue'
+import WardTransactionHistoryPage from '@/pages/ward/history/page.vue'
 import WardPaymentCompletePage from '@/pages/ward/payment/complete.vue'
 import WardPaymentPage from '@/pages/ward/payment/page.vue'
 import WardPaymentPasswordPage from '@/pages/ward/payment/password.vue'
@@ -21,6 +27,12 @@ import WardTransferPasswordPage from '@/pages/ward/transfer/password.vue'
 import WardTransferProcessingPage from '@/pages/ward/transfer/processing.vue'
 import WardTransferRejectedPage from '@/pages/ward/transfer/rejected.vue'
 import WardTransferRestrictedPage from '@/pages/ward/transfer/restricted.vue'
+import { requireWardTransaction } from '@/pages/ward/history/-utils/transaction-route-guard'
+import {
+  requireCompletedCharge,
+  requireNewChargeAccount,
+  requireRegisteredChargeAccount,
+} from '@/pages/ward/charge/-utils/charge-route-guard'
 import {
   redirectPendingTransfer,
   requireCompletedTransfer,
@@ -77,6 +89,64 @@ const router = createRouter({
           name: 'ward-payment',
           component: WardPaymentPage,
           meta: { title: 'QR 결제', activeNavigation: 'payment' },
+        },
+        {
+          path: 'charge',
+          name: 'ward-charge',
+          component: WardChargePage,
+          beforeEnter: requireRegisteredChargeAccount,
+          meta: {
+            title: '충전하기',
+            activeNavigation: 'payment',
+          },
+        },
+        {
+          path: 'charge/account/add',
+          name: 'ward-charge-account-add',
+          component: WardChargeAccountAddPage,
+          meta: {
+            title: '새 계좌 추가',
+            activeNavigation: 'payment',
+          },
+        },
+        {
+          path: 'charge/account/complete',
+          name: 'ward-charge-account-complete',
+          component: WardChargeAccountCompletePage,
+          beforeEnter: requireNewChargeAccount,
+          meta: {
+            title: '계좌 추가 완료',
+            activeNavigation: 'payment',
+            backRouteName: 'ward-charge',
+          },
+        },
+        {
+          path: 'charge/:transactionId/complete',
+          name: 'ward-charge-complete',
+          component: WardChargeCompletePage,
+          beforeEnter: requireCompletedCharge,
+          meta: {
+            title: '충전 완료',
+            activeNavigation: 'payment',
+            backRouteName: 'ward-home',
+          },
+        },
+        {
+          path: 'history',
+          name: 'ward-transaction-history',
+          component: WardTransactionHistoryPage,
+          meta: { title: '거래 내역', activeNavigation: 'history' },
+        },
+        {
+          path: 'history/:transactionId',
+          name: 'ward-transaction-detail',
+          component: WardTransactionDetailPage,
+          beforeEnter: requireWardTransaction,
+          meta: {
+            title: '거래 내역 상세',
+            activeNavigation: 'history',
+            backRouteName: 'ward-transaction-history',
+          },
         },
         {
           path: 'payment/password',

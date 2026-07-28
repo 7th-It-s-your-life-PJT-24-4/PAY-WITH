@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { ArrowLeftRight, QrCode, ReceiptText } from '@lucide/vue'
 import { BottomNavigation } from '@pay-with/ui'
+import type { Component } from 'vue'
 
 type WardNavigationValue = 'transfer' | 'payment' | 'history'
 
@@ -12,10 +14,14 @@ withDefaults(
   },
 )
 
-const items: Array<{ label: string; value: WardNavigationValue }> = [
-  { label: '송금', value: 'transfer' },
-  { label: '결제', value: 'payment' },
-  { label: '내역', value: 'history' },
+const items: Array<{
+  label: string
+  value: WardNavigationValue
+  icon: Component
+}> = [
+  { label: '송금', value: 'transfer', icon: ArrowLeftRight },
+  { label: '결제', value: 'payment', icon: QrCode },
+  { label: '내역', value: 'history', icon: ReceiptText },
 ]
 
 const emit = defineEmits<{

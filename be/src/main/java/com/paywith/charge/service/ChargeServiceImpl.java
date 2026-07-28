@@ -74,7 +74,6 @@ public class ChargeServiceImpl implements ChargeService{
         return response;
     }
 
-
     private ChargeResponse doCharge(Long accountOwnerId, Long walletOwnerId,
                                     ChargeRequest request, Long initiatedBy){
         // 1. 계좌 소유 확인
@@ -104,7 +103,6 @@ public class ChargeServiceImpl implements ChargeService{
                 .walletId(wallet.getWalletId())
                 .accountId(request.getAccountId())
                 .type("CHARGE")
-                .initiatedBy(null)
                 .amount(request.getAmount())
                 .balanceAfter(balanceAfter)
                 .initiatedBy(initiatedBy)
@@ -120,9 +118,16 @@ public class ChargeServiceImpl implements ChargeService{
                 .chargeAmount(transaction.getAmount())
                 .balanceAfter(balanceAfter)
                 .bankName(account.getBankName())
-                .accountNo(account.getAccountNo())
+                .maskedAccountNo(maskAccountNo(account.getAccountNo()))
                 .createdAt(transaction.getCreatedAt())
                 .build();
 
+    }
+
+    private String maskAccountNo(String accountNo){
+        if (accountNo == null || accountNo.length() < 4){
+            return accountNo;
+        }
+        return accountNo.substring(accountNo.length()-4);
     }
 }
