@@ -12,8 +12,8 @@ test('최근 사용 계좌를 선택해 지갑 충전을 완료한다', async ({
   await page.getByRole('button', { name: '충전하기' }).click()
 
   await expect(page.getByRole('heading', { name: '충전 완료' })).toBeVisible()
-  await expect(page.getByText('50,000원')).toBeVisible()
-  await expect(page.getByText('150,000원')).toBeVisible()
+  await expect(page.getByText('50,000원', { exact: true })).toBeVisible()
+  await expect(page.getByText('150,000원', { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: '홈으로' }).click()
   await expect(page).toHaveURL(/\/ward\/home$/)
@@ -43,7 +43,7 @@ test('새 계좌를 등록하고 충전 계좌로 사용한다', async ({ page }
   }
   await accountSheet.getByRole('button', { name: '입력 완료' }).click()
 
-  await page.getByLabel('계좌 비밀번호').click()
+  await page.getByRole('textbox', { name: '계좌 비밀번호' }).click()
   const passwordSheet = page.getByRole('dialog', {
     name: '계좌 비밀번호 입력',
   })
