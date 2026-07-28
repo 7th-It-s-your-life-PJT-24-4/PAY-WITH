@@ -2,16 +2,17 @@
 import { Button } from '@pay-with/ui'
 import { useRouter } from 'vue-router'
 
-import { getMockHeldTransfers } from '@/mocks/transfer.mock'
+import { getMockPendingTransactions } from '@/mocks/pending-transaction.mock'
 import WardBalanceCard from '@/pages/ward/-components/WardBalanceCard.vue'
-import WardPendingTransferList from '@/pages/ward/-components/WardPendingTransferList.vue'
+import WardPendingTransactionList from '@/pages/ward/-components/WardPendingTransactionList.vue'
+import type { PendingTransaction } from '@/types/pending-transaction'
 
 const router = useRouter()
 
 const wardName = '김시니어'
 const balance = '100,000'
 const isWalletLocked = false
-const pendingTransfers = getMockHeldTransfers()
+const pendingTransactions = getMockPendingTransactions()
 
 const actions = [
   { label: '송금하기', value: 'transfer' },
@@ -27,10 +28,13 @@ function handleAction(value: string) {
   if (value === 'history') router.push({ name: 'ward-transaction-history' })
 }
 
-function openPendingTransfer(transactionId: number) {
+function openPendingTransaction(transaction: PendingTransaction) {
   router.push({
-    name: 'ward-transfer-held',
-    params: { transactionId },
+    name:
+      transaction.type === 'TRANSFER'
+        ? 'ward-transfer-held'
+        : 'ward-payment-held',
+    params: { transactionId: transaction.transactionId },
   })
 }
 </script>
@@ -47,9 +51,9 @@ function openPendingTransfer(transactionId: number) {
 
     <WardBalanceCard :balance="balance" :locked="isWalletLocked" />
 
-    <WardPendingTransferList
-      :transfers="pendingTransfers"
-      @select="openPendingTransfer"
+    <WardPendingTransactionList
+      :transactions="pendingTransactions"
+      @select="openPendingTransaction"
     />
 
     <section class="grid gap-md" aria-label="홈 주요 기능">

@@ -185,7 +185,7 @@ test('승인 대기 거래를 유지하고 홈에서 기다린다', async ({ pag
   await expect(page).toHaveURL(/\/ward\/home$/)
   await expect(
     page.getByRole('button', {
-      name: '김민수 님에게 50,000원 송금 상세 확인',
+      name: '송금 김민수 님에게 50,000원 상세 확인',
     }),
   ).toBeVisible()
 })

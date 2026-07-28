@@ -14,8 +14,10 @@ import WardPage from '@/pages/ward/page.vue'
 import WardTransactionDetailPage from '@/pages/ward/history/detail.vue'
 import WardTransactionHistoryPage from '@/pages/ward/history/page.vue'
 import WardPaymentCompletePage from '@/pages/ward/payment/complete.vue'
+import WardPaymentHeldPage from '@/pages/ward/payment/held.vue'
 import WardPaymentPage from '@/pages/ward/payment/page.vue'
 import WardPaymentPasswordPage from '@/pages/ward/payment/password.vue'
+import { requireHeldPayment } from '@/pages/ward/payment/-utils/payment-route-guard'
 import WardTransferAccountPage from '@/pages/ward/transfer/account.vue'
 import WardTransferAmountPage from '@/pages/ward/transfer/amount.vue'
 import WardTransferBankPage from '@/pages/ward/transfer/bank.vue'
@@ -162,6 +164,18 @@ const router = createRouter({
           name: 'ward-payment-complete',
           component: WardPaymentCompletePage,
           meta: { title: '결제 완료', activeNavigation: 'payment' },
+        },
+        {
+          path: 'payment/:transactionId/held',
+          name: 'ward-payment-held',
+          component: WardPaymentHeldPage,
+          beforeEnter: requireHeldPayment,
+          meta: {
+            title: '결제 승인 대기',
+            activeNavigation: 'payment',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
         },
         {
           path: 'transfer',

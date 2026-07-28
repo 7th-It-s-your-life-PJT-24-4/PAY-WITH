@@ -50,17 +50,37 @@ test('보호자 승인 대기 거래를 상세 화면에서 확인한다', async
   })
   await expect(pendingSection).toBeVisible()
   await expect(
-    pendingSection.getByText('확인이 필요한 송금 2건이 있습니다.'),
+    pendingSection.getByText('확인이 필요한 거래 2건이 있습니다.'),
   ).toBeVisible()
 
-  const pendingTransfer = pendingSection.getByRole('button', {
-    name: '박지연 님에게 30,000원 송금 상세 확인',
+  const pendingPayment = pendingSection.getByRole('button', {
+    name: '결제 우리동네마트 32,000원 상세 확인',
   })
-  await expect(pendingTransfer.getByText('30,000원')).toBeVisible()
-  await pendingTransfer.click()
+  await expect(pendingPayment.getByText('32,000원')).toBeVisible()
+  await pendingPayment.click()
 
-  await expect(page).toHaveURL(/\/ward\/transfer\/76\/held$/)
+  await expect(page).toHaveURL(/\/ward\/payment\/81\/held$/)
   await expect(
-    page.getByRole('heading', { name: '잠깐 확인해 보세요!' }),
+    page.getByRole('heading', { name: '결제 승인을 기다리고 있어요' }),
   ).toBeVisible()
+
+  await page.getByRole('button', { name: '보호자에게 연락하기' }).click()
+  await expect(
+    page.getByRole('dialog', { name: '보호자에게 전화할까요?' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: '취소', exact: true }).click()
+
+  await page.getByRole('button', { name: '결제 취소하기' }).click()
+  const cancelDialog = page.getByRole('dialog', {
+    name: '대기 중인 결제를 취소할까요?',
+  })
+  await expect(cancelDialog).toBeVisible()
+  await cancelDialog.getByRole('button', { name: '결제 취소하기' }).click()
+
+  await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(
+    page.getByRole('button', {
+      name: '결제 우리동네마트 32,000원 상세 확인',
+    }),
+  ).toBeHidden()
 })
