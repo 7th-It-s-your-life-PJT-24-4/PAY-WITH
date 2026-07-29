@@ -1,4 +1,4 @@
-package com.paywith.fds.service.rule;
+package com.paywith.fds.dto;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

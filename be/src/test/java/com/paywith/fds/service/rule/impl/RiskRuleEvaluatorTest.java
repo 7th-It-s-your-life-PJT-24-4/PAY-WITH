@@ -1,240 +1,262 @@
 package com.paywith.fds.service.rule.impl;
 
+import static com.paywith.fds.support.RuleContexts.at;
+import static com.paywith.fds.support.RuleContexts.normal;
+import static com.paywith.fds.support.RuleContexts.won;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.paywith.fds.service.rule.RiskRuleEvaluator;
 import com.paywith.fds.service.rule.RuleContext;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+/**
+ * 룰 평가기 단위 테스트. 구간 룰은 경계값과 계열 내 배타성(한 계열에서 한 행만 발동)을 함께 본다.
+ */
+@DisplayName("송금 FDS 룰 평가기")
 class RiskRuleEvaluatorTest {
 
-    private static final List<String> MEMO_KEYWORDS = List.of("검찰", "안전계좌", "대포통장");
+    // application-local.properties 기본값
+    private static final long L1 = 500_000L;
+    private static final long L2 = 1_500_000L;
+    private static final long L3 = 3_000_000L;
+    private static final int LATE_START_HOUR = 22;
+    private static final int DEEP_END_HOUR = 6;
 
-    /** 기본값 컨텍스트에서 필요한 필드만 바꿔서 만드는 헬퍼 */
-    private static RuleContext context(
-        BigDecimal amount,
-        String memo,
-        LocalDateTime requestedAt,
-        int recipientSendCount,
-        boolean recipientRegisteredSafe,
-        int recentTransferCount,
-        int recentDistinctRecipientCount
-    ) {
-        return new RuleContext(
-            amount, memo, requestedAt, recipientSendCount, recipientRegisteredSafe,
-            recentTransferCount, recentDistinctRecipientCount, MEMO_KEYWORDS
-        );
-    }
+    private final HighAmountL1RuleEvaluator amountL1 = new HighAmountL1RuleEvaluator(L1, L2);
+    private final HighAmountL2RuleEvaluator amountL2 = new HighAmountL2RuleEvaluator(L2, L3);
+    private final HighAmountL3RuleEvaluator amountL3 = new HighAmountL3RuleEvaluator(L3);
+    private final NightTimeLateRuleEvaluator nightLate = new NightTimeLateRuleEvaluator(LATE_START_HOUR);
+    private final NightTimeDeepRuleEvaluator nightDeep = new NightTimeDeepRuleEvaluator(DEEP_END_HOUR);
+    private final SuspiciousMemoRuleEvaluator memo = new SuspiciousMemoRuleEvaluator();
 
-    private static RuleContext defaultContext() {
-        return context(
-            BigDecimal.valueOf(10000), null,
-            LocalDateTime.of(2026, 7, 23, 14, 0),
-            5, false, 0, 0
-        );
+    /** 계열 안에서 발동한 룰 코드를 모은다. 배타성 검증용. */
+    private List<String> triggeredIn(RuleContext context, RiskRuleEvaluator... family) {
+        return java.util.Arrays.stream(family)
+            .filter(evaluator -> evaluator.evaluate(context))
+            .map(RiskRuleEvaluator::getRuleCode)
+            .collect(java.util.stream.Collectors.toList());
     }
 
     @Nested
+    @DisplayName("고액 구간")
     class HighAmount {
 
-        private final HighAmountRuleEvaluator evaluator = new HighAmountRuleEvaluator(500000L);
-
-        // 경계값: 기준액(50만 원)과 정확히 같으면 발동해야 한다
         @Test
-        void triggersWhenAmountIsAtOrAboveThreshold() {
-            RuleContext ctx = context(BigDecimal.valueOf(500000), null,
-                LocalDateTime.of(2026, 7, 23, 14, 0), 5, false, 0, 0);
-
-            assertThat(evaluator.evaluate(ctx)).isTrue();
+        void doesNotTriggerBelowL1() {
+            RuleContext context = normal().amount(won("499999")).build();
+            assertThat(triggeredIn(context, amountL1, amountL2, amountL3)).isEmpty();
         }
 
-        // 경계값: 기준액보다 1원 모자라면 발동하지 않는다
         @Test
-        void doesNotTriggerBelowThreshold() {
-            RuleContext ctx = context(BigDecimal.valueOf(499999), null,
-                LocalDateTime.of(2026, 7, 23, 14, 0), 5, false, 0, 0);
+        void triggersL1AtLowerBoundary() {
+            RuleContext context = normal().amount(won("500000")).build();
+            assertThat(triggeredIn(context, amountL1, amountL2, amountL3))
+                .containsExactly("HIGH_AMOUNT_L1");
+        }
 
-            assertThat(evaluator.evaluate(ctx)).isFalse();
+        @Test
+        void triggersL2AtLowerBoundary() {
+            RuleContext context = normal().amount(won("1500000")).build();
+            assertThat(triggeredIn(context, amountL1, amountL2, amountL3))
+                .containsExactly("HIGH_AMOUNT_L2");
+        }
+
+        @Test
+        void triggersL3AtLowerBoundary() {
+            RuleContext context = normal().amount(won("3000000")).build();
+            assertThat(triggeredIn(context, amountL1, amountL2, amountL3))
+                .containsExactly("HIGH_AMOUNT_L3");
+        }
+
+        @Test
+        void triggersL3WithNoUpperBound() {
+            RuleContext context = normal().amount(won("999999999")).build();
+            assertThat(triggeredIn(context, amountL1, amountL2, amountL3))
+                .containsExactly("HIGH_AMOUNT_L3");
+        }
+
+        // 구간이 겹치면 한 거래에 금액 점수가 두 번 가산된다
+        @Test
+        void triggersAtMostOneTierPerAmount() {
+            for (String amount : List.of("0", "499999", "500000", "1499999", "1500000",
+                "2999999", "3000000", "10000000")) {
+                RuleContext context = normal().amount(won(amount)).build();
+                assertThat(triggeredIn(context, amountL1, amountL2, amountL3))
+                    .as("금액 %s 에서 발동한 구간 수", amount)
+                    .hasSizeLessThanOrEqualTo(1);
+            }
         }
     }
 
     @Nested
+    @DisplayName("심야 구간")
     class NightTime {
 
-        // 자정을 넘는 구간: 22시 ~ 06시
-        private final NightTimeRuleEvaluator evaluator = new NightTimeRuleEvaluator(22, 6);
-
-        // 경계값: 심야 시작 시각(22:00) 정각부터 발동한다
         @Test
-        void triggersAtStartHour() {
-            assertThat(evaluator.evaluate(at(22, 0))).isTrue();
+        void triggersDeepJustAfterMidnight() {
+            RuleContext context = normal().requestedAt(at(0)).build();
+            assertThat(triggeredIn(context, nightLate, nightDeep))
+                .containsExactly("NIGHT_TIME_DEEP");
         }
 
-        // 자정을 넘긴 새벽(02:30)도 심야 구간에 포함된다
         @Test
-        void triggersAfterMidnight() {
-            assertThat(evaluator.evaluate(at(2, 30))).isTrue();
+        void triggersDeepAtLastNightHour() {
+            RuleContext context = normal().requestedAt(at(5)).build();
+            assertThat(triggeredIn(context, nightLate, nightDeep))
+                .containsExactly("NIGHT_TIME_DEEP");
         }
 
-        // 경계값: 심야 종료 시각(06:00) 정각부터는 발동하지 않는다
         @Test
-        void doesNotTriggerAtEndHour() {
-            assertThat(evaluator.evaluate(at(6, 0))).isFalse();
+        void doesNotTriggerAtDeepEndHour() {
+            RuleContext context = normal().requestedAt(at(6)).build();
+            assertThat(triggeredIn(context, nightLate, nightDeep)).isEmpty();
         }
 
-        // 경계값: 시작 직전(21:59)은 심야가 아니다
         @Test
-        void doesNotTriggerJustBeforeStartHour() {
-            assertThat(evaluator.evaluate(at(21, 59))).isFalse();
+        void doesNotTriggerDuringDaytime() {
+            RuleContext context = normal().requestedAt(at(14)).build();
+            assertThat(triggeredIn(context, nightLate, nightDeep)).isEmpty();
         }
 
-        // 자정을 넘지 않는 설정(01~05시)은 AND 분기로 판정된다
         @Test
-        void evaluatesNonWrappingWindowCorrectly() {
-            NightTimeRuleEvaluator sameDay = new NightTimeRuleEvaluator(1, 5);
-
-            assertThat(sameDay.evaluate(at(3, 0))).isTrue();
-            assertThat(sameDay.evaluate(at(5, 0))).isFalse();
+        void triggersLateAtStartHour() {
+            RuleContext context = normal().requestedAt(at(22)).build();
+            assertThat(triggeredIn(context, nightLate, nightDeep))
+                .containsExactly("NIGHT_TIME_LATE");
         }
 
-        private RuleContext at(int hour, int minute) {
-            return context(BigDecimal.valueOf(10000), null,
-                LocalDateTime.of(2026, 7, 23, hour, minute), 5, false, 0, 0);
+        @Test
+        void triggersAtMostOneTierPerHour() {
+            for (int hour = 0; hour < 24; hour++) {
+                RuleContext context = normal().requestedAt(at(hour)).build();
+                assertThat(triggeredIn(context, nightLate, nightDeep))
+                    .as("%d시에 발동한 구간 수", hour)
+                    .hasSizeLessThanOrEqualTo(1);
+            }
         }
     }
 
     @Nested
+    @DisplayName("의심 메모")
+    class SuspiciousMemo {
+
+        @Test
+        void doesNotTriggerWhenMemoIsNull() {
+            assertThat(memo.evaluate(normal().memo(null).build())).isFalse();
+        }
+
+        @Test
+        void doesNotTriggerWhenMemoIsBlank() {
+            assertThat(memo.evaluate(normal().memo("   ").build())).isFalse();
+        }
+
+        @Test
+        void doesNotTriggerForOrdinaryMemo() {
+            assertThat(memo.evaluate(normal().memo("생일 축하해").build())).isFalse();
+        }
+
+        @Test
+        void triggersForKeywordAnywhereInMemo() {
+            assertThat(memo.evaluate(normal().memo("검찰 수사 협조 요청").build())).isTrue();
+        }
+
+        @Test
+        void triggersForAnyKeywordInList() {
+            assertThat(memo.evaluate(normal().memo("대출 상환금").build())).isTrue();
+        }
+
+        // 키워드 개수와 무관하게 한 번만 발동한다(동일 배점)
+        @Test
+        void triggersOnceRegardlessOfKeywordCount() {
+            assertThat(memo.evaluate(normal().memo("검찰이 요구한 대출 상환").build())).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("신규 수취인")
     class NewRecipient {
 
         private final NewRecipientRuleEvaluator evaluator = new NewRecipientRuleEvaluator();
 
-        // 송금 이력이 0회인 신규 수취인이면 발동한다
         @Test
-        void triggersWhenNoSendHistory() {
-            RuleContext ctx = context(BigDecimal.valueOf(10000), null,
-                LocalDateTime.of(2026, 7, 23, 14, 0), 0, false, 0, 0);
-
-            assertThat(evaluator.evaluate(ctx)).isTrue();
+        void triggersWhenSendCountIsZero() {
+            assertThat(evaluator.evaluate(normal().recipientSendCount(0).build())).isTrue();
         }
 
-        // 한 번이라도 보낸 적 있는 수취인이면 발동하지 않는다
         @Test
-        void doesNotTriggerWithSendHistory() {
-            RuleContext ctx = context(BigDecimal.valueOf(10000), null,
-                LocalDateTime.of(2026, 7, 23, 14, 0), 1, false, 0, 0);
-
-            assertThat(evaluator.evaluate(ctx)).isFalse();
+        void doesNotTriggerWhenRecipientHasHistory() {
+            assertThat(evaluator.evaluate(normal().recipientSendCount(1).build())).isFalse();
         }
     }
 
     @Nested
-    class SafeAccountCheck {
-
-        private final SafeAccountCheckRuleEvaluator evaluator = new SafeAccountCheckRuleEvaluator();
-
-        // 안심계좌로 등록된 수취인이면 발동한다(유일한 감점 룰)
-        @Test
-        void triggersForSafeRegisteredAccount() {
-            RuleContext ctx = context(BigDecimal.valueOf(10000), null,
-                LocalDateTime.of(2026, 7, 23, 14, 0), 5, true, 0, 0);
-
-            assertThat(evaluator.evaluate(ctx)).isTrue();
-        }
-
-        // 안심계좌 미등록이면 발동하지 않는다
-        @Test
-        void doesNotTriggerForUnregisteredAccount() {
-            assertThat(evaluator.evaluate(defaultContext())).isFalse();
-        }
-    }
-
-    @Nested
+    @DisplayName("반복 송금")
     class Repeated {
 
         private final RepeatedRuleEvaluator evaluator = new RepeatedRuleEvaluator(3);
 
-        // 경계값: 시간창 내 송금 횟수가 기준(3회)에 정확히 도달하면 발동한다
         @Test
-        void triggersWhenRecentTransferCountReachesThreshold() {
-            RuleContext ctx = context(BigDecimal.valueOf(10000), null,
-                LocalDateTime.of(2026, 7, 23, 14, 0), 5, false, 3, 0);
-
-            assertThat(evaluator.evaluate(ctx)).isTrue();
+        void triggersAtCountThreshold() {
+            assertThat(evaluator.evaluate(normal().recentTransferCount(3).build())).isTrue();
         }
 
-        // 경계값: 기준보다 1회 모자라면 발동하지 않는다
         @Test
-        void doesNotTriggerBelowThreshold() {
-            RuleContext ctx = context(BigDecimal.valueOf(10000), null,
-                LocalDateTime.of(2026, 7, 23, 14, 0), 5, false, 2, 0);
-
-            assertThat(evaluator.evaluate(ctx)).isFalse();
+        void doesNotTriggerBelowCountThreshold() {
+            assertThat(evaluator.evaluate(normal().recentTransferCount(2).build())).isFalse();
         }
     }
 
     @Nested
+    @DisplayName("분할 송금")
     class DivisionTransfer {
 
         private final DivisionTransferRuleEvaluator evaluator = new DivisionTransferRuleEvaluator(3);
 
-        // 경계값: 시간창 내 서로 다른 수취인 수가 기준(3곳)에 정확히 도달하면 발동한다
         @Test
-        void triggersWhenDistinctRecipientCountReachesThreshold() {
-            RuleContext ctx = context(BigDecimal.valueOf(10000), null,
-                LocalDateTime.of(2026, 7, 23, 14, 0), 5, false, 0, 3);
-
-            assertThat(evaluator.evaluate(ctx)).isTrue();
+        void triggersAtAccountThreshold() {
+            assertThat(evaluator.evaluate(normal().recentDistinctRecipientCount(3).build())).isTrue();
         }
 
-        // 경계값: 기준보다 1곳 모자라면 발동하지 않는다
         @Test
-        void doesNotTriggerBelowThreshold() {
-            RuleContext ctx = context(BigDecimal.valueOf(10000), null,
-                LocalDateTime.of(2026, 7, 23, 14, 0), 5, false, 0, 2);
-
-            assertThat(evaluator.evaluate(ctx)).isFalse();
+        void doesNotTriggerBelowAccountThreshold() {
+            assertThat(evaluator.evaluate(normal().recentDistinctRecipientCount(2).build())).isFalse();
         }
     }
 
     @Nested
-    class SuspiciousMemo {
+    @DisplayName("승인 대기 중 추가 송금")
+    class PendingApproval {
 
-        private final SuspiciousMemoRuleEvaluator evaluator = new SuspiciousMemoRuleEvaluator();
+        private final PendingApprovalRuleEvaluator evaluator = new PendingApprovalRuleEvaluator();
 
-        // 메모에 위험 키워드가 포함되면 발동한다
         @Test
-        void triggersWhenMemoContainsKeyword() {
-            RuleContext ctx = context(BigDecimal.valueOf(10000), "안전계좌로 옮겨주세요",
-                LocalDateTime.of(2026, 7, 23, 14, 0), 5, false, 0, 0);
-
-            assertThat(evaluator.evaluate(ctx)).isTrue();
+        void triggersWhenApprovalIsStillPending() {
+            assertThat(evaluator.evaluate(normal().pendingApprovalExists(true).build())).isTrue();
         }
 
-        // 키워드가 없는 일반 메모는 발동하지 않는다
         @Test
-        void doesNotTriggerForNormalMemo() {
-            RuleContext ctx = context(BigDecimal.valueOf(10000), "생일 축하해",
-                LocalDateTime.of(2026, 7, 23, 14, 0), 5, false, 0, 0);
+        void doesNotTriggerWhenNoPendingApproval() {
+            assertThat(evaluator.evaluate(normal().build())).isFalse();
+        }
+    }
 
-            assertThat(evaluator.evaluate(ctx)).isFalse();
+    @Nested
+    @DisplayName("안전계좌 감점")
+    class SafeAccountCheck {
+
+        private final SafeAccountCheckRuleEvaluator evaluator = new SafeAccountCheckRuleEvaluator();
+
+        @Test
+        void triggersForSeniorRegisteredAccount() {
+            assertThat(evaluator.evaluate(normal().recipientRegisteredSafe(true).build())).isTrue();
         }
 
-        // 메모가 null이면 발동하지 않는다(NPE 방어 확인)
         @Test
-        void doesNotTriggerWhenMemoIsNull() {
-            assertThat(evaluator.evaluate(defaultContext())).isFalse();
-        }
-
-        // 메모가 공백뿐이면 발동하지 않는다
-        @Test
-        void doesNotTriggerWhenMemoIsBlank() {
-            RuleContext ctx = context(BigDecimal.valueOf(10000), "   ",
-                LocalDateTime.of(2026, 7, 23, 14, 0), 5, false, 0, 0);
-
-            assertThat(evaluator.evaluate(ctx)).isFalse();
+        void doesNotTriggerForUnregisteredAccount() {
+            assertThat(evaluator.evaluate(normal().build())).isFalse();
         }
     }
 }

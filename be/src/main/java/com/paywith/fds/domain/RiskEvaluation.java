@@ -13,7 +13,9 @@ public class RiskEvaluation {
     private Long evaluationId;
     private Long transactionId;
     private Integer totalScore;
-    private Integer threshold;
-    private boolean held;
+    private Integer cautionThreshold;
+    private Integer dangerThreshold;
+    private RiskLevel riskLevel;
+    private DecidedBy decidedBy;
     private LocalDateTime evaluatedAt;
 }

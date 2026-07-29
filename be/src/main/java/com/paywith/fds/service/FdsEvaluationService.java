@@ -1,157 +1,37 @@
 package com.paywith.fds.service;
 
-import com.paywith.approval.service.ApprovalRequestService;
-import com.paywith.exception.BusinessException;
-import com.paywith.fds.domain.RecipientRiskInfo;
-import com.paywith.fds.domain.RiskEvaluation;
-import com.paywith.fds.domain.RiskEvaluationDetail;
-import com.paywith.fds.domain.RiskRule;
+import com.paywith.fds.dto.FdsDecision;
 import com.paywith.fds.dto.FdsEvaluationRequest;
-import com.paywith.fds.mapper.FdsHistoryMapper;
-import com.paywith.fds.mapper.RiskEvaluationDetailMapper;
-import com.paywith.fds.mapper.RiskEvaluationMapper;
-import com.paywith.fds.service.rule.FdsScoreResult;
-import com.paywith.fds.service.rule.RiskRuleCache;
-import com.paywith.fds.service.rule.RiskRuleEvaluator;
-import com.paywith.fds.service.rule.RuleContext;
-import com.paywith.fds.service.rule.TriggeredRule;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 송금 FDS 평가 진입점.
  *
+ * <p>판정 흐름은 4단계다.
+ * <ol>
+ *   <li>컨텍스트 선집계 — 룰 지표를 DB에서 한 번에 모은다.</li>
+ *   <li>단축평가 — 블랙리스트(즉시 DANGER) → 화이트리스트(즉시 SAFE) 순으로 확정 판정을 시도한다.</li>
+ *   <li>룰 판정 — 캐시된 활성 룰을 순회해 점수를 합산한다.</li>
+ *   <li>등급 판정 — 경계값 두 개로 SAFE/CAUTION/DANGER 를 가른다.</li>
+ * </ol>
+ *
  * <p>송금 API 쪽 사용 계약:
  * <ol>
- *   <li>수취인을 먼저 확보한다(recipients 조회, 없으면 insert). FDS는 recipientId로 위험 정보를
- *       조회하므로 등록되지 않은 수취인으로 호출하면 404가 발생한다. 신규 여부는 행 존재가 아니라
- *       send_count=0으로 판정하므로 방금 등록한 수취인도 정상 평가된다.</li>
- *   <li>transaction insert 전에 {@link #evaluate(FdsEvaluationRequest)}로 점수를 받는다.</li>
- *   <li>결과의 totalScore/held 값으로 transaction의 risk_score와 상태(HELD/PROCESSING)를 결정해 저장한다.</li>
- *   <li>transaction insert 후 {@link #persist(Long, FdsScoreResult)}를 같은 트랜잭션 안에서 호출한다.
- *       보류(HELD) 판정이면 보호자 승인요청(approval_requests) 생성까지 이 안에서 처리된다.</li>
+ *   <li>수취인을 먼저 확보한다(recipients 조회, 없으면 insert). 신규 여부는 행 존재가 아니라
+ *       send_count=0 으로 판정하므로 방금 등록한 수취인도 정상 평가된다.</li>
+ *   <li>거래 행을 status=REQUESTED 로 먼저 생성한다. risk_evaluations 가 transaction_id 를
+ *       NOT NULL FK 로 참조하므로, 블랙리스트 즉시 차단도 거래 행이 있어야 근거를 남길 수 있다.</li>
+ *   <li>{@link #evaluate(FdsEvaluationRequest)} 로 판정을 받는다. 트랜잭션 밖에서 호출한다.</li>
+ *   <li>{@link FdsDecision#getRiskLevel()} 로 거래 상태를 정한다.
+ *       SAFE/CAUTION 은 PROCESSING, DANGER 는 HELD, 블랙리스트 차단은 BLOCKED.</li>
+ *   <li>{@link #saveDecision(Long, FdsDecision)} 를 호출한다. 평가 저장·risk_score 갱신·승인요청 생성이
+ *       하나의 트랜잭션으로 묶인다.</li>
  * </ol>
- * 이체 이력·수취인 위험 정보 조회는 FDS가 직접 수행하므로 호출 측은 룰 내부 기준(시간창 등)을 몰라도 된다.
  */
-@Service
-public class FdsEvaluationService {
+public interface FdsEvaluationService {
 
-    private final RiskRuleCache riskRuleCache;
-    private final Map<String, RiskRuleEvaluator> evaluatorsByRuleCode;
-    private final RiskEvaluationMapper riskEvaluationMapper;
-    private final RiskEvaluationDetailMapper riskEvaluationDetailMapper;
-    private final FdsHistoryMapper fdsHistoryMapper;
-    private final ApprovalRequestService approvalRequestService;
-    private final int threshold;
-    private final int repeatedWindowMinutes;
-    private final int divisionWindowMinutes;
-    private final List<String> memoKeywords;
+    /** 송금 요청을 평가한다. DB 조회만 하며 쓰기는 하지 않는다. */
+    FdsDecision evaluate(FdsEvaluationRequest request);
 
-    public FdsEvaluationService(
-        RiskRuleCache riskRuleCache,
-        List<RiskRuleEvaluator> evaluators,
-        RiskEvaluationMapper riskEvaluationMapper,
-        RiskEvaluationDetailMapper riskEvaluationDetailMapper,
-        FdsHistoryMapper fdsHistoryMapper,
-        ApprovalRequestService approvalRequestService,
-        @Value("${fds.threshold}") int threshold,
-        @Value("${fds.repeated.window-minutes}") int repeatedWindowMinutes,
-        @Value("${fds.division.window-minutes}") int divisionWindowMinutes,
-        @Value("${fds.memo-keywords}") String[] memoKeywords
-    ) {
-        this.riskRuleCache = riskRuleCache;
-        this.evaluatorsByRuleCode = evaluators.stream()
-            .collect(Collectors.toMap(RiskRuleEvaluator::getRuleCode, Function.identity()));
-        this.riskEvaluationMapper = riskEvaluationMapper;
-        this.riskEvaluationDetailMapper = riskEvaluationDetailMapper;
-        this.fdsHistoryMapper = fdsHistoryMapper;
-        this.approvalRequestService = approvalRequestService;
-        this.threshold = threshold;
-        this.repeatedWindowMinutes = repeatedWindowMinutes;
-        this.divisionWindowMinutes = divisionWindowMinutes;
-        this.memoKeywords = Arrays.asList(memoKeywords);
-    }
-
-    public FdsScoreResult evaluate(FdsEvaluationRequest request) {
-        return score(buildContext(request));
-    }
-
-    public FdsScoreResult score(RuleContext context) {
-        List<TriggeredRule> triggeredRules = new ArrayList<>();
-        int totalScore = 0;
-
-        for (RiskRule rule : riskRuleCache.getActiveRules()) {
-            RiskRuleEvaluator evaluator = evaluatorsByRuleCode.get(rule.getRuleCode());
-            if (evaluator == null) {
-                continue;
-            }
-            if (evaluator.evaluate(context)) {
-                triggeredRules.add(new TriggeredRule(rule.getRuleId(), rule.getScore()));
-                totalScore += rule.getScore();
-            }
-        }
-
-        boolean held = totalScore >= threshold;
-        return new FdsScoreResult(totalScore, threshold, held, triggeredRules);
-    }
-
-    @Transactional
-    public void persist(Long transactionId, FdsScoreResult result) {
-        RiskEvaluation evaluation = new RiskEvaluation();
-        evaluation.setTransactionId(transactionId);
-        evaluation.setTotalScore(result.getTotalScore());
-        evaluation.setThreshold(result.getThreshold());
-        evaluation.setHeld(result.isHeld());
-        riskEvaluationMapper.insert(evaluation);
-
-        for (TriggeredRule triggeredRule : result.getTriggeredRules()) {
-            RiskEvaluationDetail detail = new RiskEvaluationDetail();
-            detail.setEvaluationId(evaluation.getEvaluationId());
-            detail.setRuleId(triggeredRule.getRuleId());
-            detail.setScore(triggeredRule.getScore());
-            riskEvaluationDetailMapper.insert(detail);
-        }
-
-        // 보류 판정 시 보호자 승인요청 생성까지 FDS 후처리로 묶는다.
-        if (result.isHeld()) {
-            approvalRequestService.create(transactionId);
-        }
-    }
-
-    private RuleContext buildContext(FdsEvaluationRequest request) {
-        RecipientRiskInfo recipientRiskInfo = fdsHistoryMapper.findRecipientRiskInfo(request.getRecipientId());
-        if (recipientRiskInfo == null) {
-            throw new BusinessException(HttpStatus.NOT_FOUND, "수취인 정보를 찾을 수 없습니다.");
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        int recentTransferCount = fdsHistoryMapper.countRecentTransfers(
-            request.getWalletId(),
-            now.minusMinutes(repeatedWindowMinutes)
-        );
-        int recentDistinctRecipientCount = fdsHistoryMapper.countRecentDistinctRecipients(
-            request.getWalletId(),
-            now.minusMinutes(divisionWindowMinutes)
-        );
-
-        return new RuleContext(
-            request.getAmount(),
-            request.getMemo(),
-            now,
-            recipientRiskInfo.getSendCount(),
-            recipientRiskInfo.isRegisteredSafe(),
-            recentTransferCount,
-            recentDistinctRecipientCount,
-            memoKeywords
-        );
-    }
+    /** 판정 결과를 저장한다. 위험(DANGER) 판정이면 보호자 승인요청 생성까지 함께 처리한다. */
+    void saveDecision(Long transactionId, FdsDecision decision);
 }

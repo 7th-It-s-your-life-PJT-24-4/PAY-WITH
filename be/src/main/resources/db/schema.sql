@@ -156,7 +156,11 @@ CREATE TABLE transactions (
                               memo           VARCHAR(200)  NULL,
                               balance_after  DECIMAL(15,0) NULL,
                               status         ENUM('REQUESTED','HELD','APPROVED','PROCESSING','REJECTED','COMPLETED','CANCELED','BLOCKED') NOT NULL
-                 COMMENT 'REQUESTED=요청 / HELD=송금FDS 보류(승인대기) / APPROVED=보호자 승인 / PROCESSING=외부 이체 실행 중(FDS·승인 통과 후, 최종 확정 전) / REJECTED=보호자 명시 거절 / COMPLETED=완료 / CANCELED=취소(승인만료 후속 등) / BLOCKED=위치FDS 시스템 즉시차단(결제)',
+                 COMMENT 'REQUESTED=요청(거래 행 선생성, FDS 판정 전) / HELD=송금FDS 위험(DANGER) 보류(승인대기) / APPROVED=보호자 승인 / PROCESSING=외부 이체 실행 중(FDS·승인 통과 후, 최종 확정 전) / REJECTED=보호자 명시 거절 / COMPLETED=완료 / CANCELED=취소(승인만료 후속 등) / BLOCKED=시스템 즉시차단(송금 블랙리스트 단축평가 / 결제 위치FDS)',
+                              -- [v2.7] 위험도(risk_evaluations.risk_level)와 처리 단계(status)는 별개 축이다.
+                              --        SAFE/CAUTION 은 동일하게 PROCESSING → COMPLETED 로 진행하며, 주의 판정 여부는 risk_level 로만 구분한다.
+                              -- [v2.7] APPROVED/REJECTED 는 approval_requests.status 의 비정규화 복사본이다(risk_score 와 동일한 single writer 규칙).
+                              --        승인 처리 서비스가 approval_requests 와 이 컬럼을 같은 트랜잭션에서 함께 갱신한다. 다른 경로에서 단독 갱신 금지.
                               latitude       DECIMAL(10,7) NULL,
                               longitude      DECIMAL(10,7) NULL,
                               pg_payment_key VARCHAR(100)  NULL,
@@ -210,8 +214,12 @@ CREATE TABLE payment_requests (
 -- =====================================================================
 
 -- 9. risk_rules — 위험도 배점 규칙 [v2.6: THRESHOLD 행 폐지, 순수 배점만]
---    임계값은 application.properties(fds.threshold=40)로 관리.
---    판정 시점 임계값은 risk_evaluations.threshold 에 스냅샷 보존.
+--    임계값은 application.properties(fds.threshold.caution / fds.threshold.danger)로 관리.
+--    판정 시점 임계값은 risk_evaluations.caution_threshold / danger_threshold 에 스냅샷 보존.
+--    [v2.7] 단축평가(블랙/화이트리스트) 항목도 rule_code 행으로 등록한다.
+--          점수 합산에는 참여하지 않지만 발동 내역은 risk_evaluation_details 에 동일하게 남긴다.
+--    [v2.7] 금액·시간대·메모는 구간별로 rule_code 를 분리한다(예: HIGH_AMOUNT_L1/L2/L3).
+--          같은 계열에서는 한 행만 발동한다.
 CREATE TABLE risk_rules (
                             rule_id     BIGINT       NOT NULL AUTO_INCREMENT,
                             rule_code   VARCHAR(30)  NOT NULL,
@@ -224,12 +232,16 @@ CREATE TABLE risk_rules (
 
 -- 10. risk_evaluations — 위험도 평가 결과 (거래당 1행)
 CREATE TABLE risk_evaluations (
-                                  evaluation_id  BIGINT   NOT NULL AUTO_INCREMENT,
-                                  transaction_id BIGINT   NOT NULL,
-                                  total_score    INT      NOT NULL,
-                                  threshold      INT      NOT NULL,                 -- 판정 시점 임계값 스냅샷(properties 값 복사)
-                                  is_held        BOOLEAN  NOT NULL,
-                                  evaluated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                  evaluation_id     BIGINT   NOT NULL AUTO_INCREMENT,
+                                  transaction_id    BIGINT   NOT NULL,
+                                  total_score       INT      NOT NULL,               -- 룰 합산 점수. 0 하한(감점으로 음수가 되면 0으로 절삭)
+                                  caution_threshold INT      NOT NULL,               -- 판정 시점 임계값 스냅샷(properties 값 복사)
+                                  danger_threshold  INT      NOT NULL,
+                                  risk_level        ENUM('SAFE','CAUTION','DANGER') NOT NULL
+                 COMMENT 'SAFE=정상 송금 / CAUTION=보호자 알림 후 송금 진행 / DANGER=보호자 승인 전까지 보류(transactions.HELD)',
+                                  decided_by        ENUM('BLACKLIST','WHITELIST','RULE') NOT NULL
+                 COMMENT '판정 경로. BLACKLIST/WHITELIST=단축평가로 확정(total_score와 무관) / RULE=룰 점수 합산 결과',
+                                  evaluated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                   PRIMARY KEY (evaluation_id),
                                   UNIQUE KEY uk_re_transaction (transaction_id),
                                   CONSTRAINT fk_re_transaction FOREIGN KEY (transaction_id) REFERENCES transactions (transaction_id)

@@ -23,7 +23,8 @@ class ApprovalRequestServiceTest {
     // PENDING 상태와 만료시각(생성 시점 +30분)이 설정되어 저장된다
     @Test
     void create_savesPendingRequestWithExpiryTime() {
-        ApprovalRequestService service = new ApprovalRequestService(approvalRequestMapper, EXPIRE_MINUTES);
+        ApprovalRequestService service =
+            new ApprovalRequestServiceImpl(approvalRequestMapper, EXPIRE_MINUTES);
         LocalDateTime before = LocalDateTime.now();
 
         ApprovalRequest created = service.create(100L);

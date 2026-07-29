@@ -5,7 +5,9 @@
 
 <mapper namespace="com.paywith.fds.mapper.RiskEvaluationMapper">
   <insert id="insert" parameterType="com.paywith.fds.domain.RiskEvaluation" useGeneratedKeys="true" keyProperty="evaluationId">
-    INSERT INTO risk_evaluations (transaction_id, total_score, threshold, is_held)
-    VALUES (#{transactionId}, #{totalScore}, #{threshold}, #{held})
+    INSERT INTO risk_evaluations
+      (transaction_id, total_score, caution_threshold, danger_threshold, risk_level, decided_by)
+    VALUES
+      (#{transactionId}, #{totalScore}, #{cautionThreshold}, #{dangerThreshold}, #{riskLevel}, #{decidedBy})
   </insert>
 </mapper>

@@ -7,15 +7,17 @@
   <resultMap id="RecipientRiskInfoResultMap" type="com.paywith.fds.domain.RecipientRiskInfo">
     <result property="sendCount" column="send_count" />
     <result property="registeredSafe" column="is_registered_safe" />
+    <result property="safeRegisteredBy" column="safe_registered_by" />
   </resultMap>
 
-  <!-- REPEATED 룰: 시간창 내 송금 횟수 -->
+  <!-- REPEATED 룰: 시간창 내 송금 횟수. 평가 대상 거래는 자기 이력에 포함되면 안 되므로 제외한다. -->
   <select id="countRecentTransfers" resultType="int">
     SELECT COUNT(*)
     FROM transactions
     WHERE wallet_id = #{walletId}
       AND type = 'TRANSFER_OUT'
       AND created_at &gt;= #{since}
+      AND transaction_id &lt;&gt; #{excludedTransactionId}
   </select>
 
   <!-- DIVISION_TRANSFER 룰: 시간창 내 서로 다른 수취인 수 -->
@@ -25,11 +27,37 @@
     WHERE wallet_id = #{walletId}
       AND type = 'TRANSFER_OUT'
       AND created_at &gt;= #{since}
+      AND transaction_id &lt;&gt; #{excludedTransactionId}
   </select>
 
-  <!-- NEW_RECIPIENT / SAFE_ACCOUNT_CHECK 룰: 수취인 송금 이력과 안심계좌 여부 -->
+
+  <!-- BL_REJECTED_RECIPIENT 단축평가: 해당 수취인 앞으로 보호자가 거절한 이력 -->
+  <select id="existsRejectedApproval" resultType="boolean">
+    SELECT EXISTS (
+      SELECT 1
+      FROM approval_requests ar
+      JOIN transactions t ON t.transaction_id = ar.transaction_id
+      WHERE t.recipient_id = #{recipientId}
+        AND ar.status = 'REJECTED'
+    )
+  </select>
+
+  <!-- PENDING_APPROVAL_EXISTS 룰: 유효한 승인 대기가 남아 있는 동안은 평소보다 깐깐하게 본다.
+       만료된 건은 expired_at 조건으로 자동 제외되므로 만료 배치가 없어도 영구 가점이 되지 않는다. -->
+  <select id="existsPendingApproval" resultType="boolean">
+    SELECT EXISTS (
+      SELECT 1
+      FROM approval_requests ar
+      JOIN transactions t ON t.transaction_id = ar.transaction_id
+      WHERE t.wallet_id = #{walletId}
+        AND ar.status = 'PENDING'
+        AND ar.expired_at &gt; NOW()
+    )
+  </select>
+
+  <!-- NEW_RECIPIENT / SAFE_ACCOUNT_CHECK 룰 + 화이트리스트: 수취인 송금 이력과 안전계좌 등록 주체 -->
   <select id="findRecipientRiskInfo" resultMap="RecipientRiskInfoResultMap">
-    SELECT send_count, is_registered_safe
+    SELECT send_count, is_registered_safe, safe_registered_by
     FROM recipients
     WHERE recipient_id = #{recipientId}
   </select>
