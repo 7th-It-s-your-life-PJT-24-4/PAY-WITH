@@ -2,8 +2,7 @@ package com.paywith.charge.service;
 
 import com.paywith.account.dto.AccountResponse;
 import com.paywith.account.service.AccountService;
-import com.paywith.charge.dto.ChargeRequest;
-import com.paywith.charge.dto.ChargeResponse;
+import com.paywith.charge.dto.*;
 import com.paywith.charge.mapper.UserNameMapper;
 import com.paywith.exception.BusinessException;
 import com.paywith.external.openbanking.OpenBankingClient;
@@ -17,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +30,7 @@ public class ChargeServiceImpl implements ChargeService{
     private final UserNameMapper userNameMapper;
 
 
+    // 시니어 충전용 메서드
     @Override
     @Transactional
     public ChargeResponse charge(Long userId, ChargeRequest request) {
@@ -52,6 +53,25 @@ public class ChargeServiceImpl implements ChargeService{
             response.setWardName(userNameMapper.findUserName(wardId));
 
             return response;
+    }
+
+    // 보호자 충전 조회 메서드
+    @Override
+    public ChargeHistoryListResponse getChargeHistories(Long guardId) {
+        List<ChargeHistoryItem> items = transactionMapper.findChargeHistoriesByGuardId(guardId);
+        return ChargeHistoryListResponse.builder()
+                .charges(items)
+                .build();
+    }
+
+    // 보호자 충전 상세 조회 메서드
+    @Override
+    public ChargeDetailResponse getChargeDetail(Long guardId, Long transactionId) {
+        ChargeDetailResponse response = transactionMapper.findChargeDetailByGuardId(transactionId,guardId);
+        if(response == null){
+            throw new BusinessException(HttpStatus.NOT_FOUND, "충전 내역을 찾을 수 없습니다.");
+        }
+        return response;
     }
 
     private ChargeResponse doCharge(Long accountOwnerId, Long walletOwnerId,
@@ -83,9 +103,9 @@ public class ChargeServiceImpl implements ChargeService{
                 .walletId(wallet.getWalletId())
                 .accountId(request.getAccountId())
                 .type("CHARGE")
-                .initiatedBy(null)
                 .amount(request.getAmount())
                 .balanceAfter(balanceAfter)
+                .initiatedBy(initiatedBy)
                 .status("COMPLETED")
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -98,16 +118,9 @@ public class ChargeServiceImpl implements ChargeService{
                 .chargeAmount(transaction.getAmount())
                 .balanceAfter(balanceAfter)
                 .bankName(account.getBankName())
-                .maskedAccountNo(maskAccountNo(account.getAccountNo()))
+                .accountNo(account.getAccountNo())
                 .createdAt(transaction.getCreatedAt())
                 .build();
 
     }
-    private String maskAccountNo(String accountNo){
-        if (accountNo == null || accountNo.length() < 4){
-            return accountNo;
-        }
-        return accountNo.substring(accountNo.length()-4);
-    }
-
 }

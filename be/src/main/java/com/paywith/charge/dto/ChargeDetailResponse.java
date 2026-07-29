@@ -5,21 +5,21 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ChargeResponse {
-    private Long transactionId;
-    private Long chargeAmount;
-    private Long balanceAfter;
-    private String bankName;
-    private String accountNo;
-    private LocalDateTime createdAt;
 
+public class ChargeDetailResponse {
+    private Long transactionId;
     private Long wardId;
     private String wardName;
+    private Long amount;
+    private String memo;
+    private Long accountId;
+    private ChargeAccountInfo account;
+    private LocalDateTime createdAt;
+    private Long balanceAfter;
 }

@@ -6,6 +6,7 @@ import com.paywith.charge.service.ChargeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,7 +18,7 @@ public class ChargeController {
 
     @PostMapping
     public ResponseEntity<ChargeResponse> charge(
-            @RequestParam Long userId, // TODO: 로그인 후 인증 정보에서 추출해야함
+            @AuthenticationPrincipal Long userId,
             @RequestBody ChargeRequest request
             ){
         ChargeResponse response = chargeService.charge(userId, request);

@@ -32,7 +32,12 @@ git diff --stat
 git diff
 ```
 
-5. Run relevant validation before committing:
+5. If the diff touches DB schema, MyBatis mappers, domain/DTO fields, or FE API types, verify the data shape is consistent end to end before running validation:
+   - **schema.sql ↔ mapper ↔ domain/DTO**: for every changed table/column in `be/src/main/resources/db/schema.sql`, confirm the corresponding `resultMap`/`#{...}` bindings in the mapper XML use the same column names, and that the Java `domain`/`dto` field types match the column types (e.g. `BIGINT` → `Long`, `VARCHAR` → `String`, nullable columns → boxed types). Do this by reading the changed `schema.sql` section, the mapper XML, and the domain/DTO class side by side — do not assume from naming alone.
+   - **BE DTO ↔ FE Zod schema**: if a changed BE request/response DTO has a corresponding FE Zod schema (`fe/apps/web/src/schemas/**` or `fe/apps/web/src/types/**`), confirm field names, optionality, and types still match. If the DTO changed but the FE schema wasn't touched in this diff, flag it explicitly rather than assuming it's fine.
+   - Report any mismatch found and fix it (or ask the user how to resolve it) before staging/committing. Do not silently proceed with a known mismatch.
+
+6. Run relevant validation before committing:
 
 ```bash
 cd fe
@@ -44,20 +49,20 @@ pnpm test
 Run `pnpm test:e2e` when UI flow, routing, or Playwright tests changed.
 Run `cd be && ./gradlew test && ./gradlew clean build` when backend code changed.
 
-6. Stage and commit with the project convention. The development part must be `fe` or `be`; the prefix must be one of `feat`, `refac`, `chore`, `docs`, `style`, `fix`, `hotfix`, `revert`, or `ai`:
+7. Stage and commit with the project convention. The development part must be `fe` or `be`; the prefix must be one of `feat`, `refac`, `chore`, `docs`, `style`, `fix`, `hotfix`, `revert`, or `ai`:
 
 ```bash
 git add <changed-files>
 git commit -m "[fe]feat: 사용자 API 레이어 추가"
 ```
 
-7. Push the branch:
+8. Push the branch:
 
 ```bash
 git push -u origin "$(git branch --show-current)"
 ```
 
-8. Create a feature PR with `gh pr create` using `develop` as its base branch and a title following `[개발 파트]접두어: 기능명`. Assign it to the authenticated GitHub user. Prefer `--assignee @me`; if that fails, resolve the login with `gh api user --jq .login` and retry with `--assignee "$LOGIN"`.
+9. Create a feature PR with `gh pr create` using `develop` as its base branch and a title following `[개발 파트]접두어: 기능명`. Assign it to the authenticated GitHub user. Prefer `--assignee @me`; if that fails, resolve the login with `gh api user --jq .login` and retry with `--assignee "$LOGIN"`.
 
 Feature PRs must use squash merge and receive at least one approval before merging. Do not merge PRs unless the user explicitly asks and the repository permissions permit it.
 

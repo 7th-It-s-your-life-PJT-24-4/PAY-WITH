@@ -1,4 +1,4 @@
-package com.paywith.guard.controller;
+package com.paywith.charge.controller;
 
 import com.paywith.charge.dto.ChargeRequest;
 import com.paywith.charge.dto.ChargeResponse;
@@ -6,6 +6,7 @@ import com.paywith.charge.service.ChargeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,7 +18,7 @@ public class GuardChargeController {
 
     @PostMapping
     public ResponseEntity<ChargeResponse> chargeByGuard(
-            @RequestParam Long guardId,
+            @AuthenticationPrincipal Long guardId,
             @PathVariable Long wardId,
             @RequestBody ChargeRequest request
     ){

@@ -22,4 +22,60 @@
         )
     </insert>
 
+    <select id="findChargeHistoriesByGuardId" parameterType="Long"
+            resultType="com.paywith.charge.dto.ChargeHistoryItem">
+        SELECT
+        t.transaction_id AS transactionId,
+        w.user_id         AS wardId,
+        u.name            AS wardName,
+        t.amount          AS amount,
+        t.created_at      AS createdAt
+        FROM transactions t
+        JOIN wallets w ON t.wallet_id = w.wallet_id
+        JOIN users u   ON w.user_id = u.user_id
+        WHERE t.type = 'CHARGE'
+        AND t.initiated_by = #{guardId}
+        ORDER BY t.created_at DESC
+    </select>
+
+    <resultMap id="chargeDetailMap" type="com.paywith.charge.dto.ChargeDetailResponse">
+        <id property="transactionId" column="transaction_id"/>
+        <result property="wardId" column="ward_id"/>
+        <result property="wardName" column="ward_name"/>
+        <result property="amount" column="amount"/>
+        <result property="memo" column="memo"/>
+        <result property="accountId" column="account_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="balanceAfter" column="balance_after"/>
+
+        <association property="account" javaType="com.paywith.charge.dto.ChargeAccountInfo">
+            <result property="bankCode" column="bank_code"/>
+            <result property="bankName" column="bank_name"/>
+            <result property="accountNo" column="account_no"/>
+        </association>
+    </resultMap>
+
+    <select id="findChargeDetailByGuardId" resultMap="chargeDetailMap">
+        SELECT
+        t.transaction_id,
+        w.user_id       AS ward_id,
+        u.name          AS ward_name,
+        t.amount,
+        t.memo,
+        t.account_id,
+        b.bank_code,
+        b.bank_name,
+        a.account_no,
+        t.created_at,
+        t.balance_after
+        FROM transactions t
+        JOIN wallets w              ON t.wallet_id = w.wallet_id
+        JOIN users u                ON w.user_id = u.user_id
+        LEFT JOIN linked_accounts a ON t.account_id = a.account_id
+        LEFT JOIN banks b           ON a.bank_code = b.bank_code
+        WHERE t.type = 'CHARGE'
+        AND t.transaction_id = #{transactionId}
+        AND t.initiated_by = #{guardId}
+    </select>
+
 </mapper>
