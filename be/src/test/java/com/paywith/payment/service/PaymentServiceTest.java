@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
@@ -32,12 +33,17 @@ class PaymentServiceTest {
     private static final long WARD_ID = 9001L;
     private static final long WALLET_ID = 11L;
     private static final long PAYMENT_ID = 42L;
+    private static final String PIN = "123456";
+    private static final String ENCODED_PIN = "{bcrypt}encoded-pin";
 
     @Mock
     private PaymentRequestMapper paymentRequestMapper;
 
     @Mock
     private PaymentTokenStore paymentTokenStore;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -48,7 +54,7 @@ class PaymentServiceTest {
     void createQr_GUARD_역할이면_403() {
         given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("GUARD");
 
-        assertThatThrownBy(() -> paymentService.createQr(WARD_ID))
+        assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
             .hasMessage("피보호자만 접근할 수 있습니다.");
@@ -58,7 +64,7 @@ class PaymentServiceTest {
     void createQr_사용자_없으면_403() {
         given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn(null);
 
-        assertThatThrownBy(() -> paymentService.createQr(WARD_ID))
+        assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
     }
@@ -68,7 +74,7 @@ class PaymentServiceTest {
         given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
         given(paymentRequestMapper.existsActivePairing(WARD_ID)).willReturn(false);
 
-        assertThatThrownBy(() -> paymentService.createQr(WARD_ID))
+        assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
             .hasMessage("페어링 완료 후 이용할 수 있습니다.");
@@ -80,7 +86,7 @@ class PaymentServiceTest {
         given(paymentRequestMapper.existsActivePairing(WARD_ID)).willReturn(true);
         given(paymentRequestMapper.findWalletByUserId(WARD_ID)).willReturn(null);
 
-        assertThatThrownBy(() -> paymentService.createQr(WARD_ID))
+        assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
             .hasMessage("지갑 정보를 찾을 수 없습니다.");
@@ -92,10 +98,24 @@ class PaymentServiceTest {
         given(paymentRequestMapper.existsActivePairing(WARD_ID)).willReturn(true);
         given(paymentRequestMapper.findWalletByUserId(WARD_ID)).willReturn(wallet("LOCKED", 130000L));
 
-        assertThatThrownBy(() -> paymentService.createQr(WARD_ID))
+        assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
             .hasMessage("현재 거래가 제한된 지갑입니다.");
+    }
+
+    @Test
+    void createQr_결제_비밀번호_불일치면_400_PAYMENT_005() {
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.existsActivePairing(WARD_ID)).willReturn(true);
+        given(paymentRequestMapper.findWalletByUserId(WARD_ID)).willReturn(wallet("ACTIVE", 130000L));
+        given(passwordEncoder.matches(PIN, ENCODED_PIN)).willReturn(false);
+
+        assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+            .hasMessage("결제 비밀번호가 올바르지 않습니다.");
+        verify(paymentRequestMapper, never()).insert(any(PaymentRequest.class));
     }
 
     @Test
@@ -103,6 +123,7 @@ class PaymentServiceTest {
         given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
         given(paymentRequestMapper.existsActivePairing(WARD_ID)).willReturn(true);
         given(paymentRequestMapper.findWalletByUserId(WARD_ID)).willReturn(wallet("ACTIVE", 130000L));
+        given(passwordEncoder.matches(PIN, ENCODED_PIN)).willReturn(true);
         willAnswer(invocation -> {
             PaymentRequest inserted = invocation.getArgument(0);
             inserted.setPaymentId(PAYMENT_ID);
@@ -110,7 +131,7 @@ class PaymentServiceTest {
         }).given(paymentRequestMapper).insert(any(PaymentRequest.class));
 
         LocalDateTime before = LocalDateTime.now();
-        QrCreateResponse response = paymentService.createQr(WARD_ID);
+        QrCreateResponse response = paymentService.createQr(WARD_ID, PIN);
         LocalDateTime after = LocalDateTime.now();
 
         ArgumentCaptor<PaymentRequest> insertCaptor = ArgumentCaptor.forClass(PaymentRequest.class);
@@ -302,6 +323,7 @@ class PaymentServiceTest {
         wallet.setWalletId(WALLET_ID);
         wallet.setBalance(balance);
         wallet.setStatus(status);
+        wallet.setPin(ENCODED_PIN);
         return wallet;
     }
 

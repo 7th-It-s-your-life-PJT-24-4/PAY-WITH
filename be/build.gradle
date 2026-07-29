@@ -72,6 +72,7 @@ dependencies {
     testImplementation 'org.assertj:assertj-core:3.25.3'
     testImplementation 'org.hamcrest:hamcrest:2.2'
     testImplementation 'com.jayway.jsonpath:json-path:2.9.0'
+    testImplementation 'org.glassfish:javax.el:3.0.0'
     testImplementation "org.springframework:spring-test:${springVersion}"
     testImplementation "org.springframework.security:spring-security-test:${springSecurityVersion}"
 }

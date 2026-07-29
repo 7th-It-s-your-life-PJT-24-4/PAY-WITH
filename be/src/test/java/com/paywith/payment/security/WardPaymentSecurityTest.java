@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -66,11 +67,13 @@ class WardPaymentSecurityTest {
 
     @Test
     void GUARDIAN_토큰이면_403() throws Exception {
-        given(paymentService.createQr(DevJwtTokenFactory.GUARDIAN_USER_ID))
+        given(paymentService.createQr(DevJwtTokenFactory.GUARDIAN_USER_ID, "123456"))
             .willThrow(new BusinessException(HttpStatus.FORBIDDEN, "피보호자만 접근할 수 있습니다."));
 
         mockMvc.perform(post("/api/ward/payments")
-                .header("Authorization", "Bearer " + DevJwtTokenFactory.guardianAccessToken()))
+                .header("Authorization", "Bearer " + DevJwtTokenFactory.guardianAccessToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"pin\": \"123456\"}"))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.message").value("피보호자만 접근할 수 있습니다."));
@@ -78,12 +81,14 @@ class WardPaymentSecurityTest {
 
     @Test
     void 정상_WARD_토큰이면_201() throws Exception {
-        given(paymentService.createQr(DevJwtTokenFactory.WARD_USER_ID))
+        given(paymentService.createQr(DevJwtTokenFactory.WARD_USER_ID, "123456"))
             .willReturn(new QrCreateResponse(42L, "pay_qr_a8F2kL9xQ1mNzzzz", 130000L,
                 "2026-07-16T15:31:00+09:00", 60));
 
         mockMvc.perform(post("/api/ward/payments")
-                .header("Authorization", "Bearer " + DevJwtTokenFactory.wardAccessToken()))
+                .header("Authorization", "Bearer " + DevJwtTokenFactory.wardAccessToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"pin\": \"123456\"}"))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.paymentToken").value("pay_qr_a8F2kL9xQ1mNzzzz"));

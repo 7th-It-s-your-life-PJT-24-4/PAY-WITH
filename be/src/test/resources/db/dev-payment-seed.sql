@@ -6,7 +6,8 @@
 -- 적용 방법 (Docker MySQL 기동 상태에서, 저장소 루트 기준):
 --   docker compose -f be/docker-compose.yml exec -T mysql \
 --     mysql -upaywith -ppaywith pay_with < be/src/test/resources/db/dev-payment-seed.sql
--- 주의: password/pin은 로그인에 쓰지 않는 더미 값(B6는 JWT 직접 발급으로 로그인을 우회).
+-- 주의: users.password는 로그인에 쓰지 않는 더미 값(B6는 JWT 직접 발급으로 로그인을 우회).
+--       wallets.pin은 결제 비밀번호 검증(A7)에 실제 사용 — 개발용 PIN은 "123456" (BCrypt 해시 저장).
 --       user_id 9001+ 대역을 사용해 팀 공용 시드와의 충돌을 피한다.
 -- =====================================================================
 
@@ -22,5 +23,5 @@ INSERT INTO guard_senior (relation_id, guard_id, senior_id, status, connected_at
     ON DUPLICATE KEY UPDATE status = 'ACTIVE', connected_at = VALUES(connected_at);
 
 INSERT INTO wallets (wallet_id, user_id, balance, status, pin) VALUES
-    (9001, 9001, 500000, 'ACTIVE', 'dev-seed-dummy-pin')
-    ON DUPLICATE KEY UPDATE balance = VALUES(balance), status = 'ACTIVE';
+    (9001, 9001, 500000, 'ACTIVE', '$2y$10$aSquS3bDxHzD/H4i.e7gvON.hZLFRz13/tQe5PgTVE/LFxNbmhpPa')
+    ON DUPLICATE KEY UPDATE balance = VALUES(balance), status = 'ACTIVE', pin = VALUES(pin);

@@ -14,6 +14,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,16 +36,22 @@ public class PaymentService {
 
     private final PaymentRequestMapper paymentRequestMapper;
     private final PaymentTokenStore paymentTokenStore;
+    private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public PaymentService(PaymentRequestMapper paymentRequestMapper, PaymentTokenStore paymentTokenStore) {
+    public PaymentService(
+        PaymentRequestMapper paymentRequestMapper,
+        PaymentTokenStore paymentTokenStore,
+        PasswordEncoder passwordEncoder
+    ) {
         this.paymentRequestMapper = paymentRequestMapper;
         this.paymentTokenStore = paymentTokenStore;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    /** QR 생성 — 검증(역할→페어링→지갑) 통과 후 토큰 생성 → INSERT → Redis SET 순서(A2) */
+    /** QR 생성 — 검증(역할→페어링→지갑→비밀번호) 통과 후 토큰 생성 → INSERT → Redis SET 순서(A2) */
     @Transactional
-    public QrCreateResponse createQr(Long userId) {
+    public QrCreateResponse createQr(Long userId, String pin) {
         requireWardRole(userId);
 
         if (!paymentRequestMapper.existsActivePairing(userId)) {
@@ -57,6 +64,10 @@ public class PaymentService {
         }
         if (WALLET_STATUS_LOCKED.equals(wallet.getStatus())) {
             throw new BusinessException(HttpStatus.CONFLICT, "현재 거래가 제한된 지갑입니다.");
+        }
+        // 결제 비밀번호 = 송금 비밀번호와 동일한 wallets.pin(BCrypt) — QR 표시 전 본인 확인(A7)
+        if (!passwordEncoder.matches(pin, wallet.getPin())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "결제 비밀번호가 올바르지 않습니다.");
         }
 
         PaymentRequest paymentRequest = insertWithNewToken(userId, wallet.getWalletId());

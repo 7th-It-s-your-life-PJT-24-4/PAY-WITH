@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -50,11 +51,14 @@ class WardPaymentControllerTest {
 
     @Test
     void createQr_성공시_201과_ApiResponse_봉투로_응답() throws Exception {
-        given(paymentService.createQr(WARD_ID)).willReturn(new QrCreateResponse(
+        given(paymentService.createQr(WARD_ID, "123456")).willReturn(new QrCreateResponse(
             42L, "pay_qr_a8F2kL9xQ1mNzzzz", 130000L, "2026-07-16T15:31:00+09:00", 60
         ));
 
-        mockMvc.perform(post("/api/ward/payments").principal(wardAuthentication))
+        mockMvc.perform(post("/api/ward/payments")
+                .principal(wardAuthentication)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"pin\": \"123456\"}"))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.paymentId").value(42))
@@ -62,6 +66,18 @@ class WardPaymentControllerTest {
             .andExpect(jsonPath("$.data.availableBalance").value(130000))
             .andExpect(jsonPath("$.data.expiresAt").value("2026-07-16T15:31:00+09:00"))
             .andExpect(jsonPath("$.data.expiresInSeconds").value(60));
+    }
+
+    @Test
+    void createQr_비밀번호_형식_오류면_400() throws Exception {
+        mockMvc.perform(post("/api/ward/payments")
+                .principal(wardAuthentication)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"pin\": \"12\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.success").value(false));
+
+        verifyNoInteractions(paymentService);
     }
 
     @Test

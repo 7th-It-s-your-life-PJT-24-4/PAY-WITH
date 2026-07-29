@@ -26,6 +26,7 @@
     <id property="walletId" column="wallet_id" />
     <result property="balance" column="balance" />
     <result property="status" column="status" />
+    <result property="pin" column="pin" />
   </resultMap>
 
   <select id="findUserRole" resultType="string">
@@ -44,7 +45,7 @@
   </select>
 
   <select id="findWalletByUserId" resultMap="PaymentWalletResultMap">
-    SELECT wallet_id, balance, status
+    SELECT wallet_id, balance, status, pin
     FROM wallets
     WHERE user_id = #{userId}
   </select>

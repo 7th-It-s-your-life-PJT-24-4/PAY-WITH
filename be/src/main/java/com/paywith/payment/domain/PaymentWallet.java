@@ -9,6 +9,7 @@ public class PaymentWallet {
     private Long walletId;
     private Long balance;
     private String status;
+    private String pin;
 
     public Long getWalletId() {
         return walletId;
@@ -32,5 +33,13 @@ public class PaymentWallet {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getPin() {
+        return pin;
+    }
+
+    public void setPin(String pin) {
+        this.pin = pin;
     }
 }
