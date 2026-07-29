@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Check, Copy, Link, MessageCircle } from '@lucide/vue'
 import { AppHeader, Button, Modal } from '@pay-with/ui'
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { usePairingStore } from '@/stores/pairing.store'
@@ -32,12 +32,16 @@ function updateRemainingTime() {
   )
 }
 
-function generateCode() {
-  pairingStore.issueCode()
-  isConfirmOpen.value = false
+function startCountdown() {
   updateRemainingTime()
   if (countdownTimer) globalThis.clearInterval(countdownTimer)
   countdownTimer = globalThis.setInterval(updateRemainingTime, 1000)
+}
+
+function generateCode() {
+  pairingStore.issueCode()
+  isConfirmOpen.value = false
+  startCountdown()
 }
 
 function showToast(message: string) {
@@ -91,6 +95,12 @@ async function shareWithKakao() {
 
   await copyLink()
 }
+
+onMounted(() => {
+  if (pairingStore.status === 'CODE_ISSUED' && pairingStore.expiresAt) {
+    startCountdown()
+  }
+})
 
 onBeforeUnmount(() => {
   if (countdownTimer) globalThis.clearInterval(countdownTimer)

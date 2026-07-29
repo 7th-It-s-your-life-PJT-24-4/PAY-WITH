@@ -2,7 +2,12 @@ import { expect, test } from '@playwright/test'
 
 test('보호자가 직접 접속해 인증 코드를 생성하고 복사한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 820 })
-  await page.goto('/guardian/pairing/code')
+  await page.goto('/ward/home')
+  await page.evaluate(() => {
+    globalThis.history.pushState({}, '', '/guardian/pairing/code')
+    globalThis.dispatchEvent(new PopStateEvent('popstate'))
+  })
+  await expect(page).toHaveURL(/\/guardian\/pairing\/code$/)
 
   const dialog = page.getByRole('dialog', {
     name: '인증 코드를 생성할까요?',
@@ -13,6 +18,14 @@ test('보호자가 직접 접속해 인증 코드를 생성하고 복사한다',
   await expect(page.getByText('72941')).toBeVisible()
   await page.getByRole('button', { name: '코드 복사' }).click()
   await expect(page.getByRole('status')).toContainText('코드가 복사되었습니다')
+
+  await page.getByRole('button', { name: '뒤로 가기' }).click()
+  await expect(page).toHaveURL(/\/ward\/home$/)
+  await page.goForward()
+
+  await expect(page).toHaveURL(/\/guardian\/pairing\/code$/)
+  await expect(page.getByText('72941')).toBeVisible()
+  await expect(page.getByText('0:00')).toBeHidden()
 })
 
 test('미연결 시니어가 보호자 코드를 입력하고 연결을 완료한다', async ({
