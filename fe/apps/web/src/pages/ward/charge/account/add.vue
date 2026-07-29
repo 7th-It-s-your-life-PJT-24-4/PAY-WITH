@@ -4,8 +4,8 @@ import { Button, NumericKeypad, PinKeypad } from '@pay-with/ui'
 import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import WardKeypadBottomSheet from '@/pages/ward/-components/WardKeypadBottomSheet.vue'
 import ChargeBankSelect from '@/pages/ward/charge/-components/ChargeBankSelect.vue'
-import ChargeKeypadBottomSheet from '@/pages/ward/charge/-components/ChargeKeypadBottomSheet.vue'
 import { useChargeStore } from '@/stores/charge.store'
 
 const banks = [
@@ -164,7 +164,7 @@ async function registerAccount() {
       </template>
     </Button>
 
-    <ChargeKeypadBottomSheet
+    <WardKeypadBottomSheet
       v-model:open="accountSheetOpen"
       title="계좌번호 입력"
       description="숫자 키패드로 계좌번호를 입력해주세요."
@@ -189,9 +189,9 @@ async function registerAccount() {
         :disabled="!/^\d{8,16}$/.test(accountNumber)"
         @click="accountSheetOpen = false"
       />
-    </ChargeKeypadBottomSheet>
+    </WardKeypadBottomSheet>
 
-    <ChargeKeypadBottomSheet
+    <WardKeypadBottomSheet
       v-model:open="passwordSheetOpen"
       title="계좌 비밀번호 입력"
       description="보안을 위해 숫자 위치가 바뀔 수 있습니다."
@@ -211,6 +211,6 @@ async function registerAccount() {
         @change="accountPassword = ''"
         @cancel="closePasswordSheet"
       />
-    </ChargeKeypadBottomSheet>
+    </WardKeypadBottomSheet>
   </div>
 </template>

@@ -4,12 +4,14 @@ import { Button, NumericKeypad } from '@pay-with/ui'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import WardKeypadBottomSheet from '@/pages/ward/-components/WardKeypadBottomSheet.vue'
 import { usePairingStore } from '@/stores/pairing.store'
 
 const router = useRouter()
 const pairingStore = usePairingStore()
 const enteredCode = ref('')
 const errorMessage = ref('')
+const keypadOpen = ref(false)
 
 const codeDigits = computed(() =>
   Array.from({ length: 5 }, (_, index) => enteredCode.value[index] ?? ''),
@@ -53,10 +55,14 @@ async function connectGuardian() {
       보호자가 보내준 5자리 코드를 입력해 주세요.
     </p>
 
-    <div
-      class="mt-xl flex w-full justify-center gap-sm"
-      role="status"
+    <button
+      class="mt-xl flex w-full justify-center gap-sm rounded-medium outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-4"
+      type="button"
+      aria-haspopup="dialog"
+      :aria-expanded="keypadOpen"
       :aria-label="`인증 코드 ${enteredCode.length}자리 입력됨`"
+      @focus="keypadOpen = true"
+      @click="keypadOpen = true"
     >
       <span
         v-for="(digit, index) in codeDigits"
@@ -70,7 +76,7 @@ async function connectGuardian() {
       >
         {{ digit }}
       </span>
-    </div>
+    </button>
 
     <p v-if="errorMessage" class="type-body mt-sm text-error" role="alert">
       {{ errorMessage }}
@@ -98,12 +104,32 @@ async function connectGuardian() {
       </p>
     </aside>
 
-    <NumericKeypad
-      class="mt-xl"
-      cancel-label=""
-      @input="inputDigit"
-      @backspace="removeDigit"
-      @cancel="enteredCode = ''"
-    />
+    <WardKeypadBottomSheet
+      v-model:open="keypadOpen"
+      title="인증 코드 입력"
+      description="보호자의 폰에 표시된 5자리 숫자를 입력해주세요."
+    >
+      <p
+        class="type-numeric-input-large font-number min-h-12 text-center tracking-[0.35em] text-primary-500"
+        aria-live="polite"
+      >
+        {{ enteredCode || '-----' }}
+      </p>
+      <NumericKeypad
+        class="mt-lg"
+        cancel-label="닫기"
+        :disabled="pairingStore.isVerifyingCode"
+        @input="inputDigit"
+        @backspace="removeDigit"
+        @cancel="keypadOpen = false"
+      />
+      <Button
+        class="mt-lg w-full"
+        label="입력 완료"
+        size="large"
+        :disabled="enteredCode.length !== 5"
+        @click="keypadOpen = false"
+      />
+    </WardKeypadBottomSheet>
   </div>
 </template>
