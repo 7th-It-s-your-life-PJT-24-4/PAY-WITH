@@ -1,19 +1,11 @@
 package com.paywith.fds.service;
 
-import com.paywith.approval.service.ApprovalRequestService;
-import com.paywith.exception.BusinessException;
 import com.paywith.fds.domain.DecidedBy;
-import com.paywith.fds.domain.RiskEvaluation;
-import com.paywith.fds.domain.RiskEvaluationDetail;
 import com.paywith.fds.domain.RiskLevel;
 import com.paywith.fds.domain.RiskRule;
 import com.paywith.fds.dto.FdsDecision;
 import com.paywith.fds.dto.FdsEvaluationRequest;
 import com.paywith.fds.dto.TriggeredRule;
-import com.paywith.fds.mapper.RiskEvaluationDetailMapper;
-import com.paywith.fds.mapper.RiskEvaluationMapper;
-import com.paywith.fds.mapper.TransactionRiskMapper;
-import com.paywith.fds.service.prefilter.FdsPreFilter;
 import com.paywith.fds.service.rule.RiskRuleCache;
 import com.paywith.fds.service.rule.RiskRuleEvaluator;
 import com.paywith.fds.service.rule.RuleContext;
@@ -24,91 +16,80 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class FdsEvaluationServiceImpl implements FdsEvaluationService {
 
+    private static final String RULE_REJECTED_RECIPIENT = "BL_REJECTED_RECIPIENT";
+    private static final String RULE_FRAUD_ACCOUNT = "BL_FRAUD_ACCOUNT";
+
     private final RuleContextCollectorService ruleContextCollectorService;
+    private final FdsEvaluationResultService fdsEvaluationResultService;
     private final RiskRuleCache riskRuleCache;
     private final RiskGrader riskGrader;
-    private final List<FdsPreFilter> preFilters;
     private final Map<String, RiskRuleEvaluator> evaluatorsByRuleCode;
-    private final RiskEvaluationMapper riskEvaluationMapper;
-    private final RiskEvaluationDetailMapper riskEvaluationDetailMapper;
-    private final TransactionRiskMapper transactionRiskMapper;
-    private final ApprovalRequestService approvalRequestService;
 
-    /**
-     * @param preFilters @Order 순으로 주입된다. 블랙리스트가 화이트리스트보다 앞서야 한다.
-     */
     public FdsEvaluationServiceImpl(
         RuleContextCollectorService ruleContextCollectorService,
+        FdsEvaluationResultService fdsEvaluationResultService,
         RiskRuleCache riskRuleCache,
         RiskGrader riskGrader,
-        List<FdsPreFilter> preFilters,
-        List<RiskRuleEvaluator> evaluators,
-        RiskEvaluationMapper riskEvaluationMapper,
-        RiskEvaluationDetailMapper riskEvaluationDetailMapper,
-        TransactionRiskMapper transactionRiskMapper,
-        ApprovalRequestService approvalRequestService
+        List<RiskRuleEvaluator> evaluators
     ) {
         this.ruleContextCollectorService = ruleContextCollectorService;
+        this.fdsEvaluationResultService = fdsEvaluationResultService;
         this.riskRuleCache = riskRuleCache;
         this.riskGrader = riskGrader;
-        this.preFilters = preFilters;
         this.evaluatorsByRuleCode = evaluators.stream()
             .collect(Collectors.toMap(RiskRuleEvaluator::getRuleCode, Function.identity()));
-        this.riskEvaluationMapper = riskEvaluationMapper;
-        this.riskEvaluationDetailMapper = riskEvaluationDetailMapper;
-        this.transactionRiskMapper = transactionRiskMapper;
-        this.approvalRequestService = approvalRequestService;
     }
 
+    /** 수집·판정은 트랜잭션 밖, 저장만 별도 빈의 트랜잭션 안에서 일어난다. */
     @Override
-    public FdsDecision evaluate(FdsEvaluationRequest request) {
-        return decide(ruleContextCollectorService.collect(request));
+    public RiskLevel evaluate(FdsEvaluationRequest request) {
+        RuleContext context = ruleContextCollectorService.collect(request);
+        FdsDecision decision = decide(context);
+        fdsEvaluationResultService.save(request.getTransactionId(), decision);
+        return decision.getRiskLevel();
+    }
+
+    /** 조회도 저장도 하지 않아 컨텍스트만 넣으면 판정 로직을 그대로 검증할 수 있다. */
+    public FdsDecision decide(RuleContext context) {
+        return evaluateBlacklist(context).orElseGet(() -> scoreByRules(context));
     }
 
     /**
-     * 컨텍스트로부터 등급을 판정한다. 조회를 수행하지 않으므로 테스트에서 컨텍스트를 직접 넣어
-     * 판정 로직만 검증할 수 있다.
+     * 확정적으로 위험한 경우를 먼저 걸러 룰 점수 계산을 건너뛴다.
+     *
+     * <p>어느 항목이 먼저 걸리든 결과는 DANGER 라 순서는 판정에 영향을 주지 않는다.
      */
-    public FdsDecision decide(RuleContext context) {
-        return applyPreFilters(context).orElseGet(() -> scoreByRules(context));
-    }
-
-    /** 1단계: 단축평가. 첫 판정이 서는 즉시 확정하고 룰 순회를 건너뛴다. */
-    private Optional<FdsDecision> applyPreFilters(RuleContext context) {
-        for (FdsPreFilter preFilter : preFilters) {
-            Optional<RiskLevel> level = preFilter.apply(context);
-            if (level.isPresent()) {
-                return Optional.of(shortCircuit(preFilter, level.get()));
-            }
+    private Optional<FdsDecision> evaluateBlacklist(RuleContext context) {
+        if (context.isRecipientRejectedBefore()) {
+            return blacklisted(RULE_REJECTED_RECIPIENT);
+        }
+        if (context.isRecipientReportedAsFraud()) {
+            return blacklisted(RULE_FRAUD_ACCOUNT);
         }
         return Optional.empty();
     }
 
-    private FdsDecision shortCircuit(FdsPreFilter preFilter, RiskLevel level) {
-        // 단축평가 항목도 risk_rules 행이므로 발동 내역을 다른 룰과 동일하게 남긴다.
-        // 점수 합산에는 참여하지 않으므로 총점은 0이다.
-        List<TriggeredRule> triggered = riskRuleCache.findByCode(preFilter.getRuleCode())
-            .map(rule -> Collections.singletonList(new TriggeredRule(rule.getRuleId(), 0)))
-            .orElseGet(Collections::emptyList);
-
-        return new FdsDecision(
-            level,
-            preFilter.getDecidedBy(),
-            0,
-            riskGrader.getCautionThreshold(),
-            riskGrader.getDangerThreshold(),
-            triggered
-        );
+    /**
+     * 블랙리스트 항목도 risk_rules 행이라 발동 내역은 남기되 점수 합산에는 넣지 않는다.
+     * 활성 행이 없으면(is_active=FALSE 이거나 시드 누락) 차단하지 않는다.
+     */
+    private Optional<FdsDecision> blacklisted(String ruleCode) {
+        return riskRuleCache.findByCode(ruleCode)
+            .map(rule -> new FdsDecision(
+                RiskLevel.DANGER,
+                DecidedBy.BLACKLIST,
+                0,
+                riskGrader.getCautionThreshold(),
+                riskGrader.getDangerThreshold(),
+                Collections.singletonList(new TriggeredRule(rule.getRuleId(), 0))
+            ));
     }
 
-    /** 2~3단계: 룰 점수 합산 후 등급 판정. */
     private FdsDecision scoreByRules(RuleContext context) {
         List<TriggeredRule> triggeredRules = new ArrayList<>();
         int rawScore = 0;
@@ -116,8 +97,7 @@ public class FdsEvaluationServiceImpl implements FdsEvaluationService {
         for (RiskRule rule : riskRuleCache.getActiveRules()) {
             RiskRuleEvaluator evaluator = evaluatorsByRuleCode.get(rule.getRuleCode());
             if (evaluator == null) {
-                // 단축평가 전용 행(BL_*/WL_*)처럼 평가기가 없는 룰은 여기서 걸러진다.
-                continue;
+                continue;   // 블랙리스트 전용 행(BL_*)은 평가기가 없다
             }
             if (evaluator.evaluate(context)) {
                 triggeredRules.add(new TriggeredRule(rule.getRuleId(), rule.getScore()));
@@ -134,40 +114,5 @@ public class FdsEvaluationServiceImpl implements FdsEvaluationService {
             riskGrader.getDangerThreshold(),
             triggeredRules
         );
-    }
-
-    @Override
-    @Transactional
-    public void saveDecision(Long transactionId, FdsDecision decision) {
-        RiskEvaluation evaluation = new RiskEvaluation();
-        evaluation.setTransactionId(transactionId);
-        evaluation.setTotalScore(decision.getTotalScore());
-        evaluation.setCautionThreshold(decision.getCautionThreshold());
-        evaluation.setDangerThreshold(decision.getDangerThreshold());
-        evaluation.setRiskLevel(decision.getRiskLevel());
-        evaluation.setDecidedBy(decision.getDecidedBy());
-        riskEvaluationMapper.insert(evaluation);
-
-        for (TriggeredRule triggeredRule : decision.getTriggeredRules()) {
-            RiskEvaluationDetail detail = new RiskEvaluationDetail();
-            detail.setEvaluationId(evaluation.getEvaluationId());
-            detail.setRuleId(triggeredRule.getRuleId());
-            detail.setScore(triggeredRule.getScore());
-            riskEvaluationDetailMapper.insert(detail);
-        }
-
-        // risk_score 는 total_score 의 비정규화 복사본이다. 같은 트랜잭션에서 갱신해야 어긋나지 않는다.
-        // risk_evaluations 는 FK 로 걸려 있어 없는 거래면 터지지만 UPDATE 는 조용히 0행이 되므로 직접 확인한다.
-        int updated = transactionRiskMapper.updateRiskScore(transactionId, decision.getTotalScore());
-        if (updated != 1) {
-            throw new BusinessException(HttpStatus.NOT_FOUND,
-                "위험도를 반영할 거래를 찾을 수 없습니다. transactionId=" + transactionId);
-        }
-
-        if (decision.isHeld()) {
-            approvalRequestService.create(transactionId);
-        }
-        // CAUTION 알림 발송은 아직 미구현이다. notifications 행 생성은 이 트랜잭션 안에서,
-        // 실제 발송은 커밋 이후에 수행해야 롤백된 거래의 알림이 나가는 일이 없다.
     }
 }

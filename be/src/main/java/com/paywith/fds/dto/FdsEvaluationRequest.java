@@ -4,20 +4,11 @@ import java.math.BigDecimal;
 import java.util.Objects;
 import lombok.Getter;
 
-/**
- * 송금 API가 FDS 평가를 요청할 때 넘기는 입력.
- * 이체 이력·수취인 위험 정보 조회는 FDS 내부에서 수행하므로 식별자와 요청 값만 받는다.
- */
+/** 송금 API 가 FDS 에 넘기는 입력. 이력 조회는 FDS 가 알아서 하므로 식별자와 요청 값만 받는다. */
 @Getter
 public class FdsEvaluationRequest {
 
-    /**
-     * 평가 대상 거래. status=REQUESTED 로 이미 생성된 행이어야 한다.
-     *
-     * <p>속도 관련 룰(REPEATED / DIVISION_TRANSFER / BL_RAPID_NEW_RECIPIENT)의 집계에서 이 거래를
-     * 제외하는 데 쓴다. 거래 행을 FDS 평가보다 먼저 만들기 때문에, 제외하지 않으면 방금 만든 행이
-     * "최근 송금 이력"에 포함되어 임계값이 1씩 느슨해진다.
-     */
+    /** status=REQUESTED 로 이미 생성된 거래. 속도 룰 집계에서 이 거래를 빼는 데 쓴다. */
     private final Long transactionId;
 
     private final Long walletId;
@@ -25,6 +16,7 @@ public class FdsEvaluationRequest {
     private final BigDecimal amount;
     private final String memo;
 
+    /** 컨트롤러를 거치지 않아 @Valid 가 안 걸리므로 여기서 막는다. */
     public FdsEvaluationRequest(
         Long transactionId,
         Long walletId,

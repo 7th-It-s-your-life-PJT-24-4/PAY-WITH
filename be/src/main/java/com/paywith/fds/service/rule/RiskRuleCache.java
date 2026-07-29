@@ -29,8 +29,8 @@ public class RiskRuleCache {
         for (RiskRule rule : rules) {
             byCode.put(rule.getRuleCode(), rule);
         }
-        // 두 참조를 각각 교체하므로 그 사이를 읽으면 불일치가 보일 수 있으나,
-        // 룰 카탈로그는 운영 중 드물게 바뀌고 판정은 행 단위로 독립적이라 문제되지 않는다.
+        // 두 참조를 따로 교체해 그 사이에 불일치가 보일 수 있으나, 룰 카탈로그는 드물게 바뀌고
+        // 판정은 행 단위로 독립적이라 문제되지 않는다.
         this.activeRules = Collections.unmodifiableList(rules);
         this.activeRulesByCode = Collections.unmodifiableMap(byCode);
     }
@@ -39,7 +39,6 @@ public class RiskRuleCache {
         return activeRules;
     }
 
-    /** 단축평가처럼 rule_code 로 특정 룰 행을 찾아야 할 때 사용한다. */
     public Optional<RiskRule> findByCode(String ruleCode) {
         return Optional.ofNullable(activeRulesByCode.get(ruleCode));
     }

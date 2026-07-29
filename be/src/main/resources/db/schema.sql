@@ -156,7 +156,7 @@ CREATE TABLE transactions (
                               memo           VARCHAR(200)  NULL,
                               balance_after  DECIMAL(15,0) NULL,
                               status         ENUM('REQUESTED','HELD','APPROVED','PROCESSING','REJECTED','COMPLETED','CANCELED','BLOCKED') NOT NULL
-                 COMMENT 'REQUESTED=요청(거래 행 선생성, FDS 판정 전) / HELD=송금FDS 위험(DANGER) 보류(승인대기) / APPROVED=보호자 승인 / PROCESSING=외부 이체 실행 중(FDS·승인 통과 후, 최종 확정 전) / REJECTED=보호자 명시 거절 / COMPLETED=완료 / CANCELED=취소(승인만료 후속 등) / BLOCKED=시스템 즉시차단(송금 블랙리스트 단축평가 / 결제 위치FDS)',
+                 COMMENT 'REQUESTED=요청(거래 행 선생성, FDS 판정 전) / HELD=송금FDS 위험(DANGER) 보류(승인대기) / APPROVED=보호자 승인 / PROCESSING=외부 이체 실행 중(FDS·승인 통과 후, 최종 확정 전) / REJECTED=보호자 명시 거절 / COMPLETED=완료 / CANCELED=취소(승인만료 후속 등) / BLOCKED=위치FDS 시스템 즉시차단(결제 전용). 송금은 블랙리스트 확정 건도 HELD 로 보내 보호자 판단을 받는다',
                               -- [v2.7] 위험도(risk_evaluations.risk_level)와 처리 단계(status)는 별개 축이다.
                               --        SAFE/CAUTION 은 동일하게 PROCESSING → COMPLETED 로 진행하며, 주의 판정 여부는 risk_level 로만 구분한다.
                               -- [v2.7] APPROVED/REJECTED 는 approval_requests.status 의 비정규화 복사본이다(risk_score 와 동일한 single writer 규칙).

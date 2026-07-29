@@ -6,17 +6,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * data.sql 의 실제 룰 카탈로그를 테스트에서 재현한다.
- * 배점이 바뀌면 이 표와 data.sql 을 함께 고쳐야 한다.
- */
+/** data.sql 의 룰 카탈로그 재현. 배점이 바뀌면 여기와 data.sql 을 함께 고쳐야 한다. */
 public final class RiskRules {
 
     /** 배점 룰 (rule_code -> score). */
     public static final Map<String, Integer> SCORES = new LinkedHashMap<>();
 
     /** 단축평가 전용 행. 점수 합산에 참여하지 않는다. */
-    public static final List<String> PREFILTER_CODES = List.of("BL_REJECTED_RECIPIENT");
+    public static final List<String> PREFILTER_CODES = List.of("BL_REJECTED_RECIPIENT", "BL_FRAUD_ACCOUNT");
 
     static {
         SCORES.put("HIGH_AMOUNT_L3", 35);

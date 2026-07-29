@@ -1,8 +1,6 @@
 package com.paywith.fds.support;
 
 import com.paywith.fds.service.RiskGrader;
-import com.paywith.fds.service.prefilter.FdsPreFilter;
-import com.paywith.fds.service.prefilter.impl.RejectedRecipientPreFilter;
 import com.paywith.fds.service.rule.RiskRuleEvaluator;
 import com.paywith.fds.service.rule.impl.DivisionTransferRuleEvaluator;
 import com.paywith.fds.service.rule.impl.HighAmountL1RuleEvaluator;
@@ -17,10 +15,7 @@ import com.paywith.fds.service.rule.impl.SafeAccountCheckRuleEvaluator;
 import com.paywith.fds.service.rule.impl.SuspiciousMemoRuleEvaluator;
 import java.util.List;
 
-/**
- * application-local.properties 기본값으로 실제 평가기·필터·등급 판정부를 조립한다.
- * 설정값이 바뀌면 이 상수들과 properties 를 함께 고쳐야 한다.
- */
+/** application-local.properties 기본값으로 조립한다. 설정이 바뀌면 함께 고쳐야 한다. */
 public final class FdsTestWiring {
 
     public static final int CAUTION_THRESHOLD = 25;
@@ -51,10 +46,5 @@ public final class FdsTestWiring {
             new DivisionTransferRuleEvaluator(3),
             new SafeAccountCheckRuleEvaluator()
         );
-    }
-
-    /** 운영과 동일한 @Order 순서를 재현한다. */
-    public static List<FdsPreFilter> preFilters() {
-        return List.of(new RejectedRecipientPreFilter());
     }
 }

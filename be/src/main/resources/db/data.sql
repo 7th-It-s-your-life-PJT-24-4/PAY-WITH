@@ -59,12 +59,14 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
 --      확정적으로 위험한 경우만 둔다. 애매한 신호는 점수 룰로 처리해 조합으로 걸러낸다.
 --      화이트리스트는 폐지. 안전계좌는 무조건 통과가 아니라 SAFE_ACCOUNT_CHECK 감점으로만 반영한다.
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
-                                                                      ('BL_REJECTED_RECIPIENT',  '보호자가 거절한 이력이 있는 계좌로 재송금 시도', 0, TRUE)
+                                                                      ('BL_REJECTED_RECIPIENT', '보호자가 거절한 이력이 있는 계좌로 재송금 시도', 0, TRUE),
+                                                                      ('BL_FRAUD_ACCOUNT',      '사기계좌로 신고된 계좌에 송금',                  0, TRUE)
     ON DUPLICATE KEY UPDATE description = VALUES(description), score = VALUES(score), is_active = VALUES(is_active);
 
--- (미구현) BL_FRAUD_ACCOUNT — 사기계좌로 등록된 계좌에 송금.
---          더치트 API 를 개인 개발자가 쓸 수 없어 목 데이터 기반으로 도입 예정. 데이터 출처 미정.
--- (미구현) BL_OVERSEAS_IP — 해외 IP 송금. transactions 에 IP 컬럼이 없어 스키마 추가가 선행되어야 한다.
+-- BL_FRAUD_ACCOUNT 는 FraudAccountClient 로 조회한다. 더치트 API 를 개인 개발자가 쓸 수 없어
+-- 현재는 MockFraudAccountClient(설정 기반 목 데이터)를 쓰며, 실제 연동 시 구현체만 교체한다.
+-- (미구현) BL_OVERSEAS_IP — 해외 IP 송금. transactions 에 IP 컬럼 추가와
+--          IP→국가 판정 수단(GeoIP DB 등) 확정이 선행되어야 한다.
 -- (폐지)   BL_RAPID_NEW_RECIPIENT — DIVISION_TRANSFER 와 판정 소스가 겹쳐 이중 계산이 되므로 제거.
 -- (미도입) UNREGISTERED_ACCOUNT — SAFE_ACCOUNT_CHECK 와 판정 소스 중복
 

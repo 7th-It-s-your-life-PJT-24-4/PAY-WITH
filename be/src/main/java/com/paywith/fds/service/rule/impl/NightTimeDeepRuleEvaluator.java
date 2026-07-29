@@ -5,10 +5,7 @@ import com.paywith.fds.service.rule.RuleContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * 심야 송금: 자정 ~ deep-end-hour 직전(기본 00~05시).
- * NIGHT_TIME_LATE 와 시간대가 겹치지 않으므로 둘 중 하나만 발동한다.
- */
+/** 자정 ~ deep-end-hour 직전(기본 00~05시). LATE 와 겹치지 않는다. */
 @Component
 public class NightTimeDeepRuleEvaluator implements RiskRuleEvaluator {
 

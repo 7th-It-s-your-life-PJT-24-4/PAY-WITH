@@ -7,9 +7,6 @@ import java.math.BigDecimal;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * 컨트롤러가 없어 @Valid 가 걸리지 않으므로 생성자에서 직접 방어한다.
- */
 @DisplayName("FDS 평가 요청")
 class FdsEvaluationRequestTest {
 
@@ -34,7 +31,6 @@ class FdsEvaluationRequestTest {
         assertThat(request.getMemo()).isNull();
     }
 
-    // 없으면 속도 룰 집계에서 현재 거래를 제외할 수 없다
     @Test
     void rejectsNullTransactionId() {
         assertThatThrownBy(() ->
@@ -59,7 +55,6 @@ class FdsEvaluationRequestTest {
             .hasMessageContaining("recipientId");
     }
 
-    // null 이면 금액 구간 룰에서 NPE 가 난다
     @Test
     void rejectsNullAmount() {
         assertThatThrownBy(() -> new FdsEvaluationRequest(TX, WALLET, RECIPIENT, null, null))

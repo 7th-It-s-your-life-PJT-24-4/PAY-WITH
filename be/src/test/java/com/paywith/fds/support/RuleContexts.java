@@ -5,9 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * 테스트용 RuleContext 생성 도우미. 관심 없는 필드는 "정상 거래" 기본값으로 채운다.
- */
+/** 관심 없는 필드는 정상 거래 기본값으로 채운다. */
 public final class RuleContexts {
 
     public static final List<String> MEMO_KEYWORDS =
@@ -27,6 +25,7 @@ public final class RuleContexts {
             .recentTransferCount(0)
             .recentDistinctRecipientCount(0)
             .recipientRejectedBefore(false)
+            .recipientReportedAsFraud(false)
             .pendingApprovalExists(false)
             .memoKeywords(MEMO_KEYWORDS);
     }

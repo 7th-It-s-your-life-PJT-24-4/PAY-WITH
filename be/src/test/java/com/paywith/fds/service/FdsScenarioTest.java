@@ -26,10 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-/**
- * 실제 평가기·필터·배점을 엮어 현실적인 송금 시나리오별 등급 판정을 확인한다.
- * 실행하면 시나리오별 총점·등급·판정경로·발동 룰이 표로 출력된다.
- */
+/** 실제 평가기·배점을 엮어 시나리오별 판정을 표로 출력하고 검증한다. */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("송금 FDS 시나리오")
 class FdsScenarioTest {
@@ -51,13 +48,13 @@ class FdsScenarioTest {
                 .thenReturn(Optional.of(rule));
         }
 
+        // decide() 만 쓰므로 수집·저장 협력자는 필요 없다
         service = new FdsEvaluationServiceImpl(
+            null,
             null,
             riskRuleCache,
             FdsTestWiring.grader(),
-            FdsTestWiring.preFilters(),
-            FdsTestWiring.evaluators(),
-            null, null, null, null
+            FdsTestWiring.evaluators()
         );
     }
 
@@ -71,7 +68,7 @@ class FdsScenarioTest {
             new Scenario("단골에게 100만원 주간 송금",
                 normal().amount(won("1000000")).build(), RiskLevel.SAFE),
 
-            // 경조사·병원비 등 시니어의 가장 흔한 정상 패턴이므로 차단하지 않는다
+            // 경조사·병원비 등 가장 흔한 정상 패턴이라 차단하지 않는다
             new Scenario("신규 수취인에게 80만원 주간 송금",
                 normal().recipientSendCount(0).amount(won("800000")).build(), RiskLevel.CAUTION),
 
@@ -86,12 +83,12 @@ class FdsScenarioTest {
                 normal().recipientSendCount(0).amount(won("300000"))
                     .recentDistinctRecipientCount(3).recentTransferCount(3).build(), RiskLevel.DANGER),
 
-            // 본인 등록 안전계좌는 감점에 그치므로 사회공학 우회가 통하지 않는다
+            // 안전계좌 감점만으로는 사회공학 우회가 통하지 않는다
             new Scenario("본인 안전계좌+심야+검찰메모+100만원",
                 normal().recipientRegisteredSafe(true).amount(won("1000000"))
                     .memo("검찰 수사 협조 요청").requestedAt(at(2)).build(), RiskLevel.CAUTION),
 
-            // 승인 대기 건이 있어도 다른 송금은 막지 않되, 경계 수위만 한 단계 올린다
+            // 다른 송금을 막지는 않고 경계 수위만 한 단계 올린다
             new Scenario("승인대기 중 단골에게 소액 송금",
                 normal().pendingApprovalExists(true).build(), RiskLevel.SAFE),
 
@@ -99,13 +96,16 @@ class FdsScenarioTest {
                 normal().pendingApprovalExists(true).amount(won("1000000")).build(),
                 RiskLevel.CAUTION),
 
-            // 안전계좌 감점이 신규·고액 가점을 상쇄한다(무조건 통과가 아니라 저울질)
+            // 감점이 신규·고액 가점을 상쇄한다
             new Scenario("안전계좌로 신규 고액 송금",
                 normal().recipientRegisteredSafe(true).recipientSendCount(0)
                     .amount(won("1000000")).build(), RiskLevel.SAFE),
 
             new Scenario("보호자가 거절했던 계좌로 재송금",
-                normal().recipientRejectedBefore(true).build(), RiskLevel.DANGER)
+                normal().recipientRejectedBefore(true).build(), RiskLevel.DANGER),
+
+            new Scenario("사기계좌로 신고된 계좌에 소액 송금",
+                normal().recipientReportedAsFraud(true).build(), RiskLevel.DANGER)
         );
 
         System.out.println();
@@ -135,10 +135,10 @@ class FdsScenarioTest {
     }
 
     @Test
-    void shortCircuitedDecision_carriesZeroScoreAndPrefilterPath() {
+    void blacklistedDecision_carriesZeroScoreAndBlacklistPath() {
         FdsDecision decision = service.decide(normal().recipientRejectedBefore(true).build());
 
-        // 단축평가는 점수와 무관하게 확정되므로 총점을 등급 해석에 쓰면 안 된다
+        // 블랙리스트는 점수와 무관하게 확정된다
         assertThat(decision.getTotalScore()).isZero();
         assertThat(decision.getDecidedBy()).isEqualTo(DecidedBy.BLACKLIST);
         assertThat(decision.getTriggeredRules()).hasSize(1);
@@ -146,7 +146,32 @@ class FdsScenarioTest {
             .isEqualTo("BL_REJECTED_RECIPIENT");
     }
 
-    // 안전계좌 감점이 있어도 블랙리스트는 무조건 차단한다
+    // is_active=FALSE 로 끈 블랙리스트는 동작하지 않아야 한다
+    @Test
+    void inactiveBlacklistRuleDoesNotTrigger() {
+        List<RiskRule> withoutFraudRule = RiskRules.activeRules().stream()
+            .filter(rule -> !"BL_FRAUD_ACCOUNT".equals(rule.getRuleCode()))
+            .collect(Collectors.toList());
+        lenient().when(riskRuleCache.getActiveRules()).thenReturn(withoutFraudRule);
+        lenient().when(riskRuleCache.findByCode("BL_FRAUD_ACCOUNT")).thenReturn(Optional.empty());
+
+        FdsDecision decision = service.decide(normal().recipientReportedAsFraud(true).build());
+
+        assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.SAFE);
+        assertThat(decision.getDecidedBy()).isEqualTo(DecidedBy.RULE);
+    }
+
+    // 블랙리스트가 확정되면 발동 근거가 반드시 남아야 한다
+    @Test
+    void blacklistAlwaysRecordsTriggeredRule() {
+        FdsDecision decision = service.decide(normal().recipientReportedAsFraud(true).build());
+
+        assertThat(decision.getTriggeredRules()).hasSize(1);
+        assertThat(ruleCodeById.get(decision.getTriggeredRules().get(0).getRuleId()))
+            .isEqualTo("BL_FRAUD_ACCOUNT");
+    }
+
+    // 감점이 있어도 블랙리스트가 이긴다
     @Test
     void blacklistOverridesSafeAccountDiscount() {
         FdsDecision decision = service.decide(normal()

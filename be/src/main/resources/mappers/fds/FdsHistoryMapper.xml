@@ -5,6 +5,8 @@
 
 <mapper namespace="com.paywith.fds.mapper.FdsHistoryMapper">
   <resultMap id="RecipientRiskInfoResultMap" type="com.paywith.fds.domain.RecipientRiskInfo">
+    <result property="bankCode" column="bank_code" />
+    <result property="accountNo" column="account_no" />
     <result property="sendCount" column="send_count" />
     <result property="registeredSafe" column="is_registered_safe" />
     <result property="safeRegisteredBy" column="safe_registered_by" />
@@ -57,7 +59,7 @@
 
   <!-- NEW_RECIPIENT / SAFE_ACCOUNT_CHECK 룰 + 화이트리스트: 수취인 송금 이력과 안전계좌 등록 주체 -->
   <select id="findRecipientRiskInfo" resultMap="RecipientRiskInfoResultMap">
-    SELECT send_count, is_registered_safe, safe_registered_by
+    SELECT bank_code, account_no, send_count, is_registered_safe, safe_registered_by
     FROM recipients
     WHERE recipient_id = #{recipientId}
   </select>

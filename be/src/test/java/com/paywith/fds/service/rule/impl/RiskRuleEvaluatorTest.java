@@ -12,9 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/**
- * 룰 평가기 단위 테스트. 구간 룰은 경계값과 계열 내 배타성(한 계열에서 한 행만 발동)을 함께 본다.
- */
+/** 구간 룰은 경계값과 계열 내 배타성을 함께 본다. */
 @DisplayName("송금 FDS 룰 평가기")
 class RiskRuleEvaluatorTest {
 
@@ -78,7 +76,6 @@ class RiskRuleEvaluatorTest {
                 .containsExactly("HIGH_AMOUNT_L3");
         }
 
-        // 구간이 겹치면 한 거래에 금액 점수가 두 번 가산된다
         @Test
         void triggersAtMostOneTierPerAmount() {
             for (String amount : List.of("0", "499999", "500000", "1499999", "1500000",
@@ -168,7 +165,6 @@ class RiskRuleEvaluatorTest {
             assertThat(memo.evaluate(normal().memo("대출 상환금").build())).isTrue();
         }
 
-        // 키워드 개수와 무관하게 한 번만 발동한다(동일 배점)
         @Test
         void triggersOnceRegardlessOfKeywordCount() {
             assertThat(memo.evaluate(normal().memo("검찰이 요구한 대출 상환").build())).isTrue();
