@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.paywith.approval.mapper.ApprovalRequestMapper">
+  <insert id="insert" parameterType="com.paywith.approval.domain.ApprovalRequest" useGeneratedKeys="true" keyProperty="approvalId">
+    INSERT INTO approval_requests (transaction_id, status, expired_at)
+    VALUES (#{transactionId}, #{status}, #{expiredAt})
+  </insert>
+</mapper>
