@@ -28,8 +28,12 @@ import WardTransactionHistoryPage from '@/pages/ward/history/page.vue'
 import WardPaymentCompletePage from '@/pages/ward/payment/complete.vue'
 import WardPaymentHeldPage from '@/pages/ward/payment/held.vue'
 import WardPaymentPage from '@/pages/ward/payment/page.vue'
-import WardPaymentPasswordPage from '@/pages/ward/payment/password.vue'
-import { requireHeldPayment } from '@/pages/ward/payment/-utils/payment-route-guard'
+import WardPaymentQrPage from '@/pages/ward/payment/qr.vue'
+import {
+  requireCompletedPayment,
+  requireHeldPayment,
+  requirePaymentQrSession,
+} from '@/pages/ward/payment/-utils/payment-route-guard'
 import WardTransferAccountPage from '@/pages/ward/transfer/account.vue'
 import WardTransferAmountPage from '@/pages/ward/transfer/amount.vue'
 import WardTransferBankPage from '@/pages/ward/transfer/bank.vue'
@@ -186,7 +190,22 @@ const router = createRouter({
           path: 'payment',
           name: 'ward-payment',
           component: WardPaymentPage,
-          meta: { title: 'QR 결제', activeNavigation: 'payment' },
+          meta: {
+            title: '비밀번호 입력',
+            activeNavigation: 'payment',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'payment/:paymentId/qr',
+          name: 'ward-payment-qr',
+          component: WardPaymentQrPage,
+          beforeEnter: requirePaymentQrSession,
+          meta: {
+            title: 'QR 결제',
+            activeNavigation: 'payment',
+            showBottomNavigation: false,
+          },
         },
         {
           path: 'charge',
@@ -246,20 +265,16 @@ const router = createRouter({
           },
         },
         {
-          path: 'payment/password',
-          name: 'ward-payment-password',
-          component: WardPaymentPasswordPage,
-          meta: {
-            title: '비밀번호 입력',
-            activeNavigation: 'payment',
-            showBottomNavigation: false,
-          },
-        },
-        {
-          path: 'payment/complete',
+          path: 'payment/:transactionId/complete',
           name: 'ward-payment-complete',
           component: WardPaymentCompletePage,
-          meta: { title: '결제 완료', activeNavigation: 'payment' },
+          beforeEnter: requireCompletedPayment,
+          meta: {
+            title: '결제 완료',
+            activeNavigation: 'payment',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
         },
         {
           path: 'payment/:transactionId/held',

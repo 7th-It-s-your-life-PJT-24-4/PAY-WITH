@@ -4,19 +4,21 @@ import { describe, expect, it } from 'vitest'
 import PaymentQrPanel from '@/pages/ward/payment/-components/PaymentQrPanel.vue'
 
 describe('PaymentQrPanel', () => {
-  it('emits scan from an active QR code', async () => {
+  it('exposes the payment token to the QR renderer boundary', () => {
     const wrapper = mount(PaymentQrPanel, {
-      props: { expired: false },
+      props: { expired: false, paymentToken: 'pay_qr_test' },
     })
 
-    await wrapper.get('[aria-label="QR 코드 스캔 완료"]').trigger('click')
-
-    expect(wrapper.emitted('scan')).toHaveLength(1)
+    expect(
+      wrapper
+        .get('[aria-label="결제 QR 코드"]')
+        .attributes('data-payment-token'),
+    ).toBe('pay_qr_test')
   })
 
   it('requests reissue when the QR code has expired', async () => {
     const wrapper = mount(PaymentQrPanel, {
-      props: { expired: true },
+      props: { expired: true, paymentToken: 'pay_qr_expired' },
     })
 
     const reissueButton = wrapper.get('button')
