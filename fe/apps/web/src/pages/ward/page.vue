@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@pay-with/ui'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { getMockPendingTransactions } from '@/mocks/pending-transaction.mock'
 import WardBalanceCard from '@/pages/ward/-components/WardBalanceCard.vue'
@@ -10,7 +10,10 @@ import { usePairingStore } from '@/stores/pairing.store'
 import type { PendingTransaction } from '@/types/pending-transaction'
 
 const router = useRouter()
+const route = useRoute()
 const pairingStore = usePairingStore()
+
+if (route.query.pairing === 'unpaired') pairingStore.reset()
 
 const wardName = '김시니어'
 const balance = '100,000'

@@ -28,7 +28,7 @@ function updateRemainingTime() {
 
   remainingSeconds.value = Math.max(
     0,
-    Math.ceil((pairingStore.expiresAt - Date.now()) / 1000),
+    Math.ceil((Date.parse(pairingStore.expiresAt) - Date.now()) / 1000),
   )
 }
 
@@ -38,8 +38,8 @@ function startCountdown() {
   countdownTimer = globalThis.setInterval(updateRemainingTime, 1000)
 }
 
-function generateCode() {
-  pairingStore.issueCode()
+async function generateCode() {
+  await pairingStore.issueCode()
   isConfirmOpen.value = false
   startCountdown()
 }
@@ -76,10 +76,7 @@ function copyCode() {
 }
 
 function copyLink() {
-  return copyText(
-    `${globalThis.location.origin}/ward/pairing?code=${pairingStore.code}`,
-    '링크가 복사되었습니다',
-  )
+  return copyText(pairingStore.inviteUrl, '링크가 복사되었습니다')
 }
 
 async function shareWithKakao() {
@@ -222,7 +219,12 @@ onBeforeUnmount(() => {
             variant="secondary"
             @click="isConfirmOpen = false"
           />
-          <Button class="w-full" label="완료" @click="generateCode">
+          <Button
+            class="w-full"
+            :label="pairingStore.isIssuingCode ? '생성 중' : '완료'"
+            :disabled="pairingStore.isIssuingCode"
+            @click="generateCode"
+          >
             <template #leading><Check /></template>
           </Button>
         </div>

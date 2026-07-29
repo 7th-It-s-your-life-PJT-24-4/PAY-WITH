@@ -26,9 +26,12 @@ function removeDigit() {
   errorMessage.value = ''
 }
 
-function connectGuardian() {
-  if (!pairingStore.verifyCode(enteredCode.value)) {
-    errorMessage.value = '인증 코드를 확인해 주세요.'
+async function connectGuardian() {
+  if (!(await pairingStore.verifyCode(enteredCode.value))) {
+    errorMessage.value =
+      pairingStore.errorCode === 'PAIRING_004'
+        ? '입력 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.'
+        : '인증 코드가 유효하지 않거나 만료되었습니다.'
     return
   }
 
@@ -75,8 +78,8 @@ function connectGuardian() {
 
     <Button
       class="mt-xl w-full"
-      label="연결하기"
-      :disabled="enteredCode.length !== 5"
+      :label="pairingStore.isVerifyingCode ? '확인 중' : '연결하기'"
+      :disabled="enteredCode.length !== 5 || pairingStore.isVerifyingCode"
       @click="connectGuardian"
     />
 

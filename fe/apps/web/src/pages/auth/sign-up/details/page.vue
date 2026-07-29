@@ -12,10 +12,12 @@ import {
   type SignUpDetailsForm,
 } from '@/schemas/sign-up.schema'
 import { signUpTerms, type SignUpTermId } from '@/constants/sign-up-terms'
+import { usePairingStore } from '@/stores/pairing.store'
 import { useSignUpStore } from '@/stores/sign-up.store'
 
 const router = useRouter()
 const signUpStore = useSignUpStore()
+const pairingStore = usePairingStore()
 const isKakaoSignUp = computed(() => signUpStore.signUpMethod === 'kakao')
 const profileImageUrl = ref<string | null>(
   signUpStore.kakaoProfile?.profileImageUrl ?? null,
@@ -190,6 +192,7 @@ function submitSignUp() {
 
   signUpStore.setDetails(result.data)
   formError.value = ''
+  if (signUpStore.role === 'senior') pairingStore.reset()
   router.push({
     name:
       signUpStore.role === 'guardian' ? 'guardian-pairing-code' : 'ward-home',

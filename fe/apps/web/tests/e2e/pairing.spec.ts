@@ -20,7 +20,7 @@ test('보호자가 직접 접속해 인증 코드를 생성하고 복사한다',
   await expect(page.getByRole('status')).toContainText('코드가 복사되었습니다')
 
   await page.getByRole('button', { name: '뒤로 가기' }).click()
-  await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(page).toHaveURL((url) => url.pathname === '/ward/home')
   await page.goForward()
 
   await expect(page).toHaveURL(/\/guardian\/pairing\/code$/)
@@ -32,7 +32,7 @@ test('미연결 시니어가 보호자 코드를 입력하고 연결을 완료�
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 854 })
-  await page.goto('/ward/home')
+  await page.goto('/ward/home?pairing=unpaired')
 
   await page.getByRole('button', { name: '보호자와 연결하기' }).click()
   await expect(page).toHaveURL(/\/ward\/pairing$/)
