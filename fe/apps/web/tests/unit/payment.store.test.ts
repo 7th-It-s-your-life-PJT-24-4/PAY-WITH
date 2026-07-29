@@ -9,7 +9,7 @@ describe('payment store', () => {
     sessionStorage.clear()
   })
 
-  it('restores a QR session without storing a transaction password', () => {
+  it('restores a QR session without storing a pin', () => {
     const store = usePaymentStore()
     store.saveQrSession({
       paymentId: 42,
@@ -19,7 +19,7 @@ describe('payment store', () => {
     })
 
     const persisted = sessionStorage.getItem('pay-with:ward-payment') ?? ''
-    expect(persisted).not.toContain('transactionPassword')
+    expect(persisted).not.toContain('"pin"')
 
     setActivePinia(createPinia())
     const restored = usePaymentStore()

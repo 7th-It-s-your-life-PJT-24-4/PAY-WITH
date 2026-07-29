@@ -13,12 +13,12 @@ const createPayment = useCreateWardPaymentMutation()
 const keypad = ref<{ reset: () => void } | null>(null)
 const errorMessage = ref('')
 
-async function createQrCode(transactionPassword: string) {
+async function createQrCode(pin: string) {
   if (createPayment.isPending.value) return
   errorMessage.value = ''
 
   try {
-    const session = await createPayment.mutateAsync({ transactionPassword })
+    const session = await createPayment.mutateAsync({ pin })
     paymentStore.saveQrSession(session)
     await router.replace({
       name: 'ward-payment-qr',

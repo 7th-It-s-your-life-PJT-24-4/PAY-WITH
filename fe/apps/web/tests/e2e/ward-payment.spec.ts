@@ -9,7 +9,7 @@ test('비밀번호 확인 후 QR을 만들고 결제 완료 상태로 이동한�
     if (route.request().method() !== 'POST') return route.fallback()
 
     expect(route.request().postDataJSON()).toEqual({
-      transactionPassword: '123456',
+      pin: '123456',
     })
     await route.fulfill({
       contentType: 'application/json',

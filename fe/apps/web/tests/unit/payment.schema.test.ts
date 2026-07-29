@@ -6,12 +6,12 @@ import {
 } from '@/schemas/payment.schema'
 
 describe('payment schemas', () => {
-  it('requires a six digit transactionPassword', () => {
-    expect(
-      createWardPaymentRequestSchema.parse({ transactionPassword: '123456' }),
-    ).toEqual({ transactionPassword: '123456' })
+  it('requires a six digit pin', () => {
+    expect(createWardPaymentRequestSchema.parse({ pin: '123456' })).toEqual({
+      pin: '123456',
+    })
     expect(() =>
-      createWardPaymentRequestSchema.parse({ transactionPassword: '12345' }),
+      createWardPaymentRequestSchema.parse({ pin: '12345' }),
     ).toThrow()
   })
 

@@ -12,7 +12,7 @@ export const paymentStatusValueSchema = z.enum([
 ])
 
 export const createWardPaymentRequestSchema = z.object({
-  transactionPassword: z.string().regex(/^\d{6}$/),
+  pin: z.string().regex(/^\d{6}$/),
 })
 
 export const paymentQrSessionSchema = z.object({
