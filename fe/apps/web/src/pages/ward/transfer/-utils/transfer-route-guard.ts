@@ -44,19 +44,6 @@ function getTransactionId(value: unknown) {
     : null
 }
 
-export const redirectPendingTransfer: NavigationGuard = () => {
-  const store = useTransferStore()
-  // TODO(transfer-pending-lookup): 새로고침 후 /ward/transfer로 직접 진입하면
-  // transactionId를 복구할 수 없다. 대기 거래 조회 API 또는 pendingTransferId
-  // 제공 정책이 확정되면 서버 상태를 조회해 제한 화면으로 연결한다.
-  return store.transferDetail?.status === 'HELD'
-    ? {
-        name: 'ward-transfer-restricted',
-        params: { transactionId: store.transferDetail.transactionId },
-      }
-    : true
-}
-
 function requireTransferStatus(...allowedStatuses: TransferStatus[]) {
   const guard: NavigationGuard = async (to) => {
     const transactionId = getTransactionId(to.params.transactionId)

@@ -145,6 +145,12 @@ export function resetMockTransferDetails() {
     mockTransfers.set(detail.transactionId, detail)
 }
 
+export function getMockHeldTransfers() {
+  return [...mockTransfers.values()]
+    .filter((transfer) => transfer.status === 'HELD')
+    .map((transfer) => structuredClone(transfer))
+}
+
 export async function getMockTransferDetail(transactionId: number) {
   await wait()
   const detail = mockTransfers.get(transactionId)
