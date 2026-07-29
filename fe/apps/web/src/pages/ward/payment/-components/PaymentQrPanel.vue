@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { RefreshCw } from '@lucide/vue'
 import QrcodeVue from 'qrcode.vue'
 
 defineProps<{
@@ -53,15 +54,7 @@ const emit = defineEmits<{
         class="flex size-40 items-center justify-center rounded-full bg-primary-900 text-primary-300"
         aria-hidden="true"
       >
-        <svg viewBox="0 0 96 96" class="size-24" fill="none">
-          <path
-            d="M70 32A30 30 0 0 0 24 50m2-18v18h18M26 64a30 30 0 0 0 46-18m-2 18V46H52"
-            stroke="currentColor"
-            stroke-width="8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
+        <RefreshCw class="size-24" :stroke-width="2" />
       </span>
       <span class="type-h3">QR 코드 재발급</span>
     </button>
