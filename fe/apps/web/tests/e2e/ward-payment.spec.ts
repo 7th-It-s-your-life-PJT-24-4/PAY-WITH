@@ -64,10 +64,7 @@ test('비밀번호 확인 후 QR을 만들고 결제 완료 상태로 이동한�
   }
 
   await expect(page).toHaveURL(/\/ward\/payment\/42\/qr$/)
-  await expect(page.getByLabel('결제 QR 코드')).toHaveAttribute(
-    'data-payment-token',
-    'pay_qr_test_token',
-  )
+  await expect(page.getByLabel('결제 QR 코드').locator('svg')).toBeVisible()
   await expect(page.getByText('결제 가능 잔액')).toBeVisible()
 
   await expect(page).toHaveURL(/\/ward\/payment\/73\/complete$/, {

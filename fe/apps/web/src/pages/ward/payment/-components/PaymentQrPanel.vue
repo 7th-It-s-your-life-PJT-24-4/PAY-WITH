@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import QrcodeVue from 'qrcode.vue'
+
 defineProps<{
   paymentToken: string
   expired: boolean
@@ -18,17 +20,17 @@ const emit = defineEmits<{
     <div
       v-if="!expired"
       class="relative flex aspect-square w-full items-center justify-center rounded-large border-[6px] border-primary-900 bg-white p-md"
-      :data-payment-token="paymentToken"
       aria-label="결제 QR 코드"
     >
-      <!-- TODO: QR 인코더 도입 후 paymentToken을 실제 QR 이미지로 렌더링합니다. -->
-      <svg viewBox="0 0 29 29" class="size-full text-body" aria-hidden="true">
-        <rect width="29" height="29" fill="white" />
-        <path
-          fill="currentColor"
-          d="M1 1h8v8H1V1Zm2 2v4h4V3H3Zm17-2h8v8h-8V1Zm2 2v4h4V3h-4ZM1 20h8v8H1v-8Zm2 2v4h4v-4H3Zm8-20h3v3h-3V2Zm4 0h3v6h-3V2Zm-4 5h5v3h-5V7Zm7 3h3v3h-3v-3Zm-8 2h4v4h-4v-4Zm6 2h3v3h-3v-3Zm5 1h7v3h-7v-3Zm-9 3h3v3h-3v-3Zm5 1h3v7h-3v-7Zm5 1h3v3h-3v-3Zm4 0h2v8h-5v-3h2v-2h-2v-3h3Zm-15 4h4v4h-4v-4Z"
-        />
-      </svg>
+      <QrcodeVue
+        :value="paymentToken"
+        :size="512"
+        level="M"
+        render-as="svg"
+        :margin="2"
+        class="size-full"
+        aria-hidden="true"
+      />
       <div
         v-if="processing"
         class="absolute inset-0 flex flex-col items-center justify-center gap-md rounded-medium bg-white/95 text-primary-300"

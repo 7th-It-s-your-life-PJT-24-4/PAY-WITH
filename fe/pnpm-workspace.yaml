@@ -31,6 +31,7 @@ catalog:
   postcss: ^8.5.18
   prettier: ^3.9.5
   reka-ui: ^2.10.1
+  qrcode.vue: ^3.10.0
   storybook: ^10.2.9
   tailwindcss: ^4.3.2
   turbo: ^2.10.4
