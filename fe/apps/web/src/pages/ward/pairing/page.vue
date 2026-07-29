@@ -108,15 +108,9 @@ async function connectGuardian() {
       v-model:open="keypadOpen"
       title="인증 코드 입력"
       description="보호자의 폰에 표시된 5자리 숫자를 입력해주세요."
+      mode="input"
     >
-      <p
-        class="type-numeric-input-large font-number min-h-12 text-center tracking-[0.35em] text-primary-500"
-        aria-live="polite"
-      >
-        {{ enteredCode || '-----' }}
-      </p>
       <NumericKeypad
-        class="mt-lg"
         cancel-label="닫기"
         :disabled="pairingStore.isVerifyingCode"
         @input="inputDigit"

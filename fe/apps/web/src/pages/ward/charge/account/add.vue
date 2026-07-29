@@ -168,15 +168,9 @@ async function registerAccount() {
       v-model:open="accountSheetOpen"
       title="계좌번호 입력"
       description="숫자 키패드로 계좌번호를 입력해주세요."
+      mode="input"
     >
-      <p
-        class="type-numeric-input-large font-number min-h-12 break-all text-center text-primary-500"
-        aria-live="polite"
-      >
-        {{ accountNumber || '0' }}
-      </p>
       <NumericKeypad
-        class="mt-lg"
         cancel-label="닫기"
         @input="appendAccountDigit"
         @backspace="removeAccountDigit"
