@@ -7,6 +7,8 @@ import com.paywith.user.dto.UserResponse;
 import com.paywith.user.dto.UserUpdateRequest;
 import com.paywith.exception.BusinessException;
 import com.paywith.user.mapper.UserMapper;
+import com.paywith.wallet.domain.Wallet;
+import com.paywith.wallet.mapper.WalletMapper;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -20,10 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserMapper userMapper;
+    private final WalletMapper walletMapper;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserMapper userMapper, PasswordEncoder passwordEncoder) {
+    public UserService(UserMapper userMapper, WalletMapper walletMapper, PasswordEncoder passwordEncoder) {
         this.userMapper = userMapper;
+        this.walletMapper = walletMapper;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -51,6 +55,17 @@ public class UserService {
         user.setBirthDate(parseBirthDate(request.getBirthDate()));
         user.setGender(request.getGender());
         userMapper.insert(user);
+
+        if (user.getRole() == Role.SENIOR) {
+            if (request.getPaymentPassword() == null || request.getPaymentPassword().isBlank()) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "SENIOR 회원은 결제 비밀번호가 필요합니다.");
+            }
+            Wallet wallet = new Wallet();
+            wallet.setUserId(user.getId());
+            wallet.setPin(passwordEncoder.encode(request.getPaymentPassword()));
+            walletMapper.insert(wallet);
+        }
+
         return new UserResponse(findUser(user.getId()));
     }
 
