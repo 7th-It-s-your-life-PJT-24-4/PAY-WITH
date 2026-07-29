@@ -5,9 +5,12 @@ import { useRouter } from 'vue-router'
 import { getMockPendingTransactions } from '@/mocks/pending-transaction.mock'
 import WardBalanceCard from '@/pages/ward/-components/WardBalanceCard.vue'
 import WardPendingTransactionList from '@/pages/ward/-components/WardPendingTransactionList.vue'
+import WardUnpairedHome from '@/pages/ward/-components/WardUnpairedHome.vue'
+import { usePairingStore } from '@/stores/pairing.store'
 import type { PendingTransaction } from '@/types/pending-transaction'
 
 const router = useRouter()
+const pairingStore = usePairingStore()
 
 const wardName = '김시니어'
 const balance = '100,000'
@@ -40,7 +43,12 @@ function openPendingTransaction(transaction: PendingTransaction) {
 </script>
 
 <template>
-  <div class="flex flex-col gap-xl">
+  <WardUnpairedHome
+    v-if="!pairingStore.isPaired"
+    @connect="router.push({ name: 'ward-pairing' })"
+  />
+
+  <div v-else class="flex flex-col gap-xl">
     <section aria-labelledby="ward-welcome-title">
       <p class="type-body-medium text-body-secondary">환영합니다</p>
       <h1 id="ward-welcome-title" class="type-h1 mt-xs text-body">

@@ -190,6 +190,10 @@ function submitSignUp() {
 
   signUpStore.setDetails(result.data)
   formError.value = ''
+  router.push({
+    name:
+      signUpStore.role === 'guardian' ? 'guardian-pairing-code' : 'ward-home',
+  })
 }
 </script>
 
