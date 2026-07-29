@@ -148,7 +148,7 @@ class PaymentServiceTest {
         verify(paymentTokenStore).save(inserted.getQrToken(), PAYMENT_ID);
 
         assertThat(response.getPaymentId()).isEqualTo(PAYMENT_ID);
-        assertThat(response.getPaymentToken()).isEqualTo(inserted.getQrToken());
+        assertThat(response.getQrToken()).isEqualTo(inserted.getQrToken());
         assertThat(response.getAvailableBalance()).isEqualTo(130000L);
         assertThat(response.getExpiresInSeconds()).isEqualTo(60);
         assertThat(response.getExpiresAt()).endsWith("+09:00");

@@ -62,7 +62,7 @@ class WardPaymentControllerTest {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.paymentId").value(42))
-            .andExpect(jsonPath("$.data.paymentToken").value("pay_qr_a8F2kL9xQ1mNzzzz"))
+            .andExpect(jsonPath("$.data.qrToken").value("pay_qr_a8F2kL9xQ1mNzzzz"))
             .andExpect(jsonPath("$.data.availableBalance").value(130000))
             .andExpect(jsonPath("$.data.expiresAt").value("2026-07-16T15:31:00+09:00"))
             .andExpect(jsonPath("$.data.expiresInSeconds").value(60));

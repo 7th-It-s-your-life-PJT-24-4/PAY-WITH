@@ -91,7 +91,7 @@ class WardPaymentSecurityTest {
                 .content("{\"pin\": \"123456\"}"))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.paymentToken").value("pay_qr_a8F2kL9xQ1mNzzzz"));
+            .andExpect(jsonPath("$.data.qrToken").value("pay_qr_a8F2kL9xQ1mNzzzz"));
     }
 
     @Configuration

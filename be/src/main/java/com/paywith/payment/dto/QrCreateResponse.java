@@ -3,20 +3,20 @@ package com.paywith.payment.dto;
 public class QrCreateResponse {
 
     private final Long paymentId;
-    private final String paymentToken;
+    private final String qrToken;
     private final Long availableBalance;
     private final String expiresAt;
     private final int expiresInSeconds;
 
     public QrCreateResponse(
         Long paymentId,
-        String paymentToken,
+        String qrToken,
         Long availableBalance,
         String expiresAt,
         int expiresInSeconds
     ) {
         this.paymentId = paymentId;
-        this.paymentToken = paymentToken;
+        this.qrToken = qrToken;
         this.availableBalance = availableBalance;
         this.expiresAt = expiresAt;
         this.expiresInSeconds = expiresInSeconds;
@@ -26,8 +26,8 @@ public class QrCreateResponse {
         return paymentId;
     }
 
-    public String getPaymentToken() {
-        return paymentToken;
+    public String getQrToken() {
+        return qrToken;
     }
 
     public Long getAvailableBalance() {
