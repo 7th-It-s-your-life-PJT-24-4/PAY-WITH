@@ -34,6 +34,10 @@ ext {
     springDataRedisVersion = '2.7.18'
     lettuceVersion = '6.1.10.RELEASE'
     lombokVersion = '1.18.34'
+    junitVersion = '5.10.2'
+    junitPlatformVersion = '1.10.2'
+    mockitoVersion = '5.14.2'
+    assertjVersion = '3.26.3'
 }
 
 repositories {
@@ -66,10 +70,12 @@ dependencies {
     //lombok
     compileOnly "org.projectlombok:lombok:${lombokVersion}"
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.2'
-    testImplementation 'org.mockito:mockito-junit-jupiter:5.11.0'
-    testImplementation 'org.assertj:assertj-core:3.25.3'
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${junitVersion}"
+    testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
+    testImplementation "org.assertj:assertj-core:${assertjVersion}"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:${junitPlatformVersion}"
     testImplementation 'org.hamcrest:hamcrest:2.2'
     testImplementation 'com.jayway.jsonpath:json-path:2.9.0'
     testImplementation 'org.glassfish:javax.el:3.0.0'

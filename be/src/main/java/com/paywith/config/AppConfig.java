@@ -17,7 +17,8 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
                 type = FilterType.ANNOTATION,
                 classes = { Controller.class, RestController.class, ControllerAdvice.class, RestControllerAdvice.class }
         ))
-@PropertySource("classpath:application-${spring.profiles.active:local}.properties")
+// encoding 미지정 시 Java 표준대로 ISO-8859-1로 읽혀 한글 값(FDS 메모 키워드 등)이 깨진다.
+@PropertySource(value = "classpath:application-${spring.profiles.active:local}.properties", encoding = "UTF-8")
 public class AppConfig {
 
     @Bean
