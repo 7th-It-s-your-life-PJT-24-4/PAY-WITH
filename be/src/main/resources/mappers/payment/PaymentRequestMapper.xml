@@ -45,9 +45,10 @@
   </select>
 
   <select id="findWalletByUserId" resultMap="PaymentWalletResultMap">
-    SELECT wallet_id, balance, status, pin
-    FROM wallets
-    WHERE user_id = #{userId}
+    SELECT w.wallet_id, w.balance, w.status, u.pin
+    FROM wallets w
+    JOIN users u ON u.user_id = w.user_id
+    WHERE w.user_id = #{userId}
   </select>
 
   <insert id="insert" parameterType="com.paywith.payment.domain.PaymentRequest"
