@@ -7,6 +7,8 @@ import com.paywith.user.dto.UserResponse;
 import com.paywith.user.dto.UserUpdateRequest;
 import com.paywith.exception.BusinessException;
 import com.paywith.user.mapper.UserMapper;
+import com.paywith.wallet.domain.Wallet;
+import com.paywith.wallet.mapper.WalletMapper;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -20,10 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserMapper userMapper;
+    private final WalletMapper walletMapper;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserMapper userMapper, PasswordEncoder passwordEncoder) {
+    public UserService(UserMapper userMapper, WalletMapper walletMapper, PasswordEncoder passwordEncoder) {
         this.userMapper = userMapper;
+        this.walletMapper = walletMapper;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -50,7 +54,15 @@ public class UserService {
         user.setName(request.getName());
         user.setBirthDate(parseBirthDate(request.getBirthDate()));
         user.setGender(request.getGender());
+        user.setPin(passwordEncoder.encode(request.getPaymentPassword()));
         userMapper.insert(user);
+
+        if (user.getRole() == Role.WARD) {
+            Wallet wallet = new Wallet();
+            wallet.setUserId(user.getId());
+            walletMapper.insert(wallet);
+        }
+
         return new UserResponse(findUser(user.getId()));
     }
 
@@ -74,7 +86,7 @@ public class UserService {
         try {
             return Role.valueOf(role);
         } catch (IllegalArgumentException exception) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "role은 SENIOR 또는 GUARD여야 합니다.");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "role은 WARD 또는 GUARD여야 합니다.");
         }
     }
 

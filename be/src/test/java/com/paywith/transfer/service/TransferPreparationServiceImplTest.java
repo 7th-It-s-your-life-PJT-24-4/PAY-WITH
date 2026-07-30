@@ -9,6 +9,7 @@ import com.paywith.transaction.domain.Transaction;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.PreparedTransfer;
 import com.paywith.transfer.dto.TransferRequest;
+import com.paywith.user.domain.User;
 import com.paywith.user.mapper.UserMapper;
 import com.paywith.wallet.domain.Wallet;
 import com.paywith.wallet.mapper.WalletMapper;
@@ -56,11 +57,14 @@ class TransferPreparationServiceImplTest {
     private final Long userId = 1L;
     private TransferRequest request;
     private Wallet wallet;
+    private User user;
 
     @BeforeEach
     void setUp() {
         request = new TransferRequest("004", "11012300006781", 50_000L, "생활비", "123456");
-        wallet = Wallet.builder().walletId(10L).userId(userId).balance(100_000L).pin("encodedPin").build();
+        wallet = Wallet.builder().walletId(10L).userId(userId).balance(100_000L).build();
+        user = new User();
+        user.setPin("encodedPin");
     }
 
     @Test
@@ -78,7 +82,8 @@ class TransferPreparationServiceImplTest {
     @Test
     void 송금_비밀번호가_틀리면_예외() {
         given(walletMapper.findWalletByUserId(userId)).willReturn(wallet);
-        given(passwordEncoder.matches(request.getTransferPin(), wallet.getPin())).willReturn(false);
+        given(userMapper.findById(userId)).willReturn(user);
+        given(passwordEncoder.matches(request.getTransferPin(), user.getPin())).willReturn(false);
 
         assertThatThrownBy(() -> transferPreparationService.prepare(userId, request))
                 .isInstanceOf(BusinessException.class)
@@ -91,7 +96,8 @@ class TransferPreparationServiceImplTest {
     @Test
     void 수취인_실명조회에_실패하면_예외() {
         given(walletMapper.findWalletByUserId(userId)).willReturn(wallet);
-        given(passwordEncoder.matches(request.getTransferPin(), wallet.getPin())).willReturn(true);
+        given(userMapper.findById(userId)).willReturn(user);
+        given(passwordEncoder.matches(request.getTransferPin(), user.getPin())).willReturn(true);
 
         RealNameInquiryResponse failResponse = new RealNameInquiryResponse();
         failResponse.setRspCode("A0004");
@@ -109,7 +115,8 @@ class TransferPreparationServiceImplTest {
     @Test
     void 신규_수취인이면_등록하고_준비결과를_반환한다() {
         given(walletMapper.findWalletByUserId(userId)).willReturn(wallet);
-        given(passwordEncoder.matches(request.getTransferPin(), wallet.getPin())).willReturn(true);
+        given(userMapper.findById(userId)).willReturn(user);
+        given(passwordEncoder.matches(request.getTransferPin(), user.getPin())).willReturn(true);
 
         RealNameInquiryResponse inquiryResponse = new RealNameInquiryResponse();
         inquiryResponse.setRspCode("A0000");
@@ -148,7 +155,8 @@ class TransferPreparationServiceImplTest {
     @Test
     void 기존_수취인이면_등록없이_송금정보만_갱신한다() {
         given(walletMapper.findWalletByUserId(userId)).willReturn(wallet);
-        given(passwordEncoder.matches(request.getTransferPin(), wallet.getPin())).willReturn(true);
+        given(userMapper.findById(userId)).willReturn(user);
+        given(passwordEncoder.matches(request.getTransferPin(), user.getPin())).willReturn(true);
 
         RealNameInquiryResponse inquiryResponse = new RealNameInquiryResponse();
         inquiryResponse.setRspCode("A0000");

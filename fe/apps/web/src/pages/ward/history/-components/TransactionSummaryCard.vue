@@ -56,7 +56,7 @@ const counterpartyLabel = computed(() =>
           <dd class="type-body-medium mt-xs text-body-secondary">
             {{ transaction.transfer.bankName }}
             <span class="font-number">{{
-              transaction.transfer.accountNumber
+              transaction.transfer.accountNo
             }}</span>
           </dd>
         </template>

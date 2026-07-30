@@ -22,13 +22,13 @@ function formatAmount(amount: number) {
 
 function getTitle(transaction: PendingTransaction) {
   return transaction.type === 'TRANSFER'
-    ? `${transaction.recipientName} 님에게`
+    ? `${transaction.holderName} 님에게`
     : transaction.merchantName
 }
 
 function getSubtitle(transaction: PendingTransaction) {
   return transaction.type === 'TRANSFER'
-    ? `${transaction.bankName} · ${transaction.accountNumber}`
+    ? `${transaction.bankName} · ${transaction.accountNo}`
     : transaction.paymentMethod
 }
 

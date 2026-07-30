@@ -31,7 +31,7 @@ const detailRows = computed(() => {
   return [
     {
       label: '받는 분 / 은행',
-      value: `${transfer.recipientName} / ${transfer.bankName}`,
+      value: `${transfer.holderName} / ${transfer.bankName}`,
     },
     {
       label: '송금 금액',

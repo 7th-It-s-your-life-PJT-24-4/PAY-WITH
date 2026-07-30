@@ -16,4 +16,7 @@ public interface WalletMapper {
 
     // 잔액 출금
     int decreaseBalanceIfSufficient(@Param("walletId") Long walletId, @Param("amount") Long amount);
+
+    //지갑 생성
+    void insert(Wallet wallet);
 }

@@ -8,14 +8,14 @@
     <select id="findWalletByUserIdForUpdate" parameterType="Long"
             resultType="com.paywith.wallet.domain.Wallet">
         SELECT
-        wallet_id, user_id, balance, status, pin, created_at, updated_at
+        wallet_id, user_id, balance, status, created_at, updated_at
         FROM wallets
         WHERE user_id = #{userId}
         FOR UPDATE
     </select>
 
     <select id="findWalletByUserId" resultType="com.paywith.wallet.domain.Wallet">
-        SELECT wallet_id, user_id, balance, status, pin, created_at, updated_at
+        SELECT wallet_id, user_id, balance, status, created_at, updated_at
         FROM wallets
         WHERE user_id = #{userId}
     </select>
@@ -34,5 +34,11 @@
         WHERE wallet_id = #{walletId}
         AND balance >= #{amount
     </update>
+
+    <insert id="insert" parameterType="com.paywith.wallet.domain.Wallet"
+            useGeneratedKeys="true" keyProperty="walletId" keyColumn="wallet_id">
+        INSERT INTO wallets (user_id)
+        VALUES (#{userId})
+    </insert>
 
 </mapper>

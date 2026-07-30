@@ -16,10 +16,12 @@ withDefaults(
     title: string
     description?: string
     closeOnOutside?: boolean
+    mode?: 'modal' | 'input'
   }>(),
   {
     description: undefined,
     closeOnOutside: true,
+    mode: 'modal',
   },
 )
 
@@ -29,13 +31,21 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <DialogRoot :open="open" @update:open="emit('update:open', $event)">
+  <DialogRoot
+    :open="open"
+    :modal="mode === 'modal'"
+    @update:open="emit('update:open', $event)"
+  >
     <DialogPortal>
       <DialogOverlay
+        v-if="mode === 'modal'"
         class="fixed inset-0 z-50 bg-overlay/40 backdrop-blur-[2px]"
       />
       <DialogContent
         class="fixed bottom-0 left-1/2 z-50 flex max-h-[calc(100dvh-24px)] w-full max-w-[390px] -translate-x-1/2 flex-col rounded-t-[28px] bg-surface-card px-mobile-gutter pb-[calc(var(--spacing-xl)+env(safe-area-inset-bottom))] pt-sm shadow-modal focus:outline-none"
+        @open-auto-focus="
+          mode === 'input' ? $event.preventDefault() : undefined
+        "
         @close-auto-focus="$event.preventDefault()"
         @pointer-down-outside="
           closeOnOutside ? undefined : $event.preventDefault()

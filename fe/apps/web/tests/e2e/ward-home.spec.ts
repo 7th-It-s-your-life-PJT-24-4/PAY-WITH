@@ -14,16 +14,14 @@ test('keeps the ward header and navigation fixed to the viewport', async ({
     name: '결제',
     exact: true,
   })
+  const paymentLabel = paymentAction.getByText('결제', { exact: true })
+  const paymentBackground = paymentAction.locator('svg:not(.lucide) path')
 
   await expect(header).toBeVisible()
   await expect(navigation).toBeVisible()
-  await expect(navigation.locator('svg')).toHaveCount(3)
-  await expect(paymentAction).toHaveCSS('color', 'rgb(255, 255, 255)')
-  expect(
-    await paymentAction.evaluate(
-      (element) => getComputedStyle(element).backgroundImage,
-    ),
-  ).toContain('linear-gradient')
+  await expect(navigation.locator('svg.lucide')).toHaveCount(3)
+  await expect(paymentLabel).toHaveCSS('color', 'rgb(0, 0, 0)')
+  await expect(paymentBackground).toHaveCSS('fill', 'rgb(255, 255, 255)')
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
 
   const headerBox = await header.boundingBox()
@@ -38,7 +36,7 @@ test('keeps the ward header and navigation fixed to the viewport', async ({
 
   await navigation.getByRole('button', { name: '송금', exact: true }).click()
   await expect(page).toHaveURL(/\/ward\/transfer$/)
-  await expect(paymentAction).toHaveCSS('color', 'rgb(255, 255, 255)')
+  await expect(paymentLabel).toHaveCSS('color', 'rgb(0, 0, 0)')
 })
 
 test('보호자 승인 대기 거래를 상세 화면에서 확인한다', async ({ page }) => {

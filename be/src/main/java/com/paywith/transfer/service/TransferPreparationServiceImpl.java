@@ -43,7 +43,7 @@ public class TransferPreparationServiceImpl implements TransferPreparationServic
 
         //2. transferPin 검증
         User user = userMapper.findById(userId);
-        if (!passwordEncoder.matches(request.getTransferPin(), wallet.getPin())) { //TODO: users.getPin으로 바꾸기
+        if (!passwordEncoder.matches(request.getTransferPin(), user.getPin())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "송금 비밀번호가 올바르지 않습니다.");
         }
 
