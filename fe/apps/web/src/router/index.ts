@@ -5,7 +5,12 @@ import KakaoCallbackPage from '@/pages/auth/kakao/callback/page.vue'
 import SignUpPage from '@/pages/auth/sign-up/page.vue'
 import SignUpDetailsPage from '@/pages/auth/sign-up/details/page.vue'
 import SignUpTermsPage from '@/pages/auth/sign-up/terms/page.vue'
-import GuardianPairingCodePage from '@/pages/guardian/pairing/code.vue'
+import GuardChargePage from '@/pages/guard/charge/page.vue'
+import GuardHistoryPage from '@/pages/guard/history/page.vue'
+import GuardLayout from '@/pages/guard/layout.vue'
+import GuardMyPage from '@/pages/guard/my/page.vue'
+import GuardPage from '@/pages/guard/page.vue'
+import GuardianPairingCodePage from '@/pages/guard/pairing/code.vue'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
 import { requireCompletedPairing } from '@/pages/ward/pairing/-utils/pairing-route-guard'
@@ -80,7 +85,37 @@ const router = createRouter({
       component: SignUpTermsPage,
     },
     {
-      path: '/guardian/pairing/code',
+      path: '/guard',
+      component: GuardLayout,
+      children: [
+        {
+          path: '',
+          name: 'guard-home',
+          component: GuardPage,
+          meta: { activeNavigation: 'home' },
+        },
+        {
+          path: 'charge',
+          name: 'guard-charge',
+          component: GuardChargePage,
+          meta: { activeNavigation: 'charge' },
+        },
+        {
+          path: 'history',
+          name: 'guard-history',
+          component: GuardHistoryPage,
+          meta: { activeNavigation: 'history' },
+        },
+        {
+          path: 'my',
+          name: 'guard-my',
+          component: GuardMyPage,
+          meta: { activeNavigation: 'my' },
+        },
+      ],
+    },
+    {
+      path: '/guard/pairing/code',
       name: 'guardian-pairing-code',
       component: GuardianPairingCodePage,
     },

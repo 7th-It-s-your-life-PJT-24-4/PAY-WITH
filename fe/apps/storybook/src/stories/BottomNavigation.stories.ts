@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { BottomNavigation } from '@pay-with/ui'
 
-const guardianItems = [
+const guardItems = [
   { value: 'home', label: '홈' },
   { value: 'charge', label: '충전' },
   { value: 'history', label: '내역' },
@@ -19,8 +19,8 @@ const meta = {
   component: BottomNavigation,
   args: {
     active: 'home',
-    items: guardianItems,
-    variant: 'guardian',
+    items: guardItems,
+    variant: 'guard',
   },
   decorators: [
     () => ({
