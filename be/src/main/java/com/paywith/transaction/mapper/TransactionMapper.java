@@ -3,6 +3,7 @@ package com.paywith.transaction.mapper;
 import com.paywith.charge.dto.ChargeDetailResponse;
 import com.paywith.charge.dto.ChargeHistoryItem;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transfer.dto.TransferExecutionContext;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -24,6 +25,9 @@ public interface TransactionMapper {
             @Param("balanceAfter") Long balanceAfter,
             @Param("completedAt") LocalDateTime completedAt
     );
+
+    // 보호자 승인 후속 처리(HELD 시점엔 PreparedTransfer이 없으니까) - transactionId로 잔액차감/입금에 필요한 정보 재조회 (지갑, 수취인, 금액 등)
+    TransferExecutionContext findExecutionContextByTransactionId(@Param("transactionId") Long transactionId);
 
     //보호자 충전 내역
     List<ChargeHistoryItem> findChargeHistoriesByGuardId(Long guardId);

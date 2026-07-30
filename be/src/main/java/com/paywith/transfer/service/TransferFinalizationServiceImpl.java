@@ -6,6 +6,7 @@ import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.fds.domain.RiskLevel;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.PreparedTransfer;
+import com.paywith.transfer.dto.TransferExecutionContext;
 import com.paywith.transfer.dto.TransferRequest;
 import com.paywith.transfer.dto.TransferResponse;
 import com.paywith.wallet.domain.Wallet;
@@ -55,10 +56,37 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
                     .build();
         }
 
+        TransferExecutionContext context = TransferExecutionContext.builder()
+                .transactionId(transactionId)
+                .walletId(prepared.getWallet().getWalletId())
+                .userId(prepared.getWallet().getUserId())
+                .bankCode(request.getBankCode())
+                .bankName(prepared.getInquiryResponse().getBankName())
+                .accountNo(request.getAccountNo())
+                .holderName(prepared.getInquiryResponse().getAccountHolderName())
+                .amount(request.getAmount())
+                .memo(request.getMemo())
+                .build();
+
+        return executeCompletion(context);
+    }
+
+    @Override
+    public TransferResponse finalizeApprovedTransfer(Long transactionId) {
+        TransferExecutionContext context = transactionMapper.findExecutionContextByTransactionId(transactionId);
+        if (context == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND,
+                    "거래 정보를 찾을 수 없습니다. transactionId=" + transactionId);
+        }
+        return executeCompletion(context);
+    }
+
+    private TransferResponse executeCompletion(TransferExecutionContext context) {
+        Long transactionId = context.getTransactionId();
         // 7~9는 아직 외부에 아무 영향이 없는 구간(내부 DB만) -> 하나의 트랜잭션으로 묶어서
         // 실패하면 통째로 롤백되게 한다. TransactionTemplate을 쓰는 이유는, 같은 클래스 안에서
         // deposit() 호출 전까지만 트랜잭션을 걸고 싶은데 @Transactional은 self-invocation으로
-        // 나눌 수 없기 때문 (여기서는 finalize()가 한 메서드라 프록시 경계를 못 만든다).
+        // 나눌 수 없기 때문 (여기서는 finalize()가 한 메서드라 프록시 경계X
         Long balanceAfter = transactionTemplate.execute(status -> {
             // 7. 아니라면 status는 PROCESSING으로 업데이트
             // update 거래 실패 시 확인
@@ -70,23 +98,23 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
 
             // 8. 잔액 조건부 차감
             int affectedRows = walletMapper.decreaseBalanceIfSufficient(
-                    prepared.getWallet().getWalletId(), request.getAmount());
+                    context.getWalletId(), context.getAmount());
             if (affectedRows == 0) {
                 throw new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "송금 가능한 잔액이 부족합니다.");
             }
 
             // 9. 최신 거래 반영 (잔액 재조회)
-            Wallet updatedWallet = walletMapper.findWalletByUserId(prepared.getWallet().getUserId());
+            Wallet updatedWallet = walletMapper.findWalletByUserId(context.getUserId());
             return updatedWallet.getBalance();
         });
 
         // 10. 입금 이체
         // 여기서부터 "돌아올 수 없는 지점" 외부 API를 불러오기 때문 -> 실패해도 위 트랜잭션은 이미 커밋된 뒤라
-        // 잔액 차감을 되돌릴 수 없고, 외부로 나가는 호출이라 우리 쪽에서 취소도 불가능하다.
+        // 잔액 차감을 되돌릴 수 없고, 외부로 나가는 호출이라 우리 쪽에서 취소도 불가능
         // 그래서 이 아래는 실패 시 일반 RuntimeException이 아니라 TransferIrrecoverableException을 던져서
-        // TransferServiceImpl이 "재시도 허용" 대신 "실패로 확정"하도록 신호를 준다.
+        // TransferServiceImpl이 "재시도 허용" 대신 "실패로 확정"
         try {
-            openBankingClient.deposit(request.getBankCode(), request.getAccountNo(), request.getAmount());
+            openBankingClient.deposit(context.getBankCode(), context.getAccountNo(), context.getAmount());
         } catch (RuntimeException e) {
             markFailed(transactionId, "입금 처리 중 오류: " + e.getMessage());
             throw new TransferIrrecoverableException(
@@ -110,12 +138,12 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
         return TransferResponse.builder()
                 .transactionId(transactionId)
                 .status("COMPLETED")
-                .holderName(prepared.getInquiryResponse().getAccountHolderName())
-                .bankCode(request.getBankCode())
-                .bankName(prepared.getInquiryResponse().getBankName())
-                .accountNo(request.getAccountNo())
-                .amount(request.getAmount())
-                .memo(request.getMemo())
+                .holderName(context.getHolderName())
+                .bankCode(context.getBankCode())
+                .bankName(context.getBankName())
+                .accountNo(context.getAccountNo())
+                .amount(context.getAmount())
+                .memo(context.getMemo())
                 .completedAt(completedAt)
                 .balanceAfter(balanceAfter)
                 .build();
