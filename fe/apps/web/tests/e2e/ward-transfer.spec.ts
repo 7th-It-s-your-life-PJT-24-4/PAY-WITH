@@ -123,7 +123,9 @@ test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다',
   await expect(page).toHaveURL(/\/ward\/transfer$/)
 })
 
-test('이상 거래 승인 대기와 재송금 제한 화면을 표시한다', async ({ page }) => {
+test('이상 거래 승인 대기 중에도 새 송금을 시작할 수 있다', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/ward/transfer')
 
@@ -155,6 +157,10 @@ test('이상 거래 승인 대기와 재송금 제한 화면을 표시한다', a
   ).toBeVisible()
   await page.getByRole('button', { name: '취소', exact: true }).click()
 
+  await expect(
+    page.getByRole('button', { name: '홈에서 기다리기' }),
+  ).toBeVisible()
+
   await page.getByRole('button', { name: '거래 취소하기' }).click()
   await expect(
     page.getByRole('dialog', { name: '대기 중인 거래를 취소할까요?' }),
@@ -165,14 +171,23 @@ test('이상 거래 승인 대기와 재송금 제한 화면을 표시한다', a
   await expect(page).toHaveURL(/\/ward\/home$/)
 
   await page.getByRole('button', { name: '송금하기' }).click()
-  await expect(page).toHaveURL(/\/ward\/transfer\/74\/restricted$/)
+  await expect(page).toHaveURL(/\/ward\/transfer$/)
   await expect(
-    page.getByRole('heading', { name: '거래 제한 안내' }),
+    page.getByRole('heading', { name: '누구에게 보낼까요?' }),
   ).toBeVisible()
-  await expect(page.getByText('거래를 진행할 수 없습니다')).toBeVisible()
+})
 
-  await page.getByRole('button', { name: '홈으로', exact: true }).click()
+test('승인 대기 거래를 유지하고 홈에서 기다린다', async ({ page }) => {
+  await page.goto('/ward/transfer/74/held')
+
+  await page.getByRole('button', { name: '홈에서 기다리기' }).click()
+
   await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(
+    page.getByRole('button', {
+      name: '송금 김민수 님에게 50,000원 상세 확인',
+    }),
+  ).toBeVisible()
 })
 
 test('보호자 전화 확인 후 연결된 번호로 전화를 건다', async ({ page }) => {
