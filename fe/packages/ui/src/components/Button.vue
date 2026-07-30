@@ -30,7 +30,7 @@ const variantClass = computed(
   () =>
     ({
       primary:
-        'border-action bg-action text-on-action hover:bg-action-active active:bg-action-active',
+        'border-action bg-action text-on-action hover:border-action-active hover:bg-action-active active:border-action-active active:bg-action-active disabled:hover:border-action disabled:hover:bg-action',
       secondary:
         'border-disabled bg-disabled text-body hover:border-border-strong',
       'outline-primary':
