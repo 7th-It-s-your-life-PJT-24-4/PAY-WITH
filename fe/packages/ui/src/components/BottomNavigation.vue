@@ -83,7 +83,7 @@ function getItemClasses(value: string) {
   <!-- Ward Variant Navigation -->
   <nav
     v-if="variant === 'ward'"
-    class="relative mx-auto flex w-full max-w-[390px] items-end justify-center overflow-x-clip bg-surface-card pb-[env(safe-area-inset-bottom)] filter drop-shadow-[0_-8px_20px_rgba(8,13,18,0.12)]"
+    class="relative mx-auto flex w-full max-w-[390px] items-end justify-center overflow-x-clip pb-[env(safe-area-inset-bottom)] filter drop-shadow-[0_-8px_20px_rgba(8,13,18,0.12)]"
     :aria-label="ariaLabel"
   >
     <!-- 중앙 홈 원형 버튼 -->
