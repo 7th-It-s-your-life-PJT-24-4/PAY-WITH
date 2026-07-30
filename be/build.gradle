@@ -76,6 +76,11 @@ dependencies {
     testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
     testImplementation "org.assertj:assertj-core:${assertjVersion}"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher:${junitPlatformVersion}"
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+    testImplementation 'com.jayway.jsonpath:json-path:2.9.0'
+    testImplementation 'org.glassfish:javax.el:3.0.0'
+    testImplementation "org.springframework:spring-test:${springVersion}"
+    testImplementation "org.springframework.security:spring-security-test:${springSecurityVersion}"
 }
 
 test {

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.paywith.payment.mapper.PaymentRequestMapper">
+  <resultMap id="PaymentRequestResultMap" type="com.paywith.payment.domain.PaymentRequest">
+    <id property="paymentId" column="payment_id" />
+    <result property="walletId" column="wallet_id" />
+    <result property="seniorId" column="senior_id" />
+    <result property="qrToken" column="qr_token" />
+    <result property="status" column="status" />
+    <result property="transactionId" column="transaction_id" />
+    <result property="merchantId" column="merchant_id" />
+    <result property="amount" column="amount" />
+    <result property="failureCode" column="failure_code" />
+    <result property="expiresAt" column="expires_at" />
+    <result property="createdAt" column="created_at" />
+    <result property="updatedAt" column="updated_at" />
+    <result property="merchantName" column="merchant_name" />
+    <result property="paidAt" column="paid_at" />
+    <result property="remainingBalance" column="remaining_balance" />
+  </resultMap>
+
+  <resultMap id="PaymentWalletResultMap" type="com.paywith.payment.domain.PaymentWallet">
+    <id property="walletId" column="wallet_id" />
+    <result property="balance" column="balance" />
+    <result property="status" column="status" />
+    <result property="pin" column="pin" />
+  </resultMap>
+
+  <select id="findUserRole" resultType="string">
+    SELECT role
+    FROM users
+    WHERE user_id = #{userId}
+  </select>
+
+  <select id="existsActivePairing" resultType="boolean">
+    SELECT EXISTS (
+      SELECT 1
+      FROM guard_senior
+      WHERE senior_id = #{seniorId}
+        AND status = 'ACTIVE'
+    )
+  </select>
+
+  <select id="findWalletByUserId" resultMap="PaymentWalletResultMap">
+    SELECT wallet_id, balance, status, pin
+    FROM wallets
+    WHERE user_id = #{userId}
+  </select>
+
+  <insert id="insert" parameterType="com.paywith.payment.domain.PaymentRequest"
+          useGeneratedKeys="true" keyProperty="paymentId">
+    INSERT INTO payment_requests (wallet_id, senior_id, qr_token, status, expires_at)
+    VALUES (#{walletId}, #{seniorId}, #{qrToken}, #{status}, #{expiresAt})
+  </insert>
+
+  <select id="findById" resultMap="PaymentRequestResultMap">
+    SELECT pr.payment_id, pr.wallet_id, pr.senior_id, pr.qr_token, pr.status,
+           pr.transaction_id, pr.merchant_id, pr.amount, pr.failure_code,
+           pr.expires_at, pr.created_at, pr.updated_at,
+           m.name AS merchant_name,
+           t.completed_at AS paid_at,
+           t.balance_after AS remaining_balance
+    FROM payment_requests pr
+    LEFT JOIN merchants m ON m.merchant_id = pr.merchant_id
+    LEFT JOIN transactions t ON t.transaction_id = pr.transaction_id
+    WHERE pr.payment_id = #{paymentId}
+  </select>
+
+  <select id="findByToken" resultMap="PaymentRequestResultMap">
+    SELECT pr.payment_id, pr.wallet_id, pr.senior_id, pr.qr_token, pr.status,
+           pr.transaction_id, pr.merchant_id, pr.amount, pr.failure_code,
+           pr.expires_at, pr.created_at, pr.updated_at
+    FROM payment_requests pr
+    WHERE pr.qr_token = #{qrToken}
+  </select>
+
+  <update id="markExpiredIfPending">
+    UPDATE payment_requests
+    SET status = 'EXPIRED'
+    WHERE payment_id = #{paymentId}
+      AND status = 'PENDING'
+      AND expires_at &lt;= NOW()
+  </update>
+
+  <update id="cancelIfPending">
+    UPDATE payment_requests
+    SET status = 'CANCELED'
+    WHERE payment_id = #{paymentId}
+      AND status = 'PENDING'
+      AND expires_at &gt; NOW()
+  </update>
+</mapper>
