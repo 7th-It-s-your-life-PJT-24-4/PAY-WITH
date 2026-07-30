@@ -1,5 +1,6 @@
 package com.paywith.external.openbanking;
 
+import com.paywith.external.openbanking.dto.DepositResponse;
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
 import com.paywith.external.openbanking.dto.WithdrawResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,9 +66,22 @@ public class OpenBankingClient {
         response.setBankCodeStd(bankCodeStd);
         response.setBankName(resolveMockBankName(bankCodeStd));
         response.setAccountNum(accountNum);
-        response.setAccountHolderName("홍길동"); // 임시 고정값
+        response.setAccountHolderName(resolveMockHolderName(accountNum));
         response.setAccountType("1");
         return response;
+    }
+
+    // 계좌번호 별로 수취인 다르게 임시 매핑
+    private String resolveMockHolderName(String accountNum) {
+        return switch (accountNum) {
+            case "11012300006781" -> "김시니어";
+            case "11012300006782" -> "이보호자";
+            case "22011122223333" -> "김준호";
+            case "33044455556666" -> "박지연";
+            case "44077788889999" -> "최영희";
+            case "55011112222333" -> "정민수";
+            default -> "홍길동";  // 등록 안 된 계좌번호는 기본값
+        };
     }
 
     // bankCode에 맞는 은행명을 대충 흉내내기 위한 임시 매핑 (실제로는 banks 테이블/join으로 이미 처리 중)
@@ -153,5 +167,13 @@ public class OpenBankingClient {
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
         return restTemplate.postForObject(url, request, Map.class);
+    }
+
+    // 송금용 확인 메서드 (TODO: 입금 이체 api 연동)
+    public DepositResponse deposit(String bankCodeStd, String accountNum, Long amount) {
+        DepositResponse response = new DepositResponse();
+        response.setRspCode("A0000");
+        response.setTranAmt(amount);
+        return response;
     }
 }

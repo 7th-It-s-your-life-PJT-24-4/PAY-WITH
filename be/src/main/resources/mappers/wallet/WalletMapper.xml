@@ -8,10 +8,16 @@
     <select id="findWalletByUserIdForUpdate" parameterType="Long"
             resultType="com.paywith.wallet.domain.Wallet">
         SELECT
-        wallet_id, user_id, balance, status, created_at, updated_at
+        wallet_id, user_id, balance, status, pin, created_at, updated_at
         FROM wallets
         WHERE user_id = #{userId}
         FOR UPDATE
+    </select>
+
+    <select id="findWalletByUserId" resultType="com.paywith.wallet.domain.Wallet">
+        SELECT wallet_id, user_id, balance, status, pin, created_at, updated_at
+        FROM wallets
+        WHERE user_id = #{userId}
     </select>
 
     <update id="increaseBalance">
@@ -19,6 +25,14 @@
         SET balance = balance + #{amount},
         updated_at = NOW()
         WHERE wallet_id = #{walletId}
+    </update>
+
+    <update id="decreaseBalanceIfSufficient">
+        UPDATE wallets
+        SET balance = balance - #{amount},
+        updated_at = NOW()
+        WHERE wallet_id = #{walletId}
+        AND balance >= #{amount
     </update>
 
 </mapper>
