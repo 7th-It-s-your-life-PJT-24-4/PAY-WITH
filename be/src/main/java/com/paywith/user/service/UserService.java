@@ -54,15 +54,12 @@ public class UserService {
         user.setName(request.getName());
         user.setBirthDate(parseBirthDate(request.getBirthDate()));
         user.setGender(request.getGender());
+        user.setPin(passwordEncoder.encode(request.getPaymentPassword()));
         userMapper.insert(user);
 
-        if (user.getRole() == Role.SENIOR) {
-            if (request.getPaymentPassword() == null || request.getPaymentPassword().isBlank()) {
-                throw new BusinessException(HttpStatus.BAD_REQUEST, "SENIOR 회원은 결제 비밀번호가 필요합니다.");
-            }
+        if (user.getRole() == Role.WARD) {
             Wallet wallet = new Wallet();
             wallet.setUserId(user.getId());
-            wallet.setPin(passwordEncoder.encode(request.getPaymentPassword()));
             walletMapper.insert(wallet);
         }
 
@@ -89,7 +86,7 @@ public class UserService {
         try {
             return Role.valueOf(role);
         } catch (IllegalArgumentException exception) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "role은 SENIOR 또는 GUARD여야 합니다.");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "role은 WARD 또는 GUARD여야 합니다.");
         }
     }
 

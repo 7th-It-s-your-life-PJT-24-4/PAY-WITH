@@ -23,8 +23,8 @@
 
     <insert id="insert" parameterType="com.paywith.wallet.domain.Wallet"
             useGeneratedKeys="true" keyProperty="walletId" keyColumn="wallet_id">
-        INSERT INTO wallets (user_id, pin)
-        VALUES (#{userId}, #{pin})
+        INSERT INTO wallets (user_id)
+        VALUES (#{userId})
     </insert>
 
 </mapper>

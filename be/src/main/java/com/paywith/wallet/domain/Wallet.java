@@ -16,7 +16,6 @@ public class Wallet {
     private Long userId;
     private Long balance;
     private String status;
-    private String pin;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
