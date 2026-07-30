@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@pay-with/ui": "workspace:*",
+    "@phosphor-icons/vue": "catalog:",
     "@tanstack/vue-query": "catalog:",
     "@lucide/vue": "catalog:",
     "ky": "catalog:",

@@ -12,12 +12,12 @@ const props = withDefaults(
   defineProps<{
     items: NavigationItem[]
     active: string
-    variant?: 'guardian' | 'ward'
+    variant?: 'guard' | 'ward'
     centerActionValue?: string
     ariaLabel?: string
   }>(),
   {
-    variant: 'guardian',
+    variant: 'guard',
     centerActionValue: undefined,
     ariaLabel: '주요 메뉴',
   },
@@ -27,18 +27,11 @@ const emit = defineEmits<{
   navigate: [value: string]
 }>()
 
-function isCenterAction(value: string) {
-  return (
-    props.variant === 'ward' &&
-    (props.centerActionValue === value ||
-      (!props.centerActionValue && value === 'home'))
-  )
-}
-
 const centerItem = computed(() => {
   if (props.centerActionValue) {
     return props.items.find((item) => item.value === props.centerActionValue)
   }
+
   return (
     props.items.find((item) => item.value === 'home') ??
     props.items[1] ??
@@ -54,6 +47,7 @@ const leftItem = computed(() => {
 const rightItem = computed(() => {
   const centerVal = centerItem.value?.value
   const leftVal = leftItem.value?.value
+
   return (
     props.items.find(
       (item) => item.value !== centerVal && item.value !== leftVal,
@@ -61,21 +55,24 @@ const rightItem = computed(() => {
   )
 })
 
-function getItemClasses(value: string) {
-  if (isCenterAction(value)) {
-    return [
-      'type-h1 -mt-[45px] m-auto size-[120px] rounded-full',
-      'bg-gradient-to-b from-primary-700 to-primary-500 text-on-action',
-      'shadow-[0_8px_24px_rgb(8_13_18/18%)]',
-      'hover:from-primary-600 hover:to-primary-400',
-      'active:from-primary-500 active:to-primary-400',
-    ]
-  }
-
+function getGuardItemClasses(value: string) {
   return [
-    props.variant === 'ward' ? 'type-h1' : 'type-h4',
-    props.active === value ? 'text-primary-300' : 'text-body',
+    '!justify-start gap-0 pt-[12px]',
+    props.active === value ? '!text-primary-500' : '!text-gray-700',
   ]
+}
+
+function getGuardTextStyle(value: string) {
+  return {
+    color:
+      props.active === value
+        ? 'var(--color-primary-500)'
+        : 'var(--color-gray-700)',
+    fontSize: '12px',
+    fontWeight: '500',
+    lineHeight: 'normal',
+    letterSpacing: '0',
+  }
 }
 </script>
 
@@ -112,9 +109,9 @@ function getItemClasses(value: string) {
           aria-hidden="true"
         />
       </slot>
-      <span class="text-2xl font-semibold leading-none text-white">{{
-        centerItem.label
-      }}</span>
+      <span class="text-2xl font-semibold leading-none text-white">
+        {{ centerItem.label }}
+      </span>
     </button>
 
     <!-- 좌우 버튼 트랙 컨테이너 (높이 80px) -->
@@ -160,9 +157,9 @@ function getItemClasses(value: string) {
               aria-hidden="true"
             />
           </slot>
-          <span class="text-2xl font-bold leading-none text-black">{{
-            leftItem.label
-          }}</span>
+          <span class="text-2xl font-bold leading-none text-black">
+            {{ leftItem.label }}
+          </span>
         </div>
       </button>
 
@@ -205,28 +202,27 @@ function getItemClasses(value: string) {
               aria-hidden="true"
             />
           </slot>
-          <span class="text-2xl font-bold leading-none text-black">{{
-            rightItem.label
-          }}</span>
+          <span class="text-2xl font-bold leading-none text-black">
+            {{ rightItem.label }}
+          </span>
         </div>
       </button>
     </div>
   </nav>
 
-  <!-- Guardian / Standard Variant Navigation -->
+  <!-- Guard Variant Navigation -->
   <nav
     v-else
-    class="grid h-bottom-nav w-full border-t border-border bg-surface-card shadow-[0_-2px_5px_rgb(0_0_0/4%)]"
+    class="grid h-[66px] w-full border-t border-border bg-surface-card"
     :style="{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }"
     :aria-label="ariaLabel"
   >
     <button
       v-for="item in items"
       :key="item.value"
-      class="relative flex min-h-touch-target flex-col items-center justify-center gap-xxs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
-      :class="getItemClasses(item.value)"
+      class="relative flex min-h-touch-target flex-col items-center justify-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+      :class="getGuardItemClasses(item.value)"
       type="button"
-      :data-center-action="isCenterAction(item.value) || undefined"
       :aria-current="active === item.value ? 'page' : undefined"
       @click="emit('navigate', item.value)"
     >
@@ -234,11 +230,16 @@ function getItemClasses(value: string) {
         <component
           :is="item.icon"
           v-if="item.icon"
-          :class="isCenterAction(item.value) ? 'size-12' : 'size-6'"
+          class="size-6"
           aria-hidden="true"
         />
       </slot>
-      <span>{{ item.label }}</span>
+      <span
+        class="m-0 block text-[12px] font-medium leading-[normal] tracking-[0]"
+        :style="getGuardTextStyle(item.value)"
+      >
+        {{ item.label }}
+      </span>
     </button>
   </nav>
 </template>

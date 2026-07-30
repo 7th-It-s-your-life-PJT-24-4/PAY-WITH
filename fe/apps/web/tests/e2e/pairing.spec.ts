@@ -4,10 +4,10 @@ test('보호자가 직접 접속해 인증 코드를 생성하고 복사한다',
   await page.setViewportSize({ width: 390, height: 820 })
   await page.goto('/ward/home')
   await page.evaluate(() => {
-    globalThis.history.pushState({}, '', '/guardian/pairing/code')
+    globalThis.history.pushState({}, '', '/guard/pairing/code')
     globalThis.dispatchEvent(new PopStateEvent('popstate'))
   })
-  await expect(page).toHaveURL(/\/guardian\/pairing\/code$/)
+  await expect(page).toHaveURL(/\/guard\/pairing\/code$/)
 
   const dialog = page.getByRole('dialog', {
     name: '인증 코드를 생성할까요?',
@@ -23,7 +23,7 @@ test('보호자가 직접 접속해 인증 코드를 생성하고 복사한다',
   await expect(page).toHaveURL((url) => url.pathname === '/ward/home')
   await page.goForward()
 
-  await expect(page).toHaveURL(/\/guardian\/pairing\/code$/)
+  await expect(page).toHaveURL(/\/guard\/pairing\/code$/)
   await expect(page.getByText('72941')).toBeVisible()
   await expect(page.getByText('0:00')).toBeHidden()
 })

@@ -12,6 +12,9 @@ catalogs:
     '@lucide/vue':
       specifier: ^1.25.0
       version: 1.25.0
+    '@phosphor-icons/vue':
+      specifier: ^2.2.1
+      version: 2.2.1
     '@playwright/test':
       specifier: ^1.61.1
       version: 1.61.1
@@ -164,6 +167,9 @@ importers:
       '@pay-with/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@phosphor-icons/vue':
+        specifier: 'catalog:'
+        version: 2.2.1(vue@3.5.39(typescript@6.0.3))
       '@tanstack/vue-query':
         specifier: 'catalog:'
         version: 5.101.2(vue@3.5.39(typescript@6.0.3))
@@ -937,6 +943,14 @@ packages:
       }
     peerDependencies:
       vue: '>=3.0.1'
+
+  '@phosphor-icons/vue@2.2.1':
+    resolution:
+      {
+        integrity: sha512-3RNg1utc2Z5RwPKWFkW3eXI/0BfQAwXgtFxPUPeSzi55jGYUq16b+UqcgbKLazWFlwg5R92OCLKjDiJjeiJcnA==,
+      }
+    peerDependencies:
+      vue: '>=3.2.39'
 
   '@napi-rs/wasm-runtime@1.1.6':
     resolution:
@@ -5087,6 +5101,10 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.5
 
   '@lucide/vue@1.25.0(vue@3.5.39(typescript@6.0.3))':
+    dependencies:
+      vue: 3.5.39(typescript@6.0.3)
+
+  '@phosphor-icons/vue@2.2.1(vue@3.5.39(typescript@6.0.3))':
     dependencies:
       vue: 3.5.39(typescript@6.0.3)
 
