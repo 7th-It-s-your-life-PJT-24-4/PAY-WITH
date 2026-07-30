@@ -6,8 +6,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** 보호자가 보는 값이라 rule_id 는 내보내지 않는다. */
-@ApiModel(description = "보류 사유 한 건")
+/**
+ * 보호자가 보는 값이라 rule_id 와 룰별 점수는 내보내지 않는다.
+ *
+ * <p>룰별 점수를 노출하면 응답 몇 건으로 배점 테이블을 역산할 수 있고, 그러면 위험 임계값
+ * 아래로 맞추는 송금 설계가 가능해진다. 크기 감각은 합산값(totalScore)만으로 전달하며,
+ * 근거의 우선순위는 점수 대신 배열 순서(점수 큰 순)로 표현한다.
+ */
+@ApiModel(description = "보류 사유 한 건. 배열 순서가 근거의 우선순위다")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,7 +24,4 @@ public class ApprovalRuleHitResponse {
 
     @ApiModelProperty(value = "룰 설명", example = "메모에 위험 키워드 포함")
     private String description;
-
-    @ApiModelProperty(value = "적용 점수. 블랙리스트 확정 건은 0", example = "25")
-    private Integer score;
 }

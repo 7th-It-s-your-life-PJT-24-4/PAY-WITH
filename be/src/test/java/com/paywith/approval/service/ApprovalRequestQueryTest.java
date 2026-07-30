@@ -66,11 +66,10 @@ class ApprovalRequestQueryTest {
         return view;
     }
 
-    private ApprovalRuleHitResponse ruleHit(String code, String description, int score) {
+    private ApprovalRuleHitResponse ruleHit(String code, String description) {
         ApprovalRuleHitResponse hit = new ApprovalRuleHitResponse();
         hit.setRuleCode(code);
         hit.setDescription(description);
-        hit.setScore(score);
         return hit;
     }
 
@@ -118,14 +117,17 @@ class ApprovalRequestQueryTest {
     void findDetail_includesRuleHits() {
         given(approvalRequestMapper.findByIdAndGuardId(APPROVAL_ID, GUARD_ID)).willReturn(view());
         given(approvalRequestMapper.findRuleHits(TRANSACTION_ID)).willReturn(List.of(
-            ruleHit("SUSPICIOUS_MEMO", "메모에 위험 키워드 포함", 25),
-            ruleHit("NEW_RECIPIENT", "처음 송금하는 신규 수취인", 15)));
+            ruleHit("SUSPICIOUS_MEMO", "메모에 위험 키워드 포함"),
+            ruleHit("NEW_RECIPIENT", "처음 송금하는 신규 수취인")));
 
         ApprovalRequestDetailResponse result = service.findDetail(APPROVAL_ID, GUARD_ID);
 
+        // 합산 점수는 유지하고 룰별 점수만 내보내지 않는다
         assertThat(result.getTotalScore()).isEqualTo(64);
         assertThat(result.getRuleHits()).hasSize(2);
+        // 배열 순서가 근거의 우선순위(점수 큰 순)를 전달한다
         assertThat(result.getRuleHits().get(0).getRuleCode()).isEqualTo("SUSPICIOUS_MEMO");
+        assertThat(result.getRuleHits().get(1).getRuleCode()).isEqualTo("NEW_RECIPIENT");
     }
 
     // 담당이 아닌 보호자, 그리고 이미 처리·만료된 건은 매퍼가 null 을 돌려주므로 조회 자체가 막힌다

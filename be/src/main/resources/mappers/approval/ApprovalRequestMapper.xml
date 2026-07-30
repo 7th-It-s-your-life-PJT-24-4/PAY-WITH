@@ -102,8 +102,9 @@
       AND expired_at &gt; NOW()
   </update>
 
+  <!-- 점수는 정렬에만 쓰고 내보내지 않는다. 배열 순서가 우선순위를 전달한다. -->
   <select id="findRuleHits" resultType="com.paywith.approval.dto.ApprovalRuleHitResponse">
-    SELECT rr.rule_code, rr.description, red.score
+    SELECT rr.rule_code, rr.description
     FROM risk_evaluations re
     JOIN risk_evaluation_details red ON red.evaluation_id = re.evaluation_id
     JOIN risk_rules rr ON rr.rule_id = red.rule_id

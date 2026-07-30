@@ -48,7 +48,7 @@ public class ApprovalRequestDetailResponse {
     @ApiModelProperty(value = "승인 만료 시각")
     private final LocalDateTime expiredAt;
 
-    @ApiModelProperty(value = "보류 사유. 점수가 큰 순")
+    @ApiModelProperty(value = "보류 사유. 근거가 큰 순으로 정렬되며 룰별 점수는 내보내지 않는다")
     private final List<ApprovalRuleHitResponse> ruleHits;
 
     public ApprovalRequestDetailResponse(ApprovalRequestView view, List<ApprovalRuleHitResponse> ruleHits) {
