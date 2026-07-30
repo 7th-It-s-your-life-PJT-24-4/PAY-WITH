@@ -24,7 +24,7 @@ public class ApprovalRequestSummaryResponse {
     private final BigDecimal amount;
 
     @ApiModelProperty(value = "수취인 예금주명", example = "박수취")
-    private final String recipientName;
+    private final String holderName;
 
     @ApiModelProperty(value = "수취 은행", example = "신한은행")
     private final String bankName;
@@ -43,7 +43,7 @@ public class ApprovalRequestSummaryResponse {
         this.seniorId = view.getSeniorId();
         this.seniorName = view.getSeniorName();
         this.amount = view.getAmount();
-        this.recipientName = view.getRecipientName();
+        this.holderName = view.getHolderName();
         this.bankName = view.getBankName();
         this.riskLevel = view.getRiskLevel();
         this.requestedAt = view.getRequestedAt();

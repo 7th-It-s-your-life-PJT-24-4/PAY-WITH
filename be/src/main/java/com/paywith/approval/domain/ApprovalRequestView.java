@@ -26,8 +26,8 @@ public class ApprovalRequestView {
     private BigDecimal amount;
     private String memo;
 
-    /** 수취인 정보. 거래에 recipient_id 가 없으면 null 이 된다. */
-    private String recipientName;
+    /** 수취인 정보. 거래에 recipient_id 가 없으면 null 이 된다. 이름은 recipients.holder_name 을 따른다. */
+    private String holderName;
     private String bankName;
     private String accountNo;
 

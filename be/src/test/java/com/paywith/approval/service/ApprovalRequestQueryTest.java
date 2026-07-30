@@ -56,7 +56,7 @@ class ApprovalRequestQueryTest {
         view.setSeniorName("김시니어");
         view.setAmount(new BigDecimal("2000000"));
         view.setMemo("검찰 수사 협조 요청");
-        view.setRecipientName("박수취");
+        view.setHolderName("박수취");
         view.setBankName("신한은행");
         view.setAccountNo("110234567890");
         view.setRiskLevel("DANGER");

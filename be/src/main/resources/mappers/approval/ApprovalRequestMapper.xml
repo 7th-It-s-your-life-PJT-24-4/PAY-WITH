@@ -19,7 +19,7 @@
     <result property="seniorName"    column="senior_name" />
     <result property="amount"        column="amount" />
     <result property="memo"          column="memo" />
-    <result property="recipientName" column="recipient_name" />
+    <result property="holderName"    column="holder_name" />
     <result property="bankName"      column="bank_name" />
     <result property="accountNo"     column="account_no" />
     <result property="riskLevel"     column="risk_level" />
@@ -36,7 +36,7 @@
     senior.name       AS senior_name,
     t.amount,
     t.memo,
-    r.holder_name     AS recipient_name,
+    r.holder_name,
     b.bank_name,
     r.account_no,
     re.risk_level,
