@@ -30,14 +30,14 @@ public class ApprovalRequestController {
     @ApiOperation(
         value = "승인 대기 목록",
         notes = "로그인한 보호자가 담당하는 시니어들의 승인 대기 건을 만료 임박 순으로 반환한다. "
-            + "이미 처리했거나 만료된 건은 제외한다. seniorId 를 주면 그 피보호자 건만 조회한다.")
+            + "이미 처리했거나 만료된 건은 제외한다. wardId 를 주면 그 피보호자 건만 조회한다.")
     @GetMapping
     public ApiResponse<List<ApprovalRequestSummaryResponse>> findPending(
         @ApiIgnore @AuthenticationPrincipal Long guardId,
         @ApiParam(value = "피보호자 ID. 생략하면 담당 피보호자 전체", example = "42")
-        @RequestParam(required = false) Long seniorId
+        @RequestParam(required = false) Long wardId
     ) {
-        return ApiResponse.success(approvalRequestService.findPending(guardId, seniorId));
+        return ApiResponse.success(approvalRequestService.findPending(guardId, wardId));
     }
 
     @ApiOperation(

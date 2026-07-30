@@ -20,8 +20,8 @@ public class ApprovalRequestView {
     private LocalDateTime requestedAt;
     private LocalDateTime expiredAt;
 
-    private Long seniorId;
-    private String seniorName;
+    private Long wardId;
+    private String wardName;
 
     private BigDecimal amount;
     private String memo;

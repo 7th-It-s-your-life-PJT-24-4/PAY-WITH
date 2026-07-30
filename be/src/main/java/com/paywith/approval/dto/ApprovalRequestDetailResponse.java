@@ -15,11 +15,11 @@ public class ApprovalRequestDetailResponse {
     @ApiModelProperty(value = "승인요청 ID", example = "1")
     private final Long approvalId;
 
-    @ApiModelProperty(value = "송금을 요청한 시니어 ID", example = "42")
-    private final Long seniorId;
+    @ApiModelProperty(value = "송금을 요청한 피보호자 ID", example = "42")
+    private final Long wardId;
 
-    @ApiModelProperty(value = "송금을 요청한 시니어 이름", example = "김시니어")
-    private final String seniorName;
+    @ApiModelProperty(value = "송금을 요청한 피보호자 이름", example = "김시니어")
+    private final String wardName;
 
     @ApiModelProperty(value = "송금 금액(원)", example = "2000000")
     private final BigDecimal amount;
@@ -53,8 +53,8 @@ public class ApprovalRequestDetailResponse {
 
     public ApprovalRequestDetailResponse(ApprovalRequestView view, List<ApprovalRuleHitResponse> ruleHits) {
         this.approvalId = view.getApprovalId();
-        this.seniorId = view.getSeniorId();
-        this.seniorName = view.getSeniorName();
+        this.wardId = view.getWardId();
+        this.wardName = view.getWardName();
         this.amount = view.getAmount();
         this.memo = view.getMemo();
         this.holderName = view.getHolderName();

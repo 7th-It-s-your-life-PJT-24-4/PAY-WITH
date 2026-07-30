@@ -19,12 +19,12 @@ public interface ApprovalRequestMapper {
      * <p>guard_senior 를 ACTIVE 로 조인하므로 담당이 아닌 시니어의 건은 애초에 조회되지 않는다.
      * 만료 배치가 없어 expired_at 으로 거른다.
      *
-     * @param seniorId null 이면 담당 전체, 값이 있으면 그 피보호자 건만. 담당이 아닌 값을 주면
+     * @param wardId null 이면 담당 전체, 값이 있으면 그 피보호자 건만. 담당이 아닌 값을 주면
      *                 담당 조인에서 걸려 빈 목록이 된다.
      */
     List<ApprovalRequestView> findPendingByGuardId(
         @Param("guardId") Long guardId,
-        @Param("seniorId") Long seniorId);
+        @Param("wardId") Long wardId);
 
     /**
      * 승인 대기 건의 상세. 목록과 같은 조건(대기 중 + 미만료)을 걸어 두 조회가 "대기 중"을 같은

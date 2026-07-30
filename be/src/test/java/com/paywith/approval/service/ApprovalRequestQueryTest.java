@@ -30,7 +30,7 @@ import org.springframework.http.HttpStatus;
 class ApprovalRequestQueryTest {
 
     private static final Long GUARD_ID = 10L;
-    private static final Long SENIOR_ID = 42L;
+    private static final Long WARD_ID = 42L;
     private static final Long APPROVAL_ID = 100L;
     private static final Long TRANSACTION_ID = 500L;
 
@@ -52,8 +52,8 @@ class ApprovalRequestQueryTest {
         ApprovalRequestView view = new ApprovalRequestView();
         view.setApprovalId(APPROVAL_ID);
         view.setTransactionId(TRANSACTION_ID);
-        view.setSeniorId(SENIOR_ID);
-        view.setSeniorName("김시니어");
+        view.setWardId(WARD_ID);
+        view.setWardName("김시니어");
         view.setAmount(new BigDecimal("2000000"));
         view.setMemo("검찰 수사 협조 요청");
         view.setHolderName("박수취");
@@ -81,8 +81,8 @@ class ApprovalRequestQueryTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getApprovalId()).isEqualTo(APPROVAL_ID);
-        assertThat(result.get(0).getSeniorId()).isEqualTo(SENIOR_ID);
-        assertThat(result.get(0).getSeniorName()).isEqualTo("김시니어");
+        assertThat(result.get(0).getWardId()).isEqualTo(WARD_ID);
+        assertThat(result.get(0).getWardName()).isEqualTo("김시니어");
         assertThat(result.get(0).getRiskLevel()).isEqualTo("DANGER");
     }
 
@@ -93,21 +93,21 @@ class ApprovalRequestQueryTest {
         assertThat(service.findPending(GUARD_ID, null)).isEmpty();
     }
 
-    // seniorId 는 그대로 매퍼에 전달되어 SQL 조건으로 쓰인다
+    // wardId 는 그대로 매퍼에 전달되어 SQL 조건으로 쓰인다
     @Test
-    void findPending_passesSeniorIdToMapper() {
-        given(approvalRequestMapper.findPendingByGuardId(GUARD_ID, SENIOR_ID))
+    void findPending_passesWardIdToMapper() {
+        given(approvalRequestMapper.findPendingByGuardId(GUARD_ID, WARD_ID))
             .willReturn(List.of(view()));
 
-        List<ApprovalRequestSummaryResponse> result = service.findPending(GUARD_ID, SENIOR_ID);
+        List<ApprovalRequestSummaryResponse> result = service.findPending(GUARD_ID, WARD_ID);
 
         assertThat(result).hasSize(1);
-        then(approvalRequestMapper).should().findPendingByGuardId(GUARD_ID, SENIOR_ID);
+        then(approvalRequestMapper).should().findPendingByGuardId(GUARD_ID, WARD_ID);
     }
 
     // 담당이 아닌 피보호자 ID 를 줘도 매퍼의 담당 조인에서 걸려 빈 목록이 된다(권한 오류가 아님)
     @Test
-    void findPending_returnsEmptyWhenSeniorIsNotInCharge() {
+    void findPending_returnsEmptyWhenWardIsNotInCharge() {
         given(approvalRequestMapper.findPendingByGuardId(GUARD_ID, 999L)).willReturn(List.of());
 
         assertThat(service.findPending(GUARD_ID, 999L)).isEmpty();
