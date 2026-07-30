@@ -33,17 +33,17 @@ const initialMockTransfers = (): TransferDetail[] => [
   {
     transactionId: 73,
     status: 'COMPLETED',
-    recipientName: '김민수',
+    holderName: '김민수',
     bankCode: '004',
     bankName: '국민은행',
-    accountNumber: '432102-01-234567',
+    accountNo: '432102-01-234567',
     amount: 50_000,
     memo: null,
     requestedAt: '2026-07-24T14:30:00+09:00',
-    approvalExpiresAt: '2026-07-24T14:40:00+09:00',
+    expiredAt: '2026-07-24T14:40:00+09:00',
     respondedAt: '2026-07-24T14:32:00+09:00',
     completedAt: '2026-07-24T14:32:01+09:00',
-    remainingBalance: 1_200_000,
+    balanceAfter: 1_200_000,
     riskAnalysis: { riskScore: 0, reasons: [] },
     failureCode: null,
     failureMessage: null,
@@ -51,22 +51,22 @@ const initialMockTransfers = (): TransferDetail[] => [
   {
     transactionId: 74,
     status: 'HELD',
-    recipientName: '김민수',
+    holderName: '김민수',
     bankCode: '004',
     bankName: '국민은행',
-    accountNumber: '432102-01-234567',
+    accountNo: '432102-01-234567',
     amount: 50_000,
     memo: null,
     requestedAt: '2026-07-24T14:30:00+09:00',
-    approvalExpiresAt: '2026-07-24T14:40:00+09:00',
+    expiredAt: '2026-07-24T14:40:00+09:00',
     respondedAt: null,
     completedAt: null,
-    remainingBalance: null,
+    balanceAfter: null,
     riskAnalysis: {
       riskScore: 80,
       reasons: [
         {
-          code: 'HIGH_AMOUNT',
+          ruleCode: 'HIGH_AMOUNT',
           description: '평소보다 큰 금액의 송금입니다.',
           score: 80,
         },
@@ -78,22 +78,22 @@ const initialMockTransfers = (): TransferDetail[] => [
   {
     transactionId: 75,
     status: 'REJECTED',
-    recipientName: '이지혜',
+    holderName: '이지혜',
     bankCode: '004',
     bankName: 'KB국민은행',
-    accountNumber: '123123890123',
+    accountNo: '123123890123',
     amount: 500_000,
     memo: null,
     requestedAt: '2026-07-24T14:30:00+09:00',
-    approvalExpiresAt: '2026-07-24T14:40:00+09:00',
+    expiredAt: '2026-07-24T14:40:00+09:00',
     respondedAt: '2026-07-24T14:36:00+09:00',
     completedAt: null,
-    remainingBalance: null,
+    balanceAfter: null,
     riskAnalysis: {
       riskScore: 80,
       reasons: [
         {
-          code: 'NEW_RECIPIENT',
+          ruleCode: 'NEW_RECIPIENT',
           description: '처음 송금하는 수취인입니다.',
           score: 80,
         },
@@ -105,22 +105,22 @@ const initialMockTransfers = (): TransferDetail[] => [
   {
     transactionId: 76,
     status: 'HELD',
-    recipientName: '박지연',
+    holderName: '박지연',
     bankCode: '088',
     bankName: '신한은행',
-    accountNumber: '110-234-567890',
+    accountNo: '110-234-567890',
     amount: 30_000,
     memo: null,
     requestedAt: '2026-07-24T15:00:00+09:00',
-    approvalExpiresAt: '2026-07-24T15:10:00+09:00',
+    expiredAt: '2026-07-24T15:10:00+09:00',
     respondedAt: null,
     completedAt: null,
-    remainingBalance: null,
+    balanceAfter: null,
     riskAnalysis: {
       riskScore: 70,
       reasons: [
         {
-          code: 'NEW_RECIPIENT',
+          ruleCode: 'NEW_RECIPIENT',
           description: '처음 송금하는 수취인입니다.',
           score: 70,
         },
@@ -175,7 +175,7 @@ export async function advanceMockTransferStatus(
     respondedAt,
     completedAt:
       status === 'COMPLETED' ? '2026-07-24T14:36:01+09:00' : detail.completedAt,
-    remainingBalance: status === 'COMPLETED' ? 1_250_000 - detail.amount : null,
+    balanceAfter: status === 'COMPLETED' ? 1_250_000 - detail.amount : null,
   }
   setMockTransferDetail(next)
   return structuredClone(next)
@@ -221,7 +221,7 @@ export async function validateMockTransferAccount(
   if (accountNumber.endsWith('11111111'))
     throw new Error('계좌번호와 은행을 다시 확인해 주세요.')
 
-  return { recipientName: '김준호', bank, accountNumber }
+  return { holderName: '김준호', bank, accountNo: accountNumber }
 }
 
 export async function submitMockTransfer(pin: string, idempotencyKey: string) {

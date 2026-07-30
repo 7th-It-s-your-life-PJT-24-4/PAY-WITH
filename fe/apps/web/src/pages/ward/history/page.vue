@@ -38,7 +38,7 @@ const filteredTransactions = computed(() => {
       transaction.memo,
       transaction.methodLabel,
       transaction.transfer?.bankName,
-      transaction.transfer?.accountNumber,
+      transaction.transfer?.accountNo,
     ]
       .filter(Boolean)
       .join(' ')

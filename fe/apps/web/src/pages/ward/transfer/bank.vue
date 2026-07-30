@@ -40,7 +40,7 @@ async function proceed() {
       selectedBank.value,
       transferStore.accountNumber,
     )
-    transferStore.setVerifiedRecipient(account.recipientName, account.bank)
+    transferStore.setVerifiedRecipient(account.holderName, account.bank)
     await router.push({ name: 'ward-transfer-amount' })
   } catch (error) {
     errorMessage.value =

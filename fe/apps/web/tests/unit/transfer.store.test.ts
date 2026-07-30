@@ -105,7 +105,7 @@ describe('transfer store', () => {
     expect(store.transferResult?.status).toBe('HELD')
     expect(store.transferDetail).toMatchObject({
       transactionId: 74,
-      recipientName: '김민수',
+      holderName: '김민수',
       bankName: '국민은행',
       amount: 50_000,
     })
