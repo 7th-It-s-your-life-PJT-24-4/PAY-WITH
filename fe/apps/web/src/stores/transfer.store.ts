@@ -21,7 +21,7 @@ export interface TransferIntent {
   idempotencyKey: string
   bankCode: string
   bankName: string
-  accountNumber: string
+  accountNo: string
   amount: number
   memo: string | null
 }
@@ -91,7 +91,7 @@ export const useTransferStore = defineStore('transfer', () => {
       idempotencyKey,
       bankCode: getMockBankCode(bank.value),
       bankName: bank.value,
-      accountNumber: accountNumber.value.replaceAll('-', ''),
+      accountNo: accountNumber.value.replaceAll('-', ''),
       amount: amount.value,
       memo: memo.value.trim() || null,
     }
@@ -100,7 +100,7 @@ export const useTransferStore = defineStore('transfer', () => {
       currentIntent &&
       !transferResult.value &&
       currentIntent.bankCode === nextIntent.bankCode &&
-      currentIntent.accountNumber === nextIntent.accountNumber &&
+      currentIntent.accountNo === nextIntent.accountNo &&
       currentIntent.amount === nextIntent.amount &&
       currentIntent.memo === nextIntent.memo
     )
@@ -127,24 +127,24 @@ export const useTransferStore = defineStore('transfer', () => {
     return {
       transactionId,
       status,
-      recipientName: recipient.value?.name ?? '',
+      holderName: recipient.value?.name ?? '',
       bankCode: transferIntent.value?.bankCode ?? getMockBankCode(bank.value),
       bankName: bank.value,
-      accountNumber: accountNumber.value,
+      accountNo: accountNumber.value,
       amount: amount.value,
       memo: memo.value.trim() || null,
       requestedAt,
-      approvalExpiresAt: new Date(Date.now() + 10 * 60 * 1_000).toISOString(),
+      expiredAt: new Date(Date.now() + 10 * 60 * 1_000).toISOString(),
       respondedAt: completed ? requestedAt : null,
       completedAt: completed ? requestedAt : null,
-      remainingBalance: completed ? remainingBalance.value : null,
+      balanceAfter: completed ? remainingBalance.value : null,
       riskAnalysis: {
         riskScore: completed ? 0 : 80,
         reasons: completed
           ? []
           : [
               {
-                code: 'HIGH_AMOUNT',
+                ruleCode: 'HIGH_AMOUNT',
                 description: '평소보다 큰 금액의 송금입니다.',
                 score: 80,
               },

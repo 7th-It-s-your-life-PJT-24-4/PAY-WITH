@@ -12,13 +12,13 @@ const initialAccounts = (): ChargeAccount[] => [
     accountId: 7,
     bankCode: 'KB',
     bankName: 'KB국민은행',
-    accountNumber: '12345612123456',
+    accountNo: '12345612123456',
   },
   {
     accountId: 9,
     bankCode: 'NH',
     bankName: '농협은행',
-    accountNumber: '2345634234567',
+    accountNo: '2345634234567',
   },
 ]
 
@@ -55,7 +55,7 @@ export async function registerMockChargeAccount(
     accountId: nextAccountId++,
     bankCode: request.bankCode,
     bankName: bankNames[request.bankCode] ?? request.bankCode,
-    accountNumber: request.accountNumber,
+    accountNo: request.accountNo,
   }
   accounts.unshift(account)
   return { ...account }
@@ -66,10 +66,10 @@ export async function submitMockCharge(account: ChargeAccount, amount: number) {
   const result: ChargeResult = {
     transactionId: nextTransactionId++,
     status: 'COMPLETED',
-    chargedAmount: amount,
+    chargeAmount: amount,
     balanceAfter: 100_000 + amount,
     bankName: account.bankName,
-    accountNumber: account.accountNumber,
+    accountNo: account.accountNo,
     createdAt: new Date().toISOString(),
   }
   chargeResults.set(result.transactionId, result)

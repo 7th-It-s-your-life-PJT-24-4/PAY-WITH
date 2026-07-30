@@ -27,7 +27,7 @@ describe('transfer mock API', () => {
     await expect(request).resolves.toMatchObject({
       transactionId: 74,
       status: 'COMPLETED',
-      remainingBalance: 1_200_000,
+      balanceAfter: 1_200_000,
     })
   })
 

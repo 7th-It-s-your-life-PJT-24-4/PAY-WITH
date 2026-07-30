@@ -3,14 +3,14 @@ interface PendingTransactionBase {
   status: 'HELD'
   amount: number
   requestedAt: string
-  approvalExpiresAt: string
+  expiredAt: string
 }
 
 export interface PendingTransferTransaction extends PendingTransactionBase {
   type: 'TRANSFER'
-  recipientName: string
+  holderName: string
   bankName: string
-  accountNumber: string
+  accountNo: string
 }
 
 export interface PendingPaymentTransaction extends PendingTransactionBase {

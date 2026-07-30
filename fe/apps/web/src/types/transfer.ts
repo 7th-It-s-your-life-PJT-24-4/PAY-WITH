@@ -2,7 +2,7 @@ export type TransferStatus =
   'HELD' | 'COMPLETED' | 'REJECTED' | 'CANCELED' | 'EXPIRED' | 'FAILED'
 
 export interface TransferRiskReason {
-  code: string
+  ruleCode: string
   description: string
   score: number
 }
@@ -15,17 +15,17 @@ export interface TransferRiskAnalysis {
 export interface TransferDetail {
   transactionId: number
   status: TransferStatus
-  recipientName: string
+  holderName: string
   bankCode: string
   bankName: string
-  accountNumber: string
+  accountNo: string
   amount: number
   memo: string | null
   requestedAt: string
-  approvalExpiresAt: string
+  expiredAt: string
   respondedAt: string | null
   completedAt: string | null
-  remainingBalance: number | null
+  balanceAfter: number | null
   riskAnalysis: TransferRiskAnalysis
   failureCode: string | null
   failureMessage: string | null

@@ -53,12 +53,12 @@ onBeforeRouteLeave((to) => {
       <div class="mt-xl flex items-center gap-md border-t border-border pt-md">
         <span
           class="type-h2 flex size-12 items-center justify-center rounded-full bg-primary-900 text-primary-300"
-          >{{ transferDetail?.recipientName.slice(0, 1) }}</span
+          >{{ transferDetail?.holderName.slice(0, 1) }}</span
         >
         <div>
-          <h3 class="type-h4">{{ transferDetail?.recipientName }}</h3>
+          <h3 class="type-h4">{{ transferDetail?.holderName }}</h3>
           <p class="type-body-medium text-body-muted">
-            {{ transferDetail?.bankName }} {{ transferDetail?.accountNumber }}
+            {{ transferDetail?.bankName }} {{ transferDetail?.accountNo }}
           </p>
         </div>
       </div>
