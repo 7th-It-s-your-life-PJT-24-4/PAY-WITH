@@ -8,6 +8,7 @@ overrides:
 catalog:
   '@eslint/js': ^10.0.1
   '@lucide/vue': ^1.25.0
+  '@phosphor-icons/vue': ^2.2.1
   '@playwright/test': ^1.61.1
   '@storybook/vue3-vite': ^10.2.9
   '@tailwindcss/postcss': ^4.3.2
