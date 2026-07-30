@@ -1,4 +1,4 @@
-CREATE DATABASE pay_with;
+CREATE DATABASE IF NOT EXISTS pay_with;
 USE pay_with;
 
 SET NAMES utf8mb4;
@@ -33,12 +33,13 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- 1. users — 회원 (시니어/보호자 공용, 전화번호 로그인)
 CREATE TABLE users (
                        user_id     BIGINT       NOT NULL AUTO_INCREMENT,
-                       role        ENUM('SENIOR','GUARD') NOT NULL,
+                       role        ENUM('WARD','GUARD') NOT NULL,
                        name        VARCHAR(50)  NOT NULL,
                        phone       VARCHAR(20)  NOT NULL,
                        password    VARCHAR(255) NOT NULL,               -- BCrypt 해시
                        birth_date  DATE         NOT NULL,
                        gender      CHAR(1)      NOT NULL COMMENT '남 또는 여',
+                       pin         VARCHAR(255) NOT NULL COMMENT '결제/충전 확인용 6자리 PIN(BCrypt 해시). WARD는 결제, GUARD는 충전 대행 시 사용. password(로그인)와 별개',
                        fcm_token   VARCHAR(255) NULL,
                        status      ENUM('PENDING_PAIRING','ACTIVE','WITHDRAWN') NOT NULL DEFAULT 'PENDING_PAIRING',
                        created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -68,17 +69,15 @@ CREATE TABLE guard_senior (
 -- 2. 지갑 · 거래
 -- =====================================================================
 
--- 3. wallets — 전자지갑 (SENIOR 전용, 1인 1지갑) [v2.6]
---    지갑은 role='SENIOR' 회원에게만 생성한다. 보호자는 지갑을 갖지 않으며,
+-- 3. wallets — 전자지갑 (WARD 전용, 1인 1지갑) [v2.6]
+--    지갑은 role='WARD' 회원에게만 생성한다. 보호자는 지갑을 갖지 않으며,
 --    보호자의 시니어 지갑 충전 대행은 transactions.initiated_by 로만 표현.
 --    (MySQL은 users.role 교차 CHECK 불가 → 회원가입/지갑생성 서비스에서 강제)
 CREATE TABLE wallets (
                          wallet_id  BIGINT        NOT NULL AUTO_INCREMENT,
-                         user_id    BIGINT        NOT NULL,                -- SENIOR 회원만 (앱 로직 강제)
+                         user_id    BIGINT        NOT NULL,                -- WARD 회원만 (앱 로직 강제)
                          balance    DECIMAL(15,0) NOT NULL DEFAULT 0,      -- 원화, 소수점 없음
                          status     ENUM('ACTIVE','LOCKED') NOT NULL DEFAULT 'ACTIVE',
-                         pin        VARCHAR(255)  NOT NULL                 -- 송금/결제 확인용 6자리 PIN(BCrypt 해시)
-               COMMENT '송금/결제 확인용 6자리 PIN(BCrypt 해시). users.password(로그인)와 별개',
                          created_at DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
                          updated_at DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                          PRIMARY KEY (wallet_id),

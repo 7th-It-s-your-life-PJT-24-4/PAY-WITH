@@ -10,4 +10,7 @@ public interface WalletMapper {
 
     // 잔액 업데이트
     void increaseBalance(@Param("walletId") Long walletId, @Param("amount") Long amount);
+
+    //지갑 생성
+    void insert(Wallet wallet);
 }
