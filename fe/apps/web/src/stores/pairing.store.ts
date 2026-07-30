@@ -29,8 +29,8 @@ export const usePairingStore = defineStore('pairing', () => {
   const guardian = computed(() =>
     pairingResult.value
       ? {
-          id: pairingResult.value.guardianId,
-          name: pairingResult.value.guardianName,
+          id: pairingResult.value.guardId,
+          name: pairingResult.value.guardName,
         }
       : null,
   )

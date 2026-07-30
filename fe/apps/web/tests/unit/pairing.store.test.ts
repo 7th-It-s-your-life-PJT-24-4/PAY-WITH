@@ -31,8 +31,8 @@ describe('pairing store', () => {
     expect(store.isPaired).toBe(true)
     expect(store.guardian).toMatchObject({ name: '김철수' })
     expect(store.pairingResult).toMatchObject({
-      pairingId: 21,
-      guardianId: 7,
+      relationId: 21,
+      guardId: 7,
       status: 'ACTIVE',
     })
   })

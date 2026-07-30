@@ -14,9 +14,9 @@ export interface WardPairingRequest {
 }
 
 export interface WardPairingResponse {
-  pairingId: number
-  guardianId: number
-  guardianName: string
+  relationId: number
+  guardId: number
+  guardName: string
   status: 'ACTIVE'
-  pairedAt: string
+  connectedAt: string
 }

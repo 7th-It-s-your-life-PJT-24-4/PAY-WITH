@@ -10,11 +10,11 @@ const mockDelay = 300
 const pairingCodeLifetime = 5 * 60 * 1000
 
 export const mockActivePairing: WardPairingResponse = {
-  pairingId: 21,
-  guardianId: 7,
-  guardianName: '김철수',
+  relationId: 21,
+  guardId: 7,
+  guardName: '김철수',
   status: 'ACTIVE',
-  pairedAt: '2026-07-16T15:20:00+09:00',
+  connectedAt: '2026-07-16T15:20:00+09:00',
 }
 
 export class MockPairingError extends Error {
