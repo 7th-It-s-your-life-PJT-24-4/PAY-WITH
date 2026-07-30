@@ -38,7 +38,7 @@ const variantClass = computed(
       danger:
         'border-error bg-error text-on-semantic hover:brightness-95 active:brightness-90',
       'outline-danger':
-        'border-error bg-surface-card text-error hover:bg-error/10',
+        'border-error bg-surface-card text-error hover:bg-error hover:text-on-semantic hover:brightness-95 active:bg-error active:text-on-semantic active:brightness-90 disabled:hover:bg-surface-card disabled:hover:text-error disabled:hover:brightness-100',
       text: 'border-transparent bg-transparent text-primary-300 hover:bg-primary-900',
       'guard-cta':
         'border-transparent bg-primary-500 text-white hover:enabled:bg-primary-400 active:enabled:bg-primary-300 disabled:bg-gray-700',
