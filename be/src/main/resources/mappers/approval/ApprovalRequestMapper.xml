@@ -15,6 +15,7 @@
     <result property="transactionId" column="transaction_id" />
     <result property="requestedAt"   column="requested_at" />
     <result property="expiredAt"     column="expired_at" />
+    <result property="seniorId"      column="senior_id" />
     <result property="seniorName"    column="senior_name" />
     <result property="amount"        column="amount" />
     <result property="memo"          column="memo" />
@@ -31,6 +32,7 @@
     ar.transaction_id,
     ar.requested_at,
     ar.expired_at,
+    senior.user_id    AS senior_id,
     senior.name       AS senior_name,
     t.amount,
     t.memo,
@@ -52,12 +54,17 @@
     LEFT JOIN risk_evaluations re ON re.transaction_id = t.transaction_id
   </sql>
 
+  <!-- seniorId 를 주면 그 피보호자 건만 본다. 담당 조인이 앞에 있으므로 담당이 아닌
+       seniorId 를 넣어도 남의 건이 보이지 않고 빈 목록이 된다. -->
   <select id="findPendingByGuardId" resultMap="ApprovalRequestViewResultMap">
     SELECT <include refid="viewColumns" />
     <include refid="viewJoins" />
     WHERE gs.guard_id = #{guardId}
       AND ar.status = 'PENDING'
       AND ar.expired_at &gt; NOW()
+    <if test="seniorId != null">
+      AND senior.user_id = #{seniorId}
+    </if>
     ORDER BY ar.expired_at ASC
   </select>
 

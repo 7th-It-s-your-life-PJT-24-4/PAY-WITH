@@ -14,8 +14,12 @@ public interface ApprovalRequestService {
     /** FDS 위험(DANGER) 판정 시 승인요청을 생성한다. */
     ApprovalRequest create(Long transactionId);
 
-    /** 보호자가 담당하는 시니어들의 승인 대기 목록. 만료된 건은 제외한다. */
-    List<ApprovalRequestSummaryResponse> findPending(Long guardId);
+    /**
+     * 보호자가 담당하는 시니어들의 승인 대기 목록. 만료된 건은 제외한다.
+     *
+     * @param seniorId null 이면 담당 전체, 값이 있으면 그 피보호자 건만
+     */
+    List<ApprovalRequestSummaryResponse> findPending(Long guardId, Long seniorId);
 
     /** 승인 판단에 필요한 상세. 담당하지 않는 시니어의 건이면 404. */
     ApprovalRequestDetailResponse findDetail(Long approvalId, Long guardId);

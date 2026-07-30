@@ -14,6 +14,9 @@ public class ApprovalRequestSummaryResponse {
     @ApiModelProperty(value = "승인요청 ID", example = "1")
     private final Long approvalId;
 
+    @ApiModelProperty(value = "송금을 요청한 시니어 ID. 목록을 시니어별로 묶거나 필터링할 때 쓴다", example = "42")
+    private final Long seniorId;
+
     @ApiModelProperty(value = "송금을 요청한 시니어 이름", example = "김시니어")
     private final String seniorName;
 
@@ -37,6 +40,7 @@ public class ApprovalRequestSummaryResponse {
 
     public ApprovalRequestSummaryResponse(ApprovalRequestView view) {
         this.approvalId = view.getApprovalId();
+        this.seniorId = view.getSeniorId();
         this.seniorName = view.getSeniorName();
         this.amount = view.getAmount();
         this.recipientName = view.getRecipientName();

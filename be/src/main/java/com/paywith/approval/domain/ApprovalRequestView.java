@@ -20,6 +20,7 @@ public class ApprovalRequestView {
     private LocalDateTime requestedAt;
     private LocalDateTime expiredAt;
 
+    private Long seniorId;
     private String seniorName;
 
     private BigDecimal amount;

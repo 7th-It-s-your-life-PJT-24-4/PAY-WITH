@@ -45,8 +45,8 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
     }
 
     @Override
-    public List<ApprovalRequestSummaryResponse> findPending(Long guardId) {
-        return approvalRequestMapper.findPendingByGuardId(guardId).stream()
+    public List<ApprovalRequestSummaryResponse> findPending(Long guardId, Long seniorId) {
+        return approvalRequestMapper.findPendingByGuardId(guardId, seniorId).stream()
             .map(ApprovalRequestSummaryResponse::new)
             .collect(Collectors.toList());
     }
