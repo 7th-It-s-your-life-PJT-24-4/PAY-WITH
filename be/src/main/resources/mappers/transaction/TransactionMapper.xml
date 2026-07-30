@@ -21,6 +21,19 @@
         #{createdAt}, #{completedAt}
         )
     </insert>
+    <update id="updateStatus">
+        UPDATE transactions
+        SET status = #{status}
+        WHERE transaction_id = #{transactionId}
+    </update>
+
+    <update id="completeTransaction">
+        UPDATE transactions
+        SET status = #{status},
+        balance_after = #{balanceAfter},
+        completed_at = #{completedAt}
+        WHERE transaction_id = #{transactionId}
+    </update>
 
     <select id="findChargeHistoriesByGuardId" parameterType="Long"
             resultType="com.paywith.charge.dto.ChargeHistoryItem">

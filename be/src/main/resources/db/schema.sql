@@ -1,4 +1,4 @@
-CREATE DATABASE pay_with;
+CREATE DATABASE IF NOT EXISTS pay_with;
 USE pay_with;
 
 SET NAMES utf8mb4;

@@ -11,5 +11,5 @@ public interface TransferService {
     RecipientInquiryResponse inquireRecipient(RecipientInquiryRequest request);
 
     // 송금
-    TransferResponse transfer(Long userId, TransferRequest request);
+    TransferResponse transfer(Long userId, String idempotencyKey, TransferRequest request);
 }
