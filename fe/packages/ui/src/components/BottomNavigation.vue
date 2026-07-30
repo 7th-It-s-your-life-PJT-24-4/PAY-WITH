@@ -83,14 +83,14 @@ function getItemClasses(value: string) {
   <!-- Ward Variant Navigation -->
   <nav
     v-if="variant === 'ward'"
-    class="relative mx-auto flex w-full max-w-[390px] items-end justify-center overflow-x-clip pb-[env(safe-area-inset-bottom)] filter drop-shadow-[0_-8px_20px_rgba(8,13,18,0.12)]"
+    class="relative mx-auto flex w-full max-w-[390px] items-end justify-center overflow-x-clip bg-surface-card pb-[env(safe-area-inset-bottom)] filter drop-shadow-[0_-8px_20px_rgba(8,13,18,0.12)]"
     :aria-label="ariaLabel"
   >
     <!-- 중앙 홈 원형 버튼 -->
     <button
       v-if="centerItem"
       type="button"
-      class="absolute left-1/2 top-[-32px] z-30 flex size-[120px] -translate-x-1/2 flex-col items-center justify-center gap-1 rounded-full border-none bg-gradient-to-b from-[#99E0ED] to-[#00B1D2] text-white text-shadow-lg shadow-[0_6px_20px_rgba(0,177,210,0.35)] transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500 motion-reduce:transition-none"
+      class="absolute left-1/2 top-[-32px] z-30 flex size-[120px] -translate-x-1/2 flex-col items-center justify-center gap-1 rounded-full border-none bg-gradient-to-b from-[#99E0ED] to-[#00B1D2] text-white text-shadow-lg shadow-[0_6px_20px_rgba(0,177,210,0.35)] transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       :class="[
         active === centerItem.value
           ? 'brightness-110 font-bold'
@@ -125,7 +125,7 @@ function getItemClasses(value: string) {
       <button
         v-if="leftItem"
         type="button"
-        class="group relative flex flex-1 items-center justify-center border-none outline-none transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/40 focus-visible:ring-inset motion-reduce:transition-none hover:translate-y-[-4px]"
+        class="group relative flex flex-1 items-center justify-center border-none outline-none transition-all duration-200 hover:translate-y-[-4px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/40 focus-visible:ring-inset motion-reduce:transition-none motion-reduce:hover:translate-y-0"
         :class="[
           active === leftItem.value
             ? 'brightness-105 font-bold'
@@ -182,7 +182,7 @@ function getItemClasses(value: string) {
       <button
         v-if="rightItem"
         type="button"
-        class="group relative flex flex-1 items-center justify-center border-none outline-none transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/40 focus-visible:ring-inset motion-reduce:transition-none hover:translate-y-[-4px]"
+        class="group relative flex flex-1 items-center justify-center border-none outline-none transition-all duration-200 hover:translate-y-[-4px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/40 focus-visible:ring-inset motion-reduce:transition-none motion-reduce:hover:translate-y-0"
         :class="[
           active === rightItem.value
             ? 'brightness-105 font-bold'

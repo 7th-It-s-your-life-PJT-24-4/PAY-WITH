@@ -168,7 +168,7 @@ const router = createRouter({
           path: 'history',
           name: 'ward-transaction-history',
           component: WardTransactionHistoryPage,
-          meta: { title: '거래 내역', activeNavigation: 'history' },
+          meta: { title: '거래 내역' },
         },
         {
           path: 'history/:transactionId',
@@ -177,7 +177,6 @@ const router = createRouter({
           beforeEnter: requireWardTransaction,
           meta: {
             title: '거래 내역 상세',
-            activeNavigation: 'history',
             backRouteName: 'ward-transaction-history',
           },
         },

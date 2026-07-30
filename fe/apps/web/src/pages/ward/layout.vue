@@ -14,10 +14,11 @@ const headerTitle = computed(() => String(route.meta.title ?? 'PayWith'))
 const showBottomNavigation = computed(
   () => route.meta.showBottomNavigation !== false,
 )
-const activeNavigation = computed<WardNavigationValue>(() => {
+const activeNavigation = computed<WardNavigationValue | ''>(() => {
   const value = route.meta.activeNavigation
-  if (value === 'transfer' || value === 'payment') return value
-  return 'home'
+  if (value === 'transfer' || value === 'home' || value === 'payment')
+    return value
+  return ''
 })
 
 function goBack() {

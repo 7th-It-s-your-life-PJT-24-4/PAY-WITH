@@ -7,7 +7,7 @@ type WardNavigationValue = 'transfer' | 'home' | 'payment'
 
 withDefaults(
   defineProps<{
-    active?: WardNavigationValue
+    active?: WardNavigationValue | ''
   }>(),
   {
     active: 'home',
