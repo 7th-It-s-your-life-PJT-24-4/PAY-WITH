@@ -14,9 +14,10 @@ public class SwaggerConfig {
 
     @Bean
     public Docket api() {
+        // 컨트롤러가 도메인별 패키지(com.paywith.<domain>.controller)에 흩어져 있어 루트로 잡는다.
         return new Docket(DocumentationType.SWAGGER_2)
             .select()
-            .apis(RequestHandlerSelectors.basePackage("com.paywith.controller"))
+            .apis(RequestHandlerSelectors.basePackage("com.paywith"))
             .paths(PathSelectors.ant("/api/**"))
             .build();
     }
