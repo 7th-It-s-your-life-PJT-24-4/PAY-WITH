@@ -140,21 +140,9 @@ function getItemClasses(value: string) {
           preserveAspectRatio="none"
           aria-hidden="true"
         >
-          <defs>
-            <linearGradient
-              id="mint-gradient"
-              x1="0%"
-              y1="0%"
-              x2="100%"
-              y2="100%"
-            >
-              <stop offset="0%" stop-color="#ffffff" />
-              <stop offset="100%" stop-color="#ffffff" />
-            </linearGradient>
-          </defs>
           <path
             d="M200 70C192.203 69.359 184.616 67.1473 177.696 63.4978C170.776 59.8483 164.666 54.8366 159.733 48.7642C154.8 42.6917 150.277 33.0894 144.777 25.5894C139.277 18.0894 130.277 10.0894 122.277 6.58936C114.277 3.08936 99.2769 0 95.2769 0C91.2769 0 20 0 20 0C14.6957 0 9.6086 2.10714 5.85786 5.85786C2.10713 9.60859 0 14.6957 0 20V100H200V70Z"
-            fill="url(#mint-gradient)"
+            class="fill-surface-card"
           />
         </svg>
         <div
@@ -197,21 +185,9 @@ function getItemClasses(value: string) {
           preserveAspectRatio="none"
           aria-hidden="true"
         >
-          <defs>
-            <linearGradient
-              id="purple-gradient"
-              x1="0%"
-              y1="0%"
-              x2="100%"
-              y2="100%"
-            >
-              <stop offset="0%" stop-color="#ffffff" />
-              <stop offset="100%" stop-color="#ffffff" />
-            </linearGradient>
-          </defs>
           <path
             d="M0 70C7.79709 69.359 15.3839 67.1473 22.304 63.4978C29.224 59.8483 35.3342 54.8366 40.2669 48.7642C45.1995 42.6917 49.7231 33.0894 55.2231 25.5894C60.7231 18.0894 69.7231 10.0894 77.7231 6.58936C85.7231 3.08936 100.723 0 104.723 0C108.723 0 180 0 180 0C185.304 0 190.391 2.10714 194.142 5.85786C197.893 9.60859 200 14.6957 200 20V100H0V70Z"
-            fill="url(#purple-gradient)"
+            class="fill-surface-card"
           />
         </svg>
         <div
