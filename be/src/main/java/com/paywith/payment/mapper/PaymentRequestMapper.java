@@ -2,8 +2,10 @@ package com.paywith.payment.mapper;
 
 import com.paywith.payment.domain.PaymentRequest;
 import com.paywith.payment.domain.PaymentWallet;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+@Mapper
 public interface PaymentRequestMapper {
 
     /**
