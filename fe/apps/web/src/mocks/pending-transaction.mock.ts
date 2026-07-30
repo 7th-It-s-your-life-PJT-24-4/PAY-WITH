@@ -12,7 +12,7 @@ const mockHeldPayment: PendingPaymentTransaction = {
   paymentMethod: 'QR 결제',
   amount: 32_000,
   requestedAt: '2026-07-24T15:10:00+09:00',
-  approvalExpiresAt: '2026-07-24T15:20:00+09:00',
+  expiredAt: '2026-07-24T15:20:00+09:00',
 }
 
 let isMockHeldPaymentActive = true
@@ -26,12 +26,12 @@ export function getMockPendingTransactions(): PendingTransaction[] {
       transactionId: transfer.transactionId,
       type: 'TRANSFER',
       status: 'HELD',
-      recipientName: transfer.recipientName,
+      holderName: transfer.holderName,
       bankName: transfer.bankName,
-      accountNumber: transfer.accountNumber,
+      accountNo: transfer.accountNo,
       amount: transfer.amount,
       requestedAt: transfer.requestedAt,
-      approvalExpiresAt: transfer.approvalExpiresAt,
+      expiredAt: transfer.expiredAt,
     })
   }
 

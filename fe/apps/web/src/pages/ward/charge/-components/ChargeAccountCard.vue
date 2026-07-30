@@ -47,7 +47,7 @@ function select(accountId: number) {
         <span
           class="type-body-medium font-number block truncate text-body-muted"
         >
-          {{ selectedAccount.accountNumber }}
+          {{ selectedAccount.accountNo }}
         </span>
       </span>
       <ChevronDown
@@ -78,7 +78,7 @@ function select(accountId: number) {
           <span
             class="type-body-medium font-number block truncate text-body-muted"
           >
-            {{ account.accountNumber }}
+            {{ account.accountNo }}
           </span>
         </span>
         <Check

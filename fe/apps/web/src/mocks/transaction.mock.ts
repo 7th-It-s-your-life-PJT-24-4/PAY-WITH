@@ -34,9 +34,9 @@ export const mockWardTransactions: WardTransaction[] = [
     riskSummary: '안전한 거래입니다.',
     riskReasons: ['자주 돈을 주고받은 분이에요.'],
     transfer: {
-      recipientName: '김철수',
+      holderName: '김철수',
       bankName: '우리은행',
-      accountNumber: '1002123456789',
+      accountNo: '1002123456789',
     },
   },
   {
@@ -93,9 +93,9 @@ export const mockWardTransactions: WardTransaction[] = [
     riskSummary: '안전한 거래입니다.',
     riskReasons: ['이전에 돈을 보낸 적이 있는 분이에요.'],
     transfer: {
-      recipientName: '박영희',
+      holderName: '박영희',
       bankName: 'KB국민은행',
-      accountNumber: '12345612123456',
+      accountNo: '12345612123456',
     },
   },
   {

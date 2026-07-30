@@ -33,7 +33,7 @@ const chargeStore = useChargeStore()
       <div class="min-w-0">
         <h3 class="type-h3">{{ chargeStore.registeredAccount.bankName }}</h3>
         <p class="type-body-medium font-number truncate text-body-muted">
-          {{ chargeStore.registeredAccount.accountNumber }}
+          {{ chargeStore.registeredAccount.accountNo }}
         </p>
       </div>
     </article>

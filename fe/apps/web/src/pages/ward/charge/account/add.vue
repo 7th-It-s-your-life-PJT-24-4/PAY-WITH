@@ -66,7 +66,7 @@ async function registerAccount() {
   if (!canRegister.value) return
   const account = await chargeStore.registerAccount({
     bankCode: bankCode.value,
-    accountNumber: accountNumber.value,
+    accountNo: accountNumber.value,
     accountPassword: accountPassword.value,
   })
   accountPassword.value = ''

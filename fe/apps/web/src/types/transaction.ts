@@ -11,9 +11,9 @@ export interface PaymentTransactionDetail {
 }
 
 export interface TransferTransactionDetail {
-  recipientName: string
+  holderName: string
   bankName: string
-  accountNumber: string
+  accountNo: string
 }
 
 export interface WardTransaction {
