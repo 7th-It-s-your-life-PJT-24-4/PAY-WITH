@@ -3,6 +3,7 @@ package com.paywith.transfer.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paywith.exception.BusinessException;
+import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
 import com.paywith.fds.domain.RiskLevel;
@@ -74,6 +75,11 @@ public class TransferServiceImpl implements TransferService{
             if (!existing.getIdempotencyKey().equals(requestHash)) {
                 throw new BusinessException(HttpStatus.CONFLICT, "동일한 키로 다른 내용의 요청이 감지되었습니다.");
             }
+            if (existing.getStatus() == IdempotencyStatus.FAILED) {
+                // 입금(deposit) 호출 이후 실패로 확정된 요청 -> 자동 재실행 금지, 사람이 확인해야 함
+                throw new BusinessException(HttpStatus.CONFLICT,
+                        "이전 요청이 처리 중 실패했습니다. 잔액을 확인 후 고객센터로 문의해주세요.");
+            }
             // 같은 키 + 같은 요청 + 이미 완료 → 재실행 없이 이전 결과 그대로 반환
             return existing.getResponse();
         }
@@ -102,8 +108,16 @@ public class TransferServiceImpl implements TransferService{
 
             return response;
 
+        } catch (TransferIrrecoverableException e) {
+            // 입금(deposit) 호출 이후("돌아올 수 없는 지점" 통과 후) 실패 -> 키를 지우면 안 됨.
+            // 지우고 재시도를 허용하면 prepare()부터 다시 돌면서 deposit()이 또 호출되어 이중 입금이 된다.
+            // 그래서 삭제 대신 FAILED로 확정 기록해서, 같은 키로 다시 오면 재실행 없이 바로 실패 안내한다.
+            IdempotencyRecord failed = new IdempotencyRecord(IdempotencyStatus.FAILED, requestHash, null);
+            redisTemplate.opsForValue().set(key, toJson(failed), Duration.ofHours(24));
+            throw e;
         } catch (RuntimeException e) {
-            // 실패하면 키를 지워서 같은 idempotencyKey로 재시도할 수 있게 한다
+            // 그 이전 단계(prepare, FDS 평가, 잔액 차감) 실패는 외부에 아무 영향이 없으므로
+            // 키를 지워서 같은 idempotencyKey로 재시도할 수 있게 한다
             // (안 지우면 TTL 5분 동안 "처리중"에 계속 걸려있게 됨)
             redisTemplate.delete(key);
             throw e;

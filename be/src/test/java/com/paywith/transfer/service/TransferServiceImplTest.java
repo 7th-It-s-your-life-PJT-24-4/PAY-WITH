@@ -3,6 +3,7 @@ package com.paywith.transfer.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.paywith.exception.BusinessException;
+import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
 import com.paywith.fds.domain.RiskLevel;
@@ -244,6 +245,43 @@ class TransferServiceImplTest {
 
         verify(redisTemplate).delete(key);
         verify(valueOperations, never()).set(eq(key), anyString(), eq(Duration.ofHours(24)));
+    }
+
+    @Test
+    void 돌아올_수_없는_지점_이후_실패하면_키를_삭제하지_않고_FAILED로_확정한다() {
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.setIfAbsent(eq(key), anyString(), eq(Duration.ofMinutes(5))))
+                .willReturn(true);
+        given(transferPreparationService.prepare(userId, request)).willReturn(preparedTransfer);
+        given(fdsEvaluationService.evaluate(any(FdsEvaluationRequest.class))).willReturn(RiskLevel.SAFE);
+        given(transferFinalizationService.finalize(preparedTransfer, RiskLevel.SAFE, request))
+                .willThrow(new TransferIrrecoverableException("송금 처리 중 오류가 발생했습니다. transactionId=999"));
+
+        assertThatThrownBy(() -> transferService.transfer(userId, idempotencyKey, request))
+                .isInstanceOf(TransferIrrecoverableException.class);
+
+        // 삭제하면 안 된다 -> 삭제하면 재시도가 허용되어 prepare()부터 다시 돌면서 deposit()이 또 호출된다
+        verify(redisTemplate, never()).delete(key);
+        verify(valueOperations).set(eq(key), anyString(), eq(Duration.ofHours(24)));
+    }
+
+    @Test
+    void 이전_요청이_FAILED로_확정된_상태면_재실행하지_않고_안내_에러를_던진다() throws Exception {
+        IdempotencyRecord failed = new IdempotencyRecord(IdempotencyStatus.FAILED, hashRequest(request), null);
+
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.setIfAbsent(eq(key), anyString(), eq(Duration.ofMinutes(5))))
+                .willReturn(false);
+        String failedJson = objectMapper.writeValueAsString(failed);
+        given(valueOperations.get(key)).willReturn(failedJson);
+
+        assertThatThrownBy(() -> transferService.transfer(userId, idempotencyKey, request))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+                .hasMessageContaining("고객센터");
+
+        verify(transferPreparationService, never()).prepare(any(), any());
+        verify(transferFinalizationService, never()).finalize(any(), any(), any());
     }
 
     /**

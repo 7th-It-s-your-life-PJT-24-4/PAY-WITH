@@ -1,6 +1,7 @@
 package com.paywith.transfer.service;
 
 import com.paywith.exception.BusinessException;
+import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
 import com.paywith.fds.domain.RiskLevel;
@@ -19,6 +20,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.support.SimpleTransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 
@@ -27,7 +31,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,6 +48,9 @@ class TransferFinalizationServiceImplTest {
     @Mock
     private OpenBankingClient openBankingClient;
 
+    @Mock
+    private TransactionTemplate transactionTemplate;
+
     @InjectMocks
     private TransferFinalizationServiceImpl transferFinalizationService;
 
@@ -51,6 +60,13 @@ class TransferFinalizationServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        // finalize() 내부에서 transactionTemplate.execute(...)로 7~9번을 감싸므로,
+        // 콜백을 그대로 실행해주는 스텁이 필요하다 (HELD 분기 테스트는 이 스텁을 안 써서 lenient 처리)
+        lenient().when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
+            TransactionCallback<?> callback = invocation.getArgument(0);
+            return callback.doInTransaction(new SimpleTransactionStatus());
+        });
+
         request = new TransferRequest("004", "11012300006781", 50_000L, "생활비", "123456");
 
         Wallet wallet = Wallet.builder().walletId(10L).userId(userId).balance(100_000L).build();
@@ -134,5 +150,63 @@ class TransferFinalizationServiceImplTest {
 
         assertThat(result.getStatus()).isEqualTo("COMPLETED");
         verify(transactionMapper, never()).updateStatus(999L, "HELD");
+    }
+
+    // ===== "돌아올 수 없는 지점"(deposit 호출) 이후 실패 경로 =====
+
+    @Test
+    void 입금_호출이_실패하면_FAILED로_기록하고_TransferIrrecoverableException을_던진다() {
+        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(1);
+        given(walletMapper.findWalletByUserId(userId))
+                .willReturn(Wallet.builder().walletId(10L).userId(userId).balance(50_000L).build());
+        given(openBankingClient.deposit("004", "11012300006781", 50_000L))
+                .willThrow(new RuntimeException("네트워크 오류"));
+        given(transactionMapper.updateStatus(999L, "FAILED")).willReturn(1);
+
+        assertThatThrownBy(() -> transferFinalizationService.finalize(prepared, RiskLevel.SAFE, request))
+                .isInstanceOf(TransferIrrecoverableException.class)
+                .hasMessageContaining("transactionId=999");
+
+        verify(transactionMapper).updateStatus(999L, "FAILED");
+        verify(transactionMapper, never()).completeTransaction(any(), any(), any(), any());
+    }
+
+    @Test
+    void 완료_처리가_반복_실패하면_짧게_재시도한_뒤_FAILED로_기록한다() {
+        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(1);
+        given(walletMapper.findWalletByUserId(userId))
+                .willReturn(Wallet.builder().walletId(10L).userId(userId).balance(50_000L).build());
+        // 입금은 이미 성공, 완료 처리(completeTransaction)만 계속 0행(실패)
+        given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class)))
+                .willReturn(0);
+        given(transactionMapper.updateStatus(999L, "FAILED")).willReturn(1);
+
+        assertThatThrownBy(() -> transferFinalizationService.finalize(prepared, RiskLevel.SAFE, request))
+                .isInstanceOf(TransferIrrecoverableException.class);
+
+        // 입금은 재시도 없이 딱 1번만 호출돼야 한다 (이미 성공했으므로 다시 부르면 이중 입금)
+        verify(openBankingClient, times(1)).deposit("004", "11012300006781", 50_000L);
+        verify(transactionMapper, times(3))
+                .completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class));
+        verify(transactionMapper).updateStatus(999L, "FAILED");
+    }
+
+    @Test
+    void 완료_처리가_처음엔_실패했다가_재시도로_성공하면_정상_완료된다() {
+        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(1);
+        given(walletMapper.findWalletByUserId(userId))
+                .willReturn(Wallet.builder().walletId(10L).userId(userId).balance(50_000L).build());
+        given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class)))
+                .willReturn(0, 1); // 1차 실패, 2차 성공
+
+        TransferResponse result = transferFinalizationService.finalize(prepared, RiskLevel.SAFE, request);
+
+        assertThat(result.getStatus()).isEqualTo("COMPLETED");
+        verify(transactionMapper, times(2))
+                .completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class));
+        verify(transactionMapper, never()).updateStatus(999L, "FAILED");
     }
 }
