@@ -26,13 +26,13 @@ public class OpenBankingClient {
     private static final DateTimeFormatter TRAN_DTIME_FORMAT =
             DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
-    @Value("${kftc.api.base-url}")
+    @Value("${kftc.api.base-url:https://testapi.openbanking.or.kr}")
     private String baseUrl;
 
-    @Value("${kftc.client-id}")
+    @Value("${kftc.client-id:mock-client-id}")
     private String clientId;
 
-    @Value("${kftc.client-secret}")
+    @Value("${kftc.client-secret:mock-client-secret}")
     private String clientSecret;
 
     /** 접근토큰(Access Token) 발급 - 2-legged */
