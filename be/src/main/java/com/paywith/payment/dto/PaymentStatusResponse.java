@@ -1,5 +1,8 @@
 package com.paywith.payment.dto;
 
+import lombok.Getter;
+
+@Getter
 public class PaymentStatusResponse {
 
     private final Long paymentId;
@@ -35,45 +38,5 @@ public class PaymentStatusResponse {
         this.failureCode = failureCode;
         this.failureMessage = failureMessage;
         this.expiresAt = expiresAt;
-    }
-
-    public Long getPaymentId() {
-        return paymentId;
-    }
-
-    public Long getTransactionId() {
-        return transactionId;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public String getMerchantName() {
-        return merchantName;
-    }
-
-    public Long getAmount() {
-        return amount;
-    }
-
-    public String getPaidAt() {
-        return paidAt;
-    }
-
-    public Long getRemainingBalance() {
-        return remainingBalance;
-    }
-
-    public String getFailureCode() {
-        return failureCode;
-    }
-
-    public String getFailureMessage() {
-        return failureMessage;
-    }
-
-    public String getExpiresAt() {
-        return expiresAt;
     }
 }

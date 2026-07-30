@@ -1,5 +1,8 @@
 package com.paywith.payment.dto;
 
+import lombok.Getter;
+
+@Getter
 public class PaymentCancelResponse {
 
     private final Long paymentId;
@@ -10,17 +13,5 @@ public class PaymentCancelResponse {
         this.paymentId = paymentId;
         this.status = status;
         this.canceledAt = canceledAt;
-    }
-
-    public Long getPaymentId() {
-        return paymentId;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public String getCanceledAt() {
-        return canceledAt;
     }
 }

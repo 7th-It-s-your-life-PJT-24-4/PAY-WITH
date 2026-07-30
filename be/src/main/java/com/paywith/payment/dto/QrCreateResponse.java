@@ -1,5 +1,8 @@
 package com.paywith.payment.dto;
 
+import lombok.Getter;
+
+@Getter
 public class QrCreateResponse {
 
     private final Long paymentId;
@@ -20,25 +23,5 @@ public class QrCreateResponse {
         this.availableBalance = availableBalance;
         this.expiresAt = expiresAt;
         this.expiresInSeconds = expiresInSeconds;
-    }
-
-    public Long getPaymentId() {
-        return paymentId;
-    }
-
-    public String getQrToken() {
-        return qrToken;
-    }
-
-    public Long getAvailableBalance() {
-        return availableBalance;
-    }
-
-    public String getExpiresAt() {
-        return expiresAt;
-    }
-
-    public int getExpiresInSeconds() {
-        return expiresInSeconds;
     }
 }
