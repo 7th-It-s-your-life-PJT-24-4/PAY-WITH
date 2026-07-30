@@ -1,7 +1,7 @@
 package com.paywith.payment.service;
 
 import java.time.Duration;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,9 +16,9 @@ public class PaymentTokenStore {
 
     private static final String KEY_PREFIX = "qr:";
 
-    private final StringRedisTemplate redisTemplate;
+    private final RedisTemplate<String, String> redisTemplate;
 
-    public PaymentTokenStore(StringRedisTemplate redisTemplate) {
+    public PaymentTokenStore(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
