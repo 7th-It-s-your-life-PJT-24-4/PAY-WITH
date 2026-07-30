@@ -34,7 +34,7 @@ const variantClass = computed(
       secondary:
         'border-disabled bg-disabled text-body hover:border-border-strong',
       'outline-primary':
-        'border-primary-500 bg-surface-card text-primary-500 hover:bg-primary-900',
+        'border-primary-500 bg-surface-card text-primary-500 hover:border-primary-500 hover:bg-primary-500 hover:text-on-action active:border-action-active active:bg-action-active active:text-on-action disabled:hover:border-primary-500 disabled:hover:bg-surface-card disabled:hover:text-primary-500',
       danger:
         'border-error bg-error text-on-semantic hover:brightness-95 active:brightness-90',
       'outline-danger':
