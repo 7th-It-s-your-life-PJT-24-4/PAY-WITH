@@ -9,6 +9,7 @@ import com.paywith.transaction.domain.Transaction;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.PreparedTransfer;
 import com.paywith.transfer.dto.TransferRequest;
+import com.paywith.user.domain.Role;
 import com.paywith.user.domain.User;
 import com.paywith.user.mapper.UserMapper;
 import com.paywith.wallet.domain.Wallet;
@@ -41,8 +42,12 @@ public class TransferPreparationServiceImpl implements TransferPreparationServic
             throw new BusinessException(HttpStatus.BAD_REQUEST, "지갑을 찾을 수 없습니다");
         }
 
-        //2. transferPin 검증
+        //2. ward인지, transferPin 검증
         User user = userMapper.findById(userId);
+        if (user.getRole() != Role.WARD) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "송금은 피보호자만 이용할 수 있습니다.");
+        }
+
         if (!passwordEncoder.matches(request.getTransferPin(), user.getPin())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "송금 비밀번호가 올바르지 않습니다.");
         }

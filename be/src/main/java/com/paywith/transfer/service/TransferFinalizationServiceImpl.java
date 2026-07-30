@@ -58,7 +58,7 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
         // 7~9는 아직 외부에 아무 영향이 없는 구간(내부 DB만) -> 하나의 트랜잭션으로 묶어서
         // 실패하면 통째로 롤백되게 한다. TransactionTemplate을 쓰는 이유는, 같은 클래스 안에서
         // deposit() 호출 전까지만 트랜잭션을 걸고 싶은데 @Transactional은 self-invocation으로
-        // 나눌 수 없기 때문이다 (여기서는 finalize()가 한 메서드라 프록시 경계를 못 만든다).
+        // 나눌 수 없기 때문 (여기서는 finalize()가 한 메서드라 프록시 경계를 못 만든다).
         Long balanceAfter = transactionTemplate.execute(status -> {
             // 7. 아니라면 status는 PROCESSING으로 업데이트
             // update 거래 실패 시 확인
@@ -81,7 +81,7 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
         });
 
         // 10. 입금 이체
-        // 여기서부터 "돌아올 수 없는 지점" (point of no return) -> 실패해도 위 트랜잭션은 이미 커밋된 뒤라
+        // 여기서부터 "돌아올 수 없는 지점" 외부 API를 불러오기 때문 -> 실패해도 위 트랜잭션은 이미 커밋된 뒤라
         // 잔액 차감을 되돌릴 수 없고, 외부로 나가는 호출이라 우리 쪽에서 취소도 불가능하다.
         // 그래서 이 아래는 실패 시 일반 RuntimeException이 아니라 TransferIrrecoverableException을 던져서
         // TransferServiceImpl이 "재시도 허용" 대신 "실패로 확정"하도록 신호를 준다.

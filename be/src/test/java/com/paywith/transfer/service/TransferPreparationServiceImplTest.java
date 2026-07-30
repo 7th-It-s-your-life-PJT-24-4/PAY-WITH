@@ -9,6 +9,7 @@ import com.paywith.transaction.domain.Transaction;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.PreparedTransfer;
 import com.paywith.transfer.dto.TransferRequest;
+import com.paywith.user.domain.Role;
 import com.paywith.user.domain.User;
 import com.paywith.user.mapper.UserMapper;
 import com.paywith.wallet.domain.Wallet;
@@ -65,6 +66,7 @@ class TransferPreparationServiceImplTest {
         wallet = Wallet.builder().walletId(10L).userId(userId).balance(100_000L).build();
         user = new User();
         user.setPin("encodedPin");
+        user.setRole(Role.WARD);
     }
 
     @Test
@@ -75,6 +77,20 @@ class TransferPreparationServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
                 .hasMessageContaining("지갑을 찾을 수 없습니다");
+
+        verify(passwordEncoder, never()).matches(any(), any());
+    }
+
+    @Test
+    void 피보호자가_아니면_예외() {
+        given(walletMapper.findWalletByUserId(userId)).willReturn(wallet);
+        user.setRole(Role.GUARD);
+        given(userMapper.findById(userId)).willReturn(user);
+
+        assertThatThrownBy(() -> transferPreparationService.prepare(userId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+                .hasMessageContaining("피보호자만 이용할 수 있습니다");
 
         verify(passwordEncoder, never()).matches(any(), any());
     }
