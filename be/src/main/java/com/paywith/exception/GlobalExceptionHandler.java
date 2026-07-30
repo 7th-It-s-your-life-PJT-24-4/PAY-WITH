@@ -15,10 +15,10 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException exception) {
+    public ResponseEntity<ApiResponse<Object>> handleBusinessException(BusinessException exception) {
         return ResponseEntity
             .status(exception.getStatus())
-            .body(ApiResponse.error(exception.getMessage()));
+            .body(ApiResponse.error(exception.getCode(), exception.getMessage(), exception.getData()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

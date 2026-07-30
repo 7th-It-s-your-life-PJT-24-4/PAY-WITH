@@ -1,9 +1,14 @@
 package com.paywith.auth.controller;
 
 import com.paywith.auth.dto.LoginRequest;
+import com.paywith.auth.dto.PhoneCodeRequest;
+import com.paywith.auth.dto.PhoneCodeResponse;
+import com.paywith.auth.dto.PhoneVerifyRequest;
+import com.paywith.auth.dto.PhoneVerifyResponse;
 import com.paywith.auth.dto.RefreshTokenRequest;
 import com.paywith.auth.dto.TokenResponse;
 import com.paywith.auth.service.AuthService;
+import com.paywith.auth.service.PhoneVerificationService;
 import com.paywith.common.ApiResponse;
 import javax.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,9 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final PhoneVerificationService phoneVerificationService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, PhoneVerificationService phoneVerificationService) {
         this.authService = authService;
+        this.phoneVerificationService = phoneVerificationService;
     }
 
     @PostMapping("/login")
@@ -29,5 +36,15 @@ public class AuthController {
     @PostMapping("/refresh")
     public ApiResponse<TokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         return ApiResponse.success(authService.refresh(request));
+    }
+
+    @PostMapping("/phone/code")
+    public ApiResponse<PhoneCodeResponse> sendPhoneCode(@Valid @RequestBody PhoneCodeRequest request) {
+        return ApiResponse.success(phoneVerificationService.sendCode(request));
+    }
+
+    @PostMapping("/phone/verify")
+    public ApiResponse<PhoneVerifyResponse> verifyPhoneCode(@Valid @RequestBody PhoneVerifyRequest request) {
+        return ApiResponse.success(phoneVerificationService.verifyCode(request));
     }
 }
