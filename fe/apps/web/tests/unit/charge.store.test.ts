@@ -42,7 +42,7 @@ describe('charge store', () => {
     const store = useChargeStore()
     const request = store.registerAccount({
       bankCode: 'WOORI',
-      accountNumber: '1002123456789',
+      accountNo: '1002123456789',
       accountPassword: '1004',
     })
 
@@ -72,7 +72,7 @@ describe('charge store', () => {
     expect(store.processingStatus).toBe('success')
     expect(store.result).toMatchObject({
       status: 'COMPLETED',
-      chargedAmount: 50_000,
+      chargeAmount: 50_000,
       balanceAfter: 150_000,
     })
   })

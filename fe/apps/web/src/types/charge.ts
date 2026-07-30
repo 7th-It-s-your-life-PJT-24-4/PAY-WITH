@@ -2,22 +2,22 @@ export interface ChargeAccount {
   accountId: number
   bankCode: string
   bankName: string
-  accountNumber: string
+  accountNo: string
 }
 
 export interface RegisterChargeAccountRequest {
   bankCode: string
-  accountNumber: string
+  accountNo: string
   accountPassword: string
 }
 
 export interface ChargeResult {
   transactionId: number
   status: 'COMPLETED'
-  chargedAmount: number
+  chargeAmount: number
   balanceAfter: number
   bankName: string
-  accountNumber: string
+  accountNo: string
   createdAt: string
 }
 

@@ -40,9 +40,7 @@ function goHome() {
       <div class="flex items-center justify-between gap-md py-lg">
         <span class="type-h4 text-body-muted">충전 금액</span>
         <strong class="type-h2 text-primary-500">
-          <span class="font-number">{{
-            formatMoney(result.chargedAmount)
-          }}</span
+          <span class="font-number">{{ formatMoney(result.chargeAmount) }}</span
           >원
         </strong>
       </div>
@@ -51,7 +49,7 @@ function goHome() {
         <span class="text-right">
           <strong class="type-h4 block">{{ result.bankName }}</strong>
           <span class="type-body-medium font-number text-body-secondary">
-            {{ result.accountNumber }}
+            {{ result.accountNo }}
           </span>
         </span>
       </div>

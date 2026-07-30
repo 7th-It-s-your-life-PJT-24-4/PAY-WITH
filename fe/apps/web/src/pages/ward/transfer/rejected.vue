@@ -33,7 +33,7 @@ const detailRows = computed(() => {
     },
     {
       label: '받는 분 / 은행',
-      value: `${transfer.recipientName} / ${transfer.bankName}`,
+      value: `${transfer.holderName} / ${transfer.bankName}`,
       large: true,
     },
     {
