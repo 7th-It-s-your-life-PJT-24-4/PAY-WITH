@@ -5,6 +5,10 @@ import KakaoCallbackPage from '@/pages/auth/kakao/callback/page.vue'
 import SignUpPage from '@/pages/auth/sign-up/page.vue'
 import SignUpDetailsPage from '@/pages/auth/sign-up/details/page.vue'
 import SignUpTermsPage from '@/pages/auth/sign-up/terms/page.vue'
+import GuardianPairingCodePage from '@/pages/guardian/pairing/code.vue'
+import WardPairingCompletePage from '@/pages/ward/pairing/complete.vue'
+import WardPairingPage from '@/pages/ward/pairing/page.vue'
+import { requireCompletedPairing } from '@/pages/ward/pairing/-utils/pairing-route-guard'
 import WardChargeAccountAddPage from '@/pages/ward/charge/account/add.vue'
 import WardChargeAccountCompletePage from '@/pages/ward/charge/account/complete.vue'
 import WardChargeCompletePage from '@/pages/ward/charge/complete.vue'
@@ -76,6 +80,11 @@ const router = createRouter({
       component: SignUpTermsPage,
     },
     {
+      path: '/guardian/pairing/code',
+      name: 'guardian-pairing-code',
+      component: GuardianPairingCodePage,
+    },
+    {
       path: '/ward',
       component: WardLayout,
       children: [
@@ -84,6 +93,29 @@ const router = createRouter({
           name: 'ward-home',
           component: WardPage,
           meta: { title: 'PayWith', activeNavigation: 'payment' },
+        },
+        {
+          path: 'pairing',
+          name: 'ward-pairing',
+          component: WardPairingPage,
+          meta: {
+            title: '인증 코드 입력',
+            activeNavigation: 'payment',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
+        },
+        {
+          path: 'pairing/complete',
+          name: 'ward-pairing-complete',
+          component: WardPairingCompletePage,
+          beforeEnter: requireCompletedPairing,
+          meta: {
+            title: '연결 완료',
+            activeNavigation: 'payment',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
         },
         {
           path: 'payment',
