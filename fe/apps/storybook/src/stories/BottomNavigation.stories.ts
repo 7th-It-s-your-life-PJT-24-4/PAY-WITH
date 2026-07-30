@@ -10,8 +10,8 @@ const guardianItems = [
 
 const wardItems = [
   { value: 'transfer', label: '송금' },
+  { value: 'home', label: '홈' },
   { value: 'payment', label: '결제' },
-  { value: 'history', label: '내역' },
 ]
 
 const meta = {
@@ -45,9 +45,9 @@ export const Guardian: Story = {}
 
 export const Ward: Story = {
   args: {
-    active: 'payment',
+    active: 'home',
     items: wardItems,
     variant: 'ward',
-    centerActionValue: 'payment',
+    centerActionValue: 'home',
   },
 }

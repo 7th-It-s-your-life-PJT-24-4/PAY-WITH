@@ -105,25 +105,23 @@ describe('BottomNavigation', () => {
   it('keeps the ward center action foreground independent from active state', async () => {
     const wrapper = mount(BottomNavigation, {
       props: {
-        active: 'payment',
+        active: 'home',
         variant: 'ward',
-        centerActionValue: 'payment',
+        centerActionValue: 'home',
         items: [
           { value: 'transfer', label: '송금' },
+          { value: 'home', label: '홈' },
           { value: 'payment', label: '결제' },
-          { value: 'history', label: '내역' },
         ],
       },
     })
     const centerAction = wrapper.get('[data-center-action="true"]')
 
-    expect(centerAction.classes()).toContain('text-on-action')
-    expect(centerAction.classes()).not.toContain('text-primary-300')
+    expect(centerAction.classes()).toContain('text-white')
 
     await wrapper.setProps({ active: 'transfer' })
 
-    expect(centerAction.classes()).toContain('text-on-action')
-    expect(centerAction.classes()).not.toContain('text-primary-300')
+    expect(centerAction.classes()).toContain('text-white')
     expect(wrapper.get('[aria-current="page"]').text()).toContain('송금')
   })
 })

@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { ArrowLeftRight, QrCode, ReceiptText } from '@lucide/vue'
+import { ArrowUpFromLine, Home, QrCode } from '@lucide/vue'
 import { BottomNavigation } from '@pay-with/ui'
 import type { Component } from 'vue'
 
-type WardNavigationValue = 'transfer' | 'payment' | 'history'
+type WardNavigationValue = 'transfer' | 'home' | 'payment'
 
 withDefaults(
   defineProps<{
     active?: WardNavigationValue
   }>(),
   {
-    active: 'payment',
+    active: 'home',
   },
 )
 
@@ -19,9 +19,9 @@ const items: Array<{
   value: WardNavigationValue
   icon: Component
 }> = [
-  { label: '송금', value: 'transfer', icon: ArrowLeftRight },
+  { label: '송금', value: 'transfer', icon: ArrowUpFromLine },
+  { label: '홈', value: 'home', icon: Home },
   { label: '결제', value: 'payment', icon: QrCode },
-  { label: '내역', value: 'history', icon: ReceiptText },
 ]
 
 const emit = defineEmits<{
@@ -35,13 +35,13 @@ function handleNavigate(value: string) {
 
 <template>
   <div
-    class="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[390px] bg-surface-card pb-[env(safe-area-inset-bottom)]"
+    class="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[390px] overflow-x-clip bg-transparent"
   >
     <BottomNavigation
       :items="items"
       :active="active"
       variant="ward"
-      center-action-value="payment"
+      center-action-value="home"
       aria-label="시니어 주요 기능"
       @navigate="handleNavigate"
     />

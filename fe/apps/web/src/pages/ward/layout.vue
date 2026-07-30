@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import WardBottomNavigation from '@/pages/ward/-components/WardBottomNavigation.vue'
 
-type WardNavigationValue = 'transfer' | 'payment' | 'history'
+type WardNavigationValue = 'transfer' | 'home' | 'payment'
 
 const router = useRouter()
 const route = useRoute()
@@ -16,7 +16,8 @@ const showBottomNavigation = computed(
 )
 const activeNavigation = computed<WardNavigationValue>(() => {
   const value = route.meta.activeNavigation
-  return value === 'transfer' || value === 'history' ? value : 'payment'
+  if (value === 'transfer' || value === 'payment') return value
+  return 'home'
 })
 
 function goBack() {
@@ -30,8 +31,8 @@ function goBack() {
 
 function handleNavigate(value: string) {
   if (value === 'transfer') router.push({ name: 'ward-transfer' })
+  if (value === 'home') router.push({ name: 'ward-home' })
   if (value === 'payment') router.push({ name: 'ward-payment' })
-  if (value === 'history') router.push({ name: 'ward-transaction-history' })
 }
 </script>
 
@@ -50,7 +51,7 @@ function handleNavigate(value: string) {
         class="flex flex-1 flex-col px-mobile-gutter pt-[calc(var(--spacing-header)+var(--spacing-xl)+env(safe-area-inset-top))]"
         :class="
           showBottomNavigation
-            ? 'pb-[calc(var(--spacing-bottom-nav)+var(--spacing-section)+var(--spacing-xl)+env(safe-area-inset-bottom))]'
+            ? 'pb-[calc(100px+var(--spacing-section)+env(safe-area-inset-bottom))]'
             : 'pb-xl'
         "
       >
