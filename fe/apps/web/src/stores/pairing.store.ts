@@ -18,6 +18,7 @@ export const usePairingStore = defineStore('pairing', () => {
   const status = ref<PairingStatus>('PAIRED')
   const codeResponse = ref<GuardianPairingCodeResponse | null>(null)
   const pairingResult = ref<WardPairingResponse | null>(mockActivePairing)
+  const isGuardianMockPaired = ref(false)
   const errorCode = ref<PairingErrorCode | null>(null)
   const isIssuingCode = ref(false)
   const isVerifyingCode = ref(false)
@@ -69,7 +70,14 @@ export const usePairingStore = defineStore('pairing', () => {
     status.value = 'UNPAIRED'
     codeResponse.value = null
     pairingResult.value = null
+    isGuardianMockPaired.value = false
     errorCode.value = null
+  }
+
+  function completeGuardianMockPairing() {
+    pairingResult.value = mockActivePairing
+    status.value = 'PAIRED'
+    isGuardianMockPaired.value = true
   }
 
   return {
@@ -83,8 +91,10 @@ export const usePairingStore = defineStore('pairing', () => {
     isIssuingCode,
     isVerifyingCode,
     isPaired,
+    isGuardianMockPaired,
     issueCode,
     verifyCode,
     reset,
+    completeGuardianMockPairing,
   }
 })

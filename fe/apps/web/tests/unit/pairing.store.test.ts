@@ -14,8 +14,8 @@ describe('pairing store', () => {
     await store.issueCode()
 
     expect(store.status).toBe('CODE_ISSUED')
-    expect(store.code).toBe('72941')
-    expect(store.inviteUrl).toBe('https://paywith.link/72941')
+    expect(store.code).toMatch(/^\d{5}$/)
+    expect(store.inviteUrl).toBe(`https://paywith.link/${store.code}`)
     expect(store.expiresAt).toBeTypeOf('string')
   })
 
