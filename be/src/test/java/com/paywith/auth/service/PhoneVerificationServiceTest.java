@@ -255,9 +255,9 @@ class PhoneVerificationServiceTest {
             then(redisTemplate).should().delete("phone:verify:attempts:" + PHONE);
             then(redisTemplate).should().delete("phone:verify:token:old-token");
             then(valueOperations).should()
-                .set(eq("phone:verify:token:" + response.getVerificationToken()), eq(PHONE), eq(Duration.ofMinutes(10)));
+                .set(eq("phone:verify:token:" + response.getVerificationToken()), eq(PHONE), eq(Duration.ofMinutes(5)));
             then(valueOperations).should()
-                .set(eq("phone:verify:token-by-phone:" + PHONE), eq(response.getVerificationToken()), eq(Duration.ofMinutes(10)));
+                .set(eq("phone:verify:token-by-phone:" + PHONE), eq(response.getVerificationToken()), eq(Duration.ofMinutes(5)));
         }
 
         @Test
@@ -273,6 +273,62 @@ class PhoneVerificationServiceTest {
             then(redisTemplate).should(org.mockito.Mockito.atLeastOnce()).delete(deletedKeys.capture());
             assertThat(deletedKeys.getAllValues())
                 .noneMatch(key -> key.startsWith("phone:verify:token:"));
+        }
+    }
+
+    @Nested
+    @DisplayName("requireValidToken / invalidateToken")
+    class TokenConsumption {
+
+        private static final String TOKEN = "issued-token";
+
+        @Test
+        @DisplayName("토큰이 해당 전화번호로 발급된 것이면 통과한다")
+        void requireValidToken_success() {
+            given(valueOperations.get("phone:verify:token:" + TOKEN)).willReturn(PHONE);
+
+            service.requireValidToken(TOKEN, PHONE);
+        }
+
+        @Test
+        @DisplayName("토큰이 존재하지 않으면(만료 포함) PHONE_004 예외를 던진다")
+        void requireValidToken_missing() {
+            given(valueOperations.get("phone:verify:token:" + TOKEN)).willReturn(null);
+
+            assertThatThrownBy(() -> service.requireValidToken(TOKEN, PHONE))
+                .isInstanceOfSatisfying(BusinessException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("PHONE_004");
+                });
+        }
+
+        @Test
+        @DisplayName("토큰이 다른 전화번호로 발급된 것이면 PHONE_004 예외를 던진다")
+        void requireValidToken_phoneMismatch() {
+            given(valueOperations.get("phone:verify:token:" + TOKEN)).willReturn("01099998888");
+
+            assertThatThrownBy(() -> service.requireValidToken(TOKEN, PHONE))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                    assertThat(exception.getCode()).isEqualTo("PHONE_004"));
+        }
+
+        @Test
+        @DisplayName("토큰 없이 요청하면 PHONE_004 예외를 던진다")
+        void requireValidToken_nullToken() {
+            assertThatThrownBy(() -> service.requireValidToken(null, PHONE))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                    assertThat(exception.getCode()).isEqualTo("PHONE_004"));
+
+            then(valueOperations).should(never()).get(anyString());
+        }
+
+        @Test
+        @DisplayName("invalidateToken은 토큰-전화번호 매핑을 모두 삭제한다")
+        void invalidateToken_deletesBothKeys() {
+            service.invalidateToken(TOKEN, PHONE);
+
+            then(redisTemplate).should().delete("phone:verify:token:" + TOKEN);
+            then(redisTemplate).should().delete("phone:verify:token-by-phone:" + PHONE);
         }
     }
 }

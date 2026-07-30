@@ -34,4 +34,7 @@ public class UserCreateRequest {
     @NotBlank(message = "결제 비밀번호는 필수입니다.")
     @Pattern(regexp = "\\d{6}", message = "결제 비밀번호는 숫자 6자리여야 합니다.")
     private String paymentPassword;
+
+    @NotBlank(message = "휴대폰 인증이 필요합니다.")
+    private String verificationToken;
 }

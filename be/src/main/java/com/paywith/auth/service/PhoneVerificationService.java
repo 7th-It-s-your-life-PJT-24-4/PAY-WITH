@@ -24,7 +24,7 @@ public class PhoneVerificationService {
     private static final Duration CODE_TTL = Duration.ofSeconds(300);
     private static final Duration RESEND_COOLDOWN = Duration.ofSeconds(60);
     private static final Duration DAILY_LIMIT_TTL = Duration.ofHours(24);
-    private static final Duration TOKEN_TTL = Duration.ofMinutes(10);
+    private static final Duration TOKEN_TTL = Duration.ofMinutes(5);
     private static final int DAILY_LIMIT = 5;
     private static final int MAX_ATTEMPTS = 5;
 
@@ -136,6 +136,18 @@ public class PhoneVerificationService {
         redisTemplate.opsForValue().set(tokenByPhoneKey, token, TOKEN_TTL);
 
         return new PhoneVerifyResponse(token);
+    }
+
+    public void requireValidToken(String token, String phone) {
+        String savedPhone = token == null ? null : redisTemplate.opsForValue().get(tokenKey(token));
+        if (savedPhone == null || !savedPhone.equals(phone)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "PHONE_004", "휴대폰 인증이 필요합니다.");
+        }
+    }
+
+    public void invalidateToken(String token, String phone) {
+        redisTemplate.delete(tokenKey(token));
+        redisTemplate.delete(tokenByPhoneKey(phone));
     }
 
     private Purpose parsePurpose(String purpose) {
