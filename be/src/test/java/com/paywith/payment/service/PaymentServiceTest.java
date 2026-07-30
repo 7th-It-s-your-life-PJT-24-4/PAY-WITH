@@ -71,7 +71,7 @@ class PaymentServiceTest {
 
     @Test
     void createQr_페어링_미완료면_403_WARD_001() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         given(paymentRequestMapper.existsActivePairing(WARD_ID)).willReturn(false);
 
         assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
@@ -82,7 +82,7 @@ class PaymentServiceTest {
 
     @Test
     void createQr_지갑_없으면_404_WALLET_001() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         given(paymentRequestMapper.existsActivePairing(WARD_ID)).willReturn(true);
         given(paymentRequestMapper.findWalletByUserId(WARD_ID)).willReturn(null);
 
@@ -94,7 +94,7 @@ class PaymentServiceTest {
 
     @Test
     void createQr_지갑_LOCKED면_409_WALLET_002() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         given(paymentRequestMapper.existsActivePairing(WARD_ID)).willReturn(true);
         given(paymentRequestMapper.findWalletByUserId(WARD_ID)).willReturn(wallet("LOCKED", 130000L));
 
@@ -106,7 +106,7 @@ class PaymentServiceTest {
 
     @Test
     void createQr_결제_비밀번호_불일치면_400_PAYMENT_005() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         given(paymentRequestMapper.existsActivePairing(WARD_ID)).willReturn(true);
         given(paymentRequestMapper.findWalletByUserId(WARD_ID)).willReturn(wallet("ACTIVE", 130000L));
         given(passwordEncoder.matches(PIN, ENCODED_PIN)).willReturn(false);
@@ -120,7 +120,7 @@ class PaymentServiceTest {
 
     @Test
     void createQr_성공시_토큰생성_INSERT_Redis저장_순서로_응답() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         given(paymentRequestMapper.existsActivePairing(WARD_ID)).willReturn(true);
         given(paymentRequestMapper.findWalletByUserId(WARD_ID)).willReturn(wallet("ACTIVE", 130000L));
         given(passwordEncoder.matches(PIN, ENCODED_PIN)).willReturn(true);
@@ -158,7 +158,7 @@ class PaymentServiceTest {
 
     @Test
     void getStatus_없는_결제요청이면_404_PAYMENT_002() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         given(paymentRequestMapper.findById(PAYMENT_ID)).willReturn(null);
 
         assertThatThrownBy(() -> paymentService.getStatus(WARD_ID, PAYMENT_ID))
@@ -169,7 +169,7 @@ class PaymentServiceTest {
 
     @Test
     void getStatus_타인의_결제요청이면_404_PAYMENT_002() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         PaymentRequest othersRequest = pendingRequest(LocalDateTime.now().plusSeconds(30));
         othersRequest.setSeniorId(7777L);
         given(paymentRequestMapper.findById(PAYMENT_ID)).willReturn(othersRequest);
@@ -181,7 +181,7 @@ class PaymentServiceTest {
 
     @Test
     void getStatus_PENDING인데_만료시각이_지났으면_EXPIRED로_lazy_전이() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         given(paymentRequestMapper.findById(PAYMENT_ID))
             .willReturn(pendingRequest(LocalDateTime.now().minusSeconds(1)));
         given(paymentRequestMapper.markExpiredIfPending(PAYMENT_ID)).willReturn(1);
@@ -194,7 +194,7 @@ class PaymentServiceTest {
 
     @Test
     void getStatus_PENDING이고_만료전이면_전이없이_PENDING_응답() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         PaymentRequest request = pendingRequest(LocalDateTime.now().plusSeconds(30));
         given(paymentRequestMapper.findById(PAYMENT_ID)).willReturn(request);
 
@@ -215,7 +215,7 @@ class PaymentServiceTest {
 
     @Test
     void getStatus_FAILED_잔액부족이면_실패_문구_포함() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         PaymentRequest request = pendingRequest(LocalDateTime.now().minusSeconds(10));
         request.setStatus(PaymentRequestStatus.FAILED);
         request.setFailureCode("INSUFFICIENT_BALANCE");
@@ -232,7 +232,7 @@ class PaymentServiceTest {
 
     @Test
     void cancel_PENDING이면_취소하고_Redis_토큰을_삭제() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         PaymentRequest pending = pendingRequest(LocalDateTime.now().plusSeconds(30));
         PaymentRequest canceled = pendingRequest(LocalDateTime.now().plusSeconds(30));
         canceled.setStatus(PaymentRequestStatus.CANCELED);
@@ -265,7 +265,7 @@ class PaymentServiceTest {
 
     @Test
     void cancel_PENDING인데_만료시각이_지났으면_전이_후_409_PAYMENT_004() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         given(paymentRequestMapper.findById(PAYMENT_ID))
             .willReturn(pendingRequest(LocalDateTime.now().minusSeconds(1)));
         given(paymentRequestMapper.markExpiredIfPending(PAYMENT_ID)).willReturn(1);
@@ -279,7 +279,7 @@ class PaymentServiceTest {
 
     @Test
     void cancel_이미_CANCELED면_멱등하게_성공_응답() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         PaymentRequest canceled = pendingRequest(LocalDateTime.now().plusSeconds(30));
         canceled.setStatus(PaymentRequestStatus.CANCELED);
         canceled.setUpdatedAt(LocalDateTime.of(2026, 7, 16, 14, 45, 30));
@@ -293,7 +293,7 @@ class PaymentServiceTest {
 
     @Test
     void cancel_경합으로_조건부_취소가_실패하면_최신_상태로_재판정() {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         PaymentRequest pending = pendingRequest(LocalDateTime.now().plusSeconds(30));
         PaymentRequest processing = pendingRequest(LocalDateTime.now().plusSeconds(30));
         processing.setStatus(PaymentRequestStatus.PROCESSING);
@@ -307,7 +307,7 @@ class PaymentServiceTest {
     }
 
     private void assertCancelConflict(PaymentRequestStatus status, String expectedMessage) {
-        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("SENIOR");
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         PaymentRequest request = pendingRequest(LocalDateTime.now().plusSeconds(30));
         request.setStatus(status);
         given(paymentRequestMapper.findById(PAYMENT_ID)).willReturn(request);
