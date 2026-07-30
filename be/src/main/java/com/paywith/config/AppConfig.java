@@ -1,6 +1,7 @@
 package com.paywith.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.*;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
@@ -30,6 +31,9 @@ public class AppConfig {
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
+        // 끄지 않으면 LocalDateTime 이 [2026,7,30,11,47,12] 형태의 숫자 배열로 직렬화된다.
+        // FE 스키마는 ISO-8601 문자열("2026-07-30T11:47:12")을 기대한다.
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         return mapper;
     }
 
