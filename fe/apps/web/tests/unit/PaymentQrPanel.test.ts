@@ -7,7 +7,7 @@ import PaymentQrPanel from '@/pages/ward/payment/-components/PaymentQrPanel.vue'
 describe('PaymentQrPanel', () => {
   it('renders the QR token as an SVG QR code', () => {
     const wrapper = mount(PaymentQrPanel, {
-      props: { expired: false, paymentToken: 'pay_qr_test' },
+      props: { expired: false, qrToken: 'pay_qr_test' },
     })
 
     expect(wrapper.getComponent(QrcodeVue).props('value')).toBe('pay_qr_test')
@@ -18,7 +18,7 @@ describe('PaymentQrPanel', () => {
 
   it('requests reissue when the QR code has expired', async () => {
     const wrapper = mount(PaymentQrPanel, {
-      props: { expired: true, paymentToken: 'pay_qr_expired' },
+      props: { expired: true, qrToken: 'pay_qr_expired' },
     })
 
     const reissueButton = wrapper.get('button')

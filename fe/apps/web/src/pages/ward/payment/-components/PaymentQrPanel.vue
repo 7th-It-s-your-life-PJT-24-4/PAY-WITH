@@ -3,7 +3,7 @@ import { RefreshCw } from '@lucide/vue'
 import QrcodeVue from 'qrcode.vue'
 
 defineProps<{
-  paymentToken: string
+  qrToken: string
   expired: boolean
   processing?: boolean
 }>()
@@ -24,7 +24,7 @@ const emit = defineEmits<{
       aria-label="결제 QR 코드"
     >
       <QrcodeVue
-        :value="paymentToken"
+        :value="qrToken"
         :size="512"
         level="M"
         render-as="svg"

@@ -18,7 +18,7 @@ test('비밀번호 확인 후 QR을 만들고 결제 완료 상태로 이동한�
         success: true,
         data: {
           paymentId: 42,
-          paymentToken: 'pay_qr_test_token',
+          qrToken: 'pay_qr_test_token',
           availableBalance: 130_000,
           expiresAt: new Date(Date.now() + 60_000).toISOString(),
           expiresInSeconds: 60,

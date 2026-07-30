@@ -17,7 +17,7 @@ export const createWardPaymentRequestSchema = z.object({
 
 export const paymentQrSessionSchema = z.object({
   paymentId: z.number().int().positive(),
-  paymentToken: z.string().min(1),
+  qrToken: z.string().min(1),
   availableBalance: z.number().int().nonnegative(),
   expiresAt: z.string().datetime({ offset: true }),
 })

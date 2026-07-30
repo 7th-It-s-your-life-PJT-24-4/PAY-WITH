@@ -13,7 +13,7 @@ describe('payment store', () => {
     const store = usePaymentStore()
     store.saveQrSession({
       paymentId: 42,
-      paymentToken: 'pay_qr_test',
+      qrToken: 'pay_qr_test',
       availableBalance: 130_000,
       expiresAt: '2026-07-29T15:31:00+09:00',
     })

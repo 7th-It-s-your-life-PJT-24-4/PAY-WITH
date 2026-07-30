@@ -159,7 +159,7 @@ onBeforeUnmount(() => {
 
     <div class="relative">
       <PaymentQrPanel
-        :payment-token="session.paymentToken"
+        :qr-token="session.qrToken"
         :expired="expired"
         :processing="isProcessing"
         @reissue="reissueQrCode"
