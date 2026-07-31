@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import springfox.documentation.annotations.ApiIgnore;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -33,7 +34,7 @@ public class TransferController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<TransferResponse>> transfer(
-            @AuthenticationPrincipal Long userId,
+            @ApiIgnore @AuthenticationPrincipal Long userId,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody TransferRequest request
             ){
