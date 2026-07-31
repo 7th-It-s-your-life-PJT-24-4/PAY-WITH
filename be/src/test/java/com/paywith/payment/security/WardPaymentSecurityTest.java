@@ -6,6 +6,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.paywith.config.SecurityConfig;
 import com.paywith.exception.BusinessException;
 import com.paywith.exception.GlobalExceptionHandler;
@@ -13,6 +16,7 @@ import com.paywith.payment.controller.WardPaymentController;
 import com.paywith.payment.dto.QrCreateResponse;
 import com.paywith.payment.service.PaymentService;
 import com.paywith.payment.support.DevJwtTokenFactory;
+import com.paywith.security.JwtAuthenticationEntryPoint;
 import com.paywith.security.JwtAuthenticationFilter;
 import com.paywith.security.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,10 +63,10 @@ class WardPaymentSecurityTest {
 
     @Test
     void 무토큰_요청은_거부된다() throws Exception {
-        // 명세는 401(AUTH_001)이나, 현재 SecurityConfig에 AuthenticationEntryPoint가 없어
-        // 기본 Http403ForbiddenEntryPoint가 403을 반환한다. 401 통일은 인증 파트 확정 대상.
         mockMvc.perform(post("/api/ward/payments"))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("AUTH_001"));
     }
 
     @Test
@@ -122,6 +126,19 @@ class WardPaymentSecurityTest {
         @Bean
         public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
             return new JwtAuthenticationFilter(jwtTokenProvider);
+        }
+
+        @Bean
+        public ObjectMapper objectMapper() {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            return mapper;
+        }
+
+        @Bean
+        public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint(ObjectMapper objectMapper) {
+            return new JwtAuthenticationEntryPoint(objectMapper);
         }
     }
 }
