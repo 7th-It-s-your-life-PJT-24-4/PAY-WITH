@@ -17,6 +17,7 @@ const router = useRouter()
 const guardStore = useGuardStore()
 const pairingStore = usePairingStore()
 const isPairingConfirmOpen = ref(false)
+const recentGuardTransactions = mockGuardTransactions.slice(0, 3)
 
 async function startPairing() {
   const issued = await pairingStore.issueCode()
@@ -66,8 +67,8 @@ async function startPairing() {
 
       <GuardTransactionList
         class="mt-md"
-        :transactions="mockGuardTransactions"
-        @more="router.push({ name: 'guard-charge' })"
+        :transactions="recentGuardTransactions"
+        @more="router.push({ name: 'guard-history' })"
       />
     </div>
 
