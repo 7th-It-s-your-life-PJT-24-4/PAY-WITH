@@ -2,58 +2,37 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import {
-  getMockChargeAccounts,
-  getMockChargeResult,
-  registerMockChargeAccount,
-  submitMockCharge,
-} from '@/mocks/charge.mock'
-import type {
-  ChargeAccount,
-  ChargeProcessingStatus,
-  ChargeResult,
-  RegisterChargeAccountRequest,
-} from '@/types/charge'
+  chargeResultSchema,
+  type ChargeAccount,
+  type ChargeResult,
+} from '@/schemas/charge.schema'
+
+const resultStorageKey = 'pay-with:ward-charge-result'
 
 export const useChargeStore = defineStore('charge', () => {
-  const accounts = ref<ChargeAccount[]>([])
   const selectedAccountId = ref<number | null>(null)
   const amount = ref(0)
   const registeredAccount = ref<ChargeAccount | null>(null)
   const result = ref<ChargeResult | null>(null)
-  const processingStatus = ref<ChargeProcessingStatus>('idle')
-  const processingError = ref('')
-  const accountsLoaded = ref(false)
 
-  const selectedAccount = computed(
-    () =>
-      accounts.value.find(
-        ({ accountId }) => accountId === selectedAccountId.value,
-      ) ?? null,
-  )
   const canCharge = computed(
     () =>
-      selectedAccount.value !== null &&
+      selectedAccountId.value !== null &&
       Number.isSafeInteger(amount.value) &&
-      amount.value > 0 &&
-      processingStatus.value !== 'pending',
+      amount.value > 0,
   )
 
-  async function loadAccounts() {
-    accounts.value = await getMockChargeAccounts()
-    accountsLoaded.value = true
+  function syncAccounts(accounts: ChargeAccount[]) {
     if (
-      !selectedAccountId.value ||
-      !accounts.value.some(
-        ({ accountId }) => accountId === selectedAccountId.value,
-      )
+      selectedAccountId.value === null ||
+      !accounts.some(({ accountId }) => accountId === selectedAccountId.value)
     ) {
-      selectedAccountId.value = accounts.value[0]?.accountId ?? null
+      selectedAccountId.value = accounts[0]?.accountId ?? null
     }
   }
 
   function selectAccount(accountId: number) {
-    if (accounts.value.some((account) => account.accountId === accountId))
-      selectedAccountId.value = accountId
+    selectedAccountId.value = accountId
   }
 
   function setAmount(value: number) {
@@ -64,42 +43,27 @@ export const useChargeStore = defineStore('charge', () => {
     setAmount(amount.value + value)
   }
 
-  async function registerAccount(request: RegisterChargeAccountRequest) {
-    processingStatus.value = 'pending'
-    processingError.value = ''
-    try {
-      registeredAccount.value = await registerMockChargeAccount(request)
-      await loadAccounts()
-      selectedAccountId.value = registeredAccount.value.accountId
-      processingStatus.value = 'success'
-      return registeredAccount.value
-    } catch (error) {
-      processingStatus.value = 'error'
-      processingError.value =
-        error instanceof Error ? error.message : '계좌를 등록하지 못했습니다.'
-      return null
-    }
+  function saveRegisteredAccount(account: ChargeAccount) {
+    registeredAccount.value = account
+    selectedAccountId.value = account.accountId
   }
 
-  async function charge() {
-    if (!selectedAccount.value || !canCharge.value) return null
-    processingStatus.value = 'pending'
-    processingError.value = ''
-    try {
-      result.value = await submitMockCharge(selectedAccount.value, amount.value)
-      processingStatus.value = 'success'
-      return result.value
-    } catch (error) {
-      processingStatus.value = 'error'
-      processingError.value =
-        error instanceof Error ? error.message : '충전을 완료하지 못했습니다.'
-      return null
-    }
+  function saveResult(value: ChargeResult) {
+    result.value = value
+    sessionStorage.setItem(resultStorageKey, JSON.stringify(value))
   }
 
-  async function restoreResult(transactionId: number) {
+  function restoreResult(transactionId: number) {
+    if (result.value?.transactionId === transactionId) return result.value
+
     try {
-      result.value = await getMockChargeResult(transactionId)
+      const saved: unknown = JSON.parse(
+        sessionStorage.getItem(resultStorageKey) ?? 'null',
+      )
+      const parsed = chargeResultSchema.safeParse(saved)
+      if (!parsed.success || parsed.data.transactionId !== transactionId)
+        return null
+      result.value = parsed.data
       return result.value
     } catch {
       return null
@@ -109,27 +73,21 @@ export const useChargeStore = defineStore('charge', () => {
   function resetDraft() {
     amount.value = 0
     result.value = null
-    processingStatus.value = 'idle'
-    processingError.value = ''
+    sessionStorage.removeItem(resultStorageKey)
   }
 
   return {
-    accounts,
     selectedAccountId,
-    selectedAccount,
     amount,
     registeredAccount,
     result,
-    processingStatus,
-    processingError,
-    accountsLoaded,
     canCharge,
-    loadAccounts,
+    syncAccounts,
     selectAccount,
     setAmount,
     addAmount,
-    registerAccount,
-    charge,
+    saveRegisteredAccount,
+    saveResult,
     restoreResult,
     resetDraft,
   }
