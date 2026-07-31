@@ -8,6 +8,10 @@ defineProps<{
   transactions: GuardTransaction[]
 }>()
 
+const emit = defineEmits<{
+  more: []
+}>()
+
 const categoryIcons: Record<GuardTransaction['category'], Component> = {
   transfer: PhCrown,
   payment: PhDress,
@@ -27,6 +31,7 @@ const categoryIcons: Record<GuardTransaction['category'], Component> = {
         class="flex size-8 items-center justify-end text-gray-700"
         type="button"
         aria-label="거래 내역 더보기"
+        @click="emit('more')"
       >
         <span class="text-[32px] leading-none font-light">›</span>
       </button>

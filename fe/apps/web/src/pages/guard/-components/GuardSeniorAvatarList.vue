@@ -10,6 +10,7 @@ defineProps<{
 
 const emit = defineEmits<{
   add: []
+  select: [seniorId: string]
 }>()
 </script>
 
@@ -20,6 +21,7 @@ const emit = defineEmits<{
       :key="senior.id"
       class="flex w-16 flex-col items-center gap-xxs"
       type="button"
+      @click="emit('select', senior.id)"
     >
       <span
         class="flex size-16 items-center justify-center overflow-hidden rounded-full bg-gray-900 text-primary-500"
