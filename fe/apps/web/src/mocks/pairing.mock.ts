@@ -8,6 +8,7 @@ import type {
 export const mockPairingCode = '72941'
 const mockDelay = 300
 const pairingCodeLifetime = 5 * 60 * 1000
+const validPairingCodes = new Set([mockPairingCode])
 
 export const mockActivePairing: WardPairingResponse = {
   relationId: 21,
@@ -36,9 +37,12 @@ function waitForMockResponse() {
 export async function issueMockGuardianPairingCode(): Promise<GuardianPairingCodeResponse> {
   await waitForMockResponse()
 
+  const code = String(Math.floor(10000 + Math.random() * 90000))
+  validPairingCodes.add(code)
+
   return {
-    code: mockPairingCode,
-    inviteUrl: `https://paywith.link/${mockPairingCode}`,
+    code,
+    inviteUrl: `https://paywith.link/${code}`,
     expiresAt: new Date(Date.now() + pairingCodeLifetime).toISOString(),
   }
 }
@@ -55,7 +59,7 @@ export async function submitMockWardPairing(
     )
   }
 
-  if (request.pairingCode !== mockPairingCode) {
+  if (!validPairingCodes.has(request.pairingCode)) {
     throw new MockPairingError(
       'PAIRING_002',
       '인증 코드가 유효하지 않거나 만료되었습니다.',

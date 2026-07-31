@@ -7,6 +7,10 @@ defineProps<{
   seniors: GuardSeniorAvatar[]
   activeSeniorId: string
 }>()
+
+const emit = defineEmits<{
+  add: []
+}>()
 </script>
 
 <template>
@@ -47,6 +51,7 @@ defineProps<{
       class="flex size-16 items-center justify-center rounded-full border-2 border-primary-500 text-primary-500"
       type="button"
       aria-label="시니어 추가"
+      @click="emit('add')"
     >
       <PhPlus class="size-6" aria-hidden="true" />
     </button>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Check, Copy, Link, MessageCircle } from '@lucide/vue'
-import { AppHeader, Button, Modal } from '@pay-with/ui'
+import kakaoLogoUrl from '@pay-with/ui/svg/kakao-logo.svg'
+import { Toast } from '@pay-with/ui'
+import { ChevronLeft, Copy, Link } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -8,11 +9,11 @@ import { usePairingStore } from '@/stores/pairing.store'
 
 const router = useRouter()
 const pairingStore = usePairingStore()
-const isConfirmOpen = ref(pairingStore.status !== 'CODE_ISSUED')
 const toastMessage = ref('')
+const isToastOpen = ref(false)
 const remainingSeconds = ref(0)
 let countdownTimer: ReturnType<typeof globalThis.setInterval> | undefined
-let toastTimer: ReturnType<typeof globalThis.setTimeout> | undefined
+let mockPairingTimer: ReturnType<typeof globalThis.setTimeout> | undefined
 
 const formattedRemainingTime = computed(() => {
   const minutes = Math.floor(remainingSeconds.value / 60)
@@ -38,18 +39,20 @@ function startCountdown() {
   countdownTimer = globalThis.setInterval(updateRemainingTime, 1000)
 }
 
-async function generateCode() {
-  await pairingStore.issueCode()
-  isConfirmOpen.value = false
-  startCountdown()
+function startMockPairingCompletion() {
+  if (mockPairingTimer) globalThis.clearTimeout(mockPairingTimer)
+  mockPairingTimer = globalThis.setTimeout(() => {
+    pairingStore.completeGuardianMockPairing()
+    router.push({ name: 'guard-home' })
+  }, 5000)
 }
 
 function showToast(message: string) {
   toastMessage.value = message
-  if (toastTimer) globalThis.clearTimeout(toastTimer)
-  toastTimer = globalThis.setTimeout(() => {
-    toastMessage.value = ''
-  }, 2200)
+  isToastOpen.value = false
+  globalThis.requestAnimationFrame(() => {
+    isToastOpen.value = true
+  })
 }
 
 async function copyText(value: string, message: string) {
@@ -83,6 +86,7 @@ async function shareWithKakao() {
   const shareData = {
     title: 'PayWith 시니어 연결',
     text: `인증 코드 ${pairingStore.code}를 입력해 주세요.`,
+    url: pairingStore.inviteUrl,
   }
 
   if (globalThis.navigator.share) {
@@ -93,142 +97,128 @@ async function shareWithKakao() {
   await copyLink()
 }
 
-onMounted(() => {
-  if (pairingStore.status === 'CODE_ISSUED' && pairingStore.expiresAt) {
-    startCountdown()
+onMounted(async () => {
+  if (!pairingStore.code) {
+    await pairingStore.issueCode()
   }
+
+  startCountdown()
+  startMockPairingCompletion()
 })
 
 onBeforeUnmount(() => {
   if (countdownTimer) globalThis.clearInterval(countdownTimer)
-  if (toastTimer) globalThis.clearTimeout(toastTimer)
+  if (mockPairingTimer) globalThis.clearTimeout(mockPairingTimer)
 })
 </script>
 
 <template>
-  <main
-    class="mx-auto flex min-h-screen w-full max-w-[390px] flex-col bg-surface"
-  >
-    <AppHeader title="" show-back @back="router.back()" />
+  <main class="mx-auto min-h-screen w-full max-w-[390px] bg-white">
+    <header class="flex h-[44px] items-center justify-between">
+      <button
+        class="flex size-[44px] items-center justify-center text-[#3b3e43]"
+        type="button"
+        aria-label="뒤로 가기"
+        @click="router.push({ name: 'guard-home' })"
+      >
+        <ChevronLeft class="size-6" :stroke-width="1.8" aria-hidden="true" />
+      </button>
+      <span class="size-[44px]" aria-hidden="true" />
+    </header>
 
-    <section class="flex-1 px-mobile-gutter pb-xl pt-md">
-      <h1 class="type-h1 text-body">시니어 연결하기</h1>
-      <p class="type-body mt-xs text-body-muted">
-        시니어와 연결하여<br />안전하게 자산을 보호하세요
+    <section class="px-mobile-gutter pt-[5px]" aria-labelledby="pairing-title">
+      <h1
+        id="pairing-title"
+        class="text-[24px] font-bold leading-[1.2] tracking-[-0.48px] text-black"
+      >
+        시니어 연결하기
+      </h1>
+      <p
+        class="mt-xs text-[16px] font-medium leading-[1.2] tracking-[-0.32px] text-gray-600"
+      >
+        시니어와 연결하여<br />
+        안전하게 자산을 보호하세요
       </p>
 
-      <div
-        v-if="pairingStore.status === 'CODE_ISSUED'"
-        class="mt-xl rounded-large bg-disabled/40 px-lg py-lg text-center"
+      <section
+        class="relative mt-xl h-[97px] rounded-large bg-[#f6f7f8] px-md py-md text-center"
+        aria-label="인증 코드"
       >
-        <div class="flex items-start justify-center">
-          <div class="flex-1 pl-[42px]">
-            <p class="type-caption text-body-muted">인증 코드</p>
-            <p
-              class="type-numeric-display type-h1 mt-xs tracking-[0.08em] text-body"
-            >
-              {{ pairingStore.code }}
-            </p>
-          </div>
-          <span class="type-caption mt-xs w-[42px] text-error">
-            {{ formattedRemainingTime }}
-          </span>
-        </div>
-      </div>
+        <p
+          class="text-[14px] font-medium leading-[1.2] tracking-[-0.28px] text-gray-500"
+        >
+          인증 코드
+        </p>
+        <p
+          class="mt-[9px] text-[28px] font-semibold leading-[1.2] tracking-[2.24px] text-black"
+        >
+          {{ pairingStore.code }}
+        </p>
+        <p
+          class="absolute right-md top-md text-[14px] font-medium leading-[14px] tracking-[-0.2px] text-error"
+        >
+          {{ formattedRemainingTime }}
+        </p>
+      </section>
 
-      <Button
-        v-else
-        class="mt-xl w-full"
-        label="인증 코드 생성하기"
-        @click="isConfirmOpen = true"
-      />
-
-      <div
-        v-if="pairingStore.status === 'CODE_ISSUED'"
-        class="mt-xl grid grid-cols-3 gap-lg text-center"
-      >
+      <div class="mt-xl grid grid-cols-3 gap-[12px] px-[29px] text-center">
         <button
-          class="group flex flex-col items-center gap-xs"
+          class="flex flex-col items-center"
           type="button"
           @click="copyCode"
         >
           <span
-            class="flex size-[48px] items-center justify-center rounded-full bg-body-muted text-on-action"
+            class="flex size-[48px] items-center justify-center rounded-full bg-gray-400 text-white"
           >
-            <Copy class="size-xl" aria-hidden="true" />
+            <Copy class="size-6" :stroke-width="1.8" aria-hidden="true" />
           </span>
-          <span class="type-body text-body-secondary">코드 복사</span>
+          <span
+            class="mt-xxs text-[14px] font-medium leading-[26px] tracking-[-0.2px] text-gray-400"
+          >
+            코드 복사
+          </span>
         </button>
+
         <button
-          class="group flex flex-col items-center gap-xs"
+          class="flex flex-col items-center"
           type="button"
           @click="copyLink"
         >
           <span
-            class="flex size-[48px] items-center justify-center rounded-full bg-body-muted text-on-action"
+            class="flex size-[48px] items-center justify-center rounded-full bg-gray-400 text-white"
           >
-            <Link class="size-xl" aria-hidden="true" />
+            <Link class="size-6" :stroke-width="1.8" aria-hidden="true" />
           </span>
-          <span class="type-body text-body-secondary">링크 복사</span>
+          <span
+            class="mt-xxs text-[14px] font-medium leading-[26px] tracking-[-0.2px] text-gray-400"
+          >
+            링크 복사
+          </span>
         </button>
+
         <button
-          class="group flex flex-col items-center gap-xs"
+          class="flex flex-col items-center"
           type="button"
           @click="shareWithKakao"
         >
           <span
-            class="flex size-[48px] items-center justify-center rounded-full bg-[#FEE500] text-[#191919]"
+            class="flex size-[48px] items-center justify-center rounded-full bg-[#fee500]"
           >
-            <MessageCircle
-              class="size-xl"
-              fill="currentColor"
-              aria-hidden="true"
-            />
+            <img class="size-6" :src="kakaoLogoUrl" alt="" aria-hidden="true" />
           </span>
-          <span class="type-body text-body-secondary">카카오톡 공유</span>
+          <span
+            class="mt-xxs text-[14px] font-medium leading-[26px] tracking-[-0.2px] text-gray-400"
+          >
+            링크 복사
+          </span>
         </button>
       </div>
     </section>
 
-    <Transition
-      enter-active-class="transition"
-      enter-from-class="translate-y-2 opacity-0"
-      leave-active-class="transition"
-      leave-to-class="translate-y-2 opacity-0"
-    >
-      <div
-        v-if="toastMessage"
-        class="type-body-medium fixed bottom-[64px] left-1/2 z-[60] -translate-x-1/2 rounded-medium bg-gray-900 px-lg py-md text-white shadow-modal"
-        role="status"
-      >
-        {{ toastMessage }}
-      </div>
-    </Transition>
-
-    <Modal
-      :open="isConfirmOpen"
-      title="인증 코드를 생성할까요?"
-      :close-on-outside="false"
-      @update:open="isConfirmOpen = $event"
-    >
-      <template #actions>
-        <div class="grid grid-cols-2 gap-sm">
-          <Button
-            class="w-full"
-            label="취소"
-            variant="secondary"
-            @click="isConfirmOpen = false"
-          />
-          <Button
-            class="w-full"
-            :label="pairingStore.isIssuingCode ? '생성 중' : '완료'"
-            :disabled="pairingStore.isIssuingCode"
-            @click="generateCode"
-          >
-            <template #leading><Check /></template>
-          </Button>
-        </div>
-      </template>
-    </Modal>
+    <Toast
+      v-model:open="isToastOpen"
+      :message="toastMessage"
+      :duration="2200"
+    />
   </main>
 </template>
