@@ -6,10 +6,13 @@ import com.paywith.account.dto.AccountResponse;
 import com.paywith.account.mapper.AccountMapper;
 import com.paywith.exception.BusinessException;
 import com.paywith.external.openbanking.OpenBankingClient;
+import com.paywith.user.domain.User;
+import com.paywith.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -19,17 +22,21 @@ public class AccountServiceImpl implements AccountService{
 
     private final AccountMapper accountMapper;
     private final OpenBankingClient openBankingClient;
+    private final UserMapper userMapper;
 
     @Override
+    @Transactional
     public AccountResponse registerAccount(Long userId, AccountCreateRequest request) {
         if (accountMapper.existsByUserIdAndAccount(userId, request.getBankCode(), request.getAccountNo())) {
             throw new BusinessException(HttpStatus.CONFLICT, "이미 등록된 계좌입니다.");
         }
 
+        User user = userMapper.findById(userId);
+
         RealNameInquiryResponse inquiryResponse = openBankingClient.inquireRealName(
                 request.getBankCode(),
                 request.getAccountNo(),
-                request.getBirthDate()
+                user.getBirthDate().toString()
         );
 
         if (!inquiryResponse.isSuccess()) {

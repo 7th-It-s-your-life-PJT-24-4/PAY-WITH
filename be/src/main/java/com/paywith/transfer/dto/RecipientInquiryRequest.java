@@ -1,4 +1,4 @@
-package com.paywith.account.dto;
+package com.paywith.transfer.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,8 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AccountCreateRequest {
+public class RecipientInquiryRequest {
     private String bankCode;
     private String accountNo;
-    private String accountPassword;
 }

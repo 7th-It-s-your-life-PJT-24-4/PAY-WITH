@@ -21,6 +21,19 @@
         #{createdAt}, #{completedAt}
         )
     </insert>
+    <update id="updateStatus">
+        UPDATE transactions
+        SET status = #{status}
+        WHERE transaction_id = #{transactionId}
+    </update>
+
+    <update id="completeTransaction">
+        UPDATE transactions
+        SET status = #{status},
+        balance_after = #{balanceAfter},
+        completed_at = #{completedAt}
+        WHERE transaction_id = #{transactionId}
+    </update>
 
     <select id="findChargeHistoriesByGuardId" parameterType="Long"
             resultType="com.paywith.charge.dto.ChargeHistoryItem">
@@ -76,6 +89,24 @@
         WHERE t.type = 'CHARGE'
         AND t.transaction_id = #{transactionId}
         AND t.initiated_by = #{guardId}
+    </select>
+    <select id="findExecutionContextByTransactionId"
+            resultType="com.paywith.transfer.dto.TransferExecutionContext">
+        SELECT
+        t.transaction_id AS transactionId,
+        t.wallet_id      AS walletId,
+        w.user_id        AS userId,
+        r.bank_code      AS bankCode,
+        b.bank_name      AS bankName,
+        r.account_no     AS accountNo,
+        r.holder_name    AS holderName,
+        t.amount         AS amount,
+        t.memo           AS memo
+        FROM transactions t
+        JOIN wallets w     ON t.wallet_id = w.wallet_id
+        JOIN recipients r  ON t.recipient_id = r.recipient_id
+        JOIN banks b       ON r.bank_code = b.bank_code
+        WHERE t.transaction_id = #{transactionId}
     </select>
 
 </mapper>

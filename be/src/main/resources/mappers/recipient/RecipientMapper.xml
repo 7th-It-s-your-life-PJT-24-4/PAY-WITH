@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.paywith.recipient.mapper.RecipientMapper">
+
+    <select id="findRecipient" resultType="com.paywith.recipient.domain.Recipient">
+        SELECT
+        recipient_id, senior_id as wardId, bank_code, account_no, holder_name,
+        send_count, first_sent_at, last_sent_at,
+        is_registered_safe, safe_registered_at, safe_registered_by, account_alias
+        FROM recipients
+        WHERE senior_id = #{wardId}
+        AND bank_code = #{bankCode}
+        AND account_no = #{accountNo}
+    </select>
+
+    <insert id="insertRecipient" parameterType="com.paywith.recipient.domain.Recipient">
+        <selectKey keyProperty="recipientId" resultType="long" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO recipients (
+        senior_id, bank_code, account_no, holder_name,
+        send_count, first_sent_at, last_sent_at, is_registered_safe
+        ) VALUES (
+        #{wardId}, #{bankCode}, #{accountNo}, #{holderName},
+        1, NOW(), NOW(), false
+        )
+    </insert>
+
+    <update id="updateSendInfo" parameterType="Long">
+        UPDATE recipients
+        SET send_count = send_count + 1,
+        last_sent_at = NOW()
+        WHERE recipient_id = #{recipientId}
+    </update>
+
+</mapper>

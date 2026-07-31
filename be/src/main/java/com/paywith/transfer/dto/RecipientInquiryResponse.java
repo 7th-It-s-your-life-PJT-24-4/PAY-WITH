@@ -1,14 +1,17 @@
-package com.paywith.account.dto;
+package com.paywith.transfer.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AccountCreateRequest {
+@Builder
+public class RecipientInquiryResponse {
     private String bankCode;
+    private String bankName;
     private String accountNo;
-    private String accountPassword;
+    private String recipientName;
 }
