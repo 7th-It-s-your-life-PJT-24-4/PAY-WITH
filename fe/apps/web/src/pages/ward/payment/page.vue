@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { PinKeypad } from '@pay-with/ui'
+import { useMutation } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { getApiErrorMessage } from '@/api/error'
-import { useCreateWardPaymentMutation } from '@/composables/useCreateWardPaymentMutation'
+import { createWardPayment } from '@/api/payments'
 import { usePaymentStore } from '@/stores/payment.store'
 
 const router = useRouter()
 const paymentStore = usePaymentStore()
-const createPayment = useCreateWardPaymentMutation()
+const createPayment = useMutation({ mutationFn: createWardPayment })
 const keypad = ref<{ reset: () => void } | null>(null)
 const errorMessage = ref('')
 

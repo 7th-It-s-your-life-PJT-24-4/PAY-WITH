@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Button } from '@pay-with/ui'
+import { useMutation } from '@tanstack/vue-query'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 
 import { getApiErrorMessage } from '@/api/error'
-import { useCancelWardPaymentMutation } from '@/composables/useCancelWardPaymentMutation'
+import { cancelWardPayment } from '@/api/payments'
 import { useWardPaymentStatusQuery } from '@/composables/useWardPaymentStatusQuery'
 import PaymentQrCancelModal from '@/pages/ward/payment/-components/PaymentQrCancelModal.vue'
 import PaymentQrPanel from '@/pages/ward/payment/-components/PaymentQrPanel.vue'
@@ -21,7 +22,7 @@ const paymentId = computed(() => {
   return Number.isSafeInteger(value) && value > 0 ? value : null
 })
 const paymentStatus = useWardPaymentStatusQuery(paymentId)
-const cancelPayment = useCancelWardPaymentMutation()
+const cancelPayment = useMutation({ mutationFn: cancelWardPayment })
 const now = ref(Date.now())
 const isCancelModalOpen = ref(false)
 const errorMessage = ref('')
