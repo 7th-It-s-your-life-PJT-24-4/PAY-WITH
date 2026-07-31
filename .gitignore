@@ -33,6 +33,7 @@ node_modules/
 **/test-results/
 .turbo/
 **/.turbo/
+.pnpm-store/
 
 # Backend
 **/target/
