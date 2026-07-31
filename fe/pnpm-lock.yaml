@@ -78,6 +78,9 @@ catalogs:
     prettier:
       specifier: ^3.9.5
       version: 3.9.5
+    qrcode.vue:
+      specifier: ^3.10.0
+      version: 3.10.0
     reka-ui:
       specifier: ^2.10.1
       version: 2.10.1
@@ -179,6 +182,9 @@ importers:
       pinia:
         specifier: 'catalog:'
         version: 3.0.4(typescript@6.0.3)(vue@3.5.39(typescript@6.0.3))
+      qrcode.vue:
+        specifier: 'catalog:'
+        version: 3.10.0(vue@3.5.39(typescript@6.0.3))
       reka-ui:
         specifier: 'catalog:'
         version: 2.10.1(vue@3.5.39(typescript@6.0.3))
@@ -3964,6 +3970,14 @@ packages:
       }
     engines: { node: '>=6' }
 
+  qrcode.vue@3.10.0:
+    resolution:
+      {
+        integrity: sha512-1bjeBds9hRKMszZuBuYQZor9HdJYWtb0S44HG1JofZ9uicpJpdF+TtDvqo3+2ZlH0k80WVIkmiKB4hq0/N6/rA==,
+      }
+    peerDependencies:
+      vue: ^3.0.0
+
   quansync@0.2.11:
     resolution:
       {
@@ -6838,6 +6852,10 @@ snapshots:
       pug-strip-comments: 2.0.0
 
   punycode@2.3.1: {}
+
+  qrcode.vue@3.10.0(vue@3.5.39(typescript@6.0.3)):
+    dependencies:
+      vue: 3.5.39(typescript@6.0.3)
 
   quansync@0.2.11: {}
 
