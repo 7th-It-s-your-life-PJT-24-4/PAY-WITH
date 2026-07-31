@@ -20,6 +20,7 @@ export const paymentQrSessionSchema = z.object({
   qrToken: z.string().min(1),
   availableBalance: z.number().int().nonnegative(),
   expiresAt: z.string().datetime({ offset: true }),
+  expiresInSeconds: z.number().int().positive(),
 })
 
 export const paymentStatusSchema = z.object({
@@ -51,9 +52,7 @@ export const paymentCancelSchema = z.object({
 })
 
 export const paymentQrSessionResponseSchema = apiResponseSchema(
-  paymentQrSessionSchema.extend({
-    expiresInSeconds: z.number().int().positive(),
-  }),
+  paymentQrSessionSchema,
 )
 export const paymentStatusResponseSchema =
   apiResponseSchema(paymentStatusSchema)

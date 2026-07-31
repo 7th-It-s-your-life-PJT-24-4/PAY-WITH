@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   createWardPaymentRequestSchema,
+  paymentQrSessionResponseSchema,
   paymentStatusResponseSchema,
 } from '@/schemas/payment.schema'
 
@@ -34,5 +35,21 @@ describe('payment schemas', () => {
         message: null,
       }).data.status,
     ).toBe('PENDING')
+  })
+
+  it('keeps the server-provided QR lifetime in the session contract', () => {
+    const response = paymentQrSessionResponseSchema.parse({
+      success: true,
+      data: {
+        paymentId: 42,
+        qrToken: 'pay_qr_test',
+        availableBalance: 130_000,
+        expiresAt: '2026-07-29T15:31:00+09:00',
+        expiresInSeconds: 60,
+      },
+      message: null,
+    })
+
+    expect(response.data.expiresInSeconds).toBe(60)
   })
 })

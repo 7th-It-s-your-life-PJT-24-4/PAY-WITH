@@ -19,6 +19,7 @@ export function useWardPaymentStatusQuery(
     queryFn: () => getWardPaymentStatus(resolvedPaymentId.value!),
     enabled: computed(() => resolvedPaymentId.value !== null),
     refetchInterval: (query) => {
+      if (query.state.error) return false
       const payment = query.state.data as PaymentStatus | undefined
       return !payment || pollingStatuses.has(payment.status) ? 1_000 : false
     },

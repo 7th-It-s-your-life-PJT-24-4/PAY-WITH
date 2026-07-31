@@ -31,11 +31,8 @@ let timer: ReturnType<typeof globalThis.setInterval> | undefined
 
 const session = computed(() => paymentStore.qrSession)
 const remainingSeconds = computed(() => {
-  if (!session.value) return 0
-  return Math.max(
-    0,
-    Math.ceil((Date.parse(session.value.expiresAt) - now.value) / 1_000),
-  )
+  if (!session.value || paymentStore.qrExpiresAt === null) return 0
+  return Math.max(0, Math.ceil((paymentStore.qrExpiresAt - now.value) / 1_000))
 })
 const expired = computed(
   () =>
@@ -51,6 +48,7 @@ const isProcessing = computed(
   () => paymentStatus.data.value?.status === 'PROCESSING',
 )
 const failed = computed(() => paymentStatus.data.value?.status === 'FAILED')
+const statusQueryFailed = computed(() => paymentStatus.error.value !== null)
 
 function startTimer() {
   timer = globalThis.setInterval(() => {
@@ -68,6 +66,11 @@ async function goHome() {
   paymentStore.clearQrSession()
   allowLeave.value = true
   await router.replace({ name: 'ward-home' })
+}
+
+async function retryPaymentStatus() {
+  errorMessage.value = ''
+  await paymentStatus.refetch()
 }
 
 async function confirmCancel() {
@@ -160,7 +163,7 @@ onBeforeUnmount(() => {
     <div class="relative">
       <PaymentQrPanel
         :qr-token="session.qrToken"
-        :expired="expired"
+        :expired="expired || failed"
         :processing="isProcessing"
         @reissue="reissueQrCode"
       />
@@ -196,17 +199,19 @@ onBeforeUnmount(() => {
     <div v-if="failed" class="mt-auto flex flex-col gap-md">
       <Button
         class="w-full"
-        label="다시 결제하기"
-        size="large"
-        @click="reissueQrCode"
-      />
-      <Button
-        class="w-full"
         label="홈으로"
         variant="outline-primary"
         @click="goHome"
       />
     </div>
+    <Button
+      v-else-if="statusQueryFailed"
+      class="mt-auto w-full"
+      label="상태 다시 확인"
+      variant="outline-primary"
+      size="default"
+      @click="retryPaymentStatus"
+    />
     <Button
       v-else-if="!expired"
       class="mt-auto w-full"
