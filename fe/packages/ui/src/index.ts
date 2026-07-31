@@ -1,5 +1,6 @@
 export { default as AppHeader } from './components/AppHeader.vue'
 export { default as Badge } from './components/Badge.vue'
+export { default as BottomSheet } from './components/BottomSheet.vue'
 export { default as BottomNavigation } from './components/BottomNavigation.vue'
 export { default as Button } from './components/Button.vue'
 export { default as ConfirmModal } from './components/ConfirmModal.vue'

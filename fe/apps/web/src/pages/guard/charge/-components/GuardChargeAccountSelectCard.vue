@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import { ChevronDown, Landmark } from '@lucide/vue'
 
+import GuardBankIconTile from '@/pages/guard/charge/-components/GuardBankIconTile.vue'
+
 defineProps<{
   bankName: string
   accountSuffix: string
   balance: string
+  iconUrl?: string
+  brandClass?: string
+}>()
+
+const emit = defineEmits<{
+  click: []
 }>()
 </script>
 
@@ -13,12 +21,15 @@ defineProps<{
     class="flex h-20 w-full items-center rounded-[20px] bg-[#F0F3F8] px-md text-left"
     type="button"
     aria-label="출금 계좌 선택"
+    @click="emit('click')"
   >
-    <span
-      class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"
+    <GuardBankIconTile
+      :icon-url="iconUrl"
+      :label="bankName"
+      :brand-class="brandClass"
     >
-      <Landmark class="size-5" aria-hidden="true" />
-    </span>
+      <Landmark class="size-5 text-white" aria-hidden="true" />
+    </GuardBankIconTile>
 
     <span class="ml-sm min-w-0 flex-1">
       <span
