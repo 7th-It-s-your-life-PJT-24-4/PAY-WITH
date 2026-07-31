@@ -74,7 +74,11 @@ public class SafeAccountServiceImpl implements SafeAccountService{
         boolean isFirstRegistration = (recipient.getSafeRegisteredAt() == null);
 
         // 8. 안전계좌로 등록/복구 (본인 등록이므로 registeredBy = null)
-        safeAccountMapper.registerSafeAccount(recipient.getRecipientId(), null, alias);
+        // 동시 요청 중 하나만 반영
+        int updated = safeAccountMapper.registerSafeAccount(recipient.getRecipientId(), null, alias);
+        if (updated == 0) {
+            throw new BusinessException(HttpStatus.CONFLICT, "이미 등록된 안전계좌입니다.");
+        }
 
         // 9. 응답
         return SafeAccountResponse.builder()
@@ -117,7 +121,11 @@ public class SafeAccountServiceImpl implements SafeAccountService{
                 throw new BusinessException(HttpStatus.CONFLICT, "이미 등록된 안전 계좌 입니다.");
             }
             isFirstRegistration = (recipient.getSafeRegisteredAt() == null);
-            safeAccountMapper.registerSafeAccount(recipient.getRecipientId(), guardId, alias);
+            // 동시 요청 중 하나만 반영
+            int updated = safeAccountMapper.registerSafeAccount(recipient.getRecipientId(), guardId, alias);
+            if (updated == 0) {
+                throw new BusinessException(HttpStatus.CONFLICT, "이미 등록된 안전 계좌 입니다.");
+            }
 
             recipientId = recipient.getRecipientId();
             holderName = recipient.getHolderName();

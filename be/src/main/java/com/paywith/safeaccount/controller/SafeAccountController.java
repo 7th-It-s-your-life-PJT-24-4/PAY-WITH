@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import springfox.documentation.annotations.ApiIgnore;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,7 +21,7 @@ public class SafeAccountController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<SafeAccountResponse>> register(
-            @AuthenticationPrincipal Long userId,
+            @ApiIgnore @AuthenticationPrincipal Long userId,
             @RequestBody SafeAccountRegisterRequest request
             ){
         SafeAccountResponse response = safeAccountService.registerByWard(userId, request);

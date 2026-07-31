@@ -200,12 +200,27 @@ class SafeAccountServiceImplTest {
     }
 
     @Test
+    void 동시_등록_요청으로_UPDATE가_반영되지_않으면_예외를_던진다() {
+        given(userMapper.findById(wardId)).willReturn(userWithRole(Role.WARD));
+        given(recipientMapper.existsActivePairing(wardId)).willReturn(true);
+        given(recipientMapper.findById(recipientId)).willReturn(recipient);
+        given(safeAccountMapper.existsCompletedTransfer(wardId, recipientId)).willReturn(true);
+        given(safeAccountMapper.registerSafeAccount(any(), any(), any())).willReturn(0);
+
+        assertThatThrownBy(() -> safeAccountService.registerByWard(wardId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+                .hasMessageContaining("이미 등록된 안전계좌입니다.");
+    }
+
+    @Test
     void 신규_등록시_newlyRegistered가_true인_응답을_반환한다() {
         given(userMapper.findById(wardId)).willReturn(userWithRole(Role.WARD));
         given(recipientMapper.existsActivePairing(wardId)).willReturn(true);
         given(recipientMapper.findById(recipientId)).willReturn(recipient);
         given(safeAccountMapper.existsCompletedTransfer(wardId, recipientId)).willReturn(true);
         given(bankMapper.findBankName("004")).willReturn("KB국민은행");
+        given(safeAccountMapper.registerSafeAccount(any(), any(), any())).willReturn(1);
 
         SafeAccountResponse response = safeAccountService.registerByWard(wardId, request);
 
@@ -231,6 +246,7 @@ class SafeAccountServiceImplTest {
         given(recipientMapper.findById(recipientId)).willReturn(recipient);
         given(safeAccountMapper.existsCompletedTransfer(wardId, recipientId)).willReturn(true);
         given(bankMapper.findBankName("004")).willReturn("KB국민은행");
+        given(safeAccountMapper.registerSafeAccount(any(), any(), any())).willReturn(1);
 
         SafeAccountResponse response = safeAccountService.registerByWard(wardId, request);
 
@@ -244,6 +260,7 @@ class SafeAccountServiceImplTest {
         given(recipientMapper.findById(recipientId)).willReturn(recipient);
         given(safeAccountMapper.existsCompletedTransfer(wardId, recipientId)).willReturn(true);
         given(bankMapper.findBankName("004")).willReturn("KB국민은행");
+        given(safeAccountMapper.registerSafeAccount(any(), any(), any())).willReturn(1);
         request = SafeAccountRegisterRequest.builder()
                 .recipientId(recipientId)
                 .accountAlias("  ")
@@ -312,10 +329,23 @@ class SafeAccountServiceImplTest {
     }
 
     @Test
+    void 보호자_등록시_동시_등록_요청으로_UPDATE가_반영되지_않으면_예외를_던진다() {
+        given(guardService.verifyGuardOfWard(guardId, wardId)).willReturn(true);
+        given(recipientMapper.findRecipient(wardId, "004", "11012300006781")).willReturn(recipient);
+        given(safeAccountMapper.registerSafeAccount(any(), any(), any())).willReturn(0);
+
+        assertThatThrownBy(() -> safeAccountService.registerByGuard(guardId, wardId, guardRequest))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+                .hasMessageContaining("이미 등록된 안전 계좌 입니다.");
+    }
+
+    @Test
     void 보호자_등록시_기존_계좌_신규등록이면_newlyRegistered가_true다() {
         given(guardService.verifyGuardOfWard(guardId, wardId)).willReturn(true);
         given(recipientMapper.findRecipient(wardId, "004", "11012300006781")).willReturn(recipient);
         given(bankMapper.findBankName("004")).willReturn("KB국민은행");
+        given(safeAccountMapper.registerSafeAccount(any(), any(), any())).willReturn(1);
 
         SafeAccountResponse response = safeAccountService.registerByGuard(guardId, wardId, guardRequest);
 
@@ -335,6 +365,7 @@ class SafeAccountServiceImplTest {
         recipient.setSafeRegisteredAt(LocalDateTime.now().minusDays(10));
         given(recipientMapper.findRecipient(wardId, "004", "11012300006781")).willReturn(recipient);
         given(bankMapper.findBankName("004")).willReturn("KB국민은행");
+        given(safeAccountMapper.registerSafeAccount(any(), any(), any())).willReturn(1);
 
         SafeAccountResponse response = safeAccountService.registerByGuard(guardId, wardId, guardRequest);
 

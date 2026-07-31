@@ -56,5 +56,6 @@
     safe_registered_at = NOW(),
     account_alias = #{accountAlias}
     WHERE recipient_id = #{recipientId}
+    AND is_registered_safe = FALSE
     </update>
 </mapper>
