@@ -261,6 +261,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@lucide/vue':
+        specifier: 'catalog:'
+        version: 1.25.0(vue@3.5.39(typescript@6.0.3))
       reka-ui:
         specifier: 'catalog:'
         version: 2.10.1(vue@3.5.39(typescript@6.0.3))
@@ -944,14 +947,6 @@ packages:
     peerDependencies:
       vue: '>=3.0.1'
 
-  '@phosphor-icons/vue@2.2.1':
-    resolution:
-      {
-        integrity: sha512-3RNg1utc2Z5RwPKWFkW3eXI/0BfQAwXgtFxPUPeSzi55jGYUq16b+UqcgbKLazWFlwg5R92OCLKjDiJjeiJcnA==,
-      }
-    peerDependencies:
-      vue: '>=3.2.39'
-
   '@napi-rs/wasm-runtime@1.1.6':
     resolution:
       {
@@ -1325,6 +1320,15 @@ packages:
       }
     cpu: [x64]
     os: [win32]
+
+  '@phosphor-icons/vue@2.2.1':
+    resolution:
+      {
+        integrity: sha512-3RNg1utc2Z5RwPKWFkW3eXI/0BfQAwXgtFxPUPeSzi55jGYUq16b+UqcgbKLazWFlwg5R92OCLKjDiJjeiJcnA==,
+      }
+    engines: { node: '>=14' }
+    peerDependencies:
+      vue: '>=3.2.39'
 
   '@playwright/test@1.61.1':
     resolution:
@@ -5104,10 +5108,6 @@ snapshots:
     dependencies:
       vue: 3.5.39(typescript@6.0.3)
 
-  '@phosphor-icons/vue@2.2.1(vue@3.5.39(typescript@6.0.3))':
-    dependencies:
-      vue: 3.5.39(typescript@6.0.3)
-
   '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
       '@emnapi/core': 1.11.1
@@ -5259,6 +5259,10 @@ snapshots:
 
   '@oxc-resolver/binding-win32-x64-msvc@11.24.2':
     optional: true
+
+  '@phosphor-icons/vue@2.2.1(vue@3.5.39(typescript@6.0.3))':
+    dependencies:
+      vue: 3.5.39(typescript@6.0.3)
 
   '@playwright/test@1.61.1':
     dependencies:

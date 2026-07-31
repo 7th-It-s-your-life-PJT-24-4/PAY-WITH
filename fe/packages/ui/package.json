@@ -35,6 +35,7 @@
     "vue-tsc": "catalog:"
   },
   "dependencies": {
+    "@lucide/vue": "catalog:",
     "reka-ui": "catalog:"
   }
 }
