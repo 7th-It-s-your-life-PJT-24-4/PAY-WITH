@@ -10,9 +10,11 @@ import {
 import GuardAssetCard from '@/pages/guard/-components/GuardAssetCard.vue'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
 import GuardTransactionList from '@/pages/guard/-components/GuardTransactionList.vue'
+import { useGuardStore } from '@/stores/guard.store'
 import { usePairingStore } from '@/stores/pairing.store'
 
 const router = useRouter()
+const guardStore = useGuardStore()
 const pairingStore = usePairingStore()
 const isPairingConfirmOpen = ref(false)
 
@@ -51,15 +53,21 @@ async function startPairing() {
     <div v-else class="px-mobile-gutter pt-md">
       <GuardSeniorAvatarList
         :seniors="mockGuardSeniors"
-        active-senior-id="sui"
+        :active-senior-id="guardStore.activeSeniorId"
         @add="isPairingConfirmOpen = true"
+        @select="guardStore.selectSenior"
       />
 
-      <GuardAssetCard class="mt-md" senior-name="수이" balance="1,000,000" />
+      <GuardAssetCard
+        class="mt-md"
+        :senior-name="guardStore.activeSenior?.name ?? ''"
+        balance="1,000,000"
+      />
 
       <GuardTransactionList
         class="mt-md"
         :transactions="mockGuardTransactions"
+        @more="router.push({ name: 'guard-charge' })"
       />
     </div>
 

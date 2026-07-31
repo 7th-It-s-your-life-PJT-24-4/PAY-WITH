@@ -11,7 +11,8 @@ const props = withDefaults(
       | 'danger'
       | 'outline-danger'
       | 'text'
-    size?: 'small' | 'default' | 'large'
+      | 'guard-cta'
+    size?: 'small' | 'default' | 'large' | 'guard-cta'
     pill?: boolean
     disabled?: boolean
     type?: 'button' | 'submit' | 'reset'
@@ -39,6 +40,8 @@ const variantClass = computed(
       'outline-danger':
         'border-error bg-surface-card text-error hover:bg-error/10',
       text: 'border-transparent bg-transparent text-primary-300 hover:bg-primary-900',
+      'guard-cta':
+        'border-transparent bg-primary-500 text-white hover:enabled:bg-primary-400 active:enabled:bg-primary-300 disabled:bg-gray-700',
     })[props.variant],
 )
 
@@ -50,11 +53,19 @@ const sizeClass = computed(() => {
     small: 'type-h4 min-h-button-small px-xl',
     default: 'type-h4 min-h-button-default px-xl',
     large: 'type-h1 min-h-button-large px-xxl',
+    'guard-cta':
+      'h-14 px-xl text-[16px] font-semibold leading-[1.2] tracking-[-0.32px]',
   }[props.size]
 })
 
 const contentGapClass = computed(() =>
   props.size === 'large' ? 'gap-md' : 'gap-xs',
+)
+
+const disabledStateClass = computed(() =>
+  props.variant === 'guard-cta'
+    ? 'disabled:cursor-not-allowed'
+    : 'disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]',
 )
 
 const iconSizeClass = computed(() => {
@@ -64,22 +75,27 @@ const iconSizeClass = computed(() => {
     small: 'size-lg',
     default: 'size-xl',
     large: 'size-xxl',
+    'guard-cta': 'size-xl',
   }[props.size]
 })
 </script>
 
 <template>
   <button
-    class="inline-flex items-center justify-center border-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
+    class="inline-flex items-center justify-center border-2 transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
     :class="[
       variantClass,
       sizeClass,
       contentGapClass,
+      disabledStateClass,
+      variant === 'guard-cta' ? 'border-0' : '',
       pill
         ? 'rounded-full'
-        : size === 'large'
-          ? 'rounded-large'
-          : 'rounded-medium',
+        : size === 'guard-cta'
+          ? 'rounded-[8px]'
+          : size === 'large'
+            ? 'rounded-large'
+            : 'rounded-medium',
       size === 'large' && variant.startsWith('outline') ? 'border-[3px]' : '',
     ]"
     :disabled="disabled"
