@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.paywith.safeaccount.mapper.SafeAccountMapper">
+    <insert id="insertSafeAccountByGuard">
+        <selectKey keyProperty="recipientId" resultType="long" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        INSERT INTO recipients (
+        senior_id, bank_code, account_no, holder_name,
+        send_count, first_sent_at, last_sent_at,
+        is_registered_safe, safe_registered_by, safe_registered_at, account_alias
+        ) VALUES (
+        #{wardId}, #{bankCode}, #{accountNo}, #{holderName},
+        0, NULL, NULL,
+        TRUE, #{guardId}, NOW(), #{accountAlias}
+        )
+    </insert>
+
+    <select id="existsCompletedTransfer" resultType="boolean">
+        SELECT EXISTS (
+        SELECT 1
+        FROM transactions t
+        JOIN wallets w ON t.wallet_id = w.wallet_id
+        WHERE w.user_id = #{wardId}
+        AND t.recipient_id = #{recipientId}
+        AND t.type = 'TRANSFER_OUT'
+        AND t.status = 'COMPLETED'
+        )
+    </select>
+
+    <select id="findSafeAccountList" resultType="com.paywith.safeaccount.dto.SafeAccountListItem">
+        SELECT
+        r.recipient_id AS safeAccountId,
+        r.recipient_id AS recipientId,
+        r.bank_code AS bankCode,
+        b.bank_name AS bankName,
+        r.account_no AS accountNo,
+        r.holder_name AS holderName,
+        r.account_alias AS accountAlias,
+        TRUE AS isVerified,
+        r.safe_registered_at AS createdAt
+        FROM recipients r
+        JOIN banks b ON r.bank_code = b.bank_code
+        WHERE r.senior_id = #{wardId}
+        AND r.is_registered_safe = TRUE
+        ORDER BY r.safe_registered_at DESC
+    </select>
+
+    <update id="registerSafeAccount">
+    UPDATE recipients
+    SET is_registered_safe = TRUE,
+    safe_registered_by = #{registeredBy},
+    safe_registered_at = NOW(),
+    account_alias = #{accountAlias}
+    WHERE recipient_id = #{recipientId}
+    </update>
+</mapper>

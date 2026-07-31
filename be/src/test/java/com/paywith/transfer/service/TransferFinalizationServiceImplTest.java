@@ -9,6 +9,7 @@ import com.paywith.recipient.domain.Recipient;
 import com.paywith.transaction.domain.Transaction;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.PreparedTransfer;
+import com.paywith.transfer.dto.TransferExecutionContext;
 import com.paywith.transfer.dto.TransferRequest;
 import com.paywith.transfer.dto.TransferResponse;
 import com.paywith.wallet.domain.Wallet;
@@ -208,5 +209,84 @@ class TransferFinalizationServiceImplTest {
         verify(transactionMapper, times(2))
                 .completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class));
         verify(transactionMapper, never()).updateStatus(999L, "FAILED");
+    }
+
+    // ===== finalizeApprovedTransfer(보호자 승인 이후 재개 경로) =====
+
+    @Test
+    void 승인후_재개시_거래정보가_없으면_404_예외를_던진다() {
+        given(transactionMapper.findExecutionContextByTransactionId(999L)).willReturn(null);
+
+        assertThatThrownBy(() -> transferFinalizationService.finalizeApprovedTransfer(999L))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("transactionId=999");
+
+        verify(transactionMapper, never()).updateStatus(any(), any());
+        verify(walletMapper, never()).decreaseBalanceIfSufficient(any(), any());
+        verify(openBankingClient, never()).deposit(any(), any(), any());
+    }
+
+    @Test
+    void 승인후_재개시_거래정보가_있으면_조회한_컨텍스트로_완료처리까지_진행한다() {
+        TransferExecutionContext context = TransferExecutionContext.builder()
+                .transactionId(999L)
+                .walletId(10L)
+                .userId(userId)
+                .bankCode("004")
+                .bankName("KB국민은행")
+                .accountNo("11012300006781")
+                .holderName("김시니어")
+                .amount(50_000L)
+                .memo("생활비")
+                .build();
+        given(transactionMapper.findExecutionContextByTransactionId(999L)).willReturn(context);
+        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(1);
+        given(walletMapper.findWalletByUserId(userId))
+                .willReturn(Wallet.builder().walletId(10L).userId(userId).balance(50_000L).build());
+        given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class)))
+                .willReturn(1);
+
+        TransferResponse result = transferFinalizationService.finalizeApprovedTransfer(999L);
+
+        assertThat(result.getStatus()).isEqualTo("COMPLETED");
+        assertThat(result.getTransactionId()).isEqualTo(999L);
+        assertThat(result.getHolderName()).isEqualTo("김시니어");
+        assertThat(result.getBankName()).isEqualTo("KB국민은행");
+        assertThat(result.getBalanceAfter()).isEqualTo(50_000L);
+
+        verify(openBankingClient).deposit("004", "11012300006781", 50_000L);
+        verify(transactionMapper).completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class));
+    }
+
+    @Test
+    void 승인후_재개시_입금이_실패하면_FAILED로_기록하고_TransferIrrecoverableException을_던진다() {
+        TransferExecutionContext context = TransferExecutionContext.builder()
+                .transactionId(999L)
+                .walletId(10L)
+                .userId(userId)
+                .bankCode("004")
+                .bankName("KB국민은행")
+                .accountNo("11012300006781")
+                .holderName("김시니어")
+                .amount(50_000L)
+                .memo("생활비")
+                .build();
+        given(transactionMapper.findExecutionContextByTransactionId(999L)).willReturn(context);
+        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(1);
+        given(walletMapper.findWalletByUserId(userId))
+                .willReturn(Wallet.builder().walletId(10L).userId(userId).balance(50_000L).build());
+        given(openBankingClient.deposit("004", "11012300006781", 50_000L))
+                .willThrow(new RuntimeException("네트워크 오류"));
+        given(transactionMapper.updateStatus(999L, "FAILED")).willReturn(1);
+
+        assertThatThrownBy(() -> transferFinalizationService.finalizeApprovedTransfer(999L))
+                .isInstanceOf(TransferIrrecoverableException.class)
+                .hasMessageContaining("transactionId=999");
+
+        verify(transactionMapper).updateStatus(999L, "FAILED");
+        verify(transactionMapper, never()).completeTransaction(any(), any(), any(), any());
     }
 }
