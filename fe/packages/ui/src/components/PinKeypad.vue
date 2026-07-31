@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Delete } from '@lucide/vue'
 import { computed, onBeforeUnmount, ref } from 'vue'
 
 const props = withDefaults(
@@ -11,6 +12,8 @@ const props = withDefaults(
     disabled?: boolean
     error?: string
     cancelLabel?: string
+    variant?: 'card' | 'minimal'
+    keyOrder?: string[]
   }>(),
   {
     length: 6,
@@ -21,6 +24,8 @@ const props = withDefaults(
     disabled: false,
     error: undefined,
     cancelLabel: '',
+    variant: 'card',
+    keyOrder: undefined,
   },
 )
 
@@ -41,7 +46,13 @@ function shuffleKeys() {
   return nextKeys
 }
 
-const keys = ref(props.randomize ? shuffleKeys() : [...defaultKeys])
+const keys = ref(
+  props.keyOrder && props.keyOrder.length === defaultKeys.length
+    ? [...props.keyOrder]
+    : props.randomize
+      ? shuffleKeys()
+      : [...defaultKeys],
+)
 const pin = ref('')
 const activeKey = ref<string | null>(null)
 const pseudoActiveKey = ref<string | null>(null)
@@ -90,7 +101,11 @@ function backspace() {
 function reset() {
   clearActiveState()
   pin.value = ''
-  if (props.randomize) keys.value = shuffleKeys()
+  if (props.keyOrder && props.keyOrder.length === defaultKeys.length) {
+    keys.value = [...props.keyOrder]
+  } else if (props.randomize) {
+    keys.value = shuffleKeys()
+  }
   emit('change', 0)
 }
 
@@ -128,18 +143,30 @@ onBeforeUnmount(clearActiveState)
     </p>
 
     <div
-      class="mt-xxl grid w-full max-w-[350px] grid-cols-3 gap-md"
+      class="grid w-full max-w-[350px] grid-cols-3"
+      :class="
+        variant === 'minimal'
+          ? 'mt-[210px] gap-x-[44px] gap-y-[20px]'
+          : 'mt-xxl gap-md'
+      "
       role="group"
       aria-label="비밀번호 숫자 키패드"
     >
       <button
         v-for="key in keys.slice(0, 9)"
         :key="key"
-        class="type-numeric-input flex h-16 items-center justify-center rounded-medium border border-border bg-surface-card text-body shadow-card outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
+        class="flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
         :class="
-          activeKey === key || pseudoActiveKey === key
-            ? 'border-primary-500 bg-primary-900 text-primary-300'
-            : ''
+          variant === 'minimal'
+            ? [
+                'h-[50px] text-[24px] font-bold leading-[1.6] tracking-[-0.48px] text-primary-500',
+              ]
+            : [
+                'type-numeric-input h-16 rounded-medium border border-border bg-surface-card text-body shadow-card transition-colors',
+                activeKey === key || pseudoActiveKey === key
+                  ? 'border-primary-500 bg-primary-900 text-primary-300'
+                  : '',
+              ]
         "
         type="button"
         :disabled="disabled"
@@ -153,11 +180,25 @@ onBeforeUnmount(clearActiveState)
         "
         @click="input(key)"
       >
-        {{ key }}
+        <span
+          v-if="variant === 'minimal'"
+          class="flex size-11 items-center justify-center rounded-full transition-colors"
+          :class="
+            activeKey === key || pseudoActiveKey === key ? 'bg-primary-900' : ''
+          "
+        >
+          {{ key }}
+        </span>
+        <template v-else>{{ key }}</template>
       </button>
 
       <button
-        class="type-h4 flex h-16 items-center justify-center rounded-medium bg-disabled/60 text-body-secondary outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
+        class="flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
+        :class="
+          variant === 'minimal'
+            ? 'h-[50px] rounded-full text-[14px] font-semibold text-gray-600'
+            : 'type-h4 h-16 rounded-medium bg-disabled/60 text-body-secondary'
+        "
         type="button"
         :disabled="disabled"
         aria-label="비밀번호 입력 취소"
@@ -167,11 +208,18 @@ onBeforeUnmount(clearActiveState)
       </button>
 
       <button
-        class="type-numeric-input flex h-16 items-center justify-center rounded-medium border border-border bg-surface-card text-body shadow-card outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
+        class="flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
         :class="
-          activeKey === keys[9] || pseudoActiveKey === keys[9]
-            ? 'border-primary-500 bg-primary-900 text-primary-300'
-            : ''
+          variant === 'minimal'
+            ? [
+                'h-[50px] text-[24px] font-bold leading-[1.6] tracking-[-0.48px] text-primary-500',
+              ]
+            : [
+                'type-numeric-input h-16 rounded-medium border border-border bg-surface-card text-body shadow-card transition-colors',
+                activeKey === keys[9] || pseudoActiveKey === keys[9]
+                  ? 'border-primary-500 bg-primary-900 text-primary-300'
+                  : '',
+              ]
         "
         type="button"
         :disabled="disabled"
@@ -185,30 +233,33 @@ onBeforeUnmount(clearActiveState)
         "
         @click="input(keys[9]!)"
       >
-        {{ keys[9] }}
+        <span
+          v-if="variant === 'minimal'"
+          class="flex size-11 items-center justify-center rounded-full transition-colors"
+          :class="
+            activeKey === keys[9] || pseudoActiveKey === keys[9]
+              ? 'bg-primary-900'
+              : ''
+          "
+        >
+          {{ keys[9] }}
+        </span>
+        <template v-else>{{ keys[9] }}</template>
       </button>
 
       <button
-        class="flex h-16 items-center justify-center rounded-medium bg-disabled/60 text-body-secondary outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
+        class="flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
+        :class="
+          variant === 'minimal'
+            ? 'h-[50px] rounded-full text-gray-600'
+            : 'h-16 rounded-medium bg-disabled/60 text-body-secondary'
+        "
         type="button"
         :disabled="disabled"
         aria-label="한 글자 지우기"
         @click="backspace"
       >
-        <svg aria-hidden="true" class="h-5 w-6" viewBox="0 0 24 20" fill="none">
-          <path
-            d="M9 3h11a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9L2 10l7-7Z"
-            stroke="currentColor"
-            stroke-width="1.6"
-            stroke-linejoin="round"
-          />
-          <path
-            d="m13 7 5 6m0-6-5 6"
-            stroke="currentColor"
-            stroke-width="1.6"
-            stroke-linecap="round"
-          />
-        </svg>
+        <Delete class="size-6" aria-hidden="true" />
       </button>
     </div>
   </div>

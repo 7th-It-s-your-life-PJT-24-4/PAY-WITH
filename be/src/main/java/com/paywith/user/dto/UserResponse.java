@@ -1,6 +1,7 @@
 package com.paywith.user.dto;
 
 import com.paywith.user.domain.User;
+import com.paywith.user.domain.Role;
 import java.time.LocalDateTime;
 import lombok.Getter;
 
@@ -10,6 +11,7 @@ public class UserResponse {
     private final Long id;
     private final String phone;
     private final String name;
+    private final Role role;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -17,6 +19,7 @@ public class UserResponse {
         this.id = user.getId();
         this.phone = user.getPhone();
         this.name = user.getName();
+        this.role = user.getRole();
         this.createdAt = user.getCreatedAt();
         this.updatedAt = user.getUpdatedAt();
     }

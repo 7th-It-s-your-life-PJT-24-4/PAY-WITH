@@ -1,3 +1,172 @@
+<script setup lang="ts">
+import { Landmark } from '@lucide/vue'
+import { PhWallet } from '@phosphor-icons/vue'
+import { ConfirmModal } from '@pay-with/ui'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+import {
+  mockGuardSeniors,
+  type GuardSeniorAvatar,
+} from '@/mocks/guard-home.mock'
+import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
+import { useGuardStore } from '@/stores/guard.store'
+import { usePairingStore } from '@/stores/pairing.store'
+
+interface GuardChargeHistory {
+  id: string
+  date: string
+  amount: string
+  bankName: string
+  accountSuffix: string
+}
+
+const router = useRouter()
+const guardStore = useGuardStore()
+const pairingStore = usePairingStore()
+const isPairingConfirmOpen = ref(false)
+
+const chargeHistoriesBySeniorId: Record<string, GuardChargeHistory[]> = {
+  sui: [
+    {
+      id: 'charge-1',
+      date: '7월 28일',
+      amount: '-30,000원',
+      bankName: '국민은행',
+      accountSuffix: '3700',
+    },
+    {
+      id: 'charge-2',
+      date: '7월 28일',
+      amount: '-30,000원',
+      bankName: '국민은행',
+      accountSuffix: '3700',
+    },
+    {
+      id: 'charge-3',
+      date: '7월 25일',
+      amount: '-30,000원',
+      bankName: '국민은행',
+      accountSuffix: '3700',
+    },
+  ],
+  woni: [],
+}
+
+const seniors = computed<GuardSeniorAvatar[]>(() => mockGuardSeniors)
+const chargeHistories = computed(
+  () => chargeHistoriesBySeniorId[guardStore.activeSeniorId] ?? [],
+)
+const hasChargeHistory = computed(() => chargeHistories.value.length > 0)
+
+async function startPairing() {
+  const issued = await pairingStore.issueCode()
+  if (!issued) return
+
+  isPairingConfirmOpen.value = false
+  router.push({ name: 'guard-pairing-code' })
+}
+</script>
+
 <template>
-  <main class="min-h-screen pb-[calc(66px+env(safe-area-inset-bottom))]" />
+  <main
+    class="relative min-h-screen pb-[calc(138px+env(safe-area-inset-bottom))]"
+  >
+    <div class="px-mobile-gutter pt-md">
+      <GuardSeniorAvatarList
+        :seniors="seniors"
+        :active-senior-id="guardStore.activeSeniorId"
+        @add="isPairingConfirmOpen = true"
+        @select="guardStore.selectSenior"
+      />
+
+      <section class="mt-lg" aria-labelledby="guard-charge-history-title">
+        <h1
+          id="guard-charge-history-title"
+          class="text-[18px] font-bold leading-[1.2] tracking-[-0.36px] text-black"
+        >
+          충전 내역
+        </h1>
+
+        <div v-if="hasChargeHistory" class="mt-lg">
+          <template
+            v-for="(history, index) in chargeHistories"
+            :key="history.id"
+          >
+            <p
+              v-if="
+                index === 0 || chargeHistories[index - 1]?.date !== history.date
+              "
+              class="type-body-medium mb-xs text-gray-500"
+              :class="index > 0 ? 'mt-md' : ''"
+            >
+              {{ history.date }}
+            </p>
+
+            <article class="flex h-[60px] items-center bg-white px-sm">
+              <span
+                class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"
+              >
+                <Landmark class="size-[18px]" aria-hidden="true" />
+              </span>
+              <div class="ml-md min-w-0 flex-1">
+                <p
+                  class="text-[14px] font-semibold leading-[1.2] tracking-[-0.28px] text-black"
+                >
+                  {{ history.amount }}
+                </p>
+                <p
+                  class="mt-xxs truncate text-[12px] font-medium leading-[1.2] tracking-[-0.24px] text-gray-700"
+                >
+                  {{ history.bankName }} {{ history.accountSuffix }}
+                </p>
+              </div>
+            </article>
+          </template>
+        </div>
+
+        <div
+          v-else
+          class="flex min-h-[calc(100dvh-260px-66px-env(safe-area-inset-bottom))] flex-col items-center justify-center text-center"
+        >
+          <p
+            class="text-[16px] font-medium leading-6 tracking-[-0.2px] text-gray-500"
+          >
+            아직 충전한 이력이 없어요.<br />
+            시니어에게 안전하게 자산을 전달하세요.
+          </p>
+          <button
+            class="mt-lg flex h-14 w-full items-center justify-center rounded-[10px] bg-primary-500 text-[16px] font-semibold leading-[1.2] tracking-[-0.32px] text-white shadow-[0_10px_15px_-3px_rgb(0_0_0/10%),0_4px_6px_-4px_rgb(0_0_0/10%)] transition-colors hover:bg-primary-400 active:bg-primary-300"
+            type="button"
+            @click="router.push({ name: 'guard-charge-be' })"
+          >
+            시니어에게 첫 충전하기
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <div
+      v-if="hasChargeHistory"
+      class="fixed inset-x-0 bottom-[calc(66px+env(safe-area-inset-bottom)+32px)] z-30 mx-auto flex w-full max-w-[390px] justify-end px-mobile-gutter"
+    >
+      <button
+        class="flex h-10 items-center gap-xxs rounded-full bg-primary-500 px-[10px] text-4 font-medium leading-[1.6] tracking-[-0.32px] text-white shadow-[0_10px_15px_-3px_rgb(0_0_0/10%),0_4px_6px_-4px_rgb(0_0_0/10%)] transition-colors hover:bg-primary-400 active:bg-primary-300"
+        type="button"
+        @click="router.push({ name: 'guard-charge-be' })"
+      >
+        <PhWallet class="size-5" aria-hidden="true" weight="fill" />
+        충전하기
+      </button>
+    </div>
+
+    <ConfirmModal
+      v-model:open="isPairingConfirmOpen"
+      title="인증 코드를 생성할까요?"
+      cancel-label="취소"
+      :confirm-label="pairingStore.isIssuingCode ? '생성 중' : '생성'"
+      :confirm-disabled="pairingStore.isIssuingCode"
+      @confirm="startPairing"
+    />
+  </main>
 </template>

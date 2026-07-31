@@ -17,11 +17,12 @@ const meta = {
         'danger',
         'outline-danger',
         'text',
+        'guard-cta',
       ],
     },
     size: {
       control: 'inline-radio',
-      options: ['small', 'default', 'large'],
+      options: ['small', 'default', 'large', 'guard-cta'],
     },
   },
 } satisfies Meta<typeof Button>
@@ -104,6 +105,14 @@ export const Text: Story = {
   args: {
     label: '자세히 보기',
     variant: 'text',
+  },
+}
+
+export const GuardCta: Story = {
+  args: {
+    label: '충전하기',
+    variant: 'guard-cta',
+    size: 'guard-cta',
   },
 }
 

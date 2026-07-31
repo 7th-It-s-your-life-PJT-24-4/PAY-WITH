@@ -7,9 +7,21 @@ import org.springframework.http.HttpStatus;
 public class BusinessException extends RuntimeException {
 
     private final HttpStatus status;
+    private final String code;
+    private final Object data;
 
     public BusinessException(HttpStatus status, String message) {
+        this(status, null, message, null);
+    }
+
+    public BusinessException(HttpStatus status, String code, String message) {
+        this(status, code, message, null);
+    }
+
+    public BusinessException(HttpStatus status, String code, String message, Object data) {
         super(message);
         this.status = status;
+        this.code = code;
+        this.data = data;
     }
 }

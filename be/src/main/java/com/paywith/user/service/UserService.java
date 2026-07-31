@@ -1,5 +1,6 @@
 package com.paywith.user.service;
 
+import com.paywith.auth.service.PhoneVerificationService;
 import com.paywith.user.domain.Role;
 import com.paywith.user.domain.User;
 import com.paywith.user.dto.UserCreateRequest;
@@ -24,11 +25,18 @@ public class UserService {
     private final UserMapper userMapper;
     private final WalletMapper walletMapper;
     private final PasswordEncoder passwordEncoder;
+    private final PhoneVerificationService phoneVerificationService;
 
-    public UserService(UserMapper userMapper, WalletMapper walletMapper, PasswordEncoder passwordEncoder) {
+    public UserService(
+        UserMapper userMapper,
+        WalletMapper walletMapper,
+        PasswordEncoder passwordEncoder,
+        PhoneVerificationService phoneVerificationService
+    ) {
         this.userMapper = userMapper;
         this.walletMapper = walletMapper;
         this.passwordEncoder = passwordEncoder;
+        this.phoneVerificationService = phoneVerificationService;
     }
 
     public List<UserResponse> findAll() {
@@ -43,6 +51,8 @@ public class UserService {
 
     @Transactional
     public UserResponse create(UserCreateRequest request) {
+        phoneVerificationService.requireValidToken(request.getVerificationToken(), request.getPhone());
+
         if (userMapper.findByPhone(request.getPhone()) != null) {
             throw new BusinessException(HttpStatus.CONFLICT, "이미 사용 중인 전화번호입니다.");
         }
@@ -62,6 +72,8 @@ public class UserService {
             wallet.setUserId(user.getId());
             walletMapper.insert(wallet);
         }
+
+        phoneVerificationService.invalidateToken(request.getVerificationToken(), request.getPhone());
 
         return new UserResponse(findUser(user.getId()));
     }

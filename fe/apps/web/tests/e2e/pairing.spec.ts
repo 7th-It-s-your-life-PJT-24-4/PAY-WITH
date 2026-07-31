@@ -9,23 +9,16 @@ test('보호자가 직접 접속해 인증 코드를 생성하고 복사한다',
   })
   await expect(page).toHaveURL(/\/guard\/pairing\/code$/)
 
-  const dialog = page.getByRole('dialog', {
-    name: '인증 코드를 생성할까요?',
-  })
-  await expect(dialog).toBeVisible()
-  await dialog.getByRole('button', { name: '완료' }).click()
-
-  await expect(page.getByText('72941')).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: '시니어 연결하기' }),
+  ).toBeVisible()
+  const issuedCode = await page.getByText(/^\d{5}$/).textContent()
+  expect(issuedCode).toMatch(/^\d{5}$/)
   await page.getByRole('button', { name: '코드 복사' }).click()
   await expect(page.getByRole('status')).toContainText('코드가 복사되었습니다')
 
   await page.getByRole('button', { name: '뒤로 가기' }).click()
-  await expect(page).toHaveURL((url) => url.pathname === '/ward/home')
-  await page.goForward()
-
-  await expect(page).toHaveURL(/\/guard\/pairing\/code$/)
-  await expect(page.getByText('72941')).toBeVisible()
-  await expect(page.getByText('0:00')).toBeHidden()
+  await expect(page).toHaveURL((url) => url.pathname === '/guard')
 })
 
 test('미연결 시니어가 보호자 코드를 입력하고 연결을 완료한다', async ({

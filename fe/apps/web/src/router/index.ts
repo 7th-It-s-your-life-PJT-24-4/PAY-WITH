@@ -6,11 +6,15 @@ import SignUpPage from '@/pages/auth/sign-up/page.vue'
 import SignUpDetailsPage from '@/pages/auth/sign-up/details/page.vue'
 import SignUpTermsPage from '@/pages/auth/sign-up/terms/page.vue'
 import GuardChargePage from '@/pages/guard/charge/page.vue'
+import GuardChargeAccountPage from '@/pages/guard/charge/account/page.vue'
+import GuardChargeBePage from '@/pages/guard/charge/be/page.vue'
+import GuardChargeCompletePage from '@/pages/guard/charge/complete/page.vue'
+import GuardChargePasswordPage from '@/pages/guard/charge/password/page.vue'
 import GuardHistoryPage from '@/pages/guard/history/page.vue'
 import GuardLayout from '@/pages/guard/layout.vue'
 import GuardMyPage from '@/pages/guard/my/page.vue'
 import GuardPage from '@/pages/guard/page.vue'
-import GuardianPairingCodePage from '@/pages/guard/pairing/code.vue'
+import GuardPairingCodePage from '@/pages/guard/pairing/code.vue'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
 import { requireCompletedPairing } from '@/pages/ward/pairing/-utils/pairing-route-guard'
@@ -25,8 +29,12 @@ import WardTransactionHistoryPage from '@/pages/ward/history/page.vue'
 import WardPaymentCompletePage from '@/pages/ward/payment/complete.vue'
 import WardPaymentHeldPage from '@/pages/ward/payment/held.vue'
 import WardPaymentPage from '@/pages/ward/payment/page.vue'
-import WardPaymentPasswordPage from '@/pages/ward/payment/password.vue'
-import { requireHeldPayment } from '@/pages/ward/payment/-utils/payment-route-guard'
+import WardPaymentQrPage from '@/pages/ward/payment/qr.vue'
+import {
+  requireCompletedPayment,
+  requireHeldPayment,
+  requirePaymentQrSession,
+} from '@/pages/ward/payment/-utils/payment-route-guard'
 import WardTransferAccountPage from '@/pages/ward/transfer/account.vue'
 import WardTransferAmountPage from '@/pages/ward/transfer/amount.vue'
 import WardTransferBankPage from '@/pages/ward/transfer/bank.vue'
@@ -101,6 +109,42 @@ const router = createRouter({
           meta: { activeNavigation: 'charge' },
         },
         {
+          path: 'charge/be',
+          name: 'guard-charge-be',
+          component: GuardChargeBePage,
+          meta: {
+            activeNavigation: 'charge',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'charge/account',
+          name: 'guard-charge-account',
+          component: GuardChargeAccountPage,
+          meta: {
+            activeNavigation: 'charge',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'charge/password',
+          name: 'guard-charge-password',
+          component: GuardChargePasswordPage,
+          meta: {
+            activeNavigation: 'charge',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'charge/complete',
+          name: 'guard-charge-complete',
+          component: GuardChargeCompletePage,
+          meta: {
+            activeNavigation: 'charge',
+            showBottomNavigation: false,
+          },
+        },
+        {
           path: 'history',
           name: 'guard-history',
           component: GuardHistoryPage,
@@ -116,8 +160,8 @@ const router = createRouter({
     },
     {
       path: '/guard/pairing/code',
-      name: 'guardian-pairing-code',
-      component: GuardianPairingCodePage,
+      name: 'guard-pairing-code',
+      component: GuardPairingCodePage,
     },
     {
       path: '/ward',
@@ -156,7 +200,22 @@ const router = createRouter({
           path: 'payment',
           name: 'ward-payment',
           component: WardPaymentPage,
-          meta: { title: 'QR 결제', activeNavigation: 'payment' },
+          meta: {
+            title: '비밀번호 입력',
+            activeNavigation: 'payment',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'payment/:paymentId/qr',
+          name: 'ward-payment-qr',
+          component: WardPaymentQrPage,
+          beforeEnter: requirePaymentQrSession,
+          meta: {
+            title: 'QR 결제',
+            activeNavigation: 'payment',
+            showBottomNavigation: false,
+          },
         },
         {
           path: 'charge',
@@ -216,20 +275,16 @@ const router = createRouter({
           },
         },
         {
-          path: 'payment/password',
-          name: 'ward-payment-password',
-          component: WardPaymentPasswordPage,
-          meta: {
-            title: '비밀번호 입력',
-            activeNavigation: 'payment',
-            showBottomNavigation: false,
-          },
-        },
-        {
-          path: 'payment/complete',
+          path: 'payment/:transactionId/complete',
           name: 'ward-payment-complete',
           component: WardPaymentCompletePage,
-          meta: { title: '결제 완료', activeNavigation: 'payment' },
+          beforeEnter: requireCompletedPayment,
+          meta: {
+            title: '결제 완료',
+            activeNavigation: 'payment',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
         },
         {
           path: 'payment/:transactionId/held',

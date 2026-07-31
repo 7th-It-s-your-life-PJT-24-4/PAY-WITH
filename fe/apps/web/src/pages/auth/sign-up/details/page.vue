@@ -194,8 +194,7 @@ function submitSignUp() {
   formError.value = ''
   if (signUpStore.role === 'senior') pairingStore.reset()
   router.push({
-    name:
-      signUpStore.role === 'guardian' ? 'guardian-pairing-code' : 'ward-home',
+    name: signUpStore.role === 'guardian' ? 'guard-pairing-code' : 'ward-home',
   })
 }
 </script>

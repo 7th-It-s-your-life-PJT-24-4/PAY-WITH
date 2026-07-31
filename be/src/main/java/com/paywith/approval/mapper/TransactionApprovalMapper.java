@@ -19,4 +19,18 @@ public interface TransactionApprovalMapper {
      * 반드시 하나 존재한다.
      */
     int updateStatus(@Param("transactionId") Long transactionId, @Param("status") String status);
+
+    /**
+     * 승인 직후 이어진 송금이 입금 호출 전에 실패했을 때 거래를 FAILED 로 종결한다.
+     *
+     * <p>{@link #updateStatus} 와 달리 승인 트랜잭션 밖에서(커밋 이후) 호출되므로 상태 조건을
+     * 건다. APPROVED 인 행만 바꾸기 때문에, 같은 거래가 이미 PROCESSING/COMPLETED 로 넘어갔다면
+     * 0 을 돌려주고 아무것도 덮어쓰지 않는다.
+     *
+     * <p>입금 호출 이후의 실패는 여기서 다루지 않는다. 그쪽은 잔액이 이미 차감돼 수동 정산이
+     * 필요한 별개 상황이고, TransferFinalizationServiceImpl 이 자체적으로 FAILED 를 기록한다.
+     *
+     * @return 영향 행 수. 0 이면 이미 다른 상태로 진행된 거래다.
+     */
+    int markFailedIfApproved(@Param("transactionId") Long transactionId);
 }

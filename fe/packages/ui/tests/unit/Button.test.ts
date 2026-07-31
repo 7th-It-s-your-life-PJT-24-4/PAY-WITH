@@ -52,4 +52,38 @@ describe('Button', () => {
     expect(buttonChildren[0]?.getAttribute('aria-hidden')).toBe('true')
     expect(buttonChildren[2]?.getAttribute('aria-hidden')).toBe('true')
   })
+
+  it('renders guard CTA sizing and variant classes', () => {
+    const wrapper = mount(Button, {
+      props: {
+        label: '충전하기',
+        variant: 'guard-cta',
+        size: 'guard-cta',
+      },
+    })
+
+    const button = wrapper.get('button')
+
+    expect(button.classes()).toContain('bg-primary-500')
+    expect(button.classes()).toContain('border-0')
+    expect(button.classes()).toContain('h-14')
+    expect(button.classes()).toContain('rounded-[8px]')
+  })
+
+  it('renders guard CTA disabled color without opacity', () => {
+    const wrapper = mount(Button, {
+      props: {
+        disabled: true,
+        label: '충전하기',
+        variant: 'guard-cta',
+        size: 'guard-cta',
+      },
+    })
+
+    const classes = wrapper.get('button').classes()
+
+    expect(classes).toContain('disabled:bg-gray-700')
+    expect(classes).toContain('hover:enabled:bg-primary-400')
+    expect(classes).not.toContain('disabled:opacity-[var(--opacity-disabled)]')
+  })
 })

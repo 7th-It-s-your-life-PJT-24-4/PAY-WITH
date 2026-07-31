@@ -8,6 +8,7 @@ import com.paywith.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import springfox.documentation.annotations.ApiIgnore;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,7 +23,7 @@ public class AccountController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<AccountResponse> registerAccount(
-            @AuthenticationPrincipal Long userId,
+            @ApiIgnore @AuthenticationPrincipal Long userId,
             @RequestBody AccountCreateRequest request
             ){
         AccountResponse response = accountService.registerAccount(userId, request);
@@ -31,7 +32,7 @@ public class AccountController {
 
     @GetMapping
     public ApiResponse<List<AccountResponse>> getAccounts(
-            @AuthenticationPrincipal Long userId
+            @ApiIgnore @AuthenticationPrincipal Long userId
     ){
         List<AccountResponse> response = accountService.getAccounts(userId);
         return ApiResponse.success(response);

@@ -7,6 +7,7 @@ import com.paywith.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import springfox.documentation.annotations.ApiIgnore;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,7 +20,7 @@ public class GuardChargeController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ChargeResponse> chargeByGuard(
-            @AuthenticationPrincipal Long guardId,
+            @ApiIgnore @AuthenticationPrincipal Long guardId,
             @PathVariable Long wardId,
             @RequestBody ChargeRequest request
     ){

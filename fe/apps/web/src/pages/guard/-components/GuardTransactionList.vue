@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { PhCrown, PhDress } from '@phosphor-icons/vue'
-import type { Component } from 'vue'
-
 import type { GuardTransaction } from '@/mocks/guard-home.mock'
+import {
+  guardTransactionCategoryIcons,
+  guardTransactionStatusClasses,
+  guardTransactionStatusLabels,
+} from '@/pages/guard/-utils/guard-transaction-ui'
 
 defineProps<{
   transactions: GuardTransaction[]
 }>()
 
-const categoryIcons: Record<GuardTransaction['category'], Component> = {
-  transfer: PhCrown,
-  payment: PhDress,
-}
+const emit = defineEmits<{
+  more: []
+}>()
 </script>
 
 <template>
@@ -27,6 +28,7 @@ const categoryIcons: Record<GuardTransaction['category'], Component> = {
         class="flex size-8 items-center justify-end text-gray-700"
         type="button"
         aria-label="거래 내역 더보기"
+        @click="emit('more')"
       >
         <span class="text-[32px] leading-none font-light">›</span>
       </button>
@@ -52,7 +54,7 @@ const categoryIcons: Record<GuardTransaction['category'], Component> = {
             class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"
           >
             <component
-              :is="categoryIcons[transaction.category]"
+              :is="guardTransactionCategoryIcons[transaction.category]"
               class="size-[18px]"
               weight="fill"
               aria-hidden="true"
@@ -71,9 +73,10 @@ const categoryIcons: Record<GuardTransaction['category'], Component> = {
             </p>
           </div>
           <span
-            class="rounded-small bg-[#d5ffd8] px-[6px] py-xxs text-[10px] font-bold leading-[1.2] tracking-[-0.2px] text-success"
+            class="rounded-small px-[6px] py-xxs text-[10px] font-bold leading-[1.2] tracking-[-0.2px]"
+            :class="guardTransactionStatusClasses[transaction.status]"
           >
-            안전
+            {{ guardTransactionStatusLabels[transaction.status] }}
           </span>
         </article>
       </template>

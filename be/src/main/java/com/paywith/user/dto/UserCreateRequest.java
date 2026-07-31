@@ -2,6 +2,7 @@ package com.paywith.user.dto;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,6 +17,7 @@ public class UserCreateRequest {
     private String phone;
 
     @NotBlank
+    @Size(min = 8, message = "비밀번호는 8자리 이상이어야 합니다.")
     private String password;
 
     @NotBlank
@@ -32,4 +34,7 @@ public class UserCreateRequest {
     @NotBlank(message = "결제 비밀번호는 필수입니다.")
     @Pattern(regexp = "\\d{6}", message = "결제 비밀번호는 숫자 6자리여야 합니다.")
     private String paymentPassword;
+
+    @NotBlank(message = "휴대폰 인증이 필요합니다.")
+    private String verificationToken;
 }

@@ -4,6 +4,7 @@ import com.paywith.approval.dto.ApprovalDecisionResponse;
 import com.paywith.approval.dto.ApprovalRequestDetailResponse;
 import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import com.paywith.approval.service.ApprovalRequestService;
+import com.paywith.approval.service.ApprovalTransferFacade;
 import com.paywith.common.ApiResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -26,6 +27,7 @@ import springfox.documentation.annotations.ApiIgnore;
 public class ApprovalRequestController {
 
     private final ApprovalRequestService approvalRequestService;
+    private final ApprovalTransferFacade approvalTransferFacade;
 
     @ApiOperation(
         value = "승인 대기 목록",
@@ -56,15 +58,17 @@ public class ApprovalRequestController {
 
     @ApiOperation(
         value = "승인",
-        notes = "보류된 송금을 진행시킨다. 대기 상태가 아니거나 이미 만료된 건이면 409, "
-            + "담당하지 않는 시니어의 건이면 404.")
+        notes = "보류된 송금을 승인하고 이어서 실제 송금까지 실행한다. 대기 상태가 아니거나 이미 "
+            + "만료된 건이면 409, 담당하지 않는 시니어의 건이면 404. "
+            + "승인은 됐지만 송금이 실패한 경우(잔액 부족 등)는 200 으로 응답하며 transfer 필드에 "
+            + "실패 사유가 담긴다.")
     @PostMapping("/{approvalId}/approve")
     public ApiResponse<ApprovalDecisionResponse> approve(
         @ApiIgnore @AuthenticationPrincipal Long guardId,
         @ApiParam(value = "승인요청 ID", required = true, example = "1")
         @PathVariable Long approvalId
     ) {
-        return ApiResponse.success(approvalRequestService.approve(approvalId, guardId));
+        return ApiResponse.success(approvalTransferFacade.approveAndTransfer(approvalId, guardId));
     }
 
     @ApiOperation(

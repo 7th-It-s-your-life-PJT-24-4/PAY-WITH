@@ -7,6 +7,11 @@ defineProps<{
   seniors: GuardSeniorAvatar[]
   activeSeniorId: string
 }>()
+
+const emit = defineEmits<{
+  add: []
+  select: [seniorId: string]
+}>()
 </script>
 
 <template>
@@ -16,6 +21,7 @@ defineProps<{
       :key="senior.id"
       class="flex w-16 flex-col items-center gap-xxs"
       type="button"
+      @click="emit('select', senior.id)"
     >
       <span
         class="flex size-16 items-center justify-center overflow-hidden rounded-full bg-gray-900 text-primary-500"
@@ -47,6 +53,7 @@ defineProps<{
       class="flex size-16 items-center justify-center rounded-full border-2 border-primary-500 text-primary-500"
       type="button"
       aria-label="시니어 추가"
+      @click="emit('add')"
     >
       <PhPlus class="size-6" aria-hidden="true" />
     </button>

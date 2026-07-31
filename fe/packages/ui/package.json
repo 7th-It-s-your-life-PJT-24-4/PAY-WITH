@@ -9,6 +9,7 @@
       "import": "./dist/index.js"
     },
     "./svg/kakao-logo.svg": "./src/svg/kakao-logo.svg",
+    "./svg/banks/*": "./src/svg/banks/*",
     "./theme.css": "./src/styles/theme.css"
   },
   "files": [
@@ -35,6 +36,7 @@
     "vue-tsc": "catalog:"
   },
   "dependencies": {
+    "@lucide/vue": "catalog:",
     "reka-ui": "catalog:"
   }
 }
