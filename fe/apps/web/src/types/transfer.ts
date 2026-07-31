@@ -22,11 +22,11 @@ export interface TransferDetail {
   amount: number
   memo: string | null
   requestedAt: string
-  expiredAt: string
+  expiredAt: string | null
   respondedAt: string | null
   completedAt: string | null
   balanceAfter: number | null
-  riskAnalysis: TransferRiskAnalysis
+  riskAnalysis: TransferRiskAnalysis | null
   failureCode: string | null
   failureMessage: string | null
 }

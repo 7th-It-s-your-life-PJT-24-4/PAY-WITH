@@ -2,13 +2,15 @@
 import { PinKeypad } from '@pay-with/ui'
 import { useRouter } from 'vue-router'
 
+import { useCreateTransferMutation } from '@/composables/useCreateTransferMutation'
 import { useTransferStore } from '@/stores/transfer.store'
 
 const router = useRouter()
 const transferStore = useTransferStore()
+const transferMutation = useCreateTransferMutation()
 
 function handleComplete(pin: string) {
-  void transferStore.beginMockTransfer(pin)
+  void transferStore.beginTransfer(pin, transferMutation.mutateAsync)
   router.replace({ name: 'ward-transfer-processing' })
 }
 </script>

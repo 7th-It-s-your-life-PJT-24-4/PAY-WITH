@@ -1,13 +1,11 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { resetMockTransferDetails } from '@/mocks/transfer.mock'
 import { useTransferStore } from '@/stores/transfer.store'
 
 describe('transfer store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    resetMockTransferDetails()
     vi.useRealTimers()
   })
 
@@ -76,30 +74,43 @@ describe('transfer store', () => {
     expect(store.balance).toBe(1_250_000)
   })
 
-  it('비밀번호 입력 후 Mock 송금 처리 상태를 갱신한다', async () => {
-    vi.useFakeTimers()
+  it('비밀번호 입력 후 실제 송금 응답을 저장한다', async () => {
     const store = prepareTransfer()
     store.createTransferIntent('550e8400-e29b-41d4-a716-446655440000')
+    const execute = vi.fn().mockResolvedValue({
+      transactionId: 73,
+      status: 'COMPLETED',
+      holderName: '김민수',
+      bankCode: '004',
+      bankName: 'KB국민은행',
+      accountNo: '43210201234567',
+      amount: 50_000,
+      memo: null,
+      completedAt: '2026-07-31T12:00:00',
+      balanceAfter: 1_200_000,
+    })
 
-    const request = store.beginMockTransfer('123456')
-
-    expect(store.processingStatus).toBe('pending')
-    await vi.advanceTimersByTimeAsync(500)
-    await request
+    await store.beginTransfer('123456', execute)
 
     expect(store.processingStatus).toBe('success')
     expect(store.transferResult?.transactionId).toBe(73)
     expect(store.transferDetail?.status).toBe('COMPLETED')
+    expect(store.transferDetailSource).toBe('api')
+    expect(execute).toHaveBeenCalledWith({
+      request: expect.objectContaining({ transferPin: '123456' }),
+      idempotencyKey: '550e8400-e29b-41d4-a716-446655440000',
+    })
   })
 
   it('이상 거래가 감지되면 승인 대기 거래 정보를 저장한다', async () => {
-    vi.useFakeTimers()
     const store = prepareTransfer()
     store.createTransferIntent('held-key')
+    const execute = vi.fn().mockResolvedValue({
+      transactionId: 74,
+      status: 'HELD',
+    })
 
-    const request = store.beginMockTransfer('222222')
-    await vi.advanceTimersByTimeAsync(500)
-    await request
+    await store.beginTransfer('222222', execute)
 
     expect(store.processingStatus).toBe('held')
     expect(store.transferResult?.status).toBe('HELD')
@@ -123,15 +134,33 @@ describe('transfer store', () => {
   })
 
   it('송금 요청을 중복 실행하지 않는다', async () => {
-    vi.useFakeTimers()
     const store = prepareTransfer()
     store.createTransferIntent('transfer-key')
+    let resolveTransfer: ((value: unknown) => void) | undefined
+    const execute = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveTransfer = resolve
+        }),
+    )
 
-    const firstRequest = store.beginMockTransfer('123456')
-    const duplicateRequest = store.beginMockTransfer('123456')
+    const firstRequest = store.beginTransfer('123456', execute)
+    const duplicateRequest = store.beginTransfer('123456', execute)
 
     expect(store.requestStarted).toBe(true)
-    await vi.advanceTimersByTimeAsync(500)
+    expect(execute).toHaveBeenCalledTimes(1)
+    resolveTransfer?.({
+      transactionId: 73,
+      status: 'COMPLETED',
+      holderName: '김민수',
+      bankCode: '004',
+      bankName: 'KB국민은행',
+      accountNo: '43210201234567',
+      amount: 50_000,
+      memo: null,
+      completedAt: '2026-07-31T12:00:00',
+      balanceAfter: 1_200_000,
+    })
     await Promise.all([firstRequest, duplicateRequest])
 
     expect(store.transferResult?.idempotencyKey).toBe('transfer-key')

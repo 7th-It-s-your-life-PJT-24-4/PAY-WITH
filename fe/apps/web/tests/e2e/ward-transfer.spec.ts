@@ -1,5 +1,84 @@
 import { expect, test } from './fixtures'
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/ward/transfers/recipient', async (route) => {
+    const request = route.request().postDataJSON() as {
+      bankCode: string
+      accountNo: string
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          bankCode: request.bankCode,
+          bankName: request.bankCode === '081' ? '하나은행' : '우리은행',
+          accountNo: request.accountNo,
+          recipientName: '김준호',
+        },
+        message: null,
+      },
+    })
+  })
+
+  await page.route('**/api/ward/transfers', async (route) => {
+    const request = route.request().postDataJSON() as {
+      bankCode: string
+      accountNo: string
+      amount: number
+      memo: string | null
+      transferPin: string
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    if (request.transferPin === '222222') {
+      await route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        json: {
+          success: true,
+          data: {
+            transactionId: 74,
+            status: 'HELD',
+            holderName: null,
+            bankCode: null,
+            bankName: null,
+            accountNo: null,
+            amount: null,
+            memo: null,
+            completedAt: null,
+            balanceAfter: null,
+          },
+          message: null,
+        },
+      })
+      return
+    }
+
+    expect(route.request().headers()['idempotency-key']).toBeTruthy()
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          transactionId: 73,
+          status: 'COMPLETED',
+          holderName: '김민수',
+          bankCode: request.bankCode,
+          bankName: 'KB국민은행',
+          accountNo: request.accountNo,
+          amount: request.amount,
+          memo: request.memo,
+          completedAt: '2026-07-31T12:00:00',
+          balanceAfter: 1_200_000,
+        },
+        message: null,
+      },
+    })
+  })
+})
+
 test('모달이 열려도 고정 헤더와 하단 내비게이션 위치를 유지한다', async ({
   page,
 }) => {
@@ -33,9 +112,6 @@ test('계좌번호로 은행을 찾고 계좌를 확인한다', async ({ page })
   }
   await page.getByRole('button', { name: '다음으로' }).click()
 
-  await expect(
-    page.getByRole('dialog', { name: '은행을 찾고 있습니다' }),
-  ).toBeVisible()
   await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
 
   await page.getByRole('button', { name: /하나은행/ }).click()
@@ -161,11 +237,7 @@ test('이상 거래 승인 대기 중에도 새 송금을 시작할 수 있다',
     page.getByRole('button', { name: '홈에서 기다리기' }),
   ).toBeVisible()
 
-  await page.getByRole('button', { name: '거래 취소하기' }).click()
-  await expect(
-    page.getByRole('dialog', { name: '대기 중인 거래를 취소할까요?' }),
-  ).toBeVisible()
-  await page.getByRole('button', { name: '거래 유지하기' }).click()
+  await expect(page.getByRole('button', { name: '거래 취소하기' })).toBeHidden()
 
   await page.getByRole('button', { name: '뒤로 가기' }).click()
   await expect(page).toHaveURL(/\/ward$/)

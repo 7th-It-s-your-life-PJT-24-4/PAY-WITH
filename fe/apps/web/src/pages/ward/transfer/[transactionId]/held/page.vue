@@ -18,6 +18,7 @@ const isCancelModalOpen = ref(false)
 const transactionId = computed(() => Number(route.params.transactionId))
 const {
   transferDetail,
+  canCancel,
   isCancelling,
   errorMessage,
   cancel: cancelTransfer,
@@ -117,6 +118,7 @@ function waitAtHome() {
         @click="waitAtHome"
       />
       <Button
+        v-if="canCancel"
         class="w-full !gap-sm !px-md"
         :label="isCancelling ? '거래를 취소하고 있습니다' : '거래 취소하기'"
         variant="outline-danger"

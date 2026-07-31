@@ -4,14 +4,20 @@ import { Button } from '@pay-with/ui'
 import { watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { useCreateTransferMutation } from '@/composables/useCreateTransferMutation'
 import { useTransferStore } from '@/stores/transfer.store'
 
 const router = useRouter()
 const transferStore = useTransferStore()
+const transferMutation = useCreateTransferMutation()
 
 function retryPassword() {
   transferStore.restartAfterFailure()
   router.replace({ name: 'ward-transfer-password' })
+}
+
+function confirmStatus() {
+  void transferStore.confirmTransferStatus(transferMutation.mutateAsync)
 }
 
 watch(
@@ -64,7 +70,7 @@ watch(
         class="mt-xl w-full"
         label="처리 결과 다시 확인"
         size="large"
-        @click="transferStore.confirmMockStatus"
+        @click="confirmStatus"
       />
     </template>
 

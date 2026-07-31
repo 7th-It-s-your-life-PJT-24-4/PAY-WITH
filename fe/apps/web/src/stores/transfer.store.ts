@@ -1,12 +1,12 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import {
-  confirmMockTransferStatus,
-  getMockBankCode,
-  setMockTransferDetail,
-  submitMockTransfer,
-} from '@/mocks/transfer.mock'
+import { getTransferBankCode } from '@/pages/ward/transfer/-utils/transfer-bank'
+import { getTransferApiError } from '@/pages/ward/transfer/-utils/transfer-api-error'
+import type {
+  CreateTransferRequest,
+  TransferResult,
+} from '@/schemas/transfer.schema'
 import type { TransferDetail } from '@/types/transfer'
 
 export interface TransferRecipient {
@@ -26,11 +26,16 @@ export interface TransferIntent {
   memo: string | null
 }
 
-export interface MockTransferResult {
+export interface TransferSubmissionResult {
   transactionId: number
   status: 'COMPLETED' | 'HELD'
   idempotencyKey: string
 }
+
+type TransferExecutor = (variables: {
+  request: CreateTransferRequest
+  idempotencyKey: string
+}) => Promise<TransferResult>
 
 const initialBalance = 1_250_000
 export type TransferProcessingStatus =
@@ -47,9 +52,11 @@ export const useTransferStore = defineStore('transfer', () => {
   const processingStatus = ref<TransferProcessingStatus>('idle')
   const processingError = ref('')
   const transferIntent = ref<TransferIntent | null>(null)
-  const transferResult = ref<MockTransferResult | null>(null)
+  const transferResult = ref<TransferSubmissionResult | null>(null)
   const transferDetail = ref<TransferDetail | null>(null)
+  const transferDetailSource = ref<'api' | 'mock' | null>(null)
   const requestStarted = ref(false)
+  const pendingPin = ref('')
 
   const remainingBalance = computed(() => balance.value - amount.value)
   const canTransfer = computed(
@@ -86,10 +93,12 @@ export const useTransferStore = defineStore('transfer', () => {
 
   function createTransferIntent(idempotencyKey = crypto.randomUUID()) {
     if (!recipient.value || !canTransfer.value) return null
+    const bankCode = getTransferBankCode(bank.value)
+    if (!bankCode) return null
 
     const nextIntent: TransferIntent = {
       idempotencyKey,
-      bankCode: getMockBankCode(bank.value),
+      bankCode,
       bankName: bank.value,
       accountNo: accountNumber.value.replaceAll('-', ''),
       amount: amount.value,
@@ -114,90 +123,94 @@ export const useTransferStore = defineStore('transfer', () => {
     return transferIntent.value
   }
 
-  function setTransferDetail(detail: TransferDetail) {
+  function setTransferDetail(
+    detail: TransferDetail,
+    source: 'api' | 'mock' = 'mock',
+  ) {
     transferDetail.value = detail
+    transferDetailSource.value = source
   }
 
-  function createTransferDetail(
-    transactionId: number,
-    status: 'COMPLETED' | 'HELD',
-  ): TransferDetail {
+  function createTransferDetail(result: TransferResult): TransferDetail {
     const requestedAt = new Date().toISOString()
-    const completed = status === 'COMPLETED'
+    const completed = result.status === 'COMPLETED'
     return {
-      transactionId,
-      status,
-      holderName: recipient.value?.name ?? '',
-      bankCode: transferIntent.value?.bankCode ?? getMockBankCode(bank.value),
-      bankName: bank.value,
-      accountNo: accountNumber.value,
-      amount: amount.value,
-      memo: memo.value.trim() || null,
+      transactionId: result.transactionId,
+      status: result.status,
+      holderName: completed ? result.holderName : (recipient.value?.name ?? ''),
+      bankCode: completed
+        ? result.bankCode
+        : (transferIntent.value?.bankCode ?? ''),
+      bankName: completed ? result.bankName : bank.value,
+      accountNo: completed ? result.accountNo : accountNumber.value,
+      amount: completed ? result.amount : amount.value,
+      memo: completed ? result.memo : memo.value.trim() || null,
       requestedAt,
-      expiredAt: new Date(Date.now() + 10 * 60 * 1_000).toISOString(),
+      expiredAt: null,
       respondedAt: completed ? requestedAt : null,
-      completedAt: completed ? requestedAt : null,
-      balanceAfter: completed ? remainingBalance.value : null,
-      riskAnalysis: {
-        riskScore: completed ? 0 : 80,
-        reasons: completed
-          ? []
-          : [
-              {
-                ruleCode: 'HIGH_AMOUNT',
-                description: '평소보다 큰 금액의 송금입니다.',
-                score: 80,
-              },
-            ],
-      },
+      completedAt: completed ? result.completedAt : null,
+      balanceAfter: completed ? result.balanceAfter : null,
+      riskAnalysis: null,
       failureCode: null,
       failureMessage: null,
     }
   }
 
-  async function beginMockTransfer(pin: string) {
-    if (!transferIntent.value || requestStarted.value) return
-    requestStarted.value = true
+  async function executeTransfer(execute: TransferExecutor) {
+    if (!transferIntent.value || !pendingPin.value) return
     processingStatus.value = 'pending'
     processingError.value = ''
+    const intent = transferIntent.value
     try {
-      const result = await submitMockTransfer(
-        pin,
-        transferIntent.value.idempotencyKey,
-      )
-      if (result.status === 'unknown') {
-        processingStatus.value = 'unknown'
-        return
+      const result = await execute({
+        request: {
+          bankCode: intent.bankCode,
+          accountNo: intent.accountNo,
+          amount: intent.amount,
+          memo: intent.memo,
+          transferPin: pendingPin.value,
+        },
+        idempotencyKey: intent.idempotencyKey,
+      })
+      transferResult.value = {
+        transactionId: result.transactionId,
+        status: result.status,
+        idempotencyKey: intent.idempotencyKey,
       }
-      transferResult.value = result
-      const detail = createTransferDetail(result.transactionId, result.status)
-      setMockTransferDetail(detail)
-      setTransferDetail(detail)
+      setTransferDetail(createTransferDetail(result), 'api')
+      pendingPin.value = ''
       if (result.status === 'HELD') {
         processingStatus.value = 'held'
         return
       }
+      balance.value = result.balanceAfter
       processingStatus.value = 'success'
     } catch (error) {
+      const apiError = await getTransferApiError(
+        error,
+        '송금을 완료하지 못했습니다.',
+      )
+      if (apiError.status === 409 && apiError.message.includes('처리 중')) {
+        processingStatus.value = 'unknown'
+        return
+      }
+      pendingPin.value = ''
+      requestStarted.value = false
       processingStatus.value = 'error'
-      processingError.value =
-        error instanceof Error ? error.message : '송금을 완료하지 못했습니다.'
+      processingError.value = apiError.message
     }
   }
 
-  async function confirmMockStatus() {
-    if (!transferIntent.value) return
-    processingStatus.value = 'pending'
-    transferResult.value = await confirmMockTransferStatus(
-      transferIntent.value.idempotencyKey,
-    )
-    const detail = createTransferDetail(
-      transferResult.value.transactionId,
-      'COMPLETED',
-    )
-    setMockTransferDetail(detail)
-    setTransferDetail(detail)
-    processingStatus.value = 'success'
+  async function beginTransfer(pin: string, execute: TransferExecutor) {
+    if (!transferIntent.value || requestStarted.value) return
+    requestStarted.value = true
+    pendingPin.value = pin
+    await executeTransfer(execute)
+  }
+
+  async function confirmTransferStatus(execute: TransferExecutor) {
+    if (processingStatus.value !== 'unknown') return
+    await executeTransfer(execute)
   }
 
   function restartAfterFailure(idempotencyKey = crypto.randomUUID()) {
@@ -239,7 +252,9 @@ export const useTransferStore = defineStore('transfer', () => {
     transferIntent.value = null
     transferResult.value = null
     transferDetail.value = null
+    transferDetailSource.value = null
     requestStarted.value = false
+    pendingPin.value = ''
   }
 
   return {
@@ -255,6 +270,7 @@ export const useTransferStore = defineStore('transfer', () => {
     transferIntent,
     transferResult,
     transferDetail,
+    transferDetailSource,
     requestStarted,
     remainingBalance,
     canTransfer,
@@ -264,8 +280,8 @@ export const useTransferStore = defineStore('transfer', () => {
     setBankCandidates,
     setVerifiedRecipient,
     createTransferIntent,
-    beginMockTransfer,
-    confirmMockStatus,
+    beginTransfer,
+    confirmTransferStatus,
     restartAfterFailure,
     appendAccountDigit,
     removeAccountDigit,

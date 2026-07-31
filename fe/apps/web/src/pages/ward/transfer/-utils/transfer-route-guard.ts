@@ -49,10 +49,16 @@ function requireTransferStatus(...allowedStatuses: TransferStatus[]) {
     const transactionId = getTransactionId(to.params.transactionId)
     if (!transactionId) return transferStart
 
+    const store = useTransferStore()
+    const currentDetail =
+      store.transferDetail?.transactionId === transactionId
+        ? store.transferDetail
+        : null
+
     try {
-      const detail = await getMockTransferDetail(transactionId)
-      const store = useTransferStore()
-      store.setTransferDetail(detail)
+      const detail =
+        currentDetail ?? (await getMockTransferDetail(transactionId))
+      if (!currentDetail) store.setTransferDetail(detail, 'mock')
       if (allowedStatuses.includes(detail.status)) return true
 
       return (

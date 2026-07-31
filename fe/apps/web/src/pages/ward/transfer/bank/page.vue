@@ -4,49 +4,54 @@ import { Button } from '@pay-with/ui'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { validateMockTransferAccount } from '@/mocks/transfer.mock'
+import { useRecipientInquiryMutation } from '@/composables/useRecipientInquiryMutation'
 import TransferErrorModal from '@/pages/ward/transfer/-components/TransferErrorModal.vue'
 import TransferLoadingModal from '@/pages/ward/transfer/-components/TransferLoadingModal.vue'
+import { getTransferApiError } from '@/pages/ward/transfer/-utils/transfer-api-error'
+import {
+  getTransferBankCode,
+  transferBanks,
+} from '@/pages/ward/transfer/-utils/transfer-bank'
 import { isValidTransferAccountNumber } from '@/pages/ward/transfer/-utils/transfer-route-guard'
 import { useTransferStore } from '@/stores/transfer.store'
 
 const router = useRouter()
 const transferStore = useTransferStore()
+const recipientMutation = useRecipientInquiryMutation()
 const selectedBank = ref('')
-const defaultBanks = [
-  'KB국민은행',
-  '우리은행',
-  '하나은행',
-  'NH농협',
-  '신한은행',
-  '카카오뱅크',
-]
+const defaultBanks = transferBanks.map(({ name }) => name)
 const banks = transferStore.bankCandidates.length
   ? transferStore.bankCandidates
   : defaultBanks
-const isLoading = ref(false)
 const errorMessage = ref('')
 const canValidateAccount = computed(() =>
   isValidTransferAccountNumber(transferStore.accountNumber),
 )
 
 async function proceed() {
-  if (!canValidateAccount.value || !selectedBank.value || isLoading.value)
+  if (
+    !canValidateAccount.value ||
+    !selectedBank.value ||
+    recipientMutation.isPending.value
+  )
     return
-  isLoading.value = true
   errorMessage.value = ''
+  const bankCode = getTransferBankCode(selectedBank.value)
+  if (!bankCode) {
+    errorMessage.value = '은행 정보를 확인하지 못했습니다.'
+    return
+  }
   try {
-    const account = await validateMockTransferAccount(
-      selectedBank.value,
-      transferStore.accountNumber,
-    )
-    transferStore.setVerifiedRecipient(account.holderName, account.bank)
+    const account = await recipientMutation.mutateAsync({
+      bankCode,
+      accountNo: transferStore.accountNumber.replaceAll('-', ''),
+    })
+    transferStore.setVerifiedRecipient(account.holderName, account.bankName)
     await router.push({ name: 'ward-transfer-amount' })
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : '계좌를 확인하지 못했습니다.'
-  } finally {
-    isLoading.value = false
+    errorMessage.value = (
+      await getTransferApiError(error, '계좌를 확인하지 못했습니다.')
+    ).message
   }
 }
 </script>
@@ -79,7 +84,7 @@ async function proceed() {
             : 'border-border'
         "
         type="button"
-        :disabled="isLoading"
+        :disabled="recipientMutation.isPending.value"
         @click="selectedBank = bankName"
       >
         <span
@@ -97,13 +102,17 @@ async function proceed() {
     <Button
       class="w-full"
       size="large"
-      :label="isLoading ? '계좌 확인 중' : '다음으로'"
-      :disabled="!canValidateAccount || !selectedBank || isLoading"
+      :label="recipientMutation.isPending.value ? '계좌 확인 중' : '다음으로'"
+      :disabled="
+        !canValidateAccount ||
+        !selectedBank ||
+        recipientMutation.isPending.value
+      "
       @click="proceed"
     />
 
     <TransferLoadingModal
-      :open="isLoading"
+      :open="recipientMutation.isPending.value"
       title="계좌를 확인하고 있습니다"
       description="선택한 은행과 계좌번호를 확인하고 있습니다."
     />
