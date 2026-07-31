@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 
 import { registerChargeAccount } from '@/api/accounts'
-import { chargeAccountsQueryKey } from '@/composables/useChargeAccountsQuery'
+import { accountKeys } from '@/lib/query/account'
 import type { ChargeAccount } from '@/schemas/charge.schema'
 
 export function useRegisterChargeAccountMutation() {
@@ -11,13 +11,13 @@ export function useRegisterChargeAccountMutation() {
     mutationFn: registerChargeAccount,
     onSuccess: (account) => {
       queryClient.setQueryData<ChargeAccount[]>(
-        chargeAccountsQueryKey,
+        accountKeys.all,
         (current = []) => [
           account,
           ...current.filter(({ accountId }) => accountId !== account.accountId),
         ],
       )
-      return queryClient.invalidateQueries({ queryKey: chargeAccountsQueryKey })
+      return queryClient.invalidateQueries({ queryKey: accountKeys.all })
     },
   })
 }

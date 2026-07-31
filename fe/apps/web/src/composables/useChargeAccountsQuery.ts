@@ -1,12 +1,7 @@
 import { useQuery } from '@tanstack/vue-query'
 
-import { getChargeAccounts } from '@/api/accounts'
-
-export const chargeAccountsQueryKey = ['accounts'] as const
+import { chargeAccountsOptions } from '@/lib/query/account'
 
 export function useChargeAccountsQuery() {
-  return useQuery({
-    queryKey: chargeAccountsQueryKey,
-    queryFn: getChargeAccounts,
-  })
+  return useQuery(chargeAccountsOptions())
 }
