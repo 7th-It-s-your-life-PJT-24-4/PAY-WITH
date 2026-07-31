@@ -1,12 +1,21 @@
 <script setup lang="ts">
-import { RefreshCw } from '@lucide/vue'
+import { LoaderCircle, RefreshCw } from '@lucide/vue'
 import QrcodeVue from 'qrcode.vue'
 
-defineProps<{
-  qrToken: string
-  expired: boolean
-  processing?: boolean
-}>()
+withDefaults(
+  defineProps<{
+    qrToken: string
+    expired: boolean
+    processing?: boolean
+    checking?: boolean
+    checkingMessage?: string
+  }>(),
+  {
+    processing: false,
+    checking: false,
+    checkingMessage: 'QR 코드 상태를 확인하고 있습니다',
+  },
+)
 
 const emit = defineEmits<{
   reissue: []
@@ -19,7 +28,20 @@ const emit = defineEmits<{
     aria-label="결제 QR 영역"
   >
     <div
-      v-if="!expired"
+      v-if="checking"
+      class="flex aspect-square w-full flex-col items-center justify-center gap-lg rounded-large border-[6px] border-primary-900 bg-white px-lg text-center text-body"
+      role="status"
+    >
+      <LoaderCircle
+        class="size-24 animate-spin text-primary-300"
+        :stroke-width="2"
+        aria-hidden="true"
+      />
+      <span class="type-h3">{{ checkingMessage }}</span>
+    </div>
+
+    <div
+      v-else-if="!expired"
       class="relative flex aspect-square w-full items-center justify-center rounded-large border-[6px] border-primary-900 bg-white p-md"
       aria-label="결제 QR 코드"
     >

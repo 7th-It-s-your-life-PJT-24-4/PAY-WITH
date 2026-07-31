@@ -34,10 +34,9 @@ const remainingSeconds = computed(() => {
   if (!session.value || paymentStore.qrExpiresAt === null) return 0
   return Math.max(0, Math.ceil((paymentStore.qrExpiresAt - now.value) / 1_000))
 })
-const expired = computed(
-  () =>
-    remainingSeconds.value === 0 ||
-    paymentStatus.data.value?.status === 'EXPIRED',
+const localTimeElapsed = computed(() => remainingSeconds.value === 0)
+const serverExpired = computed(
+  () => paymentStatus.data.value?.status === 'EXPIRED',
 )
 const timerLabel = computed(() => {
   const minutes = Math.floor(remainingSeconds.value / 60)
@@ -49,6 +48,19 @@ const isProcessing = computed(
 )
 const failed = computed(() => paymentStatus.data.value?.status === 'FAILED')
 const statusQueryFailed = computed(() => paymentStatus.error.value !== null)
+const checkingQrStatus = computed(
+  () =>
+    statusQueryFailed.value ||
+    (localTimeElapsed.value &&
+      !serverExpired.value &&
+      !isProcessing.value &&
+      !failed.value),
+)
+const checkingQrMessage = computed(() =>
+  statusQueryFailed.value
+    ? '결제 상태를 확인할 수 없습니다'
+    : 'QR 코드 만료 여부를 확인하고 있습니다',
+)
 
 function startTimer() {
   timer = globalThis.setInterval(() => {
@@ -136,8 +148,18 @@ watch(
   },
 )
 
+watch(localTimeElapsed, (elapsed) => {
+  if (
+    elapsed &&
+    paymentStatus.data.value?.status === 'PENDING' &&
+    !paymentStatus.isFetching.value
+  ) {
+    void paymentStatus.refetch()
+  }
+})
+
 onBeforeRouteLeave((to) => {
-  if (allowLeave.value || expired.value || failed.value) return true
+  if (allowLeave.value || serverExpired.value || failed.value) return true
   if (isProcessing.value) return false
 
   pendingDestination = to.fullPath
@@ -163,12 +185,14 @@ onBeforeUnmount(() => {
     <div class="relative">
       <PaymentQrPanel
         :qr-token="session.qrToken"
-        :expired="expired || failed"
+        :expired="serverExpired || failed"
         :processing="isProcessing"
+        :checking="checkingQrStatus"
+        :checking-message="checkingQrMessage"
         @reissue="reissueQrCode"
       />
       <p
-        v-if="!expired"
+        v-if="!serverExpired && !failed && !isProcessing && !checkingQrStatus"
         class="type-h4 absolute -bottom-sm left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gray-900 px-md py-xs text-body"
         aria-live="polite"
       >
@@ -213,7 +237,7 @@ onBeforeUnmount(() => {
       @click="retryPaymentStatus"
     />
     <Button
-      v-else-if="!expired"
+      v-else-if="!serverExpired && !checkingQrStatus"
       class="mt-auto w-full"
       label="결제 취소하기"
       variant="outline-danger"

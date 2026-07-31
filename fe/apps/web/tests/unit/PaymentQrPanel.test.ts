@@ -28,4 +28,21 @@ describe('PaymentQrPanel', () => {
 
     expect(wrapper.emitted('reissue')).toHaveLength(1)
   })
+
+  it('hides both the QR code and reissue action while checking its status', () => {
+    const wrapper = mount(PaymentQrPanel, {
+      props: {
+        checking: true,
+        checkingMessage: '결제 상태를 확인할 수 없습니다',
+        expired: false,
+        qrToken: 'pay_qr_unknown',
+      },
+    })
+
+    expect(wrapper.findComponent(QrcodeVue).exists()).toBe(false)
+    expect(wrapper.find('button').exists()).toBe(false)
+    expect(wrapper.get('[role="status"]').text()).toContain(
+      '결제 상태를 확인할 수 없습니다',
+    )
+  })
 })
