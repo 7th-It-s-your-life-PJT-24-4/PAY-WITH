@@ -4,17 +4,25 @@ import { Button } from '@pay-with/ui'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import GuardChargeAccountBottomSheet from '@/pages/guard/charge/-components/GuardChargeAccountBottomSheet.vue'
 import GuardChargeAccountSelectCard from '@/pages/guard/charge/-components/GuardChargeAccountSelectCard.vue'
 import { useGuardStore } from '@/stores/guard.store'
 
 const router = useRouter()
 const guardStore = useGuardStore()
 const amount = ref(0)
+const isAccountSheetOpen = ref(false)
 
 const amountText = computed(() =>
   amount.value > 0 ? new Intl.NumberFormat('ko-KR').format(amount.value) : '',
 )
 const canCharge = computed(() => amount.value > 0)
+const selectedAccount = computed(() => guardStore.selectedChargeAccount)
+const selectedAccountBalance = computed(() =>
+  selectedAccount.value
+    ? `${new Intl.NumberFormat('ko-KR').format(selectedAccount.value.balance)}원`
+    : '0원',
+)
 
 function updateAmount(value: string) {
   amount.value = Number(value.replace(/\D/g, ''))
@@ -29,6 +37,16 @@ function submitCharge() {
 
   guardStore.setChargeAmount(amount.value)
   router.push({ name: 'guard-charge-password' })
+}
+
+function selectAccount(accountId: string) {
+  guardStore.selectChargeAccount(accountId)
+  isAccountSheetOpen.value = false
+}
+
+function goAccountAdd() {
+  isAccountSheetOpen.value = false
+  router.push({ name: 'guard-charge-account' })
 }
 </script>
 
@@ -62,10 +80,14 @@ function submitCharge() {
         </h2>
 
         <GuardChargeAccountSelectCard
+          v-if="selectedAccount"
           class="mt-sm"
-          bank-name="국민"
-          account-suffix="3700"
-          balance="500,000원"
+          :bank-name="selectedAccount.bankName"
+          :account-suffix="selectedAccount.accountSuffix"
+          :balance="selectedAccountBalance"
+          :icon-url="selectedAccount.iconUrl"
+          :brand-class="selectedAccount.brandClass"
+          @click="isAccountSheetOpen = true"
         />
 
         <label
@@ -149,5 +171,13 @@ function submitCharge() {
         @click="submitCharge"
       />
     </div>
+
+    <GuardChargeAccountBottomSheet
+      v-model:open="isAccountSheetOpen"
+      :accounts="guardStore.chargeAccounts"
+      :selected-account-id="guardStore.selectedChargeAccountId"
+      @select="selectAccount"
+      @add="goAccountAdd"
+    />
   </main>
 </template>
