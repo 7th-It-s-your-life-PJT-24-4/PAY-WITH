@@ -2,7 +2,7 @@ import { HTTPError } from 'ky'
 import { z } from 'zod'
 
 const apiErrorBodySchema = z.object({
-  code: z.string().nullish(),
+  code: z.string().optional(),
   message: z.string().min(1),
 })
 
