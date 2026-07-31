@@ -1,8 +1,10 @@
 import { HTTPError } from 'ky'
+import { z } from 'zod'
 
-interface ApiErrorBody {
-  message?: unknown
-}
+const apiErrorBodySchema = z.object({
+  code: z.string().optional(),
+  message: z.string().min(1),
+})
 
 export async function getApiErrorMessage(
   error: unknown,
@@ -12,10 +14,10 @@ export async function getApiErrorMessage(
     return error instanceof Error ? error.message : fallback
 
   try {
-    const body = (await error.response.clone().json()) as ApiErrorBody
-    return typeof body.message === 'string' && body.message.length > 0
-      ? body.message
-      : fallback
+    const result = apiErrorBodySchema.safeParse(
+      await error.response.clone().json(),
+    )
+    return result.success ? result.data.message : fallback
   } catch {
     return fallback
   }
