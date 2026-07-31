@@ -10,4 +10,13 @@
     SET status = #{status}
     WHERE transaction_id = #{transactionId}
   </update>
+
+  <!-- 승인 트랜잭션 밖에서 도는 종결 처리라 APPROVED 인 행만 바꾼다.
+       이미 PROCESSING/COMPLETED 로 넘어간 거래를 되돌리지 않기 위한 조건이다. -->
+  <update id="markFailedIfApproved">
+    UPDATE transactions
+    SET status = 'FAILED'
+    WHERE transaction_id = #{transactionId}
+      AND status = 'APPROVED'
+  </update>
 </mapper>
