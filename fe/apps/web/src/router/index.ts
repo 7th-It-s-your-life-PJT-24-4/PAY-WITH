@@ -9,6 +9,7 @@ import GuardChargePage from '@/pages/guard/charge/page.vue'
 import GuardChargeAccountPage from '@/pages/guard/charge/account/page.vue'
 import GuardChargeBePage from '@/pages/guard/charge/be/page.vue'
 import GuardChargeCompletePage from '@/pages/guard/charge/complete/page.vue'
+import GuardChargeDetailPage from '@/pages/guard/charge/[id]/page.vue'
 import GuardChargePasswordPage from '@/pages/guard/charge/password/page.vue'
 import GuardHistoryPage from '@/pages/guard/history/page.vue'
 import GuardLayout from '@/pages/guard/layout.vue'
@@ -139,6 +140,15 @@ const router = createRouter({
           path: 'charge/complete',
           name: 'guard-charge-complete',
           component: GuardChargeCompletePage,
+          meta: {
+            activeNavigation: 'charge',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'charge/:chargeId',
+          name: 'guard-charge-detail',
+          component: GuardChargeDetailPage,
           meta: {
             activeNavigation: 'charge',
             showBottomNavigation: false,
