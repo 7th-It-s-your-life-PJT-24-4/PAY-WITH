@@ -10,14 +10,20 @@ import com.paywith.fds.domain.RiskLevel;
 import com.paywith.fds.dto.FdsEvaluationRequest;
 import com.paywith.fds.service.FdsEvaluationService;
 import com.paywith.recipient.domain.Recipient;
+import com.paywith.recipient.mapper.RecipientMapper;
 import com.paywith.transaction.domain.Transaction;
 import com.paywith.transfer.dto.IdempotencyRecord;
 import com.paywith.transfer.dto.IdempotencyStatus;
 import com.paywith.transfer.dto.PreparedTransfer;
+import com.paywith.transfer.dto.RecipientHistoryItem;
+import com.paywith.transfer.dto.RecipientHistoryListResponse;
 import com.paywith.transfer.dto.RecipientInquiryRequest;
 import com.paywith.transfer.dto.RecipientInquiryResponse;
 import com.paywith.transfer.dto.TransferRequest;
 import com.paywith.transfer.dto.TransferResponse;
+import com.paywith.user.domain.Role;
+import com.paywith.user.domain.User;
+import com.paywith.user.mapper.UserMapper;
 import com.paywith.wallet.domain.Wallet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -72,6 +79,12 @@ class TransferServiceImplTest {
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+
+    @Mock
+    private UserMapper userMapper;
+
+    @Mock
+    private RecipientMapper recipientMapper;
 
     @InjectMocks
     private TransferServiceImpl transferService;
@@ -282,6 +295,103 @@ class TransferServiceImplTest {
 
         verify(transferPreparationService, never()).prepare(any(), any());
         verify(transferFinalizationService, never()).finalize(any(), any(), any());
+    }
+
+    // ===== getRecipientHistory =====
+
+    private User userWithRole(Role role) {
+        User user = new User();
+        user.setId(userId);
+        user.setRole(role);
+        return user;
+    }
+
+    @Test
+    void 이력조회시_피보호자가_아니면_예외() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.GUARD));
+
+        assertThatThrownBy(() -> transferService.getRecipientHistory(userId, null, null, null))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+                .hasMessageContaining("피보호자만 접근할 수 있습니다.");
+
+        verify(recipientMapper, never()).existsActivePairing(any());
+    }
+
+    @Test
+    void 이력조회시_활성_페어링이_없으면_예외() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(recipientMapper.existsActivePairing(userId)).willReturn(false);
+
+        assertThatThrownBy(() -> transferService.getRecipientHistory(userId, null, null, null))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
+
+        verify(recipientMapper, never()).findRecipientHistory(any(), any(), any(), any());
+    }
+
+    @Test
+    void 허용되지_않는_정렬값이면_예외() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(recipientMapper.existsActivePairing(userId)).willReturn(true);
+
+        assertThatThrownBy(() -> transferService.getRecipientHistory(userId, null, "INVALID", null))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasMessageContaining("조회 조건이 올바르지 않습니다.");
+    }
+
+    @Test
+    void size가_1보다_작으면_예외() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(recipientMapper.existsActivePairing(userId)).willReturn(true);
+
+        assertThatThrownBy(() -> transferService.getRecipientHistory(userId, null, null, 0))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasMessageContaining("조회 조건이 올바르지 않습니다.");
+    }
+
+    @Test
+    void size가_50을_초과하면_예외() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(recipientMapper.existsActivePairing(userId)).willReturn(true);
+
+        assertThatThrownBy(() -> transferService.getRecipientHistory(userId, null, null, 51))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasMessageContaining("조회 조건이 올바르지 않습니다.");
+    }
+
+    @Test
+    void sort와_size를_생략하면_기본값_RECENT와_20으로_조회한다() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(recipientMapper.existsActivePairing(userId)).willReturn(true);
+        given(recipientMapper.findRecipientHistory(userId, null, "RECENT", 20)).willReturn(List.of());
+
+        transferService.getRecipientHistory(userId, null, null, null);
+
+        verify(recipientMapper).findRecipientHistory(userId, null, "RECENT", 20);
+    }
+
+    @Test
+    void 정상_조회시_조회된_목록을_그대로_응답한다() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(recipientMapper.existsActivePairing(userId)).willReturn(true);
+        RecipientHistoryItem item = RecipientHistoryItem.builder()
+                .recipientId(200L)
+                .holderName("김수취")
+                .bankCode("004")
+                .bankName("KB국민은행")
+                .accountNo("11012300006781")
+                .sendCount(3)
+                .isRegisteredSafe(true)
+                .build();
+        given(recipientMapper.findRecipientHistory(userId, "김", "NAME", 10)).willReturn(List.of(item));
+
+        RecipientHistoryListResponse response = transferService.getRecipientHistory(userId, "김", "NAME", 10);
+
+        assertThat(response.getRecipients()).containsExactly(item);
     }
 
     /**

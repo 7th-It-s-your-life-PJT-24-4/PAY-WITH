@@ -2,10 +2,7 @@ package com.paywith.transfer.controller;
 
 
 import com.paywith.common.ApiResponse;
-import com.paywith.transfer.dto.RecipientInquiryRequest;
-import com.paywith.transfer.dto.RecipientInquiryResponse;
-import com.paywith.transfer.dto.TransferRequest;
-import com.paywith.transfer.dto.TransferResponse;
+import com.paywith.transfer.dto.*;
 import com.paywith.transfer.service.TransferService;
 import io.swagger.annotations.ResponseHeader;
 import lombok.RequiredArgsConstructor;
@@ -43,5 +40,16 @@ public class TransferController {
                 ? HttpStatus.ACCEPTED //202 거래이상 보류
                 : HttpStatus.CREATED; //201 송금완료
         return ResponseEntity.status(status).body(ApiResponse.success(response));
+    }
+
+    @GetMapping("recipient")
+    public ApiResponse<RecipientHistoryListResponse> getRecipientHistory(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) Integer size
+    ){
+        RecipientHistoryListResponse response = transferService.getRecipientHistory(userId, keyword, sort, size);
+        return ApiResponse.success(response);
     }
 }

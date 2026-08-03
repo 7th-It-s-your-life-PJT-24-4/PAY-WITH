@@ -9,7 +9,11 @@ import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
 import com.paywith.fds.domain.RiskLevel;
 import com.paywith.fds.dto.FdsEvaluationRequest;
 import com.paywith.fds.service.FdsEvaluationService;
+import com.paywith.recipient.mapper.RecipientMapper;
 import com.paywith.transfer.dto.*;
+import com.paywith.user.domain.Role;
+import com.paywith.user.domain.User;
+import com.paywith.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -20,10 +24,17 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class TransferServiceImpl implements TransferService{
+
+    // 송금 내역 조회할 때 필요한 상수들
+    private static final Set<String> ALLOWED_SORTS = Set.of("RECENT", "NAME");
+    private static final int DEFAULT_SIZE = 20;
+    private static final int MAX_SIZE = 50;
 
     private final OpenBankingClient openBankingClient;
     private final FdsEvaluationService fdsEvaluationService;
@@ -31,6 +42,8 @@ public class TransferServiceImpl implements TransferService{
     private final TransferFinalizationService transferFinalizationService;
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final UserMapper userMapper;
+    private final RecipientMapper recipientMapper;
 
     @Override
     public RecipientInquiryResponse inquireRecipient(RecipientInquiryRequest request) {
@@ -122,6 +135,41 @@ public class TransferServiceImpl implements TransferService{
             redisTemplate.delete(key);
             throw e;
         }
+    }
+
+    @Override
+    public RecipientHistoryListResponse getRecipientHistory(Long userId, String keyword, String sort, Integer size) {
+
+        // 1. 피보호자 맞는지 확인
+        User user = userMapper.findById(userId);
+        if (user.getRole() != Role.WARD){
+            throw new BusinessException(HttpStatus.FORBIDDEN, "피보호자만 접근할 수 있습니다.");
+        }
+
+        // 2. 보호자랑 페어링 되어 있는 사람 맞는지 확인
+        if(!recipientMapper.existsActivePairing(userId)){
+            throw new BusinessException(HttpStatus.FORBIDDEN, "페어링 완료 후 이용할 수 있습니다.");
+        }
+
+        // 3. sort 기본값 처리 및 검증
+        String resolvedSort = (sort == null || sort.isBlank() ? "RECENT" : sort);
+        if(!ALLOWED_SORTS.contains(resolvedSort)){
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "조회 조건이 올바르지 않습니다.");
+        }
+
+        // 4. size 기본값 처리 및 검증
+        int resolvedSize = (size == null) ? DEFAULT_SIZE : size;
+        if(resolvedSize < 1 || resolvedSize > MAX_SIZE){
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "조회 조건이 올바르지 않습니다.");
+        }
+
+        // 5. 실제 조회
+        List<RecipientHistoryItem> recipients = recipientMapper.findRecipientHistory(userId, keyword, resolvedSort, resolvedSize);
+
+        // 6. 응답
+        return RecipientHistoryListResponse.builder()
+                .recipients(recipients)
+                .build();
     }
 
     private String hashRequest(TransferRequest request) {
