@@ -24,7 +24,7 @@ test('보호자가 이상 거래를 승인하고 승인 상태 상세를 확인�
   ).toBeVisible()
 })
 
-test('보호자가 이상 거래를 거절하고 거절 상태 상세을 확인한다', async ({
+test('보호자가 이상 거래를 거절하고 거절 상태 상세를 확인한다', async ({
   page,
 }) => {
   await page.goto('/guard/history/tx-6')

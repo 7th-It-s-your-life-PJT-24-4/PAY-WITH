@@ -20,9 +20,11 @@ const pairingStore = usePairingStore()
 const isPairingConfirmOpen = ref(false)
 const isRiskTransactionAlertVisible = ref(true)
 const recentGuardTransactions = mockGuardTransactions.slice(0, 3)
-const dangerTransactionCount = mockGuardTransactions.filter(
+const dangerTransactions = mockGuardTransactions.filter(
   ({ status }) => status === 'danger',
-).length
+)
+const dangerTransactionCount = dangerTransactions.length
+const firstDangerTransactionId = dangerTransactions[0]?.id ?? null
 
 async function startPairing() {
   const issued = await pairingStore.issueCode()
@@ -71,14 +73,18 @@ async function startPairing() {
       />
 
       <GuardRiskTransactionAlert
-        v-if="isRiskTransactionAlertVisible && dangerTransactionCount > 0"
+        v-if="
+          isRiskTransactionAlertVisible &&
+          dangerTransactionCount > 0 &&
+          firstDangerTransactionId
+        "
         :count="dangerTransactionCount"
         :senior-name="guardStore.activeSenior?.name ?? ''"
         @close="isRiskTransactionAlertVisible = false"
         @confirm="
           router.push({
             name: 'guard-transaction-detail',
-            params: { transactionId: 'tx-6' },
+            params: { transactionId: firstDangerTransactionId },
           })
         "
       />
