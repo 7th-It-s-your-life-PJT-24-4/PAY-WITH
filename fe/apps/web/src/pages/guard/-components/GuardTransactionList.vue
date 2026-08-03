@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { GuardTransaction } from '@/mocks/guard-home.mock'
+import { useRouter } from 'vue-router'
 import {
   guardTransactionCategoryIcons,
   guardTransactionStatusClasses,
@@ -13,6 +14,8 @@ defineProps<{
 const emit = defineEmits<{
   more: []
 }>()
+
+const router = useRouter()
 </script>
 
 <template>
@@ -49,7 +52,17 @@ const emit = defineEmits<{
           {{ transaction.date }}
         </p>
 
-        <article class="flex h-[60px] items-center bg-white px-sm">
+        <button
+          class="flex h-[60px] w-full items-center bg-white px-sm text-left"
+          type="button"
+          :aria-label="`${transaction.date} 거래 상세 보기`"
+          @click="
+            router.push({
+              name: 'guard-transaction-detail',
+              params: { transactionId: transaction.id },
+            })
+          "
+        >
           <span
             class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"
           >
@@ -78,7 +91,7 @@ const emit = defineEmits<{
           >
             {{ guardTransactionStatusLabels[transaction.status] }}
           </span>
-        </article>
+        </button>
       </template>
     </div>
   </section>

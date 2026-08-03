@@ -13,6 +13,15 @@ export interface GuardTransaction {
   status: 'safe' | 'warning' | 'danger'
 }
 
+export interface GuardTransactionDetail {
+  amount: number
+  merchantName: string
+  withdrawalAccountLabel: string
+  occurredAt: string
+  riskScore: number
+  analysisResults: string[]
+}
+
 export const mockGuardSeniors: GuardSeniorAvatar[] = [
   {
     id: 'sui',
@@ -92,3 +101,56 @@ export const mockGuardTransactions: GuardTransaction[] = [
     status: 'danger',
   },
 ]
+
+const transactionDetailsByStatus: Record<
+  GuardTransaction['status'],
+  GuardTransactionDetail
+> = {
+  danger: {
+    amount: 30_000,
+    merchantName: '토끼정 타임스퀘어점',
+    withdrawalAccountLabel: '국민 3700',
+    occurredAt: '2026년 7월 29일 10:18',
+    riskScore: 87,
+    analysisResults: [
+      '평소 자주 이용하지 않던 사용처에요.',
+      '최근 평균보다 큰 금액의 거래에요.',
+      '평소와 다른 패턴으로 감지되었어요.',
+    ],
+  },
+  warning: {
+    amount: 30_000,
+    merchantName: '토끼정 타임스퀘어점',
+    withdrawalAccountLabel: '국민 3700',
+    occurredAt: '2026년 7월 29일 10:18',
+    riskScore: 50,
+    analysisResults: [
+      '처음 이용하는 사용처에요.',
+      '최근 평균보다 비슷한 금액의 거래에요.',
+      '평소와 비슷한 패턴으로 감지되었어요.',
+    ],
+  },
+  safe: {
+    amount: 30_000,
+    merchantName: '토끼정 타임스퀘어점',
+    withdrawalAccountLabel: '국민 3700',
+    occurredAt: '2026년 7월 29일 10:18',
+    riskScore: 5,
+    analysisResults: [
+      '평소 자주 이용하던 사용처에요.',
+      '최근 평균과 비슷한 거래에요.',
+      '평소와 비슷한 패턴으로 감지되었어요.',
+    ],
+  },
+}
+
+export function getMockGuardTransaction(transactionId: string) {
+  return mockGuardTransactions.find(({ id }) => id === transactionId)
+}
+
+export function getMockGuardTransactionDetail(transactionId: string) {
+  const transaction = getMockGuardTransaction(transactionId)
+  if (!transaction) return null
+
+  return transactionDetailsByStatus[transaction.status]
+}
