@@ -73,10 +73,51 @@
   <select id="findByToken" resultMap="PaymentRequestResultMap">
     SELECT pr.payment_id, pr.wallet_id, pr.senior_id, pr.qr_token, pr.status,
            pr.transaction_id, pr.merchant_id, pr.amount, pr.failure_code,
-           pr.expires_at, pr.created_at, pr.updated_at
+           pr.expires_at, pr.created_at, pr.updated_at,
+           m.name AS merchant_name,
+           t.completed_at AS paid_at,
+           t.balance_after AS remaining_balance
     FROM payment_requests pr
+    LEFT JOIN merchants m ON m.merchant_id = pr.merchant_id
+    LEFT JOIN transactions t ON t.transaction_id = pr.transaction_id
     WHERE pr.qr_token = #{qrToken}
   </select>
+
+  <!-- JOIN 없이 payment_requests 행만 잠근다 (JOIN을 두면 가맹점·거래 행까지 잠기므로 금지) -->
+  <select id="findByTokenForUpdate" resultMap="PaymentRequestResultMap">
+    SELECT payment_id, wallet_id, senior_id, qr_token, status,
+           transaction_id, merchant_id, amount, failure_code,
+           expires_at, created_at, updated_at
+    FROM payment_requests
+    WHERE qr_token = #{qrToken}
+    FOR UPDATE
+  </select>
+
+  <update id="markProcessing">
+    UPDATE payment_requests
+    SET status = 'PROCESSING',
+        merchant_id = #{merchantId},
+        amount = #{amount}
+    WHERE payment_id = #{paymentId}
+      AND status = 'PENDING'
+      AND expires_at &gt; NOW()
+  </update>
+
+  <update id="completePayment">
+    UPDATE payment_requests
+    SET status = 'COMPLETED',
+        transaction_id = #{transactionId}
+    WHERE payment_id = #{paymentId}
+      AND status = 'PROCESSING'
+  </update>
+
+  <update id="failPayment">
+    UPDATE payment_requests
+    SET status = 'FAILED',
+        failure_code = #{failureCode}
+    WHERE payment_id = #{paymentId}
+      AND status = 'PROCESSING'
+  </update>
 
   <update id="markExpiredIfPending">
     UPDATE payment_requests
