@@ -11,7 +11,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -39,14 +38,8 @@ public class WebConfig implements WebMvcConfigurer {
         converters.add(jacksonConverter);
     }
 
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
-            .allowedOrigins("http://localhost:5173")
-            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-            .allowedHeaders("*")
-            .allowCredentials(true);
-    }
+    // CORS 는 SecurityConfig.corsConfigurationSource() 한 곳에서만 정의한다. 보안 필터가
+    // MVC 보다 먼저 도는 탓에 여기서 addCorsMappings 를 겹쳐 두면 적용되지 않는다.
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
