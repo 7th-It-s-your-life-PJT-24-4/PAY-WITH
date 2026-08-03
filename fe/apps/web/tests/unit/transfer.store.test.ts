@@ -185,6 +185,22 @@ describe('transfer store', () => {
     expect(second?.idempotencyKey).toBe('first-key')
   })
 
+  it('API 수취인의 은행 코드를 표시용 은행명보다 우선 사용한다', () => {
+    const store = useTransferStore()
+    store.selectRecipient({
+      id: 1,
+      name: '김민수',
+      bankCode: '004',
+      bank: '국민',
+      accountNumber: '43210201234567',
+    })
+    store.amount = 50_000
+
+    const intent = store.createTransferIntent('api-bank-code')
+
+    expect(intent?.bankCode).toBe('004')
+  })
+
   it('송금 요청을 중복 실행하지 않는다', async () => {
     const store = prepareTransfer()
     store.createTransferIntent('transfer-key')

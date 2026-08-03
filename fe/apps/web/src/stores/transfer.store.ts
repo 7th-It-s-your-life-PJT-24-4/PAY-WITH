@@ -81,11 +81,12 @@ export const useTransferStore = defineStore('transfer', () => {
     accountNumber.value = value.accountNumber
   }
 
-  function selectManualRecipient(selectedBank: string) {
+  function selectManualRecipient(selectedBank: string, bankCode?: string) {
     bank.value = selectedBank
     recipient.value = {
       id: 0,
       name: '김준호',
+      bankCode,
       bank: selectedBank,
       accountNumber: accountNumber.value,
     }
@@ -95,14 +96,18 @@ export const useTransferStore = defineStore('transfer', () => {
     bankCandidates.value = value
   }
 
-  function setVerifiedRecipient(name: string, selectedBank: string) {
-    selectManualRecipient(selectedBank)
+  function setVerifiedRecipient(
+    name: string,
+    selectedBank: string,
+    bankCode: string,
+  ) {
+    selectManualRecipient(selectedBank, bankCode)
     if (recipient.value) recipient.value.name = name
   }
 
   function createTransferIntent(idempotencyKey = crypto.randomUUID()) {
     if (!recipient.value || !canTransfer.value) return null
-    const bankCode = getTransferBankCode(bank.value)
+    const bankCode = recipient.value.bankCode ?? getTransferBankCode(bank.value)
     if (!bankCode) return null
 
     const nextIntent: TransferIntent = {
