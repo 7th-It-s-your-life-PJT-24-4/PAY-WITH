@@ -28,10 +28,10 @@ import WardLayout from '@/pages/ward/layout.vue'
 import WardPage from '@/pages/ward/page.vue'
 import WardTransactionDetailPage from '@/pages/ward/history/[transactionId]/page.vue'
 import WardTransactionHistoryPage from '@/pages/ward/history/page.vue'
-import WardPaymentCompletePage from '@/pages/ward/payment/[transactionId]/complete/page.vue'
-import WardPaymentHeldPage from '@/pages/ward/payment/[transactionId]/held/page.vue'
+import WardPaymentCompletePage from '@/pages/ward/payment/complete/[transactionId]/page.vue'
+import WardPaymentHeldPage from '@/pages/ward/payment/held/[transactionId]/page.vue'
 import WardPaymentPage from '@/pages/ward/payment/page.vue'
-import WardPaymentQrPage from '@/pages/ward/payment/[paymentId]/qr/page.vue'
+import WardPaymentQrPage from '@/pages/ward/payment/qr/[paymentId]/page.vue'
 import {
   requireCompletedPayment,
   requireHeldPayment,
@@ -226,7 +226,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'payment/:paymentId/qr',
+          path: 'payment/qr/:paymentId',
           name: 'ward-payment-qr',
           component: WardPaymentQrPage,
           beforeEnter: requirePaymentQrSession,
@@ -293,7 +293,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'payment/:transactionId/complete',
+          path: 'payment/complete/:transactionId',
           name: 'ward-payment-complete',
           component: WardPaymentCompletePage,
           beforeEnter: requireCompletedPayment,
@@ -305,7 +305,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'payment/:transactionId/held',
+          path: 'payment/held/:transactionId',
           name: 'ward-payment-held',
           component: WardPaymentHeldPage,
           beforeEnter: requireHeldPayment,
