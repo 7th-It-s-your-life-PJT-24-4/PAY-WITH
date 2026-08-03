@@ -11,6 +11,7 @@ import com.paywith.user.mapper.UserMapper;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -63,7 +64,7 @@ public class GuardServiceImpl implements GuardService {
         redisTemplate.opsForValue().set(codeKey(code), String.valueOf(guardId), CODE_TTL);
         redisTemplate.opsForValue().set(codeByGuardKey, code, CODE_TTL);
 
-        LocalDateTime expiresAt = LocalDateTime.now().plus(CODE_TTL);
+        LocalDateTime expiresAt = LocalDateTime.now().plus(CODE_TTL).truncatedTo(ChronoUnit.SECONDS);
         return new GuardPairingCodeResponse(code, inviteBaseUrl + "/" + code, expiresAt);
     }
 
@@ -84,6 +85,7 @@ public class GuardServiceImpl implements GuardService {
                 HttpStatus.TOO_MANY_REQUESTS,
                 "PAIRING_004",
                 "인증 코드 입력 횟수를 초과했습니다. 잠시 후 다시 시도해주세요."
+
             );
         }
 
