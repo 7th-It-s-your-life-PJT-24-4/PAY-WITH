@@ -82,9 +82,19 @@ function selectRecipient(recipient: TransferRecipient) {
       </p>
     </section>
 
-    <section aria-labelledby="recent-transfer-title">
+    <section
+      v-if="
+        recentQuery.isPending.value ||
+        recentQuery.isError.value ||
+        recentRecipients.length
+      "
+      aria-labelledby="recent-transfer-title"
+    >
       <h3 id="recent-transfer-title" class="type-h4 mb-md">최근 보낸 사람</h3>
-      <div class="flex snap-x gap-md overflow-x-auto pb-xs">
+      <div
+        v-if="recentRecipients.length"
+        class="flex snap-x gap-md overflow-x-auto pb-xs"
+      >
         <div
           v-for="recipient in recentRecipients"
           :key="recipient.id"
@@ -189,7 +199,7 @@ function selectRecipient(recipient: TransferRecipient) {
       </div>
       <p v-else class="type-body-medium text-center text-body-muted">
         {{
-          search.trim() ? '검색 결과가 없습니다.' : '최근 송금 내역이 없습니다.'
+          search.trim() ? '검색 결과가 없습니다.' : '등록된 연락처가 없습니다.'
         }}
       </p>
     </section>

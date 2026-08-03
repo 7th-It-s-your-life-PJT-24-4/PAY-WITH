@@ -199,6 +199,25 @@ test('이름으로 송금 대상을 검색한다', async ({ page }) => {
   await expect(contacts.getByText('김민수')).toBeHidden()
 })
 
+test('송금 대상이 없으면 최근 섹션을 숨기고 연락처 빈 상태를 표시한다', async ({
+  page,
+}) => {
+  await page.unroute('**/api/ward/transfers/recipient*')
+  await page.route('**/api/ward/transfers/recipient*', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: { success: true, data: { recipients: [] }, message: null },
+    })
+  })
+
+  await page.goto('/ward/transfer')
+
+  await expect(
+    page.getByRole('heading', { name: '최근 보낸 사람' }),
+  ).toBeHidden()
+  await expect(page.getByText('등록된 연락처가 없습니다.')).toBeVisible()
+})
+
 test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/ward')
