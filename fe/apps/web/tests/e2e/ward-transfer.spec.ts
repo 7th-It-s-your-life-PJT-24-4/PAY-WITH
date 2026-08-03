@@ -361,7 +361,7 @@ test('보호자 전화 확인 후 연결된 번호로 전화를 건다', async (
   await expect(dialog).toBeHidden()
 })
 
-test('승인 대기 거래를 취소하고 홈으로 이동한다', async ({ page }) => {
+test('승인 대기 거래를 취소하고 취소 결과를 확인한다', async ({ page }) => {
   await page.goto('/ward/transfer/76/held')
   await expect(
     page.getByRole('heading', { name: '이상 거래 알림' }),
@@ -375,8 +375,11 @@ test('승인 대기 거래를 취소하고 홈으로 이동한다', async ({ pag
   await expect(dialog).toBeVisible()
   await dialog.getByRole('button', { name: '거래 취소하기' }).click()
 
-  await expect(page).toHaveURL(/\/ward$/)
-  await expect(page.getByRole('heading', { name: 'PayWith' })).toBeVisible()
+  await expect(page).toHaveURL(/\/ward\/transfer\/76\/canceled$/)
+  await expect(page.getByRole('heading', { name: '송금 취소' })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '송금 다시하기' }),
+  ).toBeVisible()
 })
 
 test('거래 번호로 최종 상태 화면을 새로고침해도 복구한다', async ({ page }) => {
@@ -393,6 +396,31 @@ test('거래 번호로 최종 상태 화면을 새로고침해도 복구한다',
   await page.reload()
   await expect(page).toHaveURL(/\/ward\/transfer\/75\/rejected$/)
   await expect(page.getByText('위험한 거래로 추정됩니다')).toBeVisible()
+})
+
+test('만료·취소된 송금에서 다시 송금할 수 있다', async ({ page }) => {
+  await page.goto('/ward/transfer/77/expired')
+  await expect(page.getByRole('heading', { name: '송금 만료' })).toBeVisible()
+  await expect(page.getByText('승인 시간 만료')).toBeVisible()
+  await page.getByRole('button', { name: '송금 다시하기' }).click()
+  await expect(page).toHaveURL(/\/ward\/transfer$/)
+
+  await page.goto('/ward/transfer/79/canceled')
+  await expect(page.getByRole('heading', { name: '송금 취소' })).toBeVisible()
+  await expect(page.getByText('요청한 송금이 취소되었습니다.')).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '송금 다시하기' }),
+  ).toBeVisible()
+})
+
+test('잔액 부족으로 실패한 송금에서 충전 화면으로 이동한다', async ({
+  page,
+}) => {
+  await page.goto('/ward/transfer/78/failed')
+  await expect(page.getByRole('heading', { name: '송금 실패' })).toBeVisible()
+  await expect(page.getByText('송금 가능한 잔액이 부족합니다.')).toBeVisible()
+  await page.getByRole('button', { name: '충전하기' }).click()
+  await expect(page).toHaveURL(/\/ward\/charge$/)
 })
 
 test('거래 번호로 승인 대기 화면을 새로고침해도 복구한다', async ({ page }) => {
