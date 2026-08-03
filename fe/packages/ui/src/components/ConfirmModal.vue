@@ -10,18 +10,20 @@ import {
 
 import Button from './Button.vue'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     open: boolean
     title: string
     cancelLabel?: string
     confirmLabel?: string
     confirmDisabled?: boolean
+    confirmVariant?: 'primary' | 'danger'
   }>(),
   {
     cancelLabel: '취소',
     confirmLabel: '확인',
     confirmDisabled: false,
+    confirmVariant: 'primary',
   },
 )
 
@@ -64,7 +66,12 @@ function cancel() {
             @click="cancel"
           />
           <Button
-            class="!h-[52px] !min-h-0 flex-1 basis-0 !rounded-[12px] !border-0 !bg-primary-500 !px-md !py-[10px] !text-[16px] !font-bold !leading-6 !tracking-[-0.2px] !text-white"
+            class="!h-[52px] !min-h-0 flex-1 basis-0 !rounded-[12px] !border-0 !px-md !py-[10px] !text-[16px] !font-bold !leading-6 !tracking-[-0.2px] !text-white"
+            :class="
+              props.confirmVariant === 'danger'
+                ? '!bg-error'
+                : '!bg-primary-500'
+            "
             :label="confirmLabel"
             :disabled="confirmDisabled"
             size="small"
