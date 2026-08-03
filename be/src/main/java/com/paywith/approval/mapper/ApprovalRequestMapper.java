@@ -17,7 +17,7 @@ public interface ApprovalRequestMapper {
      * 보호자가 담당하는 시니어들의 승인 대기 목록.
      *
      * <p>guard_senior 를 ACTIVE 로 조인하므로 담당이 아닌 시니어의 건은 애초에 조회되지 않는다.
-     * 만료 배치가 없어 expired_at 으로 거른다.
+     * 만료 스캔이 status 를 EXPIRED 로 바꾸기 전까지의 공백이 있어 expired_at 으로도 거른다.
      *
      * @param wardId null 이면 담당 전체, 값이 있으면 그 피보호자 건만. 담당이 아닌 값을 주면
      *                 담당 조인에서 걸려 빈 목록이 된다.
@@ -71,4 +71,18 @@ public interface ApprovalRequestMapper {
         @Param("guardId") Long guardId,
         @Param("status") String status,
         @Param("respondedAt") LocalDateTime respondedAt);
+
+    /**
+     * 응답 시한이 지난 승인 대기 건을 EXPIRED 로 종결한다.
+     *
+     * <p>이 갱신 전에 {@code TransactionApprovalMapper.cancelHeldForExpiredApprovals} 로 대상
+     * 거래를 먼저 CANCELED 로 바꿔야 한다. 여기서 status 를 먼저 바꾸면 거래 쪽 조인 조건
+     * (PENDING)이 더는 맞지 않아 거래가 HELD 로 남는다.
+     *
+     * <p>{@link #updateDecision} 이 {@code expired_at > NOW()} 를 요구하므로, 보호자의 승인과
+     * 이 만료 처리가 겹쳐도 한쪽만 성공한다. 둘 다 PENDING 인 행만 바꾸기 때문이다.
+     *
+     * @return 만료 처리한 승인요청 수
+     */
+    int expireOverdue();
 }

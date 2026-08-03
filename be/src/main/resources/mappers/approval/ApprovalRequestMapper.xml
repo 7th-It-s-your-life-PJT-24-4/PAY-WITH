@@ -102,6 +102,15 @@
       AND expired_at &gt; NOW()
   </update>
 
+  <!-- 만료 스캔. idx_ar_status_expired(status, expired_at) 가 그대로 쓰인다.
+       NOW() 를 쓰는 이유는 updateDecision·findPendingByGuardId 와 같은 시계를 보기 위해서다. -->
+  <update id="expireOverdue">
+    UPDATE approval_requests
+    SET status = 'EXPIRED'
+    WHERE status = 'PENDING'
+      AND expired_at &lt;= NOW()
+  </update>
+
   <!-- 점수는 정렬에만 쓰고 내보내지 않는다. 배열 순서가 우선순위를 전달한다. -->
   <select id="findRuleHits" resultType="com.paywith.approval.dto.ApprovalRuleHitResponse">
     SELECT rr.rule_code, rr.description

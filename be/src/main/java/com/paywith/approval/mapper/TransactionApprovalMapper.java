@@ -33,4 +33,19 @@ public interface TransactionApprovalMapper {
      * @return 영향 행 수. 0 이면 이미 다른 상태로 진행된 거래다.
      */
     int markFailedIfApproved(@Param("transactionId") Long transactionId);
+
+    /**
+     * 응답 시한이 지난 승인 대기 건의 거래를 CANCELED 로 돌린다.
+     *
+     * <p>schema.sql 의 approval_requests.status 주석이 정한 대로 EXPIRED 의 짝은 CANCELED 다.
+     * 보류 시점에는 잔액을 잡아두지 않으므로(차감은 승인 후 송금 실행에서만 일어난다) 되돌릴
+     * 잔액은 없고 상태만 종결하면 된다.
+     *
+     * <p>{@code ApprovalRequestMapper.expireOverdue} 보다 <b>먼저</b> 실행해야 한다. 조인 조건이
+     * 아직 PENDING 인 승인요청을 찾기 때문이다. HELD 인 거래만 바꾸므로, 어떤 이유로 거래가
+     * 이미 다른 상태로 넘어갔다면 건드리지 않는다.
+     *
+     * @return CANCELED 로 바꾼 거래 수
+     */
+    int cancelHeldForExpiredApprovals();
 }

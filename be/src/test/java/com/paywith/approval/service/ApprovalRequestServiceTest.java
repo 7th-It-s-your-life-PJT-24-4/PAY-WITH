@@ -16,7 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ApprovalRequestServiceTest {
 
-    private static final int EXPIRE_MINUTES = 30;
+    private static final int EXPIRE_MINUTES = 180;
 
     @Mock
     private ApprovalRequestMapper approvalRequestMapper;
@@ -24,7 +24,7 @@ class ApprovalRequestServiceTest {
     @Mock
     private TransactionApprovalMapper transactionApprovalMapper;
 
-    // PENDING 상태와 만료시각(생성 시점 +30분)이 설정되어 저장된다
+    // PENDING 상태와 만료시각(생성 시점 + fds.approval.expire-minutes)이 설정되어 저장된다
     @Test
     void create_savesPendingRequestWithExpiryTime() {
         ApprovalRequestService service = new ApprovalRequestServiceImpl(
@@ -40,7 +40,7 @@ class ApprovalRequestServiceTest {
         assertThat(saved).isSameAs(created);
         assertThat(saved.getTransactionId()).isEqualTo(100L);
         assertThat(saved.getStatus()).isEqualTo("PENDING");
-        // 만료 시각 = 생성 시점 + 30분 (호출 전후 시각 사이 범위로 검증)
+        // 만료 시각 = 생성 시점 + 설정값 (호출 전후 시각 사이 범위로 검증)
         assertThat(saved.getExpiredAt())
             .isAfterOrEqualTo(before.plusMinutes(EXPIRE_MINUTES))
             .isBeforeOrEqualTo(after.plusMinutes(EXPIRE_MINUTES));
