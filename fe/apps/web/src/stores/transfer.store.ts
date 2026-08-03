@@ -7,14 +7,18 @@ import type {
   CreateTransferRequest,
   TransferResult,
 } from '@/schemas/transfer.schema'
+import { storedTransferDetailSchema } from '@/schemas/transfer.schema'
 import type { TransferDetail } from '@/types/transfer'
 
 export interface TransferRecipient {
   id: number
   name: string
+  holderName?: string
+  bankCode?: string
   relation?: string
   bank: string
   accountNumber: string
+  isContact?: boolean
 }
 
 export interface TransferIntent {
@@ -37,7 +41,12 @@ type TransferExecutor = (variables: {
   idempotencyKey: string
 }) => Promise<TransferResult>
 
+// TODO(wallet-api): 홈/지갑 조회 API가 제공되면 초기 잔액을 실제 응답으로 교체한다.
 const initialBalance = 1_250_000
+// 상세 조회 API가 준비되기 전까지 실제 송금 결과를 거래별로 보관해
+// 완료·승인 대기 화면을 새로고침해도 같은 브라우저 세션에서 복구한다.
+const transferResultStorageKey = (transactionId: number) =>
+  `pay-with:ward-transfer:${transactionId}`
 export type TransferProcessingStatus =
   'idle' | 'pending' | 'held' | 'unknown' | 'success' | 'error'
 
@@ -115,6 +124,7 @@ export const useTransferStore = defineStore('transfer', () => {
     )
       return currentIntent
 
+    clearStoredTransferDetail()
     transferIntent.value = nextIntent
     transferResult.value = null
     requestStarted.value = false
@@ -129,6 +139,38 @@ export const useTransferStore = defineStore('transfer', () => {
   ) {
     transferDetail.value = detail
     transferDetailSource.value = source
+    if (source === 'api' && typeof sessionStorage !== 'undefined')
+      sessionStorage.setItem(
+        transferResultStorageKey(detail.transactionId),
+        JSON.stringify(detail),
+      )
+  }
+
+  function restoreTransferDetail(transactionId: number) {
+    if (typeof sessionStorage === 'undefined') return null
+    const key = transferResultStorageKey(transactionId)
+    try {
+      const raw = sessionStorage.getItem(key)
+      if (!raw) return null
+      const parsed = storedTransferDetailSchema.safeParse(JSON.parse(raw))
+      if (!parsed.success || parsed.data.transactionId !== transactionId) {
+        sessionStorage.removeItem(key)
+        return null
+      }
+      transferDetail.value = parsed.data
+      transferDetailSource.value = 'api'
+      return transferDetail.value
+    } catch {
+      sessionStorage.removeItem(key)
+      return null
+    }
+  }
+
+  function clearStoredTransferDetail(
+    transactionId = transferDetail.value?.transactionId,
+  ) {
+    if (transactionId && typeof sessionStorage !== 'undefined')
+      sessionStorage.removeItem(transferResultStorageKey(transactionId))
   }
 
   function createTransferDetail(result: TransferResult): TransferDetail {
@@ -240,6 +282,7 @@ export const useTransferStore = defineStore('transfer', () => {
   }
 
   function reset() {
+    clearStoredTransferDetail()
     recipient.value = null
     accountNumber.value = ''
     bank.value = ''
@@ -275,6 +318,7 @@ export const useTransferStore = defineStore('transfer', () => {
     remainingBalance,
     canTransfer,
     setTransferDetail,
+    restoreTransferDetail,
     selectRecipient,
     selectManualRecipient,
     setBankCandidates,

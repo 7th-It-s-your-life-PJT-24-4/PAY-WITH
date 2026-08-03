@@ -5,6 +5,29 @@ import { apiResponseSchema } from '@/schemas/api-response.schema'
 const bankCodeSchema = z.string().regex(/^\d{3}$/)
 const accountNoSchema = z.string().regex(/^\d{8,16}$/)
 
+export const recipientHistoryParamsSchema = z.object({
+  keyword: z.string().trim().min(1).optional(),
+  sort: z.enum(['RECENT', 'NAME']).optional(),
+  size: z.number().int().min(1).max(50).optional(),
+})
+
+export const recipientHistoryItemSchema = z.object({
+  recipientId: z.number().int().positive(),
+  holderName: z.string().min(1),
+  bankCode: bankCodeSchema,
+  bankName: z.string().min(1),
+  accountNo: accountNoSchema,
+  lastSentAt: z.string().min(1),
+  sendCount: z.number().int().positive(),
+  isRegisteredSafe: z.boolean(),
+  safeAccountId: z.number().int().positive().nullable(),
+  accountAlias: z.string().nullable(),
+})
+
+export const recipientHistoryResponseSchema = apiResponseSchema(
+  z.object({ recipients: z.array(recipientHistoryItemSchema) }),
+)
+
 export const recipientInquiryRequestSchema = z.object({
   bankCode: bankCodeSchema,
   accountNo: accountNoSchema,
@@ -62,6 +85,43 @@ export const transferResultSchema = z.discriminatedUnion('status', [
 export const transferResultResponseSchema =
   apiResponseSchema(transferResultSchema)
 
+export const storedTransferDetailSchema = z.object({
+  transactionId: z.number().int().positive(),
+  status: z.enum([
+    'HELD',
+    'COMPLETED',
+    'REJECTED',
+    'CANCELED',
+    'EXPIRED',
+    'FAILED',
+  ]),
+  holderName: z.string(),
+  bankCode: z.string(),
+  bankName: z.string(),
+  accountNo: z.string(),
+  amount: z.number().nonnegative(),
+  memo: z.string().nullable(),
+  requestedAt: z.string().min(1),
+  expiredAt: z.string().nullable(),
+  respondedAt: z.string().nullable(),
+  completedAt: z.string().nullable(),
+  balanceAfter: z.number().nonnegative().nullable(),
+  riskAnalysis: z
+    .object({
+      riskScore: z.number(),
+      reasons: z.array(
+        z.object({
+          ruleCode: z.string(),
+          description: z.string(),
+          score: z.number(),
+        }),
+      ),
+    })
+    .nullable(),
+  failureCode: z.string().nullable(),
+  failureMessage: z.string().nullable(),
+})
+
 export type RecipientInquiryRequest = z.infer<
   typeof recipientInquiryRequestSchema
 >
@@ -76,3 +136,7 @@ export type RecipientInquiry = Omit<
 }
 export type CreateTransferRequest = z.infer<typeof createTransferRequestSchema>
 export type TransferResult = z.infer<typeof transferResultSchema>
+export type RecipientHistoryParams = z.infer<
+  typeof recipientHistoryParamsSchema
+>
+export type RecipientHistoryItem = z.infer<typeof recipientHistoryItemSchema>

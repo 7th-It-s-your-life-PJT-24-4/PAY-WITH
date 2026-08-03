@@ -1,12 +1,30 @@
 import { apiClient } from '@/api/client'
 import {
+  recipientHistoryResponseSchema,
   recipientInquiryResponseSchema,
   transferResultResponseSchema,
   type CreateTransferRequest,
+  type RecipientHistoryItem,
+  type RecipientHistoryParams,
   type RecipientInquiry,
   type RecipientInquiryRequest,
   type TransferResult,
 } from '@/schemas/transfer.schema'
+
+export async function getTransferRecipients(
+  params: RecipientHistoryParams = {},
+): Promise<RecipientHistoryItem[]> {
+  const searchParams = new URLSearchParams()
+  if (params.keyword) searchParams.set('keyword', params.keyword)
+  if (params.sort) searchParams.set('sort', params.sort)
+  if (params.size) searchParams.set('size', String(params.size))
+  const query = searchParams.toString()
+  const response = await apiClient.get(
+    `/ward/transfers/recipient${query ? `?${query}` : ''}`,
+    recipientHistoryResponseSchema,
+  )
+  return response.data.recipients
+}
 
 export async function inquireTransferRecipient(
   request: RecipientInquiryRequest,

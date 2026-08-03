@@ -6,6 +6,7 @@ import { useTransferStore } from '@/stores/transfer.store'
 describe('transfer store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    sessionStorage.clear()
     vi.useRealTimers()
   })
 
@@ -121,6 +122,57 @@ describe('transfer store', () => {
       amount: 50_000,
     })
     expect(store.transferDetail?.status).toBe('HELD')
+  })
+
+  it('실제 송금 결과를 거래 ID로 복원한다', async () => {
+    const store = prepareTransfer()
+    store.createTransferIntent('restore-key')
+    await store.beginTransfer(
+      '123456',
+      vi.fn().mockResolvedValue({
+        transactionId: 73,
+        status: 'COMPLETED',
+        holderName: '김민수',
+        bankCode: '004',
+        bankName: 'KB국민은행',
+        accountNo: '43210201234567',
+        amount: 50_000,
+        memo: null,
+        completedAt: '2026-07-31T12:00:00',
+        balanceAfter: 1_200_000,
+      }),
+    )
+
+    setActivePinia(createPinia())
+    const restoredStore = useTransferStore()
+
+    expect(restoredStore.restoreTransferDetail(73)).toMatchObject({
+      transactionId: 73,
+      status: 'COMPLETED',
+      holderName: '김민수',
+    })
+    expect(restoredStore.transferDetailSource).toBe('api')
+  })
+
+  it('손상된 송금 결과는 제거하고 복원하지 않는다', () => {
+    sessionStorage.setItem('pay-with:ward-transfer:73', '{invalid')
+    const store = useTransferStore()
+
+    expect(store.restoreTransferDetail(73)).toBeNull()
+    expect(sessionStorage.getItem('pay-with:ward-transfer:73')).toBeNull()
+  })
+
+  it('초기화할 때 현재 송금 결과를 storage에서 제거한다', async () => {
+    const store = prepareTransfer()
+    store.createTransferIntent('reset-key')
+    await store.beginTransfer(
+      '222222',
+      vi.fn().mockResolvedValue({ transactionId: 74, status: 'HELD' }),
+    )
+
+    expect(sessionStorage.getItem('pay-with:ward-transfer:74')).not.toBeNull()
+    store.reset()
+    expect(sessionStorage.getItem('pay-with:ward-transfer:74')).toBeNull()
   })
 
   it('같은 송금 내용에는 기존 요청 식별자를 재사용한다', () => {

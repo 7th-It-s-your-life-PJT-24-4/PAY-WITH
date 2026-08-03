@@ -1,11 +1,36 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  recipientHistoryResponseSchema,
   recipientInquiryResponseSchema,
   transferResultResponseSchema,
 } from '@/schemas/transfer.schema'
 
 describe('transfer API schemas', () => {
+  it('최근 수취인 목록 응답을 검증한다', () => {
+    const response = recipientHistoryResponseSchema.parse({
+      success: true,
+      data: {
+        recipients: [
+          {
+            recipientId: 1,
+            holderName: '김민수',
+            bankCode: '004',
+            bankName: 'KB국민은행',
+            accountNo: '1234567890123',
+            lastSentAt: '2026-08-03T10:00:00',
+            sendCount: 3,
+            isRegisteredSafe: true,
+            safeAccountId: 1,
+            accountAlias: '민수 형',
+          },
+        ],
+      },
+      message: null,
+    })
+
+    expect(response.data.recipients[0]?.accountAlias).toBe('민수 형')
+  })
   it('수취인 조회 ApiResponse를 검증한다', () => {
     const response = recipientInquiryResponseSchema.parse({
       success: true,

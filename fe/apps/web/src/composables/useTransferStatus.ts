@@ -11,6 +11,9 @@ import { useTransferStore } from '@/stores/transfer.store'
 
 const pollingInterval = 3_000
 
+// TODO(transfer-detail-api): 피보호자 거래 상세 조회·취소 API가 제공되면
+// mock 조회와 수동 polling을 TanStack Query 기반 실제 연동으로 교체한다.
+
 export function useTransferStatus(
   transactionId: MaybeRefOrGetter<number>,
   options: { pollWhileHeld?: boolean } = {},

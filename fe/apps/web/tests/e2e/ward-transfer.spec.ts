@@ -1,7 +1,46 @@
 import { expect, test } from './fixtures'
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/ward/transfers/recipient', async (route) => {
+  await page.route('**/api/ward/transfers/recipient*', async (route) => {
+    if (route.request().method() === 'GET') {
+      const keyword = new URL(route.request().url()).searchParams.get('keyword')
+      const recipients = [
+        {
+          recipientId: 1,
+          holderName: '김민수',
+          bankCode: '004',
+          bankName: '국민은행',
+          accountNo: '43210201234567',
+          lastSentAt: '2026-07-31T12:00:00',
+          sendCount: 3,
+          isRegisteredSafe: true,
+          safeAccountId: 1,
+          accountAlias: null,
+        },
+        {
+          recipientId: 2,
+          holderName: '박지연',
+          bankCode: '088',
+          bankName: '신한은행',
+          accountNo: '110234567890',
+          lastSentAt: '2026-07-30T12:00:00',
+          sendCount: 1,
+          isRegisteredSafe: false,
+          safeAccountId: null,
+          accountAlias: null,
+        },
+      ].filter((recipient) =>
+        keyword
+          ? `${recipient.holderName}${recipient.accountNo}`.includes(keyword)
+          : true,
+      )
+      await route.fulfill({
+        contentType: 'application/json',
+        json: { success: true, data: { recipients }, message: null },
+      })
+      return
+    }
+
     const request = route.request().postDataJSON() as {
       bankCode: string
       accountNo: string
@@ -138,7 +177,7 @@ test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ 
 
   const dialog = page.getByRole('dialog', { name: '연락처 추가' })
   await expect(dialog).toBeVisible()
-  await expect(dialog.getByText('신한은행 110-234-567890')).toBeVisible()
+  await expect(dialog.getByText('신한은행 110234567890')).toBeVisible()
 
   await dialog.getByLabel('연락처 별칭').fill('지연 이모')
   await dialog.getByRole('button', { name: '추가하기' }).click()
@@ -148,6 +187,16 @@ test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ 
   await expect(
     page.getByRole('button', { name: '박지연 연락처 추가' }),
   ).toBeHidden()
+})
+
+test('이름으로 송금 대상을 검색한다', async ({ page }) => {
+  await page.goto('/ward/transfer')
+
+  await page.getByLabel('연락처 검색').fill('박지연')
+
+  const contacts = page.locator('section[aria-labelledby="contacts-title"]')
+  await expect(contacts.getByText('박지연')).toBeVisible()
+  await expect(contacts.getByText('김민수')).toBeHidden()
 })
 
 test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다', async ({ page }) => {
@@ -187,6 +236,9 @@ test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다',
 
   await expect(page.getByText('안전하게 송금하고 있습니다')).toBeVisible()
   await expect(page.getByRole('heading', { name: '송금 완료' })).toBeVisible()
+  await expect(page).toHaveURL(/\/ward\/transfer\/73\/complete$/)
+  await expect(page.getByText('김민수')).toBeVisible()
+  await page.reload()
   await expect(page).toHaveURL(/\/ward\/transfer\/73\/complete$/)
   await expect(page.getByText('김민수')).toBeVisible()
 
@@ -238,6 +290,10 @@ test('이상 거래 승인 대기 중에도 새 송금을 시작할 수 있다',
   ).toBeVisible()
 
   await expect(page.getByRole('button', { name: '거래 취소하기' })).toBeHidden()
+
+  await page.reload()
+  await expect(page).toHaveURL(/\/ward\/transfer\/74\/held$/)
+  await expect(page.getByText('50,000원')).toBeVisible()
 
   await page.getByRole('button', { name: '뒤로 가기' }).click()
   await expect(page).toHaveURL(/\/ward$/)

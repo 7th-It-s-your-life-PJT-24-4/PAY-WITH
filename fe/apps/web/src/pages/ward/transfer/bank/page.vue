@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Landmark } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
+import { useMutation } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { useRecipientInquiryMutation } from '@/composables/useRecipientInquiryMutation'
+import { inquireTransferRecipient } from '@/api/transfers'
 import TransferErrorModal from '@/pages/ward/transfer/-components/TransferErrorModal.vue'
 import TransferLoadingModal from '@/pages/ward/transfer/-components/TransferLoadingModal.vue'
 import { getTransferApiError } from '@/pages/ward/transfer/-utils/transfer-api-error'
@@ -17,7 +18,7 @@ import { useTransferStore } from '@/stores/transfer.store'
 
 const router = useRouter()
 const transferStore = useTransferStore()
-const recipientMutation = useRecipientInquiryMutation()
+const recipientMutation = useMutation({ mutationFn: inquireTransferRecipient })
 const selectedBank = ref('')
 const defaultBanks = transferBanks.map(({ name }) => name)
 const banks = transferStore.bankCandidates.length

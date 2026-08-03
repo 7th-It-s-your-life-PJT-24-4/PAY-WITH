@@ -1,14 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiClient } from '@/api/client'
-import { createTransfer, inquireTransferRecipient } from '@/api/transfers'
+import {
+  createTransfer,
+  getTransferRecipients,
+  inquireTransferRecipient,
+} from '@/api/transfers'
 
 vi.mock('@/api/client', () => ({
-  apiClient: { post: vi.fn() },
+  apiClient: { get: vi.fn(), post: vi.fn() },
 }))
 
 describe('transfer API', () => {
   beforeEach(() => vi.clearAllMocks())
+
+  it('수취인 목록 조회 조건을 query parameter로 전달한다', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      success: true,
+      data: { recipients: [] },
+      message: null,
+    })
+
+    await getTransferRecipients({ keyword: '김', sort: 'NAME', size: 10 })
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/ward/transfers/recipient?keyword=%EA%B9%80&sort=NAME&size=10',
+      expect.anything(),
+    )
+  })
 
   it('수취인 응답 이름을 holderName으로 정규화한다', async () => {
     vi.mocked(apiClient.post).mockResolvedValue({

@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ChevronRight, Landmark, Plus } from '@lucide/vue'
 import { Button, Input } from '@pay-with/ui'
-import { computed, ref } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { transferRecipientsOptions } from '@/lib/query/ward/transfer'
 import AddTransferContactModal from '@/pages/ward/transfer/-components/AddTransferContactModal.vue'
 import TransferRecipientCard from '@/pages/ward/transfer/-components/TransferRecipientCard.vue'
+import { toTransferRecipient } from '@/pages/ward/transfer/-utils/transfer-recipient'
 import {
   useTransferStore,
   type TransferRecipient,
@@ -16,44 +19,32 @@ const transferStore = useTransferStore()
 const search = ref('')
 const contactModalOpen = ref(false)
 const pendingContact = ref<TransferRecipient | null>(null)
+const recentQuery = useQuery(
+  transferRecipientsOptions({ sort: 'RECENT', size: 4 }),
+)
+const recipientListParams = computed(() => ({
+  keyword: search.value.trim() || undefined,
+  sort: 'NAME' as const,
+  size: 50,
+}))
+const recipientsQuery = useQuery(transferRecipientsOptions(recipientListParams))
+const recentRecipients = computed(
+  () => recentQuery.data.value?.map(toTransferRecipient) ?? [],
+)
+const contacts = ref<TransferRecipient[]>([])
 
-const recipients: TransferRecipient[] = [
-  {
-    id: 1,
-    name: '김민수',
-    bank: '국민은행',
-    accountNumber: '432102-01-234567',
+watch(
+  () => recipientsQuery.data.value,
+  (recipients) => {
+    if (recipients) contacts.value = recipients.map(toTransferRecipient)
   },
-  { id: 2, name: '박지연', bank: '신한은행', accountNumber: '110-234-567890' },
-  {
-    id: 3,
-    name: '이영희',
-    bank: '국민은행',
-    accountNumber: '432102-02-321633',
-  },
-  {
-    id: 4,
-    name: '최철수',
-    bank: '국민은행',
-    accountNumber: '432102-01-567890',
-  },
-  { id: 5, name: '정미숙', bank: '우리은행', accountNumber: '1002-456-234567' },
-]
-
-const contacts = ref<TransferRecipient[]>(
-  recipients.filter((recipient) => recipient.id !== 2),
+  { immediate: true },
 )
 
-const filteredRecipients = computed(() => {
-  const keyword = search.value.trim()
-  if (!keyword) return contacts.value
-  return contacts.value.filter((item) =>
-    `${item.name}${item.bank}${item.accountNumber}`.includes(keyword),
-  )
-})
-
 function isContact(recipient: TransferRecipient) {
-  return contacts.value.some((contact) => contact.id === recipient.id)
+  return contacts.value.some(
+    (contact) => contact.id === recipient.id && contact.isContact,
+  )
 }
 
 function openContactModal(recipient: TransferRecipient) {
@@ -64,10 +55,14 @@ function openContactModal(recipient: TransferRecipient) {
 function addContact(alias: string) {
   if (!pendingContact.value || isContact(pendingContact.value)) return
 
-  contacts.value.push({
+  const nextContact = {
     ...pendingContact.value,
     name: alias || pendingContact.value.name,
-  })
+    isContact: true,
+  }
+  const index = contacts.value.findIndex(({ id }) => id === nextContact.id)
+  if (index === -1) contacts.value.push(nextContact)
+  else contacts.value[index] = nextContact
   contactModalOpen.value = false
   pendingContact.value = null
 }
@@ -91,7 +86,7 @@ function selectRecipient(recipient: TransferRecipient) {
       <h3 id="recent-transfer-title" class="type-h4 mb-md">최근 보낸 사람</h3>
       <div class="flex snap-x gap-md overflow-x-auto pb-xs">
         <div
-          v-for="recipient in recipients.slice(0, 4)"
+          v-for="recipient in recentRecipients"
           :key="recipient.id"
           class="flex w-32 shrink-0 snap-start flex-col items-center gap-sm"
         >
@@ -121,6 +116,20 @@ function selectRecipient(recipient: TransferRecipient) {
           <span v-else class="min-h-touch-target" aria-hidden="true" />
         </div>
       </div>
+      <p
+        v-if="recentQuery.isPending.value"
+        class="type-body-medium text-body-muted"
+        role="status"
+      >
+        최근 송금 대상을 불러오고 있습니다.
+      </p>
+      <p
+        v-else-if="recentQuery.isError.value"
+        class="type-body-medium text-error"
+        role="alert"
+      >
+        최근 송금 대상을 불러오지 못했습니다.
+      </p>
     </section>
 
     <Input
@@ -146,14 +155,43 @@ function selectRecipient(recipient: TransferRecipient) {
 
     <section aria-labelledby="contacts-title">
       <h3 id="contacts-title" class="type-h4 mb-md">전체 연락처</h3>
-      <div class="overflow-hidden rounded-large bg-surface-card shadow-card">
+      <p
+        v-if="recipientsQuery.isPending.value"
+        class="type-body-medium text-body-muted"
+        role="status"
+      >
+        송금 대상을 불러오고 있습니다.
+      </p>
+      <div
+        v-else-if="recipientsQuery.isError.value"
+        class="rounded-large bg-surface-card p-lg text-center shadow-card"
+      >
+        <p class="type-body-medium text-error" role="alert">
+          송금 대상을 불러오지 못했습니다.
+        </p>
+        <Button
+          class="mt-md"
+          label="다시 시도"
+          variant="outline-primary"
+          @click="recipientsQuery.refetch()"
+        />
+      </div>
+      <div
+        v-else-if="contacts.length"
+        class="overflow-hidden rounded-large bg-surface-card shadow-card"
+      >
         <TransferRecipientCard
-          v-for="recipient in filteredRecipients"
+          v-for="recipient in contacts"
           :key="recipient.id"
           :recipient="recipient"
           @select="selectRecipient"
         />
       </div>
+      <p v-else class="type-body-medium text-center text-body-muted">
+        {{
+          search.trim() ? '검색 결과가 없습니다.' : '최근 송금 내역이 없습니다.'
+        }}
+      </p>
     </section>
 
     <AddTransferContactModal
