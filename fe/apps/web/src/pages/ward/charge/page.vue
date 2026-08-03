@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { ArrowRight, RotateCcw } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
+import { useMutation, useQuery } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { createWardCharge } from '@/api/charges'
 import { getApiErrorMessage } from '@/api/error'
-import { useChargeAccountsQuery } from '@/composables/useChargeAccountsQuery'
-import { useCreateWardChargeMutation } from '@/composables/useCreateWardChargeMutation'
+import { chargeAccountsOptions } from '@/lib/query/account'
 import ChargeAccountCard from '@/pages/ward/charge/-components/ChargeAccountCard.vue'
 import { useChargeStore } from '@/stores/charge.store'
 
 const router = useRouter()
 const chargeStore = useChargeStore()
-const accountsQuery = useChargeAccountsQuery()
-const chargeMutation = useCreateWardChargeMutation()
+const accountsQuery = useQuery(chargeAccountsOptions())
+const chargeMutation = useMutation({ mutationFn: createWardCharge })
 const errorMessage = ref('')
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
@@ -47,22 +48,25 @@ function updateAmount(value: string) {
 async function submitCharge() {
   if (!selectedAccount.value || chargeMutation.isPending.value) return
   errorMessage.value = ''
+  let result
   try {
-    const result = await chargeMutation.mutateAsync({
+    result = await chargeMutation.mutateAsync({
       accountId: selectedAccount.value.accountId,
       amount: chargeStore.amount,
-    })
-    chargeStore.saveResult(result)
-    await router.replace({
-      name: 'ward-charge-complete',
-      params: { transactionId: result.transactionId },
     })
   } catch (error) {
     errorMessage.value = await getApiErrorMessage(
       error,
       '충전을 완료하지 못했습니다.',
     )
+    return
   }
+
+  chargeStore.saveResult(result)
+  await router.replace({
+    name: 'ward-charge-complete',
+    params: { transactionId: result.transactionId },
+  })
 }
 </script>
 

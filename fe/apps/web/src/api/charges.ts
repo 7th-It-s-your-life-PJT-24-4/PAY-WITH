@@ -1,5 +1,6 @@
 import { apiClient } from '@/api/client'
 import {
+  createChargeRequestSchema,
   chargeResultResponseSchema,
   type ChargeResult,
   type CreateChargeRequest,
@@ -8,10 +9,11 @@ import {
 export async function createWardCharge(
   body: CreateChargeRequest,
 ): Promise<ChargeResult> {
+  const request = createChargeRequestSchema.parse(body)
   const response = await apiClient.post(
     '/ward/charges',
     chargeResultResponseSchema,
-    body,
+    request,
   )
   return response.data
 }

@@ -78,4 +78,19 @@ describe('charge API', () => {
       { accountId: 7, amount: 50_000 },
     )
   })
+
+  it('잘못된 계좌 등록 및 충전 요청은 전송하지 않는다', async () => {
+    await expect(
+      registerChargeAccount({
+        bankCode: 'KB',
+        accountNo: '1234',
+        accountPassword: '12',
+      }),
+    ).rejects.toBeDefined()
+    await expect(
+      createWardCharge({ accountId: 7, amount: 0 }),
+    ).rejects.toBeDefined()
+
+    expect(apiClient.post).not.toHaveBeenCalled()
+  })
 })

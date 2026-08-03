@@ -1,26 +1,25 @@
 import { apiClient } from '@/api/client'
 import {
-  chargeAccountResponseSchema,
-  chargeAccountsResponseSchema,
-  type ChargeAccount,
-  type RegisterChargeAccountRequest,
-} from '@/schemas/charge.schema'
+  accountResponseSchema,
+  accountsResponseSchema,
+  registerAccountRequestSchema,
+  type Account,
+  type RegisterAccountRequest,
+} from '@/schemas/account.schema'
 
-export async function getChargeAccounts(): Promise<ChargeAccount[]> {
-  const response = await apiClient.get(
-    '/accounts',
-    chargeAccountsResponseSchema,
-  )
+export async function getChargeAccounts(): Promise<Account[]> {
+  const response = await apiClient.get('/accounts', accountsResponseSchema)
   return response.data
 }
 
 export async function registerChargeAccount(
-  body: RegisterChargeAccountRequest,
-): Promise<ChargeAccount> {
+  body: RegisterAccountRequest,
+): Promise<Account> {
+  const request = registerAccountRequestSchema.parse(body)
   const response = await apiClient.post(
     '/accounts',
-    chargeAccountResponseSchema,
-    body,
+    accountResponseSchema,
+    request,
   )
   return response.data
 }

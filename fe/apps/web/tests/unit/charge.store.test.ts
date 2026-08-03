@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { tokenStorage } from '@/api/token-storage'
 import { useChargeStore } from '@/stores/charge.store'
 
 const accounts = [
@@ -27,9 +28,15 @@ const chargeResult = {
   createdAt: '2026-07-23T17:30:00',
 }
 
+function createAccessToken(userId: string) {
+  return `header.${btoa(JSON.stringify({ sub: userId }))}.signature`
+}
+
 describe('charge store', () => {
   beforeEach(() => {
+    localStorage.clear()
     sessionStorage.clear()
+    vi.restoreAllMocks()
     setActivePinia(createPinia())
   })
 
@@ -73,5 +80,28 @@ describe('charge store', () => {
 
     expect(restoredStore.restoreResult(43)).toEqual(chargeResult)
     expect(restoredStore.restoreResult(44)).toBeNull()
+  })
+
+  it('세션 저장소가 실패해도 완료 결과를 메모리에 유지한다', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('저장소 접근 실패', 'SecurityError')
+    })
+    const store = useChargeStore()
+
+    expect(() => store.saveResult(chargeResult)).not.toThrow()
+    expect(store.result).toEqual(chargeResult)
+  })
+
+  it('인증 사용자별로 완료 결과를 분리한다', () => {
+    tokenStorage.setTokens(createAccessToken('1'), 'refresh-token')
+    const store = useChargeStore()
+    store.saveResult(chargeResult)
+
+    tokenStorage.setTokens(createAccessToken('2'), 'refresh-token')
+    expect(store.restoreResult(43)).toBeNull()
+
+    tokenStorage.setTokens(createAccessToken('1'), 'refresh-token')
+    setActivePinia(createPinia())
+    expect(useChargeStore().restoreResult(43)).toEqual(chargeResult)
   })
 })
