@@ -13,12 +13,6 @@ export async function getApiErrorMessage(
   if (!(error instanceof HTTPError))
     return error instanceof Error ? error.message : fallback
 
-  try {
-    const result = apiErrorBodySchema.safeParse(
-      await error.response.clone().json(),
-    )
-    return result.success ? result.data.message : fallback
-  } catch {
-    return fallback
-  }
+  const result = apiErrorBodySchema.safeParse(error.data)
+  return result.success ? result.data.message : fallback
 }
