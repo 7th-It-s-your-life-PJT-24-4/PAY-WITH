@@ -70,6 +70,7 @@ async function startPairing() {
         class="mt-md"
         :senior-name="guardStore.activeSenior?.name ?? ''"
         balance="1,000,000"
+        @add-safe-account="router.push({ name: 'guard-safe-account' })"
       />
 
       <GuardRiskTransactionAlert

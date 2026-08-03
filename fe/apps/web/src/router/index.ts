@@ -18,6 +18,8 @@ import GuardLayout from '@/pages/guard/layout.vue'
 import GuardMyPage from '@/pages/guard/my/page.vue'
 import GuardPage from '@/pages/guard/page.vue'
 import GuardPairingCodePage from '@/pages/guard/pairing/code.vue'
+import GuardSafeAccountConfirmPage from '@/pages/guard/safe-account/confirm/page.vue'
+import GuardSafeAccountPage from '@/pages/guard/safe-account/page.vue'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete/page.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
 import { requireCompletedPairing } from '@/pages/ward/pairing/-utils/pairing-route-guard'
@@ -160,6 +162,24 @@ const router = createRouter({
           name: 'guard-history',
           component: GuardHistoryPage,
           meta: { activeNavigation: 'history' },
+        },
+        {
+          path: 'safe-account',
+          name: 'guard-safe-account',
+          component: GuardSafeAccountPage,
+          meta: {
+            activeNavigation: 'home',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'safe-account/confirm',
+          name: 'guard-safe-account-confirm',
+          component: GuardSafeAccountConfirmPage,
+          meta: {
+            activeNavigation: 'home',
+            showBottomNavigation: false,
+          },
         },
         {
           path: 'history/:transactionId/decision-complete',
