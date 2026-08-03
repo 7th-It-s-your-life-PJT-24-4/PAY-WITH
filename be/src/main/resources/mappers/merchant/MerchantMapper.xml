@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.paywith.merchant.mapper.MerchantMapper">
+
+    <select id="findById" resultType="com.paywith.merchant.domain.Merchant">
+        SELECT merchant_id, name, category_code, region, latitude, longitude, created_at
+        FROM merchants
+        WHERE merchant_id = #{merchantId}
+    </select>
+
+    <select id="findAllPayable" resultType="com.paywith.merchant.domain.Merchant">
+        SELECT merchant_id, name, category_code, region, latitude, longitude, created_at
+        FROM merchants
+        WHERE latitude IS NOT NULL
+        AND longitude IS NOT NULL
+        ORDER BY merchant_id
+    </select>
+
+</mapper>

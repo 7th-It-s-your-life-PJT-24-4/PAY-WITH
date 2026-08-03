@@ -39,6 +39,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .antMatchers("/api/auth/**", "/swagger-ui/**", "/swagger-resources/**", "/v2/api-docs", "/webjars/**").permitAll()
             .antMatchers(HttpMethod.POST, "/api/users").permitAll()
+            // 가맹점 스캐너는 로그인 계정이 없는 제3 액터라 목록 조회를 개방한다
+            .antMatchers(HttpMethod.GET, "/api/merchants").permitAll()
             .antMatchers(HttpMethod.GET, "/api/users/**").authenticated()
             .anyRequest().authenticated()
             .and()
