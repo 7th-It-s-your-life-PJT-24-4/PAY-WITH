@@ -29,7 +29,7 @@ sed -n '1,220p' apps/web/src/api/client.ts
 5. Create or update:
    - Zod schema: `apps/web/src/schemas/<resource>.schema.ts`
    - API endpoint functions: `apps/web/src/api/<resources>.ts`
-   - Query/mutation hooks: `apps/web/src/composables/use<Resource>Query.ts` or `use<Resource>Mutation.ts`
+   - Reusable Query options or hooks only when they add shared behavior; place hooks in `apps/web/src/composables`
    - API base URL env keys: `apps/web/.env.example`, and local `.env` only when needed
 6. Run validation:
 
@@ -38,6 +38,48 @@ pnpm lint
 pnpm build
 pnpm test
 ```
+
+## TanStack Query abstraction
+
+Do not create a custom hook that only forwards an endpoint to `useQuery` or `useMutation`. Call TanStack Query directly in the consuming component when no shared options or behavior exist.
+
+```ts
+const chargeMutation = useMutation({ mutationFn: createWardCharge })
+```
+
+Create a custom hook only when it owns meaningful reusable behavior such as cache updates, invalidation, optimistic updates, polling, dependent-query state, or shared callbacks. A hook such as `useRegisterChargeAccountMutation` is justified when its `onSuccess` updates the account cache.
+
+Define a `queryOptions` factory under `src/lib/query` when the same query configuration or key is reused by components, prefetching, route loaders, or cache operations. Keep `queryKey` and `queryFn` together, pass the factory result to Query APIs, and use `options(params).queryKey` for exact cache reads, updates, or invalidation instead of rebuilding key arrays. Keep a hierarchical key factory as well when broader invalidation such as all or list queries is needed.
+
+```ts
+export const wardPaymentKeys = {
+  all: ['ward-payments'] as const,
+  detail: (paymentId: number) => [...wardPaymentKeys.all, paymentId] as const,
+}
+
+export function wardPaymentStatusOptions(paymentId: number) {
+  return queryOptions({
+    queryKey: wardPaymentKeys.detail(paymentId),
+    queryFn: () => getWardPaymentStatus(paymentId),
+  })
+}
+
+const paymentQuery = useQuery(wardPaymentStatusOptions(paymentId))
+queryClient.setQueryData(
+  wardPaymentStatusOptions(paymentId).queryKey,
+  nextPayment,
+)
+```
+
+Do not wrap an option factory in another custom hook unless that hook adds behavior.
+
+When a custom hook is justified, name its file and exported function consistently:
+
+- Query: `use<Resource>Query.ts` → `use<Resource>Query`
+- Mutation: `use<Action><Resource>Mutation.ts` → `use<Action><Resource>Mutation`
+- Query options: `src/lib/query/<resource>.ts` → `<resource>Keys`, `<resource>Options`
+
+Use domain actions such as `Create`, `Register`, `Update`, or `Delete`; do not encode HTTP verbs in hook names.
 
 ## API client requirements
 
@@ -174,17 +216,14 @@ export function createUser(body: CreateUserRequest): Promise<User> {
 ```
 
 ```ts
-// apps/web/src/composables/useUsersQuery.ts
 import { useQuery } from '@tanstack/vue-query'
 
 import { getUsers } from '@/api/users'
 
-export function useUsersQuery() {
-  return useQuery({
-    queryKey: ['users'],
-    queryFn: getUsers,
-  })
-}
+const usersQuery = useQuery({
+  queryKey: ['users'],
+  queryFn: getUsers,
+})
 ```
 
 ```ts
