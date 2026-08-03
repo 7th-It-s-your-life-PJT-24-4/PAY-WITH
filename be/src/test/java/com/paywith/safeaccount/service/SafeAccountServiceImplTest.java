@@ -8,6 +8,7 @@ import com.paywith.recipient.domain.Recipient;
 import com.paywith.recipient.mapper.BankMapper;
 import com.paywith.recipient.mapper.RecipientMapper;
 import com.paywith.safeaccount.dto.GuardSafeAccountRegisterRequest;
+import com.paywith.safeaccount.dto.SafeAccountDeleteResponse;
 import com.paywith.safeaccount.dto.SafeAccountListItem;
 import com.paywith.safeaccount.dto.SafeAccountListResponse;
 import com.paywith.safeaccount.dto.SafeAccountRegisterRequest;
@@ -111,7 +112,7 @@ class SafeAccountServiceImplTest {
         assertThatThrownBy(() -> safeAccountService.registerByWard(wardId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
-                .hasMessageContaining("페어링 완료 후 이용할 수 없습니다.");
+                .hasMessageContaining("페어링 완료 후 이용할 수 있습니다.");
 
         verify(recipientMapper, never()).findById(any());
     }
@@ -128,7 +129,7 @@ class SafeAccountServiceImplTest {
         assertThatThrownBy(() -> safeAccountService.registerByWard(wardId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
-                .hasMessageContaining("별칭은 50자를 초과할 수 없습니다.");
+                .hasMessageContaining("입력값이 올바르지 않습니다.");
 
         verify(recipientMapper, never()).findById(any());
     }
@@ -291,8 +292,8 @@ class SafeAccountServiceImplTest {
 
         assertThatThrownBy(() -> safeAccountService.registerByGuard(guardId, wardId, guardRequest))
                 .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
-                .hasMessageContaining("해당 시니어의 보호자가 아닙니다.");
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("연동된 피보호자를 찾을 수 없습니다.");
 
         verify(recipientMapper, never()).findRecipient(any(), any(), any());
     }
@@ -309,7 +310,7 @@ class SafeAccountServiceImplTest {
         assertThatThrownBy(() -> safeAccountService.registerByGuard(guardId, wardId, guardRequest))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
-                .hasMessageContaining("별칭은 50자를 초과할 수 없습니다.");
+                .hasMessageContaining("입력값이 올바르지 않습니다.");
 
         verify(recipientMapper, never()).findRecipient(any(), any(), any());
     }
@@ -493,5 +494,124 @@ class SafeAccountServiceImplTest {
 
         assertThat(response.getSafeAccounts()).hasSize(1);
         assertThat(response.getSafeAccounts().get(0).getRecipientId()).isNull();
+    }
+
+    // ===== deactivateByWard =====
+
+    @Test
+    void 본인_삭제시_피보호자가_아니면_예외를_던진다() {
+        given(userMapper.findById(wardId)).willReturn(userWithRole(Role.GUARD));
+
+        assertThatThrownBy(() -> safeAccountService.deactivateByWard(wardId, recipientId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+                .hasMessageContaining("안전계좌를 찾을 수 없습니다.");
+
+        verify(recipientMapper, never()).findById(any());
+    }
+
+    @Test
+    void 본인_삭제시_안전계좌가_존재하지_않으면_예외를_던진다() {
+        given(userMapper.findById(wardId)).willReturn(userWithRole(Role.WARD));
+        given(recipientMapper.findById(recipientId)).willReturn(null);
+
+        assertThatThrownBy(() -> safeAccountService.deactivateByWard(wardId, recipientId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("안전계좌를 찾을 수 없습니다.");
+
+        verify(safeAccountMapper, never()).deactivateSafeAccount(any());
+    }
+
+    @Test
+    void 본인_삭제시_다른_피보호자의_안전계좌면_예외를_던진다() {
+        given(userMapper.findById(wardId)).willReturn(userWithRole(Role.WARD));
+        Recipient otherWardRecipient = Recipient.builder()
+                .recipientId(recipientId)
+                .wardId(999L)
+                .safeRegisteredAt(LocalDateTime.now())
+                .build();
+        given(recipientMapper.findById(recipientId)).willReturn(otherWardRecipient);
+
+        assertThatThrownBy(() -> safeAccountService.deactivateByWard(wardId, recipientId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("안전계좌를 찾을 수 없습니다.");
+
+        verify(safeAccountMapper, never()).deactivateSafeAccount(any());
+    }
+
+    @Test
+    void 본인_삭제시_안전계좌로_등록된_적_없으면_예외를_던진다() {
+        given(userMapper.findById(wardId)).willReturn(userWithRole(Role.WARD));
+        recipient.setSafeRegisteredAt(null);
+        given(recipientMapper.findById(recipientId)).willReturn(recipient);
+
+        assertThatThrownBy(() -> safeAccountService.deactivateByWard(wardId, recipientId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("안전계좌를 찾을 수 없습니다.");
+
+        verify(safeAccountMapper, never()).deactivateSafeAccount(any());
+    }
+
+    @Test
+    void 본인_삭제시_정상적으로_비활성화하고_INACTIVE_응답을_반환한다() {
+        given(userMapper.findById(wardId)).willReturn(userWithRole(Role.WARD));
+        recipient.setSafeRegisteredAt(LocalDateTime.now().minusDays(10));
+        given(recipientMapper.findById(recipientId)).willReturn(recipient);
+
+        SafeAccountDeleteResponse response = safeAccountService.deactivateByWard(wardId, recipientId);
+
+        assertThat(response.getSafeAccountId()).isEqualTo(recipientId);
+        assertThat(response.getStatus()).isEqualTo("INACTIVE");
+
+        verify(safeAccountMapper).deactivateSafeAccount(recipientId);
+    }
+
+    // ===== deactivateByGuard =====
+
+    @Test
+    void 보호자_삭제시_페어링된_보호자가_아니면_예외를_던진다() {
+        given(guardService.verifyGuardOfWard(guardId, wardId)).willReturn(false);
+
+        assertThatThrownBy(() -> safeAccountService.deactivateByGuard(guardId, wardId, recipientId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("연동된 피보호자를 찾을 수 없습니다.");
+
+        verify(recipientMapper, never()).findById(any());
+    }
+
+    @Test
+    void 보호자_삭제시_대상이_이_피보호자의_안전계좌가_아니면_예외를_던진다() {
+        given(guardService.verifyGuardOfWard(guardId, wardId)).willReturn(true);
+        Recipient otherWardRecipient = Recipient.builder()
+                .recipientId(recipientId)
+                .wardId(999L)
+                .safeRegisteredAt(LocalDateTime.now())
+                .build();
+        given(recipientMapper.findById(recipientId)).willReturn(otherWardRecipient);
+
+        assertThatThrownBy(() -> safeAccountService.deactivateByGuard(guardId, wardId, recipientId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("안전계좌를 찾을 수 없습니다.");
+
+        verify(safeAccountMapper, never()).deactivateSafeAccount(any());
+    }
+
+    @Test
+    void 보호자_삭제시_정상적으로_비활성화하고_INACTIVE_응답을_반환한다() {
+        given(guardService.verifyGuardOfWard(guardId, wardId)).willReturn(true);
+        recipient.setSafeRegisteredAt(LocalDateTime.now().minusDays(10));
+        given(recipientMapper.findById(recipientId)).willReturn(recipient);
+
+        SafeAccountDeleteResponse response = safeAccountService.deactivateByGuard(guardId, wardId, recipientId);
+
+        assertThat(response.getSafeAccountId()).isEqualTo(recipientId);
+        assertThat(response.getStatus()).isEqualTo("INACTIVE");
+
+        verify(safeAccountMapper).deactivateSafeAccount(recipientId);
     }
 }

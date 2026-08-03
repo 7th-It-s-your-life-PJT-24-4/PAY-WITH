@@ -1,9 +1,6 @@
 package com.paywith.safeaccount.service;
 
-import com.paywith.safeaccount.dto.GuardSafeAccountRegisterRequest;
-import com.paywith.safeaccount.dto.SafeAccountListResponse;
-import com.paywith.safeaccount.dto.SafeAccountRegisterRequest;
-import com.paywith.safeaccount.dto.SafeAccountResponse;
+import com.paywith.safeaccount.dto.*;
 
 public interface SafeAccountService {
 
@@ -18,4 +15,10 @@ public interface SafeAccountService {
 
     // 보호자가 피보호자의 안전 계좌를 조회
     SafeAccountListResponse getSafeAccountListByGuard(Long guardId, Long wardId);
+
+    // 피보호자가 자신의 안전 계좌 삭제(비활성화)
+    SafeAccountDeleteResponse deactivateByWard(Long wardId, Long safeAccountId);
+
+    // 보호자가 피보호자의 안전 계좌 삭제(비활성화)
+    SafeAccountDeleteResponse deactivateByGuard(Long guardId, Long wardId, Long safeAccountId);
 }

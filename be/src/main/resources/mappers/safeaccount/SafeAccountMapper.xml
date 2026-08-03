@@ -58,4 +58,11 @@
     WHERE recipient_id = #{recipientId}
     AND is_registered_safe = FALSE
     </update>
+
+    <update id="deactivateSafeAccount">
+        UPDATE recipients
+        SET is_registered_safe = FALSE
+        WHERE recipient_id = #{recipientId}
+        AND is_registered_safe = TRUE
+    </update>
 </mapper>

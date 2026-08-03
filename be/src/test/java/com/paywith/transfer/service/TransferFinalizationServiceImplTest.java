@@ -6,6 +6,7 @@ import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
 import com.paywith.fds.domain.RiskLevel;
 import com.paywith.recipient.domain.Recipient;
+import com.paywith.recipient.mapper.RecipientMapper;
 import com.paywith.transaction.domain.Transaction;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.PreparedTransfer;
@@ -51,6 +52,9 @@ class TransferFinalizationServiceImplTest {
 
     @Mock
     private TransactionTemplate transactionTemplate;
+
+    @Mock
+    private RecipientMapper recipientMapper;
 
     @InjectMocks
     private TransferFinalizationServiceImpl transferFinalizationService;
@@ -98,6 +102,7 @@ class TransferFinalizationServiceImplTest {
         verify(transactionMapper).updateStatus(999L, "HELD");
         verify(walletMapper, never()).decreaseBalanceIfSufficient(any(), any());
         verify(openBankingClient, never()).deposit(any(), any(), any());
+        verify(recipientMapper, never()).updateSendInfo(any());
     }
 
     @Test
@@ -113,6 +118,7 @@ class TransferFinalizationServiceImplTest {
         verify(transactionMapper).updateStatus(999L, "PROCESSING");
         verify(openBankingClient, never()).deposit(any(), any(), any());
         verify(transactionMapper, never()).completeTransaction(any(), any(), any(), any());
+        verify(recipientMapper, never()).updateSendInfo(any());
     }
 
     @Test
@@ -136,6 +142,7 @@ class TransferFinalizationServiceImplTest {
 
         verify(openBankingClient).deposit("004", "11012300006781", 50_000L);
         verify(transactionMapper).completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class));
+        verify(recipientMapper).updateSendInfo(200L);
     }
 
     @Test
@@ -151,6 +158,7 @@ class TransferFinalizationServiceImplTest {
 
         assertThat(result.getStatus()).isEqualTo("COMPLETED");
         verify(transactionMapper, never()).updateStatus(999L, "HELD");
+        verify(recipientMapper).updateSendInfo(200L);
     }
 
     // ===== "돌아올 수 없는 지점"(deposit 호출) 이후 실패 경로 =====
@@ -171,6 +179,7 @@ class TransferFinalizationServiceImplTest {
 
         verify(transactionMapper).updateStatus(999L, "FAILED");
         verify(transactionMapper, never()).completeTransaction(any(), any(), any(), any());
+        verify(recipientMapper, never()).updateSendInfo(any());
     }
 
     @Test
@@ -192,6 +201,8 @@ class TransferFinalizationServiceImplTest {
         verify(transactionMapper, times(3))
                 .completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class));
         verify(transactionMapper).updateStatus(999L, "FAILED");
+        // 입금은 성공했으므로 완료 처리와 무관하게 수취인 송금 이력은 반영돼야 한다
+        verify(recipientMapper).updateSendInfo(200L);
     }
 
     @Test
@@ -209,6 +220,7 @@ class TransferFinalizationServiceImplTest {
         verify(transactionMapper, times(2))
                 .completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class));
         verify(transactionMapper, never()).updateStatus(999L, "FAILED");
+        verify(recipientMapper).updateSendInfo(200L);
     }
 
     // ===== finalizeApprovedTransfer(보호자 승인 이후 재개 경로) =====
@@ -225,6 +237,7 @@ class TransferFinalizationServiceImplTest {
         verify(transactionMapper, never()).updateStatus(any(), any());
         verify(walletMapper, never()).decreaseBalanceIfSufficient(any(), any());
         verify(openBankingClient, never()).deposit(any(), any(), any());
+        verify(recipientMapper, never()).updateSendInfo(any());
     }
 
     @Test
@@ -233,6 +246,7 @@ class TransferFinalizationServiceImplTest {
                 .transactionId(999L)
                 .walletId(10L)
                 .userId(userId)
+                .recipientId(200L)
                 .bankCode("004")
                 .bankName("KB국민은행")
                 .accountNo("11012300006781")
@@ -258,6 +272,7 @@ class TransferFinalizationServiceImplTest {
 
         verify(openBankingClient).deposit("004", "11012300006781", 50_000L);
         verify(transactionMapper).completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class));
+        verify(recipientMapper).updateSendInfo(200L);
     }
 
     @Test
@@ -266,6 +281,7 @@ class TransferFinalizationServiceImplTest {
                 .transactionId(999L)
                 .walletId(10L)
                 .userId(userId)
+                .recipientId(200L)
                 .bankCode("004")
                 .bankName("KB국민은행")
                 .accountNo("11012300006781")
@@ -288,5 +304,6 @@ class TransferFinalizationServiceImplTest {
 
         verify(transactionMapper).updateStatus(999L, "FAILED");
         verify(transactionMapper, never()).completeTransaction(any(), any(), any(), any());
+        verify(recipientMapper, never()).updateSendInfo(any());
     }
 }

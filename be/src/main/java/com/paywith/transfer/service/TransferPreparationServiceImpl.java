@@ -42,14 +42,18 @@ public class TransferPreparationServiceImpl implements TransferPreparationServic
             throw new BusinessException(HttpStatus.BAD_REQUEST, "지갑을 찾을 수 없습니다");
         }
 
-        //2. ward인지, transferPin 검증
+        //2. ward인지, 페어링 여부, transferPin 검증
         User user = userMapper.findById(userId);
         if (user.getRole() != Role.WARD) {
-            throw new BusinessException(HttpStatus.FORBIDDEN, "송금은 피보호자만 이용할 수 있습니다.");
+            throw new BusinessException(HttpStatus.FORBIDDEN, "AUTH_004","피보호자만 접근할 수 있습니다.");
+        }
+
+        if(!recipientMapper.existsActivePairing(userId)){
+            throw new BusinessException(HttpStatus.FORBIDDEN, "WARD_001", "페어링 완료 후 이용할 수 있습니다.");
         }
 
         if (!passwordEncoder.matches(request.getTransferPin(), user.getPin())) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "송금 비밀번호가 올바르지 않습니다.");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "TRANSFER_002", "송금 비밀번호가 올바르지 않습니다.");
         }
 
 
@@ -60,7 +64,7 @@ public class TransferPreparationServiceImpl implements TransferPreparationServic
                 null
         );
         if (!inquiryResponse.isSuccess()) {
-            throw new BusinessException(HttpStatus.NOT_FOUND, "해당계좌를 찾을 수 없습니다.");
+            throw new BusinessException(HttpStatus.NOT_FOUND, "RECIPIENT_001","수취 계좌를 확인할 수 없습니다.");
         }
 
         //4. 수취인 조회/등록
@@ -73,8 +77,6 @@ public class TransferPreparationServiceImpl implements TransferPreparationServic
                     .holderName(inquiryResponse.getAccountHolderName())
                     .build();
             recipientMapper.insertRecipient(recipient);
-        } else {
-            recipientMapper.updateSendInfo(recipient.getRecipientId());
         }
 
         // 5. fds 전에 거래 행을 REQUESTED로 먼저 생성 (risk_evaluation -> transaction_id를 FK로 참조

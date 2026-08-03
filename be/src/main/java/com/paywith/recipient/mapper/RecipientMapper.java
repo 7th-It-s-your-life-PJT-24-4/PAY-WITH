@@ -20,7 +20,7 @@ public interface RecipientMapper {
     // 신규 수취인 등록 메서드
     void insertRecipient(Recipient recipient);
 
-    // 기존 수취인 송금 정보 갱신 메서드
+    // 기존 수취인 송금 정보 갱신 메서드 (실제로 송금이 성공 할 때만 호출)
     void updateSendInfo(@Param("recipientId") Long recipientId);
 
     // 수취인 단건 조회(안전계좌 등록 시 소유자 확인)

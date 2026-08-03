@@ -96,6 +96,7 @@
         t.transaction_id AS transactionId,
         t.wallet_id      AS walletId,
         w.user_id        AS userId,
+        t.recipient_id   AS recipientId,
         r.bank_code      AS bankCode,
         b.bank_name      AS bankName,
         r.account_no     AS accountNo,
