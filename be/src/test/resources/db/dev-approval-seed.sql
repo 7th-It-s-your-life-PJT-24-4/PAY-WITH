@@ -5,15 +5,20 @@
 --   보호자 A(9101) 담당: 시니어 A1(9102), A2(9103)
 --   보호자 B(9104) 담당: 시니어 B1(9105)   ← 권한 격리 확인용
 --
--- 모든 행이 실제 규칙(expired_at = requested_at + fds.approval.expire-minutes(30분))을 따른다.
+-- 모든 행이 실제 규칙(expired_at = requested_at + fds.approval.expire-minutes(3시간))을 따른다.
 --
 -- 승인요청 5건:
---   9102 대기(요청 8분 전  → 만료 22분 후)  A2  → 목록 1순위(만료 임박 순 정렬 확인)
---   9101 대기(요청 3분 전  → 만료 27분 후)  A1  → 목록 2순위, 상세 200, 승인/거절 성공
---   9103 대기(요청 45분 전 → 만료 15분 지남) A1  → 목록 제외, 상세 404, 승인 409
---                                                (만료 배치가 없어 status 는 PENDING 으로 남는다)
---   9104 APPROVED (요청 2시간 전)            A1  → 목록 제외, 상세 404, 승인 409
---   9105 대기(요청 6분 전  → 만료 24분 후)  B1  → 보호자 A 에게는 404 (담당 아님)
+--   9102 대기(요청 8분 전   → 만료 172분 후) A2  → 목록 1순위(만료 임박 순 정렬 확인)
+--   9101 대기(요청 3분 전   → 만료 177분 후) A1  → 목록 2순위, 상세 200, 승인/거절 성공
+--   9103 대기(요청 195분 전 → 만료 15분 지남) A1  → 목록 제외, 상세 404, 승인 409
+--                                                (만료 스캔이 곧 EXPIRED 로 바꾼다. 아래 주의 참고)
+--   9104 APPROVED (요청 2시간 전)             A1  → 목록 제외, 상세 404, 승인 409
+--   9105 대기(요청 6분 전   → 만료 174분 후) B1  → 보호자 A 에게는 404 (담당 아님)
+--
+-- 주의: 만료 스캔(fds.approval.expire-scan-ms, 기본 60초)이 돌면 9103 은 status 가 PENDING →
+--       EXPIRED 로, 대상 거래는 HELD → CANCELED 로 바뀐다. 걸러지는 결과는 같지만 근거가
+--       expired_at 조건에서 status 조건으로 옮겨간다. PENDING 인 상태로 확인하려면 시드 적용
+--       직후에 조회하거나 스캔 주기를 늘린다.
 --
 -- 적용 (저장소 루트 기준, MySQL 기동 상태에서):
 --   docker compose -f be/docker-compose.yml exec -T mysql \
@@ -100,20 +105,21 @@ INSERT INTO risk_evaluation_details (detail_id, evaluation_id, rule_id, score) V
     ON DUPLICATE KEY UPDATE score = VALUES(score);
 
 -- ⑧ 승인요청 (보류 송금당 1행) -----------------------------------------
---    expired_at 은 모두 requested_at + 30분(fds.approval.expire-minutes)으로 맞춘다.
+--    expired_at 은 모두 requested_at + 3시간(fds.approval.expire-minutes)으로 맞춘다.
 INSERT INTO approval_requests
     (approval_id, transaction_id, status, responded_by, requested_at, responded_at, expired_at) VALUES
-    -- 대기 중 (목록 2순위) — 만료 27분 후
-    (9101, 9101, 'PENDING',  NULL, NOW() - INTERVAL 3 MINUTE,  NULL, NOW() - INTERVAL 3 MINUTE  + INTERVAL 30 MINUTE),
-    -- 대기 중, 만료가 더 임박 (목록 1순위) — 만료 22분 후
-    (9102, 9102, 'PENDING',  NULL, NOW() - INTERVAL 8 MINUTE,  NULL, NOW() - INTERVAL 8 MINUTE  + INTERVAL 30 MINUTE),
-    -- 만료됨. 배치가 없어 status 는 PENDING 으로 남는다 → 조회에서 expired_at 으로 걸러져야 한다
-    (9103, 9103, 'PENDING',  NULL, NOW() - INTERVAL 45 MINUTE, NULL, NOW() - INTERVAL 45 MINUTE + INTERVAL 30 MINUTE),
+    -- 대기 중 (목록 2순위) — 만료 177분 후
+    (9101, 9101, 'PENDING',  NULL, NOW() - INTERVAL 3 MINUTE,  NULL, NOW() - INTERVAL 3 MINUTE  + INTERVAL 180 MINUTE),
+    -- 대기 중, 만료가 더 임박 (목록 1순위) — 만료 172분 후
+    (9102, 9102, 'PENDING',  NULL, NOW() - INTERVAL 8 MINUTE,  NULL, NOW() - INTERVAL 8 MINUTE  + INTERVAL 180 MINUTE),
+    -- 이미 만료됨(15분 지남). 시드 직후에는 expired_at 으로 걸러지고, 만료 스캔이 돌면
+    -- status = EXPIRED 로 바뀌어 걸러진다. 어느 쪽이든 목록·상세에서 제외돼야 한다
+    (9103, 9103, 'PENDING',  NULL, NOW() - INTERVAL 195 MINUTE, NULL, NOW() - INTERVAL 195 MINUTE + INTERVAL 180 MINUTE),
     -- 이미 승인 처리됨 (요청 2시간 전, 10분 뒤 응답)
     (9104, 9104, 'APPROVED', 9101, NOW() - INTERVAL 2 HOUR,    NOW() - INTERVAL 110 MINUTE,
-                                                                     NOW() - INTERVAL 2 HOUR   + INTERVAL 30 MINUTE),
-    -- 보호자 B 담당 시니어의 건 — 만료 24분 후
-    (9105, 9105, 'PENDING',  NULL, NOW() - INTERVAL 6 MINUTE,  NULL, NOW() - INTERVAL 6 MINUTE  + INTERVAL 30 MINUTE)
+                                                                     NOW() - INTERVAL 2 HOUR   + INTERVAL 180 MINUTE),
+    -- 보호자 B 담당 시니어의 건 — 만료 174분 후
+    (9105, 9105, 'PENDING',  NULL, NOW() - INTERVAL 6 MINUTE,  NULL, NOW() - INTERVAL 6 MINUTE  + INTERVAL 180 MINUTE)
     ON DUPLICATE KEY UPDATE status = VALUES(status), responded_by = VALUES(responded_by),
         requested_at = VALUES(requested_at), responded_at = VALUES(responded_at),
         expired_at = VALUES(expired_at);

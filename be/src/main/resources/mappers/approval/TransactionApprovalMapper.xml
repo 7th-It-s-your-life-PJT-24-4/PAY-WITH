@@ -19,4 +19,15 @@
     WHERE transaction_id = #{transactionId}
       AND status = 'APPROVED'
   </update>
+
+  <!-- 만료 스캔의 1단계. 아직 PENDING 인 승인요청을 조인해 찾으므로 expireOverdue 보다 먼저
+       실행해야 한다. HELD 인 거래만 바꿔서 이미 진행된 거래는 건드리지 않는다. -->
+  <update id="cancelHeldForExpiredApprovals">
+    UPDATE transactions t
+    JOIN approval_requests ar ON ar.transaction_id = t.transaction_id
+    SET t.status = 'CANCELED'
+    WHERE ar.status = 'PENDING'
+      AND ar.expired_at &lt;= NOW()
+      AND t.status = 'HELD'
+  </update>
 </mapper>
