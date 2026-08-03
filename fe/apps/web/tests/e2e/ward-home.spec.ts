@@ -57,7 +57,7 @@ test('보호자 승인 대기 거래를 상세 화면에서 확인한다', async
   await expect(pendingPayment.getByText('32,000원')).toBeVisible()
   await pendingPayment.click()
 
-  await expect(page).toHaveURL(/\/ward\/payment\/81\/held$/)
+  await expect(page).toHaveURL(/\/ward\/payment\/held\/81$/)
   await expect(
     page.getByRole('heading', { name: '결제 승인을 기다리고 있어요' }),
   ).toBeVisible()

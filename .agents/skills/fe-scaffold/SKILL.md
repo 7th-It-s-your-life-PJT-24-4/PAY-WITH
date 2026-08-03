@@ -20,7 +20,7 @@ sed -n '1,220p' apps/web/src/router/index.ts
 
 3. Decide the file targets:
    - UI component: `apps/web/src/components/PascalName.vue`
-   - Page: `apps/web/src/pages/PascalNamePage.vue`
+   - Page: `apps/web/src/pages/<role>/<route-segment>/page.vue`
    - Store: `apps/web/src/stores/name.store.ts`
    - Zod schema: `apps/web/src/schemas/name.schema.ts`
    - Route update: `apps/web/src/router/index.ts`
@@ -70,6 +70,7 @@ const emit = defineEmits<{
 ## Page pattern
 
 Pages compose components and stores. Keep network calls out of `fe-scaffold`; if the page needs API data, create API hooks through `fe-api-layer`.
+Represent each route segment as a directory and name its entry component `page.vue`. Match dynamic directory names to router parameters, such as `[transactionId]/page.vue` for `:transactionId`.
 
 ```vue
 <script setup lang="ts">
@@ -126,7 +127,7 @@ export type Example = z.infer<typeof exampleSchema>
 ## Router update pattern
 
 ```ts
-import ExamplePage from '@/pages/ExamplePage.vue'
+import ExamplePage from '@/pages/example/page.vue'
 
 {
   path: '/examples',

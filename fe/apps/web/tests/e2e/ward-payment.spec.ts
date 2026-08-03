@@ -63,11 +63,11 @@ test('비밀번호 확인 후 QR을 만들고 결제 완료 상태로 이동한�
     await page.getByRole('button', { name: digit, exact: true }).click()
   }
 
-  await expect(page).toHaveURL(/\/ward\/payment\/42\/qr$/)
+  await expect(page).toHaveURL(/\/ward\/payment\/qr\/42$/)
   await expect(page.getByLabel('결제 QR 코드').locator('svg')).toBeVisible()
   await expect(page.getByText('결제 가능 잔액')).toBeVisible()
 
-  await expect(page).toHaveURL(/\/ward\/payment\/73\/complete$/, {
+  await expect(page).toHaveURL(/\/ward\/payment\/complete\/73$/, {
     timeout: 6_000,
   })
   await expect(page.getByText('결제가 완료되었습니다')).toBeVisible()
@@ -125,7 +125,7 @@ test('결제 실패 상태에서는 기존 QR 코드를 숨긴다', async ({ pag
     await page.getByRole('button', { name: digit, exact: true }).click()
   }
 
-  await expect(page).toHaveURL(/\/ward\/payment\/43\/qr$/)
+  await expect(page).toHaveURL(/\/ward\/payment\/qr\/43$/)
   await expect(page.getByText('결제 가능한 잔액이 부족합니다.')).toBeVisible()
   await expect(page.getByLabel('결제 QR 코드')).toHaveCount(0)
   await expect(
