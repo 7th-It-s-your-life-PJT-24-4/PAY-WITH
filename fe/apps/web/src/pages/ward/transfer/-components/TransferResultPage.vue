@@ -172,6 +172,18 @@ onBeforeRouteLeave((to) => {
           <dt>결제 수단</dt>
           <dd>PayWith 머니</dd>
         </div>
+        <div
+          v-if="status === 'COMPLETED' && transferDetail?.balanceAfter != null"
+          class="flex items-center justify-between border-t border-border pt-xl"
+        >
+          <dt>송금 후 잔액</dt>
+          <dd class="type-h2 text-primary-500">
+            <span class="font-number">{{
+              formatMoney(transferDetail.balanceAfter)
+            }}</span
+            >원
+          </dd>
+        </div>
         <div>
           <dt>메모</dt>
           <dd class="mt-sm rounded-medium bg-gray-900 p-md">

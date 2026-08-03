@@ -255,6 +255,8 @@ test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다',
 
   await expect(page.getByText('안전하게 송금하고 있습니다')).toBeVisible()
   await expect(page.getByRole('heading', { name: '송금 완료' })).toBeVisible()
+  await expect(page.getByText('송금 후 잔액')).toBeVisible()
+  await expect(page.getByText('1,200,000원')).toBeVisible()
   await expect(page).toHaveURL(/\/ward\/transfer\/73\/complete$/)
   await expect(page.getByText('김민수')).toBeVisible()
   await page.reload()
@@ -385,6 +387,8 @@ test('승인 대기 거래를 취소하고 취소 결과를 확인한다', async
 test('거래 번호로 최종 상태 화면을 새로고침해도 복구한다', async ({ page }) => {
   await page.goto('/ward/transfer/73/complete')
   await expect(page.getByRole('heading', { name: '송금 완료' })).toBeVisible()
+  await expect(page.getByText('송금 후 잔액')).toBeVisible()
+  await expect(page.getByText('1,200,000원')).toBeVisible()
   await page.reload()
   await expect(page).toHaveURL(/\/ward\/transfer\/73\/complete$/)
   await expect(page.getByText('김민수')).toBeVisible()
