@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Button, Progress } from '@pay-with/ui'
-import { computed } from 'vue'
+import { Button, ConfirmModal, Progress } from '@pay-with/ui'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import backIconUrl from '@/assets/icons/transaction-detail-back.svg'
@@ -20,6 +20,8 @@ type RiskPresentation = {
   primaryActionLabel?: string
   secondaryActionLabel?: string
 }
+
+type TransactionDecision = 'approved' | 'rejected'
 
 const riskPresentations: Record<GuardTransaction['status'], RiskPresentation> =
   {
@@ -51,14 +53,38 @@ const riskPresentations: Record<GuardTransaction['status'], RiskPresentation> =
 
 const route = useRoute()
 const router = useRouter()
+const isDecisionConfirmOpen = ref(false)
+const pendingDecision = ref<TransactionDecision>('approved')
 const transactionId = computed(() => String(route.params.transactionId))
 const transaction = computed(() => getMockGuardTransaction(transactionId.value))
 const detail = computed(() =>
   getMockGuardTransactionDetail(transactionId.value),
 )
-const presentation = computed(() =>
-  transaction.value ? riskPresentations[transaction.value.status] : null,
-)
+const completedDecision = computed<TransactionDecision | null>(() => {
+  if (route.query.decision === 'approved') return 'approved'
+  if (route.query.decision === 'rejected') return 'rejected'
+  return null
+})
+const presentation = computed(() => {
+  if (!transaction.value) return null
+
+  const basePresentation = riskPresentations[transaction.value.status]
+  if (!completedDecision.value) return basePresentation
+
+  return {
+    ...basePresentation,
+    title:
+      completedDecision.value === 'approved'
+        ? '승인된 이상 거래에요'
+        : '거절된 이상 거래에요',
+    colorClass:
+      completedDecision.value === 'approved'
+        ? 'text-primary-500'
+        : 'text-error',
+    primaryActionLabel: undefined,
+    secondaryActionLabel: undefined,
+  }
+})
 const detailRows = computed(() => {
   if (!detail.value) return []
 
@@ -75,6 +101,20 @@ const detailRows = computed(() => {
 
 function goBack() {
   router.replace({ name: 'guard-history' })
+}
+
+function openDecisionConfirm(decision: TransactionDecision) {
+  pendingDecision.value = decision
+  isDecisionConfirmOpen.value = true
+}
+
+function confirmDecision() {
+  isDecisionConfirmOpen.value = false
+  router.push({
+    name: 'guard-transaction-decision-complete',
+    params: { transactionId: transactionId.value },
+    query: { decision: pendingDecision.value },
+  })
 }
 </script>
 
@@ -190,6 +230,9 @@ function goBack() {
         :label="presentation.primaryActionLabel"
         variant="guard-cta"
         size="guard-cta"
+        @click="
+          transaction?.status === 'danger' && openDecisionConfirm('approved')
+        "
       />
       <Button
         v-if="presentation.secondaryActionLabel"
@@ -197,7 +240,21 @@ function goBack() {
         :label="presentation.secondaryActionLabel"
         variant="outline-primary"
         size="guard-cta"
+        @click="openDecisionConfirm('rejected')"
       />
     </div>
   </main>
+
+  <ConfirmModal
+    v-model:open="isDecisionConfirmOpen"
+    :title="
+      pendingDecision === 'approved'
+        ? '거래를 승인할까요?'
+        : '거래를 거절할까요?'
+    "
+    cancel-label="취소"
+    :confirm-label="pendingDecision === 'approved' ? '승인' : '거절'"
+    :confirm-variant="pendingDecision === 'approved' ? 'primary' : 'danger'"
+    @confirm="confirmDecision"
+  />
 </template>

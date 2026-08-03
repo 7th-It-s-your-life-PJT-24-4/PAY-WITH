@@ -12,6 +12,7 @@ import GuardChargeCompletePage from '@/pages/guard/charge/complete/page.vue'
 import GuardChargeDetailPage from '@/pages/guard/charge/[id]/page.vue'
 import GuardChargePasswordPage from '@/pages/guard/charge/password/page.vue'
 import GuardTransactionDetailPage from '@/pages/guard/history/[id]/page.vue'
+import GuardTransactionDecisionCompletePage from '@/pages/guard/history/[id]/decision-complete.vue'
 import GuardHistoryPage from '@/pages/guard/history/page.vue'
 import GuardLayout from '@/pages/guard/layout.vue'
 import GuardMyPage from '@/pages/guard/my/page.vue'
@@ -159,6 +160,15 @@ const router = createRouter({
           name: 'guard-history',
           component: GuardHistoryPage,
           meta: { activeNavigation: 'history' },
+        },
+        {
+          path: 'history/:transactionId/decision-complete',
+          name: 'guard-transaction-decision-complete',
+          component: GuardTransactionDecisionCompletePage,
+          meta: {
+            activeNavigation: 'history',
+            showBottomNavigation: false,
+          },
         },
         {
           path: 'history/:transactionId',
