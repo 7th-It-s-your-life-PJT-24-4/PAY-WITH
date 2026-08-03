@@ -1,25 +1,44 @@
 <script setup lang="ts">
 import { ArrowRight, RotateCcw } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
-import { computed, onMounted } from 'vue'
+import { useMutation, useQuery } from '@tanstack/vue-query'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { createWardCharge } from '@/api/charges'
+import { getApiErrorMessage } from '@/api/error'
+import { chargeAccountsOptions } from '@/lib/query/account'
 import ChargeAccountCard from '@/pages/ward/charge/-components/ChargeAccountCard.vue'
 import { useChargeStore } from '@/stores/charge.store'
 
 const router = useRouter()
 const chargeStore = useChargeStore()
+const accountsQuery = useQuery(chargeAccountsOptions())
+const chargeMutation = useMutation({ mutationFn: createWardCharge })
+const errorMessage = ref('')
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
 const amountText = computed(() =>
   chargeStore.amount > 0 ? formatMoney(chargeStore.amount) : '',
 )
+const accounts = computed(() => accountsQuery.data.value ?? [])
+const selectedAccount = computed(
+  () =>
+    accounts.value.find(
+      ({ accountId }) => accountId === chargeStore.selectedAccountId,
+    ) ?? null,
+)
 
-onMounted(async () => {
-  if (!chargeStore.accountsLoaded) await chargeStore.loadAccounts()
-  if (chargeStore.accounts.length === 0)
-    await router.replace({ name: 'ward-charge-account-add' })
-})
+watch(
+  () => accountsQuery.data.value,
+  async (value) => {
+    if (!value) return
+    chargeStore.syncAccounts(value)
+    if (value.length === 0)
+      await router.replace({ name: 'ward-charge-account-add' })
+  },
+  { immediate: true },
+)
 
 function updateAmount(value: string) {
   const digits = value.replace(/\D/g, '')
@@ -27,8 +46,23 @@ function updateAmount(value: string) {
 }
 
 async function submitCharge() {
-  const result = await chargeStore.charge()
-  if (!result) return
+  if (!selectedAccount.value || chargeMutation.isPending.value) return
+  errorMessage.value = ''
+  let result
+  try {
+    result = await chargeMutation.mutateAsync({
+      accountId: selectedAccount.value.accountId,
+      amount: chargeStore.amount,
+    })
+  } catch (error) {
+    errorMessage.value = await getApiErrorMessage(
+      error,
+      '충전을 완료하지 못했습니다.',
+    )
+    return
+  }
+
+  chargeStore.saveResult(result)
   await router.replace({
     name: 'ward-charge-complete',
     params: { transactionId: result.transactionId },
@@ -37,14 +71,35 @@ async function submitCharge() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-xl">
+  <div
+    v-if="accountsQuery.isPending.value"
+    class="type-body-medium flex flex-1 items-center justify-center text-body-secondary"
+    role="status"
+  >
+    계좌 정보를 불러오고 있습니다.
+  </div>
+
+  <div
+    v-else-if="accountsQuery.isError.value"
+    class="flex flex-1 flex-col items-center justify-center gap-lg text-center"
+  >
+    <p class="type-body-medium text-error" role="alert">
+      계좌 정보를 불러오지 못했습니다.
+    </p>
+    <Button
+      label="다시 시도"
+      variant="outline-primary"
+      @click="accountsQuery.refetch()"
+    />
+  </div>
+
+  <div v-else-if="selectedAccount" class="flex flex-col gap-xl">
     <section>
       <p class="type-body-medium text-body-secondary">출금 계좌</p>
       <ChargeAccountCard
-        v-if="chargeStore.selectedAccount"
         class="mt-sm"
-        :accounts="chargeStore.accounts"
-        :selected-account-id="chargeStore.selectedAccount.accountId"
+        :accounts="accounts"
+        :selected-account-id="selectedAccount.accountId"
         @select="chargeStore.selectAccount"
         @add="router.push({ name: 'ward-charge-account-add' })"
       />
@@ -105,22 +160,18 @@ async function submitCharge() {
     </div>
 
     <p
-      v-if="chargeStore.processingError"
+      v-if="errorMessage"
       class="type-body-medium text-center text-error"
       role="alert"
     >
-      {{ chargeStore.processingError }}
+      {{ errorMessage }}
     </p>
 
     <Button
       class="mt-auto w-full"
-      :label="
-        chargeStore.processingStatus === 'pending'
-          ? '충전하고 있습니다'
-          : '충전하기'
-      "
+      :label="chargeMutation.isPending.value ? '충전하고 있습니다' : '충전하기'"
       size="large"
-      :disabled="!chargeStore.canCharge"
+      :disabled="!chargeStore.canCharge || chargeMutation.isPending.value"
       @click="submitCharge"
     >
       <template #trailing>

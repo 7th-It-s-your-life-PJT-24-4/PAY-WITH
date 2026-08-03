@@ -9,48 +9,49 @@ import GuardChargePage from '@/pages/guard/charge/page.vue'
 import GuardChargeAccountPage from '@/pages/guard/charge/account/page.vue'
 import GuardChargeBePage from '@/pages/guard/charge/be/page.vue'
 import GuardChargeCompletePage from '@/pages/guard/charge/complete/page.vue'
+import GuardChargeDetailPage from '@/pages/guard/charge/[id]/page.vue'
 import GuardChargePasswordPage from '@/pages/guard/charge/password/page.vue'
+import GuardTransactionDetailPage from '@/pages/guard/history/[id]/page.vue'
 import GuardHistoryPage from '@/pages/guard/history/page.vue'
 import GuardLayout from '@/pages/guard/layout.vue'
 import GuardMyPage from '@/pages/guard/my/page.vue'
 import GuardPage from '@/pages/guard/page.vue'
 import GuardPairingCodePage from '@/pages/guard/pairing/code.vue'
-import WardPairingCompletePage from '@/pages/ward/pairing/complete.vue'
+import WardPairingCompletePage from '@/pages/ward/pairing/complete/page.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
 import { requireCompletedPairing } from '@/pages/ward/pairing/-utils/pairing-route-guard'
-import WardChargeAccountAddPage from '@/pages/ward/charge/account/add.vue'
-import WardChargeAccountCompletePage from '@/pages/ward/charge/account/complete.vue'
-import WardChargeCompletePage from '@/pages/ward/charge/complete.vue'
+import WardChargeAccountAddPage from '@/pages/ward/charge/account/add/page.vue'
+import WardChargeAccountCompletePage from '@/pages/ward/charge/account/complete/page.vue'
+import WardChargeCompletePage from '@/pages/ward/charge/[transactionId]/complete/page.vue'
 import WardChargePage from '@/pages/ward/charge/page.vue'
 import WardLayout from '@/pages/ward/layout.vue'
 import WardPage from '@/pages/ward/page.vue'
-import WardTransactionDetailPage from '@/pages/ward/history/detail.vue'
+import WardTransactionDetailPage from '@/pages/ward/history/[transactionId]/page.vue'
 import WardTransactionHistoryPage from '@/pages/ward/history/page.vue'
-import WardPaymentCompletePage from '@/pages/ward/payment/complete.vue'
-import WardPaymentHeldPage from '@/pages/ward/payment/held.vue'
+import WardPaymentCompletePage from '@/pages/ward/payment/complete/[transactionId]/page.vue'
+import WardPaymentHeldPage from '@/pages/ward/payment/held/[transactionId]/page.vue'
 import WardPaymentPage from '@/pages/ward/payment/page.vue'
-import WardPaymentQrPage from '@/pages/ward/payment/qr.vue'
+import WardPaymentQrPage from '@/pages/ward/payment/qr/[paymentId]/page.vue'
 import {
   requireCompletedPayment,
   requireHeldPayment,
   requirePaymentQrSession,
 } from '@/pages/ward/payment/-utils/payment-route-guard'
-import WardTransferAccountPage from '@/pages/ward/transfer/account.vue'
-import WardTransferAmountPage from '@/pages/ward/transfer/amount.vue'
-import WardTransferBankPage from '@/pages/ward/transfer/bank.vue'
-import WardTransferCompletePage from '@/pages/ward/transfer/complete.vue'
-import WardTransferConfirmPage from '@/pages/ward/transfer/confirm.vue'
-import WardTransferHeldPage from '@/pages/ward/transfer/held.vue'
+import WardTransferAccountPage from '@/pages/ward/transfer/account/page.vue'
+import WardTransferAmountPage from '@/pages/ward/transfer/amount/page.vue'
+import WardTransferBankPage from '@/pages/ward/transfer/bank/page.vue'
+import WardTransferCompletePage from '@/pages/ward/transfer/[transactionId]/complete/page.vue'
+import WardTransferConfirmPage from '@/pages/ward/transfer/confirm/page.vue'
+import WardTransferHeldPage from '@/pages/ward/transfer/[transactionId]/held/page.vue'
 import WardTransferPage from '@/pages/ward/transfer/page.vue'
-import WardTransferPasswordPage from '@/pages/ward/transfer/password.vue'
-import WardTransferProcessingPage from '@/pages/ward/transfer/processing.vue'
-import WardTransferRejectedPage from '@/pages/ward/transfer/rejected.vue'
-import WardTransferRestrictedPage from '@/pages/ward/transfer/restricted.vue'
+import WardTransferPasswordPage from '@/pages/ward/transfer/password/page.vue'
+import WardTransferProcessingPage from '@/pages/ward/transfer/processing/page.vue'
+import WardTransferRejectedPage from '@/pages/ward/transfer/[transactionId]/rejected/page.vue'
+import WardTransferRestrictedPage from '@/pages/ward/transfer/[transactionId]/restricted/page.vue'
 import { requireWardTransaction } from '@/pages/ward/history/-utils/transaction-route-guard'
 import {
   requireCompletedCharge,
   requireNewChargeAccount,
-  requireRegisteredChargeAccount,
 } from '@/pages/ward/charge/-utils/charge-route-guard'
 import {
   requireCompletedTransfer,
@@ -145,10 +146,28 @@ const router = createRouter({
           },
         },
         {
+          path: 'charge/:chargeId',
+          name: 'guard-charge-detail',
+          component: GuardChargeDetailPage,
+          meta: {
+            activeNavigation: 'charge',
+            showBottomNavigation: false,
+          },
+        },
+        {
           path: 'history',
           name: 'guard-history',
           component: GuardHistoryPage,
           meta: { activeNavigation: 'history' },
+        },
+        {
+          path: 'history/:transactionId',
+          name: 'guard-transaction-detail',
+          component: GuardTransactionDetailPage,
+          meta: {
+            activeNavigation: 'history',
+            showBottomNavigation: false,
+          },
         },
         {
           path: 'my',
@@ -168,7 +187,7 @@ const router = createRouter({
       component: WardLayout,
       children: [
         {
-          path: 'home',
+          path: '',
           name: 'ward-home',
           component: WardPage,
           meta: { title: 'PayWith', activeNavigation: 'home' },
@@ -207,7 +226,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'payment/:paymentId/qr',
+          path: 'payment/qr/:paymentId',
           name: 'ward-payment-qr',
           component: WardPaymentQrPage,
           beforeEnter: requirePaymentQrSession,
@@ -221,7 +240,6 @@ const router = createRouter({
           path: 'charge',
           name: 'ward-charge',
           component: WardChargePage,
-          beforeEnter: requireRegisteredChargeAccount,
           meta: {
             title: '충전하기',
             activeNavigation: 'payment',
@@ -275,7 +293,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'payment/:transactionId/complete',
+          path: 'payment/complete/:transactionId',
           name: 'ward-payment-complete',
           component: WardPaymentCompletePage,
           beforeEnter: requireCompletedPayment,
@@ -287,7 +305,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'payment/:transactionId/held',
+          path: 'payment/held/:transactionId',
           name: 'ward-payment-held',
           component: WardPaymentHeldPage,
           beforeEnter: requireHeldPayment,
@@ -419,7 +437,7 @@ const router = createRouter({
     },
     {
       path: '/',
-      redirect: '/ward/home',
+      redirect: '/ward',
     },
   ],
 })

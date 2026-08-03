@@ -4,26 +4,30 @@ import { Button, NumericKeypad, PinKeypad } from '@pay-with/ui'
 import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { getApiErrorMessage } from '@/api/error'
+import { useRegisterChargeAccountMutation } from '@/composables/useRegisterChargeAccountMutation'
 import WardKeypadBottomSheet from '@/pages/ward/-components/WardKeypadBottomSheet.vue'
 import ChargeBankSelect from '@/pages/ward/charge/-components/ChargeBankSelect.vue'
 import { useChargeStore } from '@/stores/charge.store'
 
 const banks = [
-  { code: 'KB', name: 'KB국민은행' },
-  { code: 'NH', name: '농협은행' },
-  { code: 'SHINHAN', name: '신한은행' },
-  { code: 'WOORI', name: '우리은행' },
-  { code: 'HANA', name: '하나은행' },
+  { code: '004', name: 'KB국민은행' },
+  { code: '011', name: 'NH농협은행' },
+  { code: '088', name: '신한은행' },
+  { code: '020', name: '우리은행' },
+  { code: '081', name: '하나은행' },
 ]
 
 const router = useRouter()
 const chargeStore = useChargeStore()
+const registerAccountMutation = useRegisterChargeAccountMutation()
 const bankCode = ref('')
 const accountNumber = ref('')
 const accountPassword = ref('')
 const keypad = ref<{ reset: () => void } | null>(null)
 const accountSheetOpen = ref(false)
 const passwordSheetOpen = ref(false)
+const errorMessage = ref('')
 const accountNumberError = computed(() =>
   accountNumber.value.length > 0 && !/^\d{8,16}$/.test(accountNumber.value)
     ? '계좌번호는 숫자 8~16자리로 입력해주세요.'
@@ -34,7 +38,7 @@ const canRegister = computed(
     bankCode.value !== '' &&
     /^\d{8,16}$/.test(accountNumber.value) &&
     /^\d{4}$/.test(accountPassword.value) &&
-    chargeStore.processingStatus !== 'pending',
+    !registerAccountMutation.isPending.value,
 )
 
 function appendAccountDigit(value: string) {
@@ -64,14 +68,23 @@ function completePassword(value: string) {
 
 async function registerAccount() {
   if (!canRegister.value) return
-  const account = await chargeStore.registerAccount({
-    bankCode: bankCode.value,
-    accountNo: accountNumber.value,
-    accountPassword: accountPassword.value,
-  })
-  accountPassword.value = ''
-  keypad.value?.reset()
-  if (account) await router.replace({ name: 'ward-charge-account-complete' })
+  errorMessage.value = ''
+  try {
+    const account = await registerAccountMutation.mutateAsync({
+      bankCode: bankCode.value,
+      accountNo: accountNumber.value,
+      accountPassword: accountPassword.value,
+    })
+    chargeStore.saveRegisteredAccount(account)
+    accountPassword.value = ''
+    keypad.value?.reset()
+    await router.replace({ name: 'ward-charge-account-complete' })
+  } catch (error) {
+    errorMessage.value = await getApiErrorMessage(
+      error,
+      '계좌를 등록하지 못했습니다.',
+    )
+  }
 }
 </script>
 
@@ -141,17 +154,17 @@ async function registerAccount() {
     </section>
 
     <p
-      v-if="chargeStore.processingError"
+      v-if="errorMessage"
       class="type-body-medium text-center text-error"
       role="alert"
     >
-      {{ chargeStore.processingError }}
+      {{ errorMessage }}
     </p>
 
     <Button
       class="w-full"
       :label="
-        chargeStore.processingStatus === 'pending'
+        registerAccountMutation.isPending.value
           ? '계좌를 등록하고 있습니다'
           : '계좌 등록하기'
       "
@@ -199,7 +212,7 @@ async function registerAccount() {
         :length="4"
         randomize
         pseudo-click
-        :disabled="chargeStore.processingStatus === 'pending'"
+        :disabled="registerAccountMutation.isPending.value"
         cancel-label="닫기"
         @complete="completePassword"
         @change="accountPassword = ''"

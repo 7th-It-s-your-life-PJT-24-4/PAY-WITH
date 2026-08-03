@@ -14,4 +14,28 @@
         )
     </select>
 
+    <insert id="upsertActiveRelation">
+        INSERT INTO guard_senior (guard_id, senior_id, status, connected_at)
+        VALUES (#{guardId}, #{wardId}, 'ACTIVE', NOW())
+        ON DUPLICATE KEY UPDATE
+            status = 'ACTIVE',
+            connected_at = NOW(),
+            revoked_at = NULL
+    </insert>
+
+    <resultMap id="GuardSeniorRelationResultMap" type="com.paywith.guard.domain.GuardSeniorRelation">
+        <id     property="relationId"  column="relation_id" />
+        <result property="guardId"     column="guard_id" />
+        <result property="wardId"      column="ward_id" />
+        <result property="status"      column="status" />
+        <result property="connectedAt" column="connected_at" />
+    </resultMap>
+
+    <select id="findRelation" resultMap="GuardSeniorRelationResultMap">
+        SELECT relation_id, guard_id, senior_id AS ward_id, status, connected_at
+        FROM guard_senior
+        WHERE guard_id = #{guardId}
+        AND senior_id = #{wardId}
+    </select>
+
 </mapper>
