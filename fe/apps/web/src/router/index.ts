@@ -50,7 +50,6 @@ import { requireWardTransaction } from '@/pages/ward/history/-utils/transaction-
 import {
   requireCompletedCharge,
   requireNewChargeAccount,
-  requireRegisteredChargeAccount,
 } from '@/pages/ward/charge/-utils/charge-route-guard'
 import {
   requireCompletedTransfer,
@@ -221,7 +220,6 @@ const router = createRouter({
           path: 'charge',
           name: 'ward-charge',
           component: WardChargePage,
-          beforeEnter: requireRegisteredChargeAccount,
           meta: {
             title: '충전하기',
             activeNavigation: 'payment',
