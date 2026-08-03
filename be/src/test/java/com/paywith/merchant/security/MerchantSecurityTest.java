@@ -6,12 +6,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.paywith.config.SecurityConfig;
 import com.paywith.exception.GlobalExceptionHandler;
 import com.paywith.merchant.controller.MerchantController;
 import com.paywith.merchant.dto.MerchantListResponse;
 import com.paywith.merchant.service.MerchantService;
 import com.paywith.payment.support.DevJwtTokenFactory;
+import com.paywith.security.JwtAuthenticationEntryPoint;
 import com.paywith.security.JwtAuthenticationFilter;
 import com.paywith.security.JwtTokenProvider;
 import java.util.List;
@@ -91,6 +95,20 @@ class MerchantSecurityTest {
         @Bean
         public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
             return new JwtAuthenticationFilter(jwtTokenProvider);
+        }
+
+        @Bean
+        public ObjectMapper objectMapper() {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            return mapper;
+        }
+
+        // #62가 SecurityConfig 생성자에 추가한 의존성 — WardPaymentSecurityTest와 동일 구성
+        @Bean
+        public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint(ObjectMapper objectMapper) {
+            return new JwtAuthenticationEntryPoint(objectMapper);
         }
     }
 }
