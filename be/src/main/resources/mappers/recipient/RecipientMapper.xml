@@ -15,6 +15,54 @@
         AND bank_code = #{bankCode}
         AND account_no = #{accountNo}
     </select>
+    <select id="findById" resultType="com.paywith.recipient.domain.Recipient">
+        SELECT
+        recipient_id, senior_id as wardId, bank_code, account_no, holder_name,
+        send_count, first_sent_at, last_sent_at,
+        is_registered_safe, safe_registered_at, safe_registered_by, account_alias
+        FROM recipients
+        WHERE recipient_id = #{recipientId}
+    </select>
+
+    <select id="existsActivePairing" resultType="java.lang.Boolean">
+        SELECT EXISTS (
+        SELECT 1
+        FROM guard_senior
+        WHERE senior_id = #{wardId}
+        AND status = 'ACTIVE'
+        )
+    </select>
+
+    <select id="findRecipientHistory" resultType="com.paywith.transfer.dto.RecipientHistoryItem">
+        SELECT
+        r.recipient_id AS recipientId,
+        r.holder_name AS holderName,
+        r.bank_code AS bankCode,
+        b.bank_name AS bankName,
+        r.account_no AS accountNo,
+        r.last_sent_at AS lastSentAt,
+        r.send_count AS sendCount,
+        r.is_registered_safe AS isRegisteredSafe,
+        CASE WHEN r.is_registered_safe = TRUE THEN r.recipient_id ELSE NULL END AS safeAccountId,
+        r.account_alias AS accountAlias
+        FROM recipients r
+        JOIN banks b ON r.bank_code = b.bank_code
+        WHERE r.senior_id = #{wardId}
+        AND r.send_count > 0
+        <if test="keyword != null and keyword != ''">
+            AND (r.holder_name LIKE CONCAT('%', #{keyword}, '%')
+            OR r.account_no LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <choose>
+            <when test="sort == 'NAME'">
+                ORDER BY r.holder_name ASC
+            </when>
+            <otherwise>
+                ORDER BY r.last_sent_at DESC
+            </otherwise>
+        </choose>
+        LIMIT #{size}
+    </select>
 
     <insert id="insertRecipient" parameterType="com.paywith.recipient.domain.Recipient">
         <selectKey keyProperty="recipientId" resultType="long" order="AFTER">

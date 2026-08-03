@@ -1,9 +1,6 @@
 package com.paywith.transfer.service;
 
-import com.paywith.transfer.dto.RecipientInquiryRequest;
-import com.paywith.transfer.dto.RecipientInquiryResponse;
-import com.paywith.transfer.dto.TransferRequest;
-import com.paywith.transfer.dto.TransferResponse;
+import com.paywith.transfer.dto.*;
 
 public interface TransferService {
 
@@ -12,4 +9,7 @@ public interface TransferService {
 
     // 송금
     TransferResponse transfer(Long userId, String idempotencyKey, TransferRequest request);
+
+    // 수취인 목록 조회(최근 거래 계좌)
+    RecipientHistoryListResponse getRecipientHistory(Long userId, String keyword, String sort, Integer size);
 }
