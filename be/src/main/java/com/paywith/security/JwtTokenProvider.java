@@ -1,6 +1,7 @@
 package com.paywith.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
@@ -40,12 +41,25 @@ public class JwtTokenProvider {
     }
 
     public boolean validateToken(String token) {
+        return resolveStatus(token) == TokenStatus.VALID;
+    }
+
+    /** 만료(EXPIRED)와 그 외 무효(INVALID)를 구분해야 하는 곳(JwtAuthenticationFilter)에서 쓴다. */
+    public TokenStatus resolveStatus(String token) {
         try {
             getClaims(token);
-            return true;
+            return TokenStatus.VALID;
+        } catch (ExpiredJwtException exception) {
+            return TokenStatus.EXPIRED;
         } catch (RuntimeException exception) {
-            return false;
+            return TokenStatus.INVALID;
         }
+    }
+
+    public enum TokenStatus {
+        VALID,
+        EXPIRED,
+        INVALID
     }
 
     public Long getUserId(String token) {
