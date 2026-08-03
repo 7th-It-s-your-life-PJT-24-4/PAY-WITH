@@ -5,6 +5,7 @@ import { ConfirmModal } from '@pay-with/ui'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { mockGuardChargeHistoriesBySeniorId } from '@/mocks/guard-charge-history.mock'
 import {
   mockGuardSeniors,
   type GuardSeniorAvatar,
@@ -13,51 +14,18 @@ import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarLi
 import { useGuardStore } from '@/stores/guard.store'
 import { usePairingStore } from '@/stores/pairing.store'
 
-interface GuardChargeHistory {
-  id: string
-  date: string
-  amount: string
-  bankName: string
-  accountSuffix: string
-}
-
 const router = useRouter()
 const guardStore = useGuardStore()
 const pairingStore = usePairingStore()
 const isPairingConfirmOpen = ref(false)
 
-const chargeHistoriesBySeniorId: Record<string, GuardChargeHistory[]> = {
-  sui: [
-    {
-      id: 'charge-1',
-      date: '7월 28일',
-      amount: '-30,000원',
-      bankName: '국민은행',
-      accountSuffix: '3700',
-    },
-    {
-      id: 'charge-2',
-      date: '7월 28일',
-      amount: '-30,000원',
-      bankName: '국민은행',
-      accountSuffix: '3700',
-    },
-    {
-      id: 'charge-3',
-      date: '7월 25일',
-      amount: '-30,000원',
-      bankName: '국민은행',
-      accountSuffix: '3700',
-    },
-  ],
-  woni: [],
-}
-
 const seniors = computed<GuardSeniorAvatar[]>(() => mockGuardSeniors)
 const chargeHistories = computed(
-  () => chargeHistoriesBySeniorId[guardStore.activeSeniorId] ?? [],
+  () => mockGuardChargeHistoriesBySeniorId[guardStore.activeSeniorId] ?? [],
 )
 const hasChargeHistory = computed(() => chargeHistories.value.length > 0)
+const formatMoney = (value: number) =>
+  new Intl.NumberFormat('ko-KR').format(value)
 
 async function startPairing() {
   const issued = await pairingStore.issueCode()
@@ -103,7 +71,17 @@ async function startPairing() {
               {{ history.date }}
             </p>
 
-            <article class="flex h-[60px] items-center bg-white px-sm">
+            <button
+              class="flex h-[60px] w-full items-center bg-white px-sm text-left"
+              type="button"
+              :aria-label="`${history.date} 충전 상세 보기`"
+              @click="
+                router.push({
+                  name: 'guard-charge-detail',
+                  params: { chargeId: history.id },
+                })
+              "
+            >
               <span
                 class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"
               >
@@ -113,7 +91,7 @@ async function startPairing() {
                 <p
                   class="text-[14px] font-semibold leading-[1.2] tracking-[-0.28px] text-black"
                 >
-                  {{ history.amount }}
+                  -{{ formatMoney(history.amount) }}원
                 </p>
                 <p
                   class="mt-xxs truncate text-[12px] font-medium leading-[1.2] tracking-[-0.24px] text-gray-700"
@@ -121,7 +99,7 @@ async function startPairing() {
                   {{ history.bankName }} {{ history.accountSuffix }}
                 </p>
               </div>
-            </article>
+            </button>
           </template>
         </div>
 
