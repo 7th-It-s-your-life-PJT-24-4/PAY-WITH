@@ -15,6 +15,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    /** JwtAuthenticationEntryPoint 가 읽어 AUTH_001/AUTH_002 응답 코드를 결정하는 request attribute. */
+    public static final String AUTH_ERROR_ATTRIBUTE = "com.paywith.security.AUTH_ERROR_CODE";
+
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtTokenProvider jwtTokenProvider;
@@ -31,7 +34,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
         String token = resolveToken(request);
 
-        if (token != null && jwtTokenProvider.validateToken(token)) {
+        if (token == null) {
+            request.setAttribute(AUTH_ERROR_ATTRIBUTE, "AUTH_001");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        JwtTokenProvider.TokenStatus status = jwtTokenProvider.resolveStatus(token);
+        if (status == JwtTokenProvider.TokenStatus.VALID) {
             Long userId = jwtTokenProvider.getUserId(token);
             String phone = jwtTokenProvider.getPhone(token);
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
@@ -40,6 +50,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);
+        } else {
+            request.setAttribute(
+                AUTH_ERROR_ATTRIBUTE,
+                status == JwtTokenProvider.TokenStatus.EXPIRED ? "AUTH_002" : "AUTH_001"
+            );
         }
 
         filterChain.doFilter(request, response);

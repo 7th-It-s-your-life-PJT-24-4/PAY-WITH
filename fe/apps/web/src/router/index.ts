@@ -9,7 +9,9 @@ import GuardChargePage from '@/pages/guard/charge/page.vue'
 import GuardChargeAccountPage from '@/pages/guard/charge/account/page.vue'
 import GuardChargeBePage from '@/pages/guard/charge/be/page.vue'
 import GuardChargeCompletePage from '@/pages/guard/charge/complete/page.vue'
+import GuardChargeDetailPage from '@/pages/guard/charge/[id]/page.vue'
 import GuardChargePasswordPage from '@/pages/guard/charge/password/page.vue'
+import GuardTransactionDetailPage from '@/pages/guard/history/[id]/page.vue'
 import GuardHistoryPage from '@/pages/guard/history/page.vue'
 import GuardLayout from '@/pages/guard/layout.vue'
 import GuardMyPage from '@/pages/guard/my/page.vue'
@@ -50,7 +52,6 @@ import { requireWardTransaction } from '@/pages/ward/history/-utils/transaction-
 import {
   requireCompletedCharge,
   requireNewChargeAccount,
-  requireRegisteredChargeAccount,
 } from '@/pages/ward/charge/-utils/charge-route-guard'
 import {
   requireCompletedTransfer,
@@ -145,10 +146,28 @@ const router = createRouter({
           },
         },
         {
+          path: 'charge/:chargeId',
+          name: 'guard-charge-detail',
+          component: GuardChargeDetailPage,
+          meta: {
+            activeNavigation: 'charge',
+            showBottomNavigation: false,
+          },
+        },
+        {
           path: 'history',
           name: 'guard-history',
           component: GuardHistoryPage,
           meta: { activeNavigation: 'history' },
+        },
+        {
+          path: 'history/:transactionId',
+          name: 'guard-transaction-detail',
+          component: GuardTransactionDetailPage,
+          meta: {
+            activeNavigation: 'history',
+            showBottomNavigation: false,
+          },
         },
         {
           path: 'my',
@@ -221,7 +240,6 @@ const router = createRouter({
           path: 'charge',
           name: 'ward-charge',
           component: WardChargePage,
-          beforeEnter: requireRegisteredChargeAccount,
           meta: {
             title: '충전하기',
             activeNavigation: 'payment',

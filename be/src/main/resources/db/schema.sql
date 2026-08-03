@@ -39,7 +39,7 @@ CREATE TABLE users (
                        password    VARCHAR(255) NOT NULL,               -- BCrypt 해시
                        birth_date  DATE         NOT NULL,
                        gender      CHAR(1)      NOT NULL COMMENT '남 또는 여',
-                       pin         VARCHAR(255) NOT NULL COMMENT '결제/충전 확인용 6자리 PIN(BCrypt 해시). WARD는 결제, GUARD는 충전 대행 시 사용. password(로그인)와 별개',
+                       pin         VARCHAR(255) NOT NULL COMMENT '간편비밀번호 확인용 6자리 PIN(BCrypt 해시). WARD는 결제, GUARD는 충전 대행 시 사용. password(로그인)와 별개',
                        fcm_token   VARCHAR(255) NULL,
                        status      ENUM('PENDING_PAIRING','ACTIVE','WITHDRAWN') NOT NULL DEFAULT 'PENDING_PAIRING',
                        created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -48,7 +48,7 @@ CREATE TABLE users (
                        UNIQUE KEY uk_users_phone (phone)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2. guard_senior — 시니어-보호자 연동 관계 (N:M 중간 테이블)
+-- 2. guard_senior — 시니어-보호자 연동 관계 (1:N 중간 테이블)
 CREATE TABLE guard_senior (
                                  relation_id  BIGINT   NOT NULL AUTO_INCREMENT,
                                  guard_id     BIGINT   NOT NULL,

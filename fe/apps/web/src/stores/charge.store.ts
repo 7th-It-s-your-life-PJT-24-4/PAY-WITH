@@ -1,59 +1,59 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import {
-  getMockChargeAccounts,
-  getMockChargeResult,
-  registerMockChargeAccount,
-  submitMockCharge,
-} from '@/mocks/charge.mock'
-import type {
-  ChargeAccount,
-  ChargeProcessingStatus,
-  ChargeResult,
-  RegisterChargeAccountRequest,
-} from '@/types/charge'
+import { tokenStorage } from '@/api/token-storage'
+import type { Account } from '@/schemas/account.schema'
+import { chargeResultSchema, type ChargeResult } from '@/schemas/charge.schema'
+
+// 완료 화면 새로고침 시 충전 결과를 복원하되,
+// JWT 사용자별 저장 키로 분리해 다른 계정의 결과가 노출되지 않도록 한다.
+const resultStorageKeyPrefix = 'pay-with:ward-charge-result'
+
+function getResultStorageKey() {
+  try {
+    const accessToken = tokenStorage.getAccessToken()
+    if (!accessToken) return `${resultStorageKeyPrefix}:anonymous`
+    const payload = accessToken.split('.')[1]
+    if (!payload) return `${resultStorageKeyPrefix}:anonymous`
+    const base64Payload = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const normalizedPayload = base64Payload.padEnd(
+      base64Payload.length + ((4 - (base64Payload.length % 4)) % 4),
+      '=',
+    )
+    const subject = JSON.parse(atob(normalizedPayload)) as { sub?: unknown }
+    return typeof subject.sub === 'string' && subject.sub.length > 0
+      ? `${resultStorageKeyPrefix}:${subject.sub}`
+      : `${resultStorageKeyPrefix}:anonymous`
+  } catch {
+    return `${resultStorageKeyPrefix}:anonymous`
+  }
+}
 
 export const useChargeStore = defineStore('charge', () => {
-  const accounts = ref<ChargeAccount[]>([])
   const selectedAccountId = ref<number | null>(null)
   const amount = ref(0)
-  const registeredAccount = ref<ChargeAccount | null>(null)
+  const registeredAccount = ref<Account | null>(null)
   const result = ref<ChargeResult | null>(null)
-  const processingStatus = ref<ChargeProcessingStatus>('idle')
-  const processingError = ref('')
-  const accountsLoaded = ref(false)
+  const resultStorageKey = ref<string | null>(null)
 
-  const selectedAccount = computed(
-    () =>
-      accounts.value.find(
-        ({ accountId }) => accountId === selectedAccountId.value,
-      ) ?? null,
-  )
   const canCharge = computed(
     () =>
-      selectedAccount.value !== null &&
+      selectedAccountId.value !== null &&
       Number.isSafeInteger(amount.value) &&
-      amount.value > 0 &&
-      processingStatus.value !== 'pending',
+      amount.value > 0,
   )
 
-  async function loadAccounts() {
-    accounts.value = await getMockChargeAccounts()
-    accountsLoaded.value = true
+  function syncAccounts(accounts: Account[]) {
     if (
-      !selectedAccountId.value ||
-      !accounts.value.some(
-        ({ accountId }) => accountId === selectedAccountId.value,
-      )
+      selectedAccountId.value === null ||
+      !accounts.some(({ accountId }) => accountId === selectedAccountId.value)
     ) {
-      selectedAccountId.value = accounts.value[0]?.accountId ?? null
+      selectedAccountId.value = accounts[0]?.accountId ?? null
     }
   }
 
   function selectAccount(accountId: number) {
-    if (accounts.value.some((account) => account.accountId === accountId))
-      selectedAccountId.value = accountId
+    selectedAccountId.value = accountId
   }
 
   function setAmount(value: number) {
@@ -64,42 +64,42 @@ export const useChargeStore = defineStore('charge', () => {
     setAmount(amount.value + value)
   }
 
-  async function registerAccount(request: RegisterChargeAccountRequest) {
-    processingStatus.value = 'pending'
-    processingError.value = ''
+  function saveRegisteredAccount(account: Account) {
+    registeredAccount.value = account
+    selectedAccountId.value = account.accountId
+  }
+
+  function saveResult(value: ChargeResult) {
+    result.value = value
+    resultStorageKey.value = getResultStorageKey()
     try {
-      registeredAccount.value = await registerMockChargeAccount(request)
-      await loadAccounts()
-      selectedAccountId.value = registeredAccount.value.accountId
-      processingStatus.value = 'success'
-      return registeredAccount.value
-    } catch (error) {
-      processingStatus.value = 'error'
-      processingError.value =
-        error instanceof Error ? error.message : '계좌를 등록하지 못했습니다.'
-      return null
+      sessionStorage.setItem(resultStorageKey.value, JSON.stringify(value))
+    } catch {
+      // 저장소를 사용할 수 없어도 완료된 충전 흐름은 유지한다.
     }
   }
 
-  async function charge() {
-    if (!selectedAccount.value || !canCharge.value) return null
-    processingStatus.value = 'pending'
-    processingError.value = ''
-    try {
-      result.value = await submitMockCharge(selectedAccount.value, amount.value)
-      processingStatus.value = 'success'
+  function restoreResult(transactionId: number) {
+    const currentStorageKey = getResultStorageKey()
+    if (
+      resultStorageKey.value === currentStorageKey &&
+      result.value?.transactionId === transactionId
+    )
       return result.value
-    } catch (error) {
-      processingStatus.value = 'error'
-      processingError.value =
-        error instanceof Error ? error.message : '충전을 완료하지 못했습니다.'
-      return null
+    if (resultStorageKey.value !== currentStorageKey) {
+      result.value = null
+      resultStorageKey.value = null
     }
-  }
 
-  async function restoreResult(transactionId: number) {
     try {
-      result.value = await getMockChargeResult(transactionId)
+      const saved: unknown = JSON.parse(
+        sessionStorage.getItem(currentStorageKey) ?? 'null',
+      )
+      const parsed = chargeResultSchema.safeParse(saved)
+      if (!parsed.success || parsed.data.transactionId !== transactionId)
+        return null
+      result.value = parsed.data
+      resultStorageKey.value = currentStorageKey
       return result.value
     } catch {
       return null
@@ -109,27 +109,26 @@ export const useChargeStore = defineStore('charge', () => {
   function resetDraft() {
     amount.value = 0
     result.value = null
-    processingStatus.value = 'idle'
-    processingError.value = ''
+    resultStorageKey.value = null
+    try {
+      sessionStorage.removeItem(getResultStorageKey())
+    } catch {
+      // 저장소를 사용할 수 없는 환경에서는 메모리 상태만 초기화한다.
+    }
   }
 
   return {
-    accounts,
     selectedAccountId,
-    selectedAccount,
     amount,
     registeredAccount,
     result,
-    processingStatus,
-    processingError,
-    accountsLoaded,
     canCharge,
-    loadAccounts,
+    syncAccounts,
     selectAccount,
     setAmount,
     addAmount,
-    registerAccount,
-    charge,
+    saveRegisteredAccount,
+    saveResult,
     restoreResult,
     resetDraft,
   }

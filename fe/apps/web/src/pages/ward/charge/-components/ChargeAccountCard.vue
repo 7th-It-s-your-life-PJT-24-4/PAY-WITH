@@ -3,10 +3,10 @@ import { Check, ChevronDown, Plus } from '@lucide/vue'
 import { computed, ref } from 'vue'
 
 import ChargeBankMark from '@/pages/ward/charge/-components/ChargeBankMark.vue'
-import type { ChargeAccount } from '@/types/charge'
+import type { Account } from '@/schemas/account.schema'
 
 const props = defineProps<{
-  accounts: ChargeAccount[]
+  accounts: Account[]
   selectedAccountId: number
 }>()
 
