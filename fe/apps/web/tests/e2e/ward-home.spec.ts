@@ -155,6 +155,58 @@ test('만료된 access token을 자동 갱신하고 홈을 유지한다', async 
     .toBe('rotated-refresh-token')
 })
 
+test('보호자 승인 대기 거래 목록을 거쳐 상세 화면을 확인한다', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/ward')
+
+  const pendingSummary = page.getByRole('button', {
+    name: '보호자 승인 대기 거래 1건 확인하기',
+  })
+  await expect(pendingSummary).toBeVisible()
+  await expect(
+    pendingSummary.getByText('확인이 필요한 거래 1건이 있습니다.'),
+  ).toBeVisible()
+  await pendingSummary.click()
+
+  await expect(page).toHaveURL(/\/ward\/pending-transactions$/)
+  await expect(
+    page.getByRole('banner').getByText('승인 대기 거래'),
+  ).toBeVisible()
+
+  const pendingPayment = page.getByRole('button', {
+    name: '결제 우리동네마트 32,000원 상세 확인',
+  })
+  await expect(pendingPayment.getByText('32,000원')).toBeVisible()
+  await pendingPayment.click()
+
+  await expect(page).toHaveURL(/\/ward\/payment\/held\/81$/)
+  await expect(
+    page.getByRole('heading', { name: '결제 승인을 기다리고 있어요' }),
+  ).toBeVisible()
+
+  await page.getByRole('button', { name: '보호자에게 연락하기' }).click()
+  await expect(
+    page.getByRole('dialog', { name: '보호자에게 전화할까요?' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: '취소', exact: true }).click()
+
+  await page.getByRole('button', { name: '결제 취소하기' }).click()
+  const cancelDialog = page.getByRole('dialog', {
+    name: '대기 중인 결제를 취소할까요?',
+  })
+  await expect(cancelDialog).toBeVisible()
+  await cancelDialog.getByRole('button', { name: '결제 취소하기' }).click()
+
+  await expect(page).toHaveURL(/\/ward$/)
+  await expect(
+    page.getByRole('button', {
+      name: '보호자 승인 대기 거래 1건 확인하기',
+    }),
+  ).toBeVisible()
+})
+
 test('refresh token도 만료되면 로그인 화면으로 이동한다', async ({ page }) => {
   await page.addInitScript(() => {
     if (localStorage.getItem('auth-expiry-test-seeded')) return
@@ -257,19 +309,8 @@ test('사용자 조회 서버 오류에서는 저장된 세션을 유지한다',
     .toBe(accessToken)
 })
 
-test('홈의 승인 대기 송금을 approvalId로 상세 조회한다', async ({ page }) => {
-  await page.goto('/ward')
-
-  const pendingTransfer = page.getByRole('button', {
-    name: '송금 김민수 님에게 50,000원 상세 확인',
-  })
-  await expect(pendingTransfer).toBeVisible()
-  await expect(
-    page
-      .getByRole('region', { name: '보호자 승인을 기다리고 있어요' })
-      .getByText('결제', { exact: true }),
-  ).toBeHidden()
-  await pendingTransfer.click()
+test('승인 대기 송금을 approvalId로 상세 조회한다', async ({ page }) => {
+  await page.goto('/ward/approval-requests/7')
 
   await expect(page).toHaveURL(/\/ward\/approval-requests\/7$/)
   await expect(
