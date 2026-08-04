@@ -46,6 +46,9 @@ const phoneCodeRequested = ref(false)
 const phoneCodeExpiresAt = ref<number | null>(null)
 const remainingPhoneCodeSeconds = ref(0)
 let phoneCodeTimer: ReturnType<typeof globalThis.setInterval> | undefined
+let signUpDraftTimer: ReturnType<typeof globalThis.setTimeout> | undefined
+let shouldPersistSignUpDraft = true
+const SIGN_UP_DRAFT_SAVE_DELAY = 300
 const paymentPasswordInputIds = Array.from({ length: 6 }, () => useId())
 const sendPhoneCodeMutation = useMutation({ mutationFn: sendPhoneCode })
 const verifyPhoneCodeMutation = useMutation({ mutationFn: verifyPhoneCode })
@@ -90,6 +93,8 @@ const [privacyTerms] = defineField('privacyTerms')
 const [identifierTerms] = defineField('identifierTerms')
 
 function saveSignUpDraft() {
+  if (!shouldPersistSignUpDraft) return
+
   signUpStore.setDraft({
     fullName: fullName.value,
     phoneNumber: phoneNumber.value,
@@ -101,6 +106,26 @@ function saveSignUpDraft() {
     privacyTerms: privacyTerms.value,
     identifierTerms: identifierTerms.value,
   })
+}
+
+function clearSignUpDraftTimer() {
+  if (!signUpDraftTimer) return
+
+  globalThis.clearTimeout(signUpDraftTimer)
+  signUpDraftTimer = undefined
+}
+
+function scheduleSignUpDraftSave() {
+  clearSignUpDraftTimer()
+  signUpDraftTimer = globalThis.setTimeout(() => {
+    signUpDraftTimer = undefined
+    saveSignUpDraft()
+  }, SIGN_UP_DRAFT_SAVE_DELAY)
+}
+
+function flushSignUpDraftSave() {
+  clearSignUpDraftTimer()
+  saveSignUpDraft()
 }
 
 watch(
@@ -115,7 +140,7 @@ watch(
     privacyTerms,
     identifierTerms,
   ],
-  saveSignUpDraft,
+  scheduleSignUpDraftSave,
 )
 
 const requiredTermsAgreed = computed(
@@ -366,7 +391,7 @@ async function confirmPhoneCode() {
 }
 
 onBeforeUnmount(() => {
-  saveSignUpDraft()
+  flushSignUpDraftSave()
   clearPhoneCodeTimer()
 })
 
@@ -404,6 +429,8 @@ async function submitSignUp() {
 
   const role = signUpStore.role === 'senior' ? 'WARD' : 'GUARD'
 
+  let isUserCreated = false
+
   try {
     await createUserMutation.mutateAsync({
       role,
@@ -415,11 +442,14 @@ async function submitSignUp() {
       paymentPassword: result.data.paymentPassword,
       verificationToken: verificationToken.value,
     })
+    isUserCreated = true
     await loginMutation.mutateAsync({
       phone: result.data.phoneNumber,
       password: result.data.loginPassword,
     })
 
+    shouldPersistSignUpDraft = false
+    clearSignUpDraftTimer()
     signUpStore.setDetails(result.data)
     signUpStore.clearDraft()
     signUpStore.clearPhoneVerification()
@@ -427,6 +457,18 @@ async function submitSignUp() {
     if (signUpStore.role === 'senior') pairingStore.reset()
     await router.replace(signUpStore.role === 'guardian' ? '/guard' : '/ward')
   } catch (error) {
+    if (isUserCreated) {
+      shouldPersistSignUpDraft = false
+      clearSignUpDraftTimer()
+      signUpStore.clearDraft()
+      signUpStore.clearPhoneVerification()
+      await router.replace({
+        name: 'auth-sign-in',
+        query: { signup: 'completed' },
+      })
+      return
+    }
+
     formError.value = await getApiErrorMessage(
       error,
       '회원가입에 실패했습니다. 입력 정보를 다시 확인해 주세요.',
@@ -834,7 +876,7 @@ async function submitSignUp() {
                 :aria-label="`${term.title} 상세 보기`"
                 :to="`/auth/sign-up/terms/${termId}`"
                 class="flex size-touch-target shrink-0 items-center justify-center text-body-muted outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                @click="saveSignUpDraft"
+                @click="flushSignUpDraftSave"
               >
                 <ChevronRight aria-hidden="true" class="size-md" />
               </RouterLink>

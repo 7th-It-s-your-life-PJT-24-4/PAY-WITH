@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Eye, EyeOff, LockKeyhole, Phone } from '@lucide/vue'
 import { computed, ref, useId } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { getApiErrorMessage } from '@/api/error'
 import { getUserIdFromAccessToken } from '@/api/token-storage'
@@ -11,10 +11,15 @@ import { useLoginMutation } from '@/composables/useLoginMutation'
 const phoneNumber = ref('')
 const password = ref('')
 const isPasswordVisible = ref(false)
-const formError = ref('')
 
 const router = useRouter()
+const route = useRoute()
 const loginMutation = useLoginMutation()
+const formError = ref(
+  route.query.signup === 'completed'
+    ? '가입이 완료됐어요. 전화번호와 비밀번호로 로그인해 주세요.'
+    : '',
+)
 const phoneInputId = useId()
 const passwordInputId = useId()
 const passwordInputType = computed(() =>
