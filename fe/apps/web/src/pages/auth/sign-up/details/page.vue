@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { Check, ChevronDown, ChevronRight, Eye, EyeOff } from '@lucide/vue'
+import {
+  Camera,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Plus,
+} from '@lucide/vue'
 import { AppHeader, Button, Input } from '@pay-with/ui'
 import { useMutation } from '@tanstack/vue-query'
 import {
@@ -411,6 +419,7 @@ async function submitSignUp() {
     phoneNumber: phoneNumber.value,
     birthDate: birthDate.value,
     gender: gender.value,
+    avatarId: avatarId.value,
     loginPassword: loginPassword.value,
     paymentPassword: paymentPassword.value,
     serviceTerms: serviceTerms.value,
@@ -522,49 +531,19 @@ function confirmAvatar() {
         <section>
           <p class="type-h4 text-body">프로필 이미지</p>
           <p class="type-body mt-xs text-body-muted">
-            나를 표현할 아바타를 선택해 주세요.
-          </p>
-          <button
-            class="mt-md flex items-center gap-md"
-            type="button"
-            @click="openAvatarModal"
-          >
-            <img
-              v-if="avatarId"
-              :src="`/images/avatar/avatar${avatarId}.png`"
-              alt="선택한 프로필 아바타"
-              class="size-16 rounded-full object-cover"
-            />
-            <span
-              v-else
-              class="flex size-16 items-center justify-center rounded-full bg-disabled text-body-muted"
-              >선택</span
-            >
-            <span class="type-body-medium text-primary-500"
-              >아바타 선택하기</span
-            >
-          </button>
-        </section>
-
-        <!--
-          프로필 사진은 현재 백엔드 사용자 스키마와 회원가입 API에 저장 필드가 없어
-          저장 기능이 구현될 때까지 노출하지 않는다.
-        <section>
-          <p class="type-h4 text-body">프로필 이미지</p>
-          <p class="type-body mt-xs text-body-muted">
-            나를 표현할 이미지를 선택해 주세요
+            나를 표현할 아바타를 선택해 주세요
           </p>
           <div class="flex flex-col items-center pb-md pt-xl">
             <button
               class="relative flex size-[128px] items-center justify-center rounded-full border-2 border-dashed border-border-strong bg-disabled outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
               type="button"
-              aria-label="프로필 사진 선택하기"
-              @click="selectProfileImage"
+              aria-label="프로필 아바타 선택하기"
+              @click="openAvatarModal"
             >
               <img
-                v-if="profileImageUrl"
-                :src="profileImageUrl"
-                alt="선택한 프로필 사진"
+                v-if="avatarId"
+                :src="`/images/avatar/avatar${avatarId}.png`"
+                alt="선택한 프로필 아바타"
                 class="size-full rounded-full object-cover"
               />
               <Camera
@@ -579,13 +558,6 @@ function confirmAvatar() {
                 <Plus class="size-lg" :stroke-width="3" />
               </span>
             </button>
-            <input
-              ref="profileImageInput"
-              class="sr-only"
-              accept="image/*"
-              type="file"
-              @change="updateProfileImage"
-            />
             <Button
               class="mt-md"
               label="프로필 사진 선택하기"
@@ -593,11 +565,10 @@ function confirmAvatar() {
               size="small"
               variant="outline-primary"
               type="button"
-              @click="selectProfileImage"
+              @click="openAvatarModal"
             />
           </div>
         </section>
-        -->
 
         <div class="flex flex-col gap-xl">
           <Input
