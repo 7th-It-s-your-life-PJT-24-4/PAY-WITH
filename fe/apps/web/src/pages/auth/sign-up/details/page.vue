@@ -39,6 +39,8 @@ const router = useRouter()
 const signUpStore = useSignUpStore()
 const pairingStore = usePairingStore()
 const isPasswordVisible = ref(false)
+const isAvatarModalOpen = ref(false)
+const pendingAvatarId = ref<number | null>(null)
 const formError = ref('')
 const phoneRequestError = ref('')
 const phoneVerificationCode = ref('')
@@ -62,6 +64,7 @@ const initialDetails = signUpStore.draft ??
     phoneNumber: '',
     birthDate: '',
     gender: undefined,
+    avatarId: null,
     loginPassword: '',
     paymentPassword: '',
     serviceTerms: false,
@@ -87,6 +90,7 @@ const [fullName] = defineField('fullName')
 const [phoneNumber] = defineField('phoneNumber')
 const [birthDate] = defineField('birthDate')
 const [gender] = defineField('gender')
+const [avatarId] = defineField('avatarId')
 const [loginPassword] = defineField('loginPassword')
 const [paymentPassword] = defineField('paymentPassword')
 const [serviceTerms] = defineField('serviceTerms')
@@ -101,6 +105,7 @@ function saveSignUpDraft() {
     phoneNumber: phoneNumber.value,
     birthDate: birthDate.value,
     gender: gender.value,
+    avatarId: avatarId.value,
     loginPassword: loginPassword.value,
     paymentPassword: paymentPassword.value,
     serviceTerms: serviceTerms.value,
@@ -135,6 +140,7 @@ watch(
     phoneNumber,
     birthDate,
     gender,
+    avatarId,
     loginPassword,
     paymentPassword,
     serviceTerms,
@@ -154,6 +160,7 @@ const isReadyToSubmit = computed(() => {
     phoneNumber: phoneNumber.value,
     birthDate: birthDate.value,
     gender: gender.value,
+    avatarId: avatarId.value,
     loginPassword: loginPassword.value,
     paymentPassword: paymentPassword.value,
     serviceTerms: serviceTerms.value,
@@ -442,6 +449,7 @@ async function submitSignUp() {
       name: result.data.fullName,
       birthDate: result.data.birthDate,
       gender: result.data.gender,
+      avatarId: result.data.avatarId,
       paymentPassword: result.data.paymentPassword,
       verificationToken: verificationToken.value,
     })
@@ -478,6 +486,16 @@ async function submitSignUp() {
     )
   }
 }
+
+function openAvatarModal() {
+  pendingAvatarId.value = avatarId.value ?? null
+  isAvatarModalOpen.value = true
+}
+
+function confirmAvatar() {
+  avatarId.value = pendingAvatarId.value
+  isAvatarModalOpen.value = false
+}
 </script>
 
 <template>
@@ -499,6 +517,33 @@ async function submitSignUp() {
           <p class="type-h4 mt-xs text-body-muted">
             안전한 결제를 위해 정보를 입력해주세요.
           </p>
+        </section>
+
+        <section>
+          <p class="type-h4 text-body">프로필 이미지</p>
+          <p class="type-body mt-xs text-body-muted">
+            나를 표현할 아바타를 선택해 주세요.
+          </p>
+          <button
+            class="mt-md flex items-center gap-md"
+            type="button"
+            @click="openAvatarModal"
+          >
+            <img
+              v-if="avatarId"
+              :src="`/images/avatar/avatar${avatarId}.png`"
+              alt="선택한 프로필 아바타"
+              class="size-16 rounded-full object-cover"
+            />
+            <span
+              v-else
+              class="flex size-16 items-center justify-center rounded-full bg-disabled text-body-muted"
+              >선택</span
+            >
+            <span class="type-body-medium text-primary-500"
+              >아바타 선택하기</span
+            >
+          </button>
         </section>
 
         <!--
@@ -919,5 +964,49 @@ async function submitSignUp() {
         />
       </div>
     </form>
+
+    <div
+      v-if="isAvatarModalOpen"
+      class="fixed inset-0 z-50 flex items-end bg-black/40"
+      role="dialog"
+      aria-modal="true"
+      aria-label="프로필 아바타 선택"
+    >
+      <section
+        class="w-full rounded-t-large bg-surface px-mobile-gutter pb-[calc(24px+env(safe-area-inset-bottom))] pt-xl"
+      >
+        <h2 class="type-h3 text-body">프로필 아바타 선택</h2>
+        <div class="mt-lg grid grid-cols-3 gap-md">
+          <button
+            v-for="id in 6"
+            :key="id"
+            class="rounded-full p-1"
+            :class="pendingAvatarId === id ? 'ring-2 ring-primary-500' : ''"
+            type="button"
+            @click="pendingAvatarId = id"
+          >
+            <img
+              :src="`/images/avatar/avatar${id}.png`"
+              :alt="`아바타 ${id}`"
+              class="aspect-square w-full rounded-full object-cover"
+            />
+          </button>
+        </div>
+        <div class="mt-xl grid grid-cols-2 gap-sm">
+          <Button
+            label="취소"
+            variant="outline-primary"
+            type="button"
+            @click="isAvatarModalOpen = false"
+          />
+          <Button
+            label="확인"
+            type="button"
+            :disabled="pendingAvatarId === null"
+            @click="confirmAvatar"
+          />
+        </div>
+      </section>
+    </div>
   </main>
 </template>
