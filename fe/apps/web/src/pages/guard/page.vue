@@ -8,6 +8,7 @@ import {
   mockGuardTransactions,
 } from '@/mocks/guard-home.mock'
 import GuardAssetCard from '@/pages/guard/-components/GuardAssetCard.vue'
+import GuardRiskTransactionAlert from '@/pages/guard/-components/GuardRiskTransactionAlert.vue'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
 import GuardTransactionList from '@/pages/guard/-components/GuardTransactionList.vue'
 import { useGuardStore } from '@/stores/guard.store'
@@ -17,7 +18,13 @@ const router = useRouter()
 const guardStore = useGuardStore()
 const pairingStore = usePairingStore()
 const isPairingConfirmOpen = ref(false)
+const isRiskTransactionAlertVisible = ref(true)
 const recentGuardTransactions = mockGuardTransactions.slice(0, 3)
+const dangerTransactions = mockGuardTransactions.filter(
+  ({ status }) => status === 'danger',
+)
+const dangerTransactionCount = dangerTransactions.length
+const firstDangerTransactionId = dangerTransactions[0]?.id ?? null
 
 async function startPairing() {
   const issued = await pairingStore.issueCode()
@@ -63,6 +70,24 @@ async function startPairing() {
         class="mt-md"
         :senior-name="guardStore.activeSenior?.name ?? ''"
         balance="1,000,000"
+        @add-safe-account="router.push({ name: 'guard-safe-account' })"
+      />
+
+      <GuardRiskTransactionAlert
+        v-if="
+          isRiskTransactionAlertVisible &&
+          dangerTransactionCount > 0 &&
+          firstDangerTransactionId
+        "
+        :count="dangerTransactionCount"
+        :senior-name="guardStore.activeSenior?.name ?? ''"
+        @close="isRiskTransactionAlertVisible = false"
+        @confirm="
+          router.push({
+            name: 'guard-transaction-detail',
+            params: { transactionId: firstDangerTransactionId },
+          })
+        "
       />
 
       <GuardTransactionList

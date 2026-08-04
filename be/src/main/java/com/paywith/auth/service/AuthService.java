@@ -1,5 +1,6 @@
 package com.paywith.auth.service;
 
+import com.paywith.common.PhoneNumberNormalizer;
 import com.paywith.user.domain.User;
 import com.paywith.auth.dto.LoginRequest;
 import com.paywith.auth.dto.RefreshTokenRequest;
@@ -35,7 +36,8 @@ public class AuthService {
     }
 
     public TokenResponse login(LoginRequest request) {
-        User user = userMapper.findByPhone(request.getPhone());
+        String phone = PhoneNumberNormalizer.normalize(request.getPhone());
+        User user = userMapper.findByPhone(phone);
         if (user == null || !matchesPassword(request.getPassword(), user.getPassword())) {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "전화번호 또는 비밀번호가 올바르지 않습니다.");
         }

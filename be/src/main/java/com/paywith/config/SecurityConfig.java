@@ -49,6 +49,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .antMatchers(HttpMethod.POST, "/api/users").permitAll()
             // 가맹점 스캐너는 로그인 계정이 없는 제3 액터라 목록 조회를 개방한다
             .antMatchers(HttpMethod.GET, "/api/merchants").permitAll()
+            // 결제 실행도 스캐너가 호출한다 — 60초 1회용 QR 토큰이 사실상 자격증명 역할을 한다
+            .antMatchers(HttpMethod.POST, "/api/payments/execute").permitAll()
             .antMatchers(HttpMethod.GET, "/api/users/**").authenticated()
             .anyRequest().authenticated()
             .and()
@@ -68,7 +70,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173")); // FE 개발서버 주소로 맞추기
+        // Vite 개발 서버는 localhost와 127.0.0.1 모두에서 열 수 있으므로, 두 loopback
+        // origin을 명시적으로 허용한다. 와일드카드는 credential 허용과 함께 쓸 수 없다.
+        config.setAllowedOrigins(List.of(
+            "http://localhost:5173",
+            "http://127.0.0.1:5173"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         // Idempotency-Key 는 송금(POST /api/ward/transfers)이 요구하는 커스텀 헤더다. 커스텀
         // 헤더가 붙으면 브라우저가 preflight 를 보내므로, 여기에 없으면 요청이 서버에 닿지도
@@ -81,4 +88,3 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return source;
     }
 }
-

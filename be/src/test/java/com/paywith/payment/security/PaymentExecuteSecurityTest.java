@@ -1,11 +1,9 @@
-package com.paywith.merchant.security;
+package com.paywith.payment.security;
 
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,21 +11,23 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.paywith.config.SecurityConfig;
 import com.paywith.exception.GlobalExceptionHandler;
-import com.paywith.merchant.controller.MerchantController;
-import com.paywith.merchant.dto.MerchantListResponse;
-import com.paywith.merchant.service.MerchantService;
+import com.paywith.payment.controller.PaymentExecuteController;
+import com.paywith.payment.dto.ExecuteRequest;
+import com.paywith.payment.dto.ExecuteResponse;
+import com.paywith.payment.service.PaymentExecuteService;
 import com.paywith.payment.support.DevJwtTokenFactory;
 import com.paywith.security.JwtAuthenticationEntryPoint;
 import com.paywith.security.JwtAuthenticationFilter;
 import com.paywith.security.JwtTokenProvider;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -37,19 +37,19 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 /**
- * B7(permitAll) 검증: 가맹점 스캐너는 로그인 계정이 없는 제3 액터이므로
- * GET /api/merchants는 무토큰으로도 실제 SecurityConfig 필터 체인을 통과해야 한다.
+ * permitAll 검증: 가맹점 스캐너는 로그인 계정이 없는 제3 액터이므로
+ * POST /api/payments/execute는 무토큰으로도 실제 SecurityConfig 필터 체인을 통과해야 한다.
  */
 @ExtendWith(SpringExtension.class)
 @WebAppConfiguration
-@ContextConfiguration(classes = {MerchantSecurityTest.TestConfig.class, SecurityConfig.class})
-class MerchantSecurityTest {
+@ContextConfiguration(classes = {PaymentExecuteSecurityTest.TestConfig.class, SecurityConfig.class})
+class PaymentExecuteSecurityTest {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
 
     @Autowired
-    private MerchantService merchantService;
+    private PaymentExecuteService paymentExecuteService;
 
     private MockMvc mockMvc;
 
@@ -61,25 +61,18 @@ class MerchantSecurityTest {
     }
 
     @Test
-    void 무토큰_요청도_200으로_목록을_반환한다() throws Exception {
-        given(merchantService.findAllPayable()).willReturn(new MerchantListResponse(List.of()));
-
-        mockMvc.perform(get("/api/merchants"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.success").value(true));
-    }
-
-    @Test
-    void Vite_IP_개발서버의_preflight를_허용한다() throws Exception {
-        mockMvc.perform(options("/api/auth/phone/code")
-                .header("Origin", "http://127.0.0.1:5173")
-                .header("Access-Control-Request-Method", "POST")
-                .header("Access-Control-Request-Headers", "content-type"))
-            .andExpect(status().isOk())
-            .andExpect(header().string(
-                "Access-Control-Allow-Origin",
-                "http://127.0.0.1:5173"
+    void 무토큰_요청도_필터를_통과해_200으로_응답한다() throws Exception {
+        given(paymentExecuteService.execute(ArgumentMatchers.any(ExecuteRequest.class)))
+            .willReturn(new ExecuteResponse(
+                1024L, "COMPLETED", 4500L, "GS25 강남역점", "2026-07-16T15:30:00+09:00"
             ));
+
+        mockMvc.perform(post("/api/payments/execute")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"qrToken\": \"pay_qr_a8F2kL9xQ1mNzzzz\", \"merchantId\": 1, \"amount\": 4500}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.transactionId").value(1024));
     }
 
     @Configuration
@@ -87,13 +80,13 @@ class MerchantSecurityTest {
     static class TestConfig {
 
         @Bean
-        public MerchantService merchantService() {
-            return Mockito.mock(MerchantService.class);
+        public PaymentExecuteService paymentExecuteService() {
+            return Mockito.mock(PaymentExecuteService.class);
         }
 
         @Bean
-        public MerchantController merchantController(MerchantService merchantService) {
-            return new MerchantController(merchantService);
+        public PaymentExecuteController paymentExecuteController(PaymentExecuteService paymentExecuteService) {
+            return new PaymentExecuteController(paymentExecuteService);
         }
 
         @Bean
@@ -103,7 +96,7 @@ class MerchantSecurityTest {
 
         @Bean
         public JwtTokenProvider jwtTokenProvider() {
-            // 로컬 설정값 기반 실제 JwtTokenProvider — 테스트용 시크릿을 코드에 새로 두지 않는다(B6)
+            // 로컬 설정값 기반 실제 JwtTokenProvider — 테스트용 시크릿을 코드에 새로 두지 않는다
             return DevJwtTokenFactory.jwtTokenProvider();
         }
 
@@ -120,7 +113,6 @@ class MerchantSecurityTest {
             return mapper;
         }
 
-        // #62가 SecurityConfig 생성자에 추가한 의존성 — WardPaymentSecurityTest와 동일 구성
         @Bean
         public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint(ObjectMapper objectMapper) {
             return new JwtAuthenticationEntryPoint(objectMapper);

@@ -5,6 +5,10 @@ defineProps<{
   seniorName: string
   balance: string
 }>()
+
+const emit = defineEmits<{
+  addSafeAccount: []
+}>()
 </script>
 
 <template>
@@ -18,11 +22,20 @@ defineProps<{
     <p class="mt-md text-[28px] font-bold leading-[21px] tracking-[-0.2px]">
       {{ balance }}원
     </p>
-    <Button
-      class="mt-[18px] w-full !min-h-[42px] !rounded-medium !border-[0.5px] !border-[#c9ced4] !bg-white !px-sm !py-[6px] !text-[14px] !font-bold !leading-[21px] !tracking-[-0.2px] !text-[#494d54]"
-      label="충전하기"
-      variant="secondary"
-      size="small"
-    />
+    <div class="mt-[18px] grid grid-cols-2 gap-sm">
+      <Button
+        class="w-full !min-h-[42px] !rounded-medium !border-[0.5px] !border-[#c9ced4] !bg-white !px-sm !py-[6px] !text-[14px] !font-bold !leading-[21px] !tracking-[-0.2px] !text-[#494d54]"
+        label="충전하기"
+        variant="secondary"
+        size="small"
+      />
+      <Button
+        class="w-full !min-h-[42px] !rounded-medium !border-[0.5px] !border-[#c9ced4] !bg-white !px-sm !py-[6px] !text-[14px] !font-bold !leading-[21px] !tracking-[-0.2px] !text-[#494d54]"
+        label="안전계좌 추가하기"
+        variant="secondary"
+        size="small"
+        @click="emit('addSafeAccount')"
+      />
+    </div>
   </section>
 </template>
