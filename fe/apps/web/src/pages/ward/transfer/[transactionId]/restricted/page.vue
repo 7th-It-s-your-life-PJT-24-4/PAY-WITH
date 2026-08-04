@@ -14,9 +14,7 @@ const route = useRoute()
 const router = useRouter()
 const isGuardianCallModalOpen = ref(false)
 const transactionId = computed(() => Number(route.params.transactionId))
-const { transferDetail, errorMessage } = useTransferStatus(transactionId, {
-  pollWhileHeld: true,
-})
+const { transferDetail, errorMessage } = useTransferStatus(transactionId)
 const formatMoney = (value: number) =>
   `${new Intl.NumberFormat('ko-KR').format(value)}원`
 

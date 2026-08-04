@@ -16,7 +16,7 @@ const {
   isCancelling,
   errorMessage,
   cancel: cancelTransfer,
-} = useTransferStatus(transactionId, { pollWhileHeld: true })
+} = useTransferStatus(transactionId)
 const formatMoney = (value: number) =>
   `${new Intl.NumberFormat('ko-KR').format(value)}원`
 

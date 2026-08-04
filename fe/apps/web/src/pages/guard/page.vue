@@ -1,30 +1,107 @@
 <script setup lang="ts">
 import { ConfirmModal } from '@pay-with/ui'
-import { ref } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-import {
-  mockGuardSeniors,
-  mockGuardTransactions,
-} from '@/mocks/guard-home.mock'
+import { guardHomeOptions } from '@/lib/query/guard/home'
 import GuardAssetCard from '@/pages/guard/-components/GuardAssetCard.vue'
 import GuardRiskTransactionAlert from '@/pages/guard/-components/GuardRiskTransactionAlert.vue'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
 import GuardTransactionList from '@/pages/guard/-components/GuardTransactionList.vue'
-import { useGuardStore } from '@/stores/guard.store'
 import { usePairingStore } from '@/stores/pairing.store'
+import type { GuardRecentTransaction } from '@/schemas/guard-home.schema'
+import type {
+  GuardSeniorAvatar,
+  GuardTransaction,
+} from '@/mocks/guard-home.mock'
 
 const router = useRouter()
-const guardStore = useGuardStore()
 const pairingStore = usePairingStore()
 const isPairingConfirmOpen = ref(false)
 const isRiskTransactionAlertVisible = ref(true)
-const recentGuardTransactions = mockGuardTransactions.slice(0, 3)
-const dangerTransactions = mockGuardTransactions.filter(
-  ({ status }) => status === 'danger',
+const selectedWardId = ref<number | null>(null)
+
+const {
+  data: guardHome,
+  isPending,
+  isError,
+} = useQuery(guardHomeOptions(selectedWardId))
+
+const selectedWard = computed(() => guardHome.value?.selectedWard ?? null)
+const seniors = computed<GuardSeniorAvatar[]>(() =>
+  (guardHome.value?.wards ?? []).map(({ wardId, name }) => ({
+    id: String(wardId),
+    name,
+  })),
 )
-const dangerTransactionCount = dangerTransactions.length
-const firstDangerTransactionId = dangerTransactions[0]?.id ?? null
+const activeSeniorId = computed(() =>
+  selectedWard.value ? String(selectedWard.value.wardId) : '',
+)
+const recentGuardTransactions = computed(() =>
+  (selectedWard.value?.recentTransactions ?? []).map(toGuardTransaction),
+)
+const pendingApproval = computed(
+  () => selectedWard.value?.pendingApproval ?? null,
+)
+const dangerTransactionCount = computed(() => (pendingApproval.value ? 1 : 0))
+const firstDangerTransactionId = computed(() =>
+  pendingApproval.value ? String(pendingApproval.value.transactionId) : null,
+)
+const formattedBalance = computed(() =>
+  new Intl.NumberFormat('ko-KR').format(selectedWard.value?.balance ?? 0),
+)
+
+watch(activeSeniorId, () => {
+  isRiskTransactionAlertVisible.value = true
+})
+
+function toGuardTransaction(
+  transaction: GuardRecentTransaction,
+): GuardTransaction {
+  const category =
+    transaction.type === 'CHARGE'
+      ? 'charge'
+      : transaction.type === 'TRANSFER'
+        ? 'transfer'
+        : 'payment'
+  const status =
+    transaction.riskLevel === 'DANGER'
+      ? 'danger'
+      : transaction.riskLevel === 'CAUTION'
+        ? 'warning'
+        : 'safe'
+  const amountPrefix = transaction.type === 'CHARGE' ? '+' : '-'
+  const counterpartyName = transaction.counterpartyName ?? '상대방'
+  const description =
+    transaction.type === 'CHARGE'
+      ? `${counterpartyName} 충전`
+      : transaction.type === 'TRANSFER'
+        ? `${counterpartyName}님께 송금`
+        : counterpartyName
+  const occurredAt = new Date(transaction.createdAt)
+  const date = Number.isNaN(occurredAt.getTime())
+    ? ''
+    : new Intl.DateTimeFormat('ko-KR', {
+        month: 'long',
+        day: 'numeric',
+      }).format(occurredAt)
+
+  return {
+    id: String(transaction.transactionId),
+    date,
+    amount: `${amountPrefix}${new Intl.NumberFormat('ko-KR').format(transaction.amount)}원`,
+    description,
+    category,
+    status,
+  }
+}
+
+function selectSenior(wardId: string) {
+  const parsedWardId = Number(wardId)
+  if (!Number.isSafeInteger(parsedWardId) || parsedWardId <= 0) return
+  selectedWardId.value = parsedWardId
+}
 
 async function startPairing() {
   const issued = await pairingStore.issueCode()
@@ -38,7 +115,23 @@ async function startPairing() {
 <template>
   <main class="min-h-screen pb-[calc(66px+env(safe-area-inset-bottom))]">
     <section
-      v-if="!pairingStore.isGuardianMockPaired"
+      v-if="isPending"
+      class="flex min-h-[calc(100dvh-66px-env(safe-area-inset-bottom))] items-center justify-center px-mobile-gutter text-center text-[16px] font-medium text-gray-500"
+    >
+      연결 정보를 불러오는 중이에요.
+    </section>
+
+    <section
+      v-else-if="isError"
+      class="flex min-h-[calc(100dvh-66px-env(safe-area-inset-bottom))] flex-col items-center justify-center px-mobile-gutter text-center"
+    >
+      <p class="text-[16px] font-medium text-gray-500">
+        연결 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
+      </p>
+    </section>
+
+    <section
+      v-else-if="seniors.length === 0"
       class="flex min-h-[calc(100dvh-66px-env(safe-area-inset-bottom))] flex-col items-center justify-center px-mobile-gutter text-center"
       aria-labelledby="guard-unpaired-title"
     >
@@ -56,20 +149,27 @@ async function startPairing() {
       >
         시니어와 연결하기
       </button>
+      <p
+        v-if="pairingStore.errorMessage"
+        class="mt-sm text-[14px] font-medium text-error"
+        role="alert"
+      >
+        {{ pairingStore.errorMessage }}
+      </p>
     </section>
 
     <div v-else class="px-mobile-gutter pt-md">
       <GuardSeniorAvatarList
-        :seniors="mockGuardSeniors"
-        :active-senior-id="guardStore.activeSeniorId"
+        :seniors="seniors"
+        :active-senior-id="activeSeniorId"
         @add="isPairingConfirmOpen = true"
-        @select="guardStore.selectSenior"
+        @select="selectSenior"
       />
 
       <GuardAssetCard
         class="mt-md"
-        :senior-name="guardStore.activeSenior?.name ?? ''"
-        balance="1,000,000"
+        :senior-name="selectedWard?.name ?? ''"
+        :balance="formattedBalance"
         @add-safe-account="router.push({ name: 'guard-safe-account' })"
       />
 
@@ -80,7 +180,7 @@ async function startPairing() {
           firstDangerTransactionId
         "
         :count="dangerTransactionCount"
-        :senior-name="guardStore.activeSenior?.name ?? ''"
+        :senior-name="selectedWard?.name ?? ''"
         @close="isRiskTransactionAlertVisible = false"
         @confirm="
           router.push({

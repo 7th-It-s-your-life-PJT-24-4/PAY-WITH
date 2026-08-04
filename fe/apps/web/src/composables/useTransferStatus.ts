@@ -1,42 +1,24 @@
-import { computed, onBeforeUnmount, onMounted, ref, toValue } from 'vue'
+import { computed, onMounted, ref, toValue } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { MaybeRefOrGetter } from 'vue'
 
-import {
-  cancelMockTransfer,
-  getMockTransferDetail,
-} from '@/mocks/transfer.mock'
 import { resolveTransferStatusRoute } from '@/pages/ward/transfer/-utils/transfer-status-route'
 import { useTransferStore } from '@/stores/transfer.store'
+import type { TransferDetail } from '@/types/transfer'
 
-const pollingInterval = 3_000
-
-// TODO(transfer-detail-api): 피보호자 거래 상세 조회·취소 API가 제공되면
-// mock 조회와 수동 polling을 TanStack Query 기반 실제 연동으로 교체한다.
-
-export function useTransferStatus(
-  transactionId: MaybeRefOrGetter<number>,
-  options: { pollWhileHeld?: boolean } = {},
-) {
+export function useTransferStatus(transactionId: MaybeRefOrGetter<number>) {
   const route = useRoute()
   const router = useRouter()
   const transferStore = useTransferStore()
   const isLoading = ref(false)
   const isCancelling = ref(false)
   const errorMessage = ref('')
-  let pollingTimer: ReturnType<typeof globalThis.setTimeout> | undefined
-  let disposed = false
 
   const transferDetail = computed(() => {
     const detail = transferStore.transferDetail
     return detail?.transactionId === toValue(transactionId) ? detail : null
   })
-  const canCancel = computed(() => transferStore.transferDetailSource !== 'api')
-
-  function stopPolling() {
-    if (pollingTimer !== undefined) globalThis.clearTimeout(pollingTimer)
-    pollingTimer = undefined
-  }
+  const canCancel = computed<boolean>(() => false)
 
   async function syncRoute() {
     const detail = transferDetail.value
@@ -49,31 +31,15 @@ export function useTransferStatus(
     if (target) await router.replace(target)
   }
 
-  function schedulePolling() {
-    stopPolling()
-    if (
-      disposed ||
-      !options.pollWhileHeld ||
-      transferStore.transferDetailSource === 'api' ||
-      transferDetail.value?.status !== 'HELD'
-    )
-      return
-
-    pollingTimer = globalThis.setTimeout(async () => {
-      await refresh()
-      schedulePolling()
-    }, pollingInterval)
-  }
-
   async function refresh() {
-    if (transferStore.transferDetailSource === 'api' && transferDetail.value)
-      return transferDetail.value
+    if (transferDetail.value) return transferDetail.value
 
     isLoading.value = true
     errorMessage.value = ''
     try {
-      const detail = await getMockTransferDetail(toValue(transactionId))
-      transferStore.setTransferDetail(detail)
+      const detail = transferStore.restoreTransferDetail(toValue(transactionId))
+      if (!detail)
+        throw new Error('송금 상태 조회 API가 아직 제공되지 않습니다.')
       await syncRoute()
       return detail
     } catch (error) {
@@ -87,7 +53,7 @@ export function useTransferStatus(
     }
   }
 
-  async function cancel() {
+  async function cancel(): Promise<TransferDetail | null> {
     if (isCancelling.value) return null
     if (!canCancel.value) {
       errorMessage.value =
@@ -96,43 +62,12 @@ export function useTransferStatus(
     }
     isCancelling.value = true
     errorMessage.value = ''
-    stopPolling()
-    try {
-      await cancelMockTransfer(toValue(transactionId))
-      return await refresh()
-    } catch (error) {
-      if (error instanceof Error && error.name === 'TRANSFER_008')
-        return await refresh()
-      else {
-        errorMessage.value =
-          error instanceof Error ? error.message : '거래를 취소하지 못했습니다.'
-        return null
-      }
-    } finally {
-      isCancelling.value = false
-      schedulePolling()
-    }
-  }
-
-  async function handleVisibilityChange() {
-    if (document.visibilityState === 'hidden') {
-      stopPolling()
-      return
-    }
-    await refresh()
-    schedulePolling()
+    isCancelling.value = false
+    return null
   }
 
   onMounted(async () => {
     await refresh()
-    schedulePolling()
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-  })
-
-  onBeforeUnmount(() => {
-    disposed = true
-    stopPolling()
-    document.removeEventListener('visibilitychange', handleVisibilityChange)
   })
 
   return {
@@ -143,6 +78,5 @@ export function useTransferStatus(
     errorMessage,
     refresh,
     cancel,
-    stopPolling,
   }
 }
