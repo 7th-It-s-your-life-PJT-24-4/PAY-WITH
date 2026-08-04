@@ -69,17 +69,16 @@
             SELECT LAST_INSERT_ID()
         </selectKey>
         INSERT INTO recipients (
-        senior_id, bank_code, account_no, holder_name,
-        send_count, first_sent_at, last_sent_at, is_registered_safe
+        senior_id, bank_code, account_no, holder_name, is_registered_safe
         ) VALUES (
-        #{wardId}, #{bankCode}, #{accountNo}, #{holderName},
-        1, NOW(), NOW(), false
+        #{wardId}, #{bankCode}, #{accountNo}, #{holderName}, false
         )
     </insert>
 
     <update id="updateSendInfo" parameterType="Long">
         UPDATE recipients
         SET send_count = send_count + 1,
+        first_sent_at = COALESCE(first_sent_at, NOW()),
         last_sent_at = NOW()
         WHERE recipient_id = #{recipientId}
     </update>

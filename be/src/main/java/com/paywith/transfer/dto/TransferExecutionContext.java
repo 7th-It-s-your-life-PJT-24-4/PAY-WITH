@@ -11,6 +11,7 @@ public class TransferExecutionContext {
     private Long transactionId;
     private Long walletId;
     private Long userId;
+    private Long recipientId;
     private String bankCode;
     private String bankName;
     private String accountNo;

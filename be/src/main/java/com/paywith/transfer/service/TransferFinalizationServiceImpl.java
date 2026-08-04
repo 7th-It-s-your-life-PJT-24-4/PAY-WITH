@@ -4,6 +4,7 @@ import com.paywith.exception.BusinessException;
 import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.fds.domain.RiskLevel;
+import com.paywith.recipient.mapper.RecipientMapper;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.PreparedTransfer;
 import com.paywith.transfer.dto.TransferExecutionContext;
@@ -34,6 +35,7 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
     private final TransactionMapper transactionMapper;
     private final OpenBankingClient openBankingClient;
     private final TransactionTemplate transactionTemplate;
+    private final RecipientMapper recipientMapper;
 
     @Override
     public TransferResponse finalize(PreparedTransfer prepared, RiskLevel riskLevel, TransferRequest request) {
@@ -60,6 +62,7 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
                 .transactionId(transactionId)
                 .walletId(prepared.getWallet().getWalletId())
                 .userId(prepared.getWallet().getUserId())
+                .recipientId(prepared.getRecipient().getRecipientId())
                 .bankCode(request.getBankCode())
                 .bankName(prepared.getInquiryResponse().getBankName())
                 .accountNo(request.getAccountNo())
@@ -100,7 +103,7 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
             int affectedRows = walletMapper.decreaseBalanceIfSufficient(
                     context.getWalletId(), context.getAmount());
             if (affectedRows == 0) {
-                throw new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "송금 가능한 잔액이 부족합니다.");
+                throw new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "WALLET_003", "송금 가능한 잔액이 부족합니다.");
             }
 
             // 9. 최신 거래 반영 (잔액 재조회)
@@ -120,6 +123,14 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
             throw new TransferIrrecoverableException(
                     "송금 처리 중 오류가 발생했습니다. 잔액을 확인 후 고객센터로 문의해주세요. transactionId=" + transactionId);
         }
+
+        // 입금이 실제로 성공했기 때문에 수취인의 "보낸 이력"을 반영
+        try{
+            recipientMapper.updateSendInfo(context.getRecipientId());
+        } catch (RuntimeException e) {
+            log.error("수취인 송금 이력 갱신 실패(송금 자체는 정상 처리됨). transactionId={}", transactionId, e);
+        }
+
 
         // 11. 거래 기록 변경 (잔액 업데이트, 완료 시각, 상태)
         // update 거래 실패 시 확인

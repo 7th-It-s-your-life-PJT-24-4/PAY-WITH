@@ -44,7 +44,7 @@ public class ChargeServiceImpl implements ChargeService{
     public ChargeResponse chargeByGuard(Long guardId, Long wardId, ChargeRequest request) {
             boolean isGuard = guardService.verifyGuardOfWard(guardId,wardId);
             if (!isGuard){
-                throw new BusinessException(HttpStatus.FORBIDDEN, "해당 시니어의 보호자가 아닙니다");
+                throw new BusinessException(HttpStatus.NOT_FOUND, "LINK_001", "연동된 피보호자를 찾을 수 없습니다.");
 
             }
             ChargeResponse response = doCharge(guardId, wardId, request, guardId);
@@ -69,7 +69,7 @@ public class ChargeServiceImpl implements ChargeService{
     public ChargeDetailResponse getChargeDetail(Long guardId, Long transactionId) {
         ChargeDetailResponse response = transactionMapper.findChargeDetailByGuardId(transactionId,guardId);
         if(response == null){
-            throw new BusinessException(HttpStatus.NOT_FOUND, "충전 내역을 찾을 수 없습니다.");
+            throw new BusinessException(HttpStatus.NOT_FOUND, "CHARGE_002", "충전 내역을 찾을 수 없습니다.");
         }
         return response;
     }
@@ -79,7 +79,7 @@ public class ChargeServiceImpl implements ChargeService{
         // 1. 계좌 소유 확인
         boolean isOwner = accountService.verifyOwnership(accountOwnerId, request.getAccountId());
         if (!isOwner) {
-            throw new BusinessException(HttpStatus.FORBIDDEN, "본인 소유의 계좌만 사용할 수 있습니다.");
+            throw new BusinessException(HttpStatus.NOT_FOUND, "ACCOUNT_004", "등록된 계좌를 찾을 수 없습니다.");
         }
         // 2. 계좌 정보 조회
         AccountResponse account = accountService.getAccountDetail(request.getAccountId());

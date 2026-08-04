@@ -1,5 +1,6 @@
 package com.paywith.safeaccount.mapper;
 
+
 import com.paywith.safeaccount.dto.SafeAccountListItem;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -31,4 +32,7 @@ public interface SafeAccountMapper {
 
     // 안전 계좌 목록 조회 (Ward/Guard 공용)
     List<SafeAccountListItem> findSafeAccountList(@Param("wardId") Long wardId);
+
+    // 안전 계좌 비활성화
+    int deactivateSafeAccount(@Param("recipientId") Long recipientId);
 }

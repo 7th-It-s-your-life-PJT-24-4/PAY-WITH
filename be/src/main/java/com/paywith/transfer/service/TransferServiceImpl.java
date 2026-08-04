@@ -46,7 +46,15 @@ public class TransferServiceImpl implements TransferService{
     private final RecipientMapper recipientMapper;
 
     @Override
-    public RecipientInquiryResponse inquireRecipient(RecipientInquiryRequest request) {
+    public RecipientInquiryResponse inquireRecipient(Long userId, RecipientInquiryRequest request) {
+
+        User user = userMapper.findById(userId);
+        if (user.getRole() != Role.WARD) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "AUTH_004", "피보호자만 접근할 수 있습니다.");
+        }
+        if (!recipientMapper.existsActivePairing(userId)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "WARD_001", "페어링 완료 후 이용할 수 있습니다.");
+        }
 
         RealNameInquiryResponse inquiryResponse = openBankingClient.inquireRealName(
                 request.getBankCode(),
@@ -55,7 +63,7 @@ public class TransferServiceImpl implements TransferService{
         );
 
         if(!inquiryResponse.isSuccess()){
-            throw new BusinessException(HttpStatus.NOT_FOUND, "해당 계좌를 찾을 수 없습니다.");
+            throw new BusinessException(HttpStatus.NOT_FOUND, "RECIPIENT_001", "수취 계좌를 확인할 수 없습니다.");
         }
 
         return RecipientInquiryResponse.builder()
@@ -83,10 +91,10 @@ public class TransferServiceImpl implements TransferService{
             IdempotencyRecord existing = fromJson(redisTemplate.opsForValue().get(key));
 
             if (existing.getStatus() == IdempotencyStatus.PROCESSING) {
-                throw new BusinessException(HttpStatus.CONFLICT, "이전 요청이 처리 중입니다. 잠시 후 다시 시도해주세요.");
+                throw new BusinessException(HttpStatus.CONFLICT, "IDEMPOTENCY_002", "동일한 송금 요청을 처리중입니다.");
             }
             if (!existing.getIdempotencyKey().equals(requestHash)) {
-                throw new BusinessException(HttpStatus.CONFLICT, "동일한 키로 다른 내용의 요청이 감지되었습니다.");
+                throw new BusinessException(HttpStatus.CONFLICT, "TRANSFER_005", "동일한 요청 식별자로 다른 송금이 요청되었습니다.");
             }
             if (existing.getStatus() == IdempotencyStatus.FAILED) {
                 // 입금(deposit) 호출 이후 실패로 확정된 요청 -> 자동 재실행 금지, 사람이 확인해야 함
@@ -143,24 +151,24 @@ public class TransferServiceImpl implements TransferService{
         // 1. 피보호자 맞는지 확인
         User user = userMapper.findById(userId);
         if (user.getRole() != Role.WARD){
-            throw new BusinessException(HttpStatus.FORBIDDEN, "피보호자만 접근할 수 있습니다.");
+            throw new BusinessException(HttpStatus.FORBIDDEN, "AUTH_004", "피보호자만 접근할 수 있습니다.");
         }
 
         // 2. 보호자랑 페어링 되어 있는 사람 맞는지 확인
         if(!recipientMapper.existsActivePairing(userId)){
-            throw new BusinessException(HttpStatus.FORBIDDEN, "페어링 완료 후 이용할 수 있습니다.");
+            throw new BusinessException(HttpStatus.FORBIDDEN, "WARD_001", "페어링 완료 후 이용할 수 있습니다.");
         }
 
         // 3. sort 기본값 처리 및 검증
         String resolvedSort = (sort == null || sort.isBlank() ? "RECENT" : sort);
         if(!ALLOWED_SORTS.contains(resolvedSort)){
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "조회 조건이 올바르지 않습니다.");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "RECIPIENT_004","조회 조건이 올바르지 않습니다.");
         }
 
         // 4. size 기본값 처리 및 검증
         int resolvedSize = (size == null) ? DEFAULT_SIZE : size;
         if(resolvedSize < 1 || resolvedSize > MAX_SIZE){
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "조회 조건이 올바르지 않습니다.");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "RECIPIENT_004", "조회 조건이 올바르지 않습니다.");
         }
 
         // 5. 실제 조회

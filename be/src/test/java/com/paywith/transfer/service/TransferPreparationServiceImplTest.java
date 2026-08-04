@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -67,6 +68,10 @@ class TransferPreparationServiceImplTest {
         user = new User();
         user.setPin("encodedPin");
         user.setRole(Role.WARD);
+
+        // 역할 검사 이후 곧바로 페어링 여부를 확인하므로, 페어링 분기 자체를 검증하지 않는
+        // 테스트에서는 기본적으로 페어링이 되어 있다고 스텁해둔다.
+        lenient().when(recipientMapper.existsActivePairing(userId)).thenReturn(true);
     }
 
     @Test
@@ -90,7 +95,7 @@ class TransferPreparationServiceImplTest {
         assertThatThrownBy(() -> transferPreparationService.prepare(userId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
-                .hasMessageContaining("피보호자만 이용할 수 있습니다");
+                .hasMessageContaining("피보호자만 접근할 수 있습니다");
 
         verify(passwordEncoder, never()).matches(any(), any());
     }
@@ -123,7 +128,7 @@ class TransferPreparationServiceImplTest {
         assertThatThrownBy(() -> transferPreparationService.prepare(userId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
-                .hasMessageContaining("해당계좌를 찾을 수 없습니다");
+                .hasMessageContaining("수취 계좌를 확인할 수 없습니다");
 
         verify(recipientMapper, never()).findRecipient(any(), any(), any());
     }
@@ -169,7 +174,7 @@ class TransferPreparationServiceImplTest {
     }
 
     @Test
-    void 기존_수취인이면_등록없이_송금정보만_갱신한다() {
+    void 기존_수취인이면_등록도_송금정보_갱신도_하지_않는다() {
         given(walletMapper.findWalletByUserId(userId)).willReturn(wallet);
         given(userMapper.findById(userId)).willReturn(user);
         given(passwordEncoder.matches(request.getTransferPin(), user.getPin())).willReturn(true);
@@ -202,7 +207,9 @@ class TransferPreparationServiceImplTest {
         assertThat(result.getRecipient()).isEqualTo(existingRecipient);
         assertThat(result.getTransaction().getRecipientId()).isEqualTo(200L);
 
-        verify(recipientMapper).updateSendInfo(200L);
+        // 실제 입금이 성공한 뒤에만 갱신해야 하므로(FDS 신규 수취인 판정이 이 값을 그대로 씀),
+        // prepare() 단계에서는 건드리지 않는다. 갱신은 TransferFinalizationServiceImpl 책임.
+        verify(recipientMapper, never()).updateSendInfo(any());
         verify(recipientMapper, never()).insertRecipient(any());
     }
 }

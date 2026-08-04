@@ -1,5 +1,7 @@
 package com.paywith.transfer.dto;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -7,19 +9,40 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+@ApiModel(description = "송금 결과")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class TransferResponse {
+    @ApiModelProperty(value = "송금 거래 ID", example = "999")
     private Long transactionId;
+
+    @ApiModelProperty(value = "거래 상태. FDS 위험 등급(DANGER)이면 HELD(202), 그 외에는 COMPLETED(201)",
+        example = "COMPLETED", allowableValues = "HELD,COMPLETED")
     private String status;
+
+    @ApiModelProperty(value = "수취인 예금주명", example = "김시니어")
     private String holderName;      // recipientName → holderName (DB: recipients.holder_name)
+
+    @ApiModelProperty(value = "수취 은행 표준코드", example = "004")
     private String bankCode;
+
+    @ApiModelProperty(value = "수취 은행명", example = "KB국민은행")
     private String bankName;
+
+    @ApiModelProperty(value = "수취 계좌번호", example = "11012300006781")
     private String accountNo;
+
+    @ApiModelProperty(value = "송금 금액(원)", example = "50000")
     private Long amount;
+
+    @ApiModelProperty(value = "송금 메모", example = "생활비")
     private String memo;
+
+    @ApiModelProperty(value = "송금 완료 시각. HELD 상태에서는 아직 비어 있을 수 있다")
     private LocalDateTime completedAt;
+
+    @ApiModelProperty(value = "송금 후 지갑 잔액(원)", example = "50000")
     private Long balanceAfter;
 }

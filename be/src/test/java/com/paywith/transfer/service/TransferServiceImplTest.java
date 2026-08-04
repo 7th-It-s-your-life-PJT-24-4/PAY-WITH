@@ -112,6 +112,9 @@ class TransferServiceImplTest {
 
     @Test
     void 수취인_조회_성공() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(recipientMapper.existsActivePairing(userId)).willReturn(true);
+
         RealNameInquiryResponse mockResponse = new RealNameInquiryResponse();
         mockResponse.setRspCode("A0000");
         mockResponse.setBankName("KB국민은행");
@@ -122,7 +125,7 @@ class TransferServiceImplTest {
 
         RecipientInquiryRequest inquiryRequest = new RecipientInquiryRequest("004", "11012300006781");
 
-        RecipientInquiryResponse result = transferService.inquireRecipient(inquiryRequest);
+        RecipientInquiryResponse result = transferService.inquireRecipient(userId, inquiryRequest);
 
         assertThat(result.getBankName()).isEqualTo("KB국민은행");
         assertThat(result.getRecipientName()).isEqualTo("홍길동");
@@ -130,6 +133,9 @@ class TransferServiceImplTest {
 
     @Test
     void 수취인_조회_실패시_예외() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(recipientMapper.existsActivePairing(userId)).willReturn(true);
+
         RealNameInquiryResponse mockResponse = new RealNameInquiryResponse();
         mockResponse.setRspCode("A0004");
 
@@ -138,9 +144,9 @@ class TransferServiceImplTest {
 
         RecipientInquiryRequest inquiryRequest = new RecipientInquiryRequest("004", "9999999999");
 
-        assertThatThrownBy(() -> transferService.inquireRecipient(inquiryRequest))
+        assertThatThrownBy(() -> transferService.inquireRecipient(userId, inquiryRequest))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("해당 계좌를 찾을 수 없습니다");
+                .hasMessageContaining("수취 계좌를 확인할 수 없습니다");
     }
 
     @Test
@@ -200,7 +206,7 @@ class TransferServiceImplTest {
         assertThatThrownBy(() -> transferService.transfer(userId, idempotencyKey, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
-                .hasMessageContaining("처리 중");
+                .hasMessageContaining("처리중");
 
         verify(transferPreparationService, never()).prepare(any(), any());
     }
@@ -239,7 +245,7 @@ class TransferServiceImplTest {
         assertThatThrownBy(() -> transferService.transfer(userId, idempotencyKey, request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
-                .hasMessageContaining("동일한 키로 다른 내용");
+                .hasMessageContaining("동일한 요청 식별자로 다른 송금이 요청되었습니다");
     }
 
     @Test
