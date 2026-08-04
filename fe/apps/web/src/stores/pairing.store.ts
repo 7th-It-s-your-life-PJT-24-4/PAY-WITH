@@ -77,6 +77,12 @@ export const usePairingStore = defineStore('pairing', () => {
     }
   }
 
+  function markPaired() {
+    status.value = 'PAIRED'
+    errorCode.value = null
+    errorMessage.value = ''
+  }
+
   function reset() {
     status.value = 'UNPAIRED'
     codeResponse.value = null
@@ -98,6 +104,7 @@ export const usePairingStore = defineStore('pairing', () => {
     isVerifyingCode,
     isPaired,
     issueCode,
+    markPaired,
     verifyCode,
     reset,
   }

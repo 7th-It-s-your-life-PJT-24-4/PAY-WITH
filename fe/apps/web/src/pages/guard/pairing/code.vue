@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { Toast } from '@pay-with/ui'
+import { Button, Toast } from '@pay-with/ui'
+import { useQuery } from '@tanstack/vue-query'
 import { ChevronLeft, Copy, Link, Share2 } from '@lucide/vue'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { guardPairingStatusOptions } from '@/lib/query/guard/home'
 import { usePairingStore } from '@/stores/pairing.store'
 
 const router = useRouter()
@@ -11,7 +13,21 @@ const pairingStore = usePairingStore()
 const toastMessage = ref('')
 const isToastOpen = ref(false)
 const remainingSeconds = ref(0)
+const isPairingCompleted = ref(false)
 let countdownTimer: ReturnType<typeof globalThis.setInterval> | undefined
+
+const shouldPollPairingStatus = computed(
+  () =>
+    Boolean(pairingStore.code) &&
+    remainingSeconds.value > 0 &&
+    !isPairingCompleted.value,
+)
+const pairingStatus = useQuery(
+  guardPairingStatusOptions(shouldPollPairingStatus),
+)
+const hasConnectedWard = computed(
+  () => (pairingStatus.data.value?.wards.length ?? 0) > 0,
+)
 
 const formattedRemainingTime = computed(() => {
   const minutes = Math.floor(remainingSeconds.value / 60)
@@ -36,6 +52,13 @@ function startCountdown() {
   if (countdownTimer) globalThis.clearInterval(countdownTimer)
   countdownTimer = globalThis.setInterval(updateRemainingTime, 1000)
 }
+
+watch(hasConnectedWard, (isConnected) => {
+  if (!isConnected) return
+  isPairingCompleted.value = true
+  pairingStore.markPaired()
+  if (countdownTimer) globalThis.clearInterval(countdownTimer)
+})
 
 async function issueCode() {
   if (await pairingStore.issueCode()) {
@@ -226,6 +249,21 @@ onBeforeUnmount(() => {
           </span>
         </button>
       </div>
+
+      <section
+        v-if="hasConnectedWard"
+        class="mt-xl rounded-large bg-primary-900/10 px-lg py-md text-center"
+        aria-live="polite"
+      >
+        <p class="text-[16px] font-semibold text-primary-500">
+          시니어와 연결되었어요.
+        </p>
+        <Button
+          class="mt-md w-full"
+          label="홈으로 이동"
+          @click="router.replace({ name: 'guard-home' })"
+        />
+      </section>
     </section>
 
     <Toast

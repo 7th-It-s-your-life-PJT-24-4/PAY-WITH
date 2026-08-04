@@ -61,4 +61,13 @@ describe('pairing store', () => {
       status: 'ACTIVE',
     })
   })
+
+  it('보호자 화면의 연결 상태 감지 결과를 반영한다', () => {
+    const store = usePairingStore()
+
+    store.markPaired()
+
+    expect(store.isPaired).toBe(true)
+    expect(store.errorMessage).toBe('')
+  })
 })
