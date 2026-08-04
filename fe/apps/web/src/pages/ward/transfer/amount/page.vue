@@ -42,17 +42,19 @@ const formatMoney = (value: number) =>
         ><span class="type-h2 ml-xs">원</span>
       </p>
       <p
-        class="type-h4 mt-md inline-block rounded-full bg-primary-900 px-md py-xs text-primary-300"
+        class="type-h4 mt-md inline-block rounded-full px-md py-xs"
+        :class="
+          transferStore.isAmountOverBalance
+            ? 'bg-error text-on-semantic'
+            : 'bg-primary-900 text-primary-300'
+        "
+        :aria-label="
+          transferStore.isAmountOverBalance
+            ? `잔액 ${formatMoney(transferStore.balance)}원, 송금 가능 잔액 초과`
+            : undefined
+        "
       >
         잔액 {{ formatMoney(transferStore.balance) }}원
-      </p>
-      <p
-        v-if="transferStore.isAmountOverBalance"
-        class="type-body-medium mt-md text-error"
-        role="alert"
-      >
-        잔액을 초과했어요. 최대
-        {{ formatMoney(transferStore.balance) }}원까지 송금할 수 있어요.
       </p>
     </section>
 

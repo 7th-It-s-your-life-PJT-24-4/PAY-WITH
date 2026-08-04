@@ -351,7 +351,7 @@ test('송금 실패 원인에 맞는 안전한 후속 행동을 제공한다', a
   await expect(page).toHaveURL(/\/ward$/)
 })
 
-test('잔액 초과 금액을 유지하고 수정 안내를 표시한다', async ({ page }) => {
+test('잔액 초과 금액을 유지하고 잔액 배지를 강조한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/ward/transfer')
 
@@ -364,17 +364,24 @@ test('잔액 초과 금액을 유지하고 수정 안내를 표시한다', async
     await page.getByRole('button', { name: digit, exact: true }).click()
   }
 
+  const balanceBadge = page.getByText('잔액 1,250,000원', { exact: true })
+  const amountCard = balanceBadge.locator('..')
+
   await expect(page.getByText('2,000,000')).toBeVisible()
-  await expect(
-    page.getByText('잔액을 초과했어요. 최대 1,250,000원까지 송금할 수 있어요.'),
-  ).toBeVisible()
+  await expect(balanceBadge).toHaveCSS('background-color', 'rgb(255, 97, 97)')
+  await expect(balanceBadge).toHaveCSS('color', 'rgb(255, 255, 255)')
   await expect(page.getByRole('button', { name: '다음으로' })).toBeDisabled()
+  const overBalanceCardBox = await amountCard.boundingBox()
 
   await page.getByRole('button', { name: '한 글자 지우기' }).click()
 
   await expect(page.getByText('200,000')).toBeVisible()
-  await expect(page.getByRole('alert')).toBeHidden()
+  await expect(balanceBadge).toHaveCSS('background-color', 'rgb(204, 239, 246)')
+  await expect(balanceBadge).toHaveCSS('color', 'rgb(0, 106, 126)')
   await expect(page.getByRole('button', { name: '다음으로' })).toBeEnabled()
+  const validAmountCardBox = await amountCard.boundingBox()
+
+  expect(overBalanceCardBox?.height).toBe(validAmountCardBox?.height)
 })
 
 test('이상 거래 승인 대기 중에도 새 송금을 시작할 수 있다', async ({
