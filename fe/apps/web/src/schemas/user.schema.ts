@@ -35,7 +35,7 @@ export const createUserRequestSchema = z.object({
 })
 
 export const updateUserRequestSchema = z.object({
-  name: nameSchema,
+  name: z.string().min(1),
 })
 
 export type User = z.infer<typeof userSchema>

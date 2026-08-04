@@ -33,10 +33,9 @@ function isValidBirthDate(value: string) {
 
 export const nameSchema = z
   .string()
-  .trim()
   .min(2, '성함은 2자 이상 입력해 주세요.')
   .max(30, '성함은 30자 이하로 입력해 주세요.')
-  .regex(/^[\p{L}]+(?:\s[\p{L}]+)*$/u, '성함에는 문자와 공백만 입력해 주세요.')
+  .regex(/^[\p{L}]+$/u, '성함에는 문자만 입력해 주세요.')
 
 export const loginPasswordSchema = z
   .string()

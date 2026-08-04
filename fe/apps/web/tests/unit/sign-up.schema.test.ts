@@ -28,6 +28,8 @@ describe('signUpDetailsSchema', () => {
   it.each([
     ['한 글자 성함', { fullName: '홍' }],
     ['숫자가 포함된 성함', { fullName: '홍길동1' }],
+    ['공백이 포함된 성함', { fullName: '홍 길동' }],
+    ['앞뒤 공백이 포함된 성함', { fullName: ' 홍길동 ' }],
     ['형식에 맞지 않는 휴대폰 번호', { phoneNumber: '010-12-345' }],
     ['존재하지 않는 날짜', { birthDate: '1990.02.30' }],
     ['미래 날짜', { birthDate: '2999.01.01' }],
