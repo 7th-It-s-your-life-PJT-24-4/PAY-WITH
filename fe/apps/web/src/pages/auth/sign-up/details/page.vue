@@ -488,7 +488,7 @@ async function submitSignUp() {
 }
 
 function openAvatarModal() {
-  pendingAvatarId.value = avatarId.value
+  pendingAvatarId.value = avatarId.value ?? null
   isAvatarModalOpen.value = true
 }
 

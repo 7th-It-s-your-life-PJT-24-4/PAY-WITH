@@ -96,7 +96,7 @@ function readPersistedDraft(): SignUpDraft | null {
       phoneNumber: draft.phoneNumber,
       birthDate: draft.birthDate,
       gender: hasValidGender ? draft.gender : undefined,
-      avatarId: draft.avatarId ?? null,
+      ...(draft.avatarId === undefined ? {} : { avatarId: draft.avatarId }),
       loginPassword: '',
       paymentPassword: '',
       serviceTerms: draft.serviceTerms,

@@ -14,7 +14,7 @@ export const userSchema = z.object({
   name: z.string().min(1),
   phone: phoneNumberSchema,
   role: z.enum(['WARD', 'GUARD']),
-  avatarId: z.number().int().min(1).max(6).nullable(),
+  avatarId: z.number().int().min(1).max(6).nullable().optional(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 })
@@ -31,7 +31,7 @@ export const createUserRequestSchema = z.object({
   name: nameSchema,
   birthDate: birthDateSchema,
   gender: z.enum(['남', '여']),
-  avatarId: z.number().int().min(1).max(6).nullable(),
+  avatarId: z.number().int().min(1).max(6).nullable().optional(),
   paymentPassword: paymentPasswordSchema,
   verificationToken: z.string().min(1),
 })
