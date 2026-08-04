@@ -16,6 +16,7 @@ public class User {
     private String name;
     private LocalDate birthDate;
     private String gender;
+    private Integer avatarId;
     private String pin;
     private String fcmToken;
     private UserStatus status;
