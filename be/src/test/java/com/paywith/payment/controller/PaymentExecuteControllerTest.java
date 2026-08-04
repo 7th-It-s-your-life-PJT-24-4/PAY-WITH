@@ -84,26 +84,28 @@ class PaymentExecuteControllerTest {
     void execute_무효토큰_BusinessException은_400과_명세_메시지로_변환() throws Exception {
         given(paymentExecuteService.execute(ArgumentMatchers.any(ExecuteRequest.class)))
             .willThrow(new BusinessException(
-                HttpStatus.BAD_REQUEST, "유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요."));
+                HttpStatus.BAD_REQUEST, "PAY_001", "유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요."));
 
         mockMvc.perform(post("/api/payments/execute")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(VALID_BODY))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("PAY_001"))
             .andExpect(jsonPath("$.message").value("유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요."));
     }
 
     @Test
     void execute_가맹점_미존재_BusinessException은_404로_변환() throws Exception {
         given(paymentExecuteService.execute(ArgumentMatchers.any(ExecuteRequest.class)))
-            .willThrow(new BusinessException(HttpStatus.NOT_FOUND, "가맹점을 찾을 수 없습니다."));
+            .willThrow(new BusinessException(HttpStatus.NOT_FOUND, "MERCHANT_001", "가맹점을 찾을 수 없습니다."));
 
         mockMvc.perform(post("/api/payments/execute")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(VALID_BODY))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("MERCHANT_001"))
             .andExpect(jsonPath("$.message").value("가맹점을 찾을 수 없습니다."));
     }
 }

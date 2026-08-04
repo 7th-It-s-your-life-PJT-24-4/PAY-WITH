@@ -55,19 +55,19 @@ public class PaymentService {
         requireWardRole(userId);
 
         if (!paymentRequestMapper.existsActivePairing(userId)) {
-            throw new BusinessException(HttpStatus.FORBIDDEN, "페어링 완료 후 이용할 수 있습니다.");
+            throw new BusinessException(HttpStatus.FORBIDDEN, "WARD_001", "페어링 완료 후 이용할 수 있습니다.");
         }
 
         PaymentWallet wallet = paymentRequestMapper.findWalletByUserId(userId);
         if (wallet == null) {
-            throw new BusinessException(HttpStatus.NOT_FOUND, "지갑 정보를 찾을 수 없습니다.");
+            throw new BusinessException(HttpStatus.NOT_FOUND, "WALLET_001", "지갑 정보를 찾을 수 없습니다.");
         }
         if (WALLET_STATUS_LOCKED.equals(wallet.getStatus())) {
-            throw new BusinessException(HttpStatus.CONFLICT, "현재 거래가 제한된 지갑입니다.");
+            throw new BusinessException(HttpStatus.CONFLICT, "WALLET_002", "현재 거래가 제한된 지갑입니다.");
         }
         // 결제 비밀번호 = 송금 비밀번호와 동일한 users.pin(BCrypt) — QR 표시 전 본인 확인(A7)
         if (!passwordEncoder.matches(pin, wallet.getPin())) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "결제 비밀번호가 올바르지 않습니다.");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "PAYMENT_005", "결제 비밀번호가 올바르지 않습니다.");
         }
 
         PaymentRequest paymentRequest = insertWithNewToken(userId, wallet.getWalletId());
@@ -136,15 +136,15 @@ public class PaymentService {
             );
         }
         if (paymentRequest.getStatus() == PaymentRequestStatus.EXPIRED) {
-            throw new BusinessException(HttpStatus.CONFLICT, "이미 만료된 결제 요청입니다.");
+            throw new BusinessException(HttpStatus.CONFLICT, "PAYMENT_004", "이미 만료된 결제 요청입니다.");
         }
-        throw new BusinessException(HttpStatus.CONFLICT, "이미 처리 중이거나 완료된 결제는 취소할 수 없습니다.");
+        throw new BusinessException(HttpStatus.CONFLICT, "PAYMENT_003", "이미 처리 중이거나 완료된 결제는 취소할 수 없습니다.");
     }
 
     private void requireWardRole(Long userId) {
         String role = paymentRequestMapper.findUserRole(userId);
         if (!DB_ROLE_WARD.equals(role)) {
-            throw new BusinessException(HttpStatus.FORBIDDEN, "피보호자만 접근할 수 있습니다.");
+            throw new BusinessException(HttpStatus.FORBIDDEN, "AUTH_004", "피보호자만 접근할 수 있습니다.");
         }
     }
 
@@ -152,7 +152,7 @@ public class PaymentService {
         PaymentRequest paymentRequest = paymentRequestMapper.findById(paymentId);
         if (paymentRequest == null || !userId.equals(paymentRequest.getSeniorId())) {
             // 타인의 결제 요청은 존재 여부를 숨기기 위해 동일하게 404 처리
-            throw new BusinessException(HttpStatus.NOT_FOUND, "결제 요청을 찾을 수 없습니다.");
+            throw new BusinessException(HttpStatus.NOT_FOUND, "PAYMENT_002", "결제 요청을 찾을 수 없습니다.");
         }
         return paymentRequest;
     }

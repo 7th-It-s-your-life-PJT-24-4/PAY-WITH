@@ -85,6 +85,7 @@ class WardPaymentControllerTest {
         mockMvc.perform(get("/api/ward/payments/abc").principal(wardAuthentication))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("PAYMENT_001"))
             .andExpect(jsonPath("$.message").value("결제 요청 번호가 올바르지 않습니다."));
 
         verifyNoInteractions(paymentService);
@@ -107,11 +108,12 @@ class WardPaymentControllerTest {
     @Test
     void getStatus_서비스의_BusinessException은_해당_상태코드로_변환() throws Exception {
         given(paymentService.getStatus(WARD_ID, 42L))
-            .willThrow(new BusinessException(HttpStatus.NOT_FOUND, "결제 요청을 찾을 수 없습니다."));
+            .willThrow(new BusinessException(HttpStatus.NOT_FOUND, "PAYMENT_002", "결제 요청을 찾을 수 없습니다."));
 
         mockMvc.perform(get("/api/ward/payments/42").principal(wardAuthentication))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("PAYMENT_002"))
             .andExpect(jsonPath("$.message").value("결제 요청을 찾을 수 없습니다."));
     }
 

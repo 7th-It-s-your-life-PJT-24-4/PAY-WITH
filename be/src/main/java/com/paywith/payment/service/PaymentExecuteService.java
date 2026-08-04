@@ -111,10 +111,10 @@ public class PaymentExecuteService {
         // ② 가맹점 검증 — 이름·좌표는 서버 조회값만 사용한다(클라이언트 좌표 전달 금지)
         Merchant merchant = merchantMapper.findById(request.getMerchantId());
         if (merchant == null) {
-            throw new BusinessException(HttpStatus.NOT_FOUND, "가맹점을 찾을 수 없습니다.");
+            throw new BusinessException(HttpStatus.NOT_FOUND, "MERCHANT_001", "가맹점을 찾을 수 없습니다.");
         }
         if (merchant.getLatitude() == null || merchant.getLongitude() == null) {
-            throw new BusinessException(HttpStatus.NOT_FOUND, "결제할 수 없는 가맹점입니다.");
+            throw new BusinessException(HttpStatus.NOT_FOUND, "MERCHANT_001", "결제할 수 없는 가맹점입니다.");
         }
 
         // ③ 행잠금 후 최종 확인 — 행 존재 / 완료·실패 멱등 / 상태 / 만료 / 소유자 정합
@@ -153,7 +153,7 @@ public class PaymentExecuteService {
         if (walletMapper.decreaseBalanceIfSufficient(wallet.getWalletId(), request.getAmount()) == 0) {
             paymentRequestMapper.failPayment(paymentRequest.getPaymentId(), FAILURE_CODE_INSUFFICIENT_BALANCE);
             return ExecuteResult.failure(
-                new BusinessException(HttpStatus.BAD_REQUEST, MESSAGE_INSUFFICIENT_BALANCE));
+                new BusinessException(HttpStatus.BAD_REQUEST, "WALLET_001", MESSAGE_INSUFFICIENT_BALANCE));
         }
 
         // 차감 후 같은 트랜잭션 내 재조회로 balance_after 확정 (송금 구현과 동일 패턴)
@@ -203,13 +203,13 @@ public class PaymentExecuteService {
     /** 실패로 종결된 건의 재시도 — 최초 실패와 동일한 오류를 멱등 반환한다 */
     private BusinessException settledFailureException(String failureCode) {
         if (FAILURE_CODE_INSUFFICIENT_BALANCE.equals(failureCode)) {
-            return new BusinessException(HttpStatus.BAD_REQUEST, MESSAGE_INSUFFICIENT_BALANCE);
+            return new BusinessException(HttpStatus.BAD_REQUEST, "WALLET_001", MESSAGE_INSUFFICIENT_BALANCE);
         }
         return new BusinessException(HttpStatus.BAD_REQUEST, "결제에 실패했습니다.");
     }
 
     private BusinessException invalidTokenException() {
-        return new BusinessException(HttpStatus.BAD_REQUEST, MESSAGE_INVALID_TOKEN);
+        return new BusinessException(HttpStatus.BAD_REQUEST, "PAY_001", MESSAGE_INVALID_TOKEN);
     }
 
     /** DB DATETIME(KST 기준)을 명세 형식(ISO 8601 +09:00 오프셋 포함)으로 변환 */
