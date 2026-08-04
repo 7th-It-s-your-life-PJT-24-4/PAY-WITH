@@ -3,7 +3,9 @@ package com.paywith.merchant.security;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -65,6 +67,19 @@ class MerchantSecurityTest {
         mockMvc.perform(get("/api/merchants"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void Vite_IP_개발서버의_preflight를_허용한다() throws Exception {
+        mockMvc.perform(options("/api/auth/phone/code")
+                .header("Origin", "http://127.0.0.1:5173")
+                .header("Access-Control-Request-Method", "POST")
+                .header("Access-Control-Request-Headers", "content-type"))
+            .andExpect(status().isOk())
+            .andExpect(header().string(
+                "Access-Control-Allow-Origin",
+                "http://127.0.0.1:5173"
+            ));
     }
 
     @Configuration
