@@ -12,10 +12,10 @@
     "lint": "eslint . --fix && prettier . --write --ignore-path ../../.prettierignore"
   },
   "dependencies": {
+    "@lucide/vue": "catalog:",
     "@pay-with/ui": "workspace:*",
     "@phosphor-icons/vue": "catalog:",
     "@tanstack/vue-query": "catalog:",
-    "@lucide/vue": "catalog:",
     "ky": "catalog:",
     "pinia": "catalog:",
     "qrcode.vue": "catalog:",
@@ -43,9 +43,11 @@
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
-    "vite": "catalog:",
     "vee-validate": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-pwa": "catalog:",
     "vitest": "catalog:",
-    "vue-tsc": "catalog:"
+    "vue-tsc": "catalog:",
+    "workbox-window": "catalog:"
   }
 }

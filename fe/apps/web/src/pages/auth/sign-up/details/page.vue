@@ -40,6 +40,7 @@ const signUpStore = useSignUpStore()
 const pairingStore = usePairingStore()
 const isPasswordVisible = ref(false)
 const formError = ref('')
+const phoneRequestError = ref('')
 const phoneVerificationCode = ref('')
 const phoneVerificationMessage = ref('')
 const phoneCodeRequested = ref(false)
@@ -237,6 +238,7 @@ function updatePhoneNumber(value: string) {
     signUpStore.clearPhoneVerification()
     phoneVerificationCode.value = ''
     phoneVerificationMessage.value = ''
+    phoneRequestError.value = ''
     phoneCodeRequested.value = false
     clearPhoneCodeTimer()
   }
@@ -325,6 +327,7 @@ function paymentDigit(index: number) {
 
 async function requestPhoneCode() {
   formError.value = ''
+  phoneRequestError.value = ''
   phoneVerificationMessage.value = ''
   verificationToken.value = null
   signUpStore.clearPhoneVerification()
@@ -337,7 +340,7 @@ async function requestPhoneCode() {
     const message =
       result.error.issues[0]?.message ?? '휴대폰 번호를 확인해 주세요.'
     setErrors({ phoneNumber: message })
-    formError.value = message
+    phoneRequestError.value = message
     return
   }
 
@@ -349,7 +352,7 @@ async function requestPhoneCode() {
     phoneVerificationMessage.value =
       '인증번호를 발송했어요. 제한 시간 안에 입력해 주세요.'
   } catch (error) {
-    formError.value = await getApiErrorMessage(
+    phoneRequestError.value = await getApiErrorMessage(
       error,
       '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.',
     )
@@ -703,6 +706,13 @@ async function submitSignUp() {
               class="type-caption text-error"
             >
               {{ errors.phoneNumber }}
+            </p>
+            <p
+              v-if="phoneRequestError"
+              class="type-caption text-error"
+              role="alert"
+            >
+              {{ phoneRequestError }}
             </p>
             <div
               v-if="phoneCodeRequested || verificationToken"
