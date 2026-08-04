@@ -64,7 +64,8 @@ class PaymentExecuteControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"merchantId\": 1, \"amount\": 4500}"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.success").value(false));
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("REQUEST_001"));
 
         verifyNoInteractions(paymentExecuteService);
     }
@@ -75,7 +76,8 @@ class PaymentExecuteControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"qrToken\": \"pay_qr_a8F2kL9xQ1mNzzzz\", \"merchantId\": 1, \"amount\": 0}"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.success").value(false));
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("REQUEST_001"));
 
         verifyNoInteractions(paymentExecuteService);
     }

@@ -75,7 +75,8 @@ class WardPaymentControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"pin\": \"12\"}"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.success").value(false));
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("REQUEST_001"));
 
         verifyNoInteractions(paymentService);
     }
