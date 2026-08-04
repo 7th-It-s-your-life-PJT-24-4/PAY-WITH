@@ -2,11 +2,9 @@ FROM node:22-alpine AS build
 
 WORKDIR /workspace
 
-RUN apk add --no-cache git
-
 COPY . .
 
-RUN git init && corepack enable && pnpm install --frozen-lockfile
+RUN corepack enable && pnpm install --frozen-lockfile --ignore-scripts
 
 ARG VITE_API_BASE_URL=/api
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
