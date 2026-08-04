@@ -12,6 +12,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import springfox.documentation.annotations.ApiIgnore;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
+
 @Api(tags = "피보호자 충전")
 @RestController
 @RequestMapping("api/ward/charges")
@@ -28,7 +30,7 @@ public class ChargeController {
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ChargeResponse> charge(
             @ApiIgnore @AuthenticationPrincipal Long userId,
-            @RequestBody ChargeRequest request
+            @Valid @RequestBody ChargeRequest request
             ){
         ChargeResponse response = chargeService.charge(userId, request);
         return ApiResponse.success(response);

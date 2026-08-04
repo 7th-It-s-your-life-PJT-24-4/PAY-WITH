@@ -10,6 +10,7 @@ import com.paywith.fds.domain.RiskLevel;
 import com.paywith.fds.dto.FdsEvaluationRequest;
 import com.paywith.fds.service.FdsEvaluationService;
 import com.paywith.recipient.mapper.RecipientMapper;
+import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.*;
 import com.paywith.user.domain.Role;
 import com.paywith.user.domain.User;
@@ -18,6 +19,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -35,6 +39,7 @@ public class TransferServiceImpl implements TransferService{
     private static final Set<String> ALLOWED_SORTS = Set.of("RECENT", "NAME");
     private static final int DEFAULT_SIZE = 20;
     private static final int MAX_SIZE = 50;
+    private static final Logger log = LoggerFactory.getLogger(TransferServiceImpl.class);
 
     private final OpenBankingClient openBankingClient;
     private final FdsEvaluationService fdsEvaluationService;
@@ -44,6 +49,8 @@ public class TransferServiceImpl implements TransferService{
     private final ObjectMapper objectMapper;
     private final UserMapper userMapper;
     private final RecipientMapper recipientMapper;
+    private final TransactionMapper transactionMapper;
+
 
     @Override
     public RecipientInquiryResponse inquireRecipient(Long userId, RecipientInquiryRequest request) {
@@ -106,9 +113,11 @@ public class TransferServiceImpl implements TransferService{
         }
 
         // 없다면 -> 송금 시작
+        Long transactionId = null;
         try {
             // 1~5 fds 평가 전까지
             PreparedTransfer prepared = transferPreparationService.prepare(userId, request);
+            transactionId = prepared.getTransaction().getTransactionId();
 
             // FDS 평가 (트랜잭션 밖에서 실행)
             FdsEvaluationRequest fdsRequest = new FdsEvaluationRequest(
@@ -140,8 +149,22 @@ public class TransferServiceImpl implements TransferService{
             // 그 이전 단계(prepare, FDS 평가, 잔액 차감) 실패는 외부에 아무 영향이 없으므로
             // 키를 지워서 같은 idempotencyKey로 재시도할 수 있게 한다
             // (안 지우면 TTL 5분 동안 "처리중"에 계속 걸려있게 됨)
+            // REQUESTED => FAILED로 상태 업데이트
+            if (transactionId != null){
+                markFailed(transactionId);
+            }
             redisTemplate.delete(key);
             throw e;
+        }
+    }
+
+    private void markFailed(Long transactionId){
+        try{
+            if (transactionMapper.markFailedIfRequested(transactionId) == 0){
+                log.warn("거래가 이미 다른 상태로 진행돼 FAILED로 종결하지 않음. transactionId={}", transactionId);
+            }
+        } catch (RuntimeException e){
+            log.error("거래를 FAILED로 종결하지 못함. transactionId={}", transactionId,e);
         }
     }
 
