@@ -18,5 +18,10 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'webkit-mobile',
+      testMatch: /ward-home\.spec\.ts/,
+      use: { ...devices['iPhone 13'] },
+    },
   ],
 })

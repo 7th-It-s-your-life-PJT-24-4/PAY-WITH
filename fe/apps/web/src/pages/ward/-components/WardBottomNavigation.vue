@@ -35,7 +35,7 @@ function handleNavigate(value: string) {
 
 <template>
   <div
-    class="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[390px] overflow-x-clip bg-transparent"
+    class="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[390px] bg-transparent [clip-path:inset(-80px_0_-40px_0)]"
   >
     <BottomNavigation
       :items="items"

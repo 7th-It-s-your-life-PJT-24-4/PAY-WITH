@@ -108,7 +108,7 @@ async function registerAccount() {
       </label>
       <input
         id="charge-account-number"
-        class="type-numeric-input-large font-number h-[72px] w-full cursor-pointer rounded-medium border bg-surface-card px-md text-body outline-none transition-colors placeholder:font-sans placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
+        class="type-numeric-input-large font-number h-[72px] w-full cursor-pointer rounded-medium border bg-surface-card px-md text-body outline-none transition-colors placeholder:font-sans placeholder:text-[20px] placeholder:font-semibold placeholder:leading-tight placeholder:tracking-[-0.4px] placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
         :class="accountNumberError ? 'border-error' : 'border-border-strong'"
         type="text"
         inputmode="none"

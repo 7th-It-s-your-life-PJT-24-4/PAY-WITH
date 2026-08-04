@@ -28,6 +28,8 @@ const selectedAccount = computed(
       ({ accountId }) => accountId === chargeStore.selectedAccountId,
     ) ?? null,
 )
+const quickAmountButtonClass =
+  '!border-gray-900 !bg-surface-card whitespace-nowrap hover:!border-gray-900 hover:!bg-surface-card'
 
 watch(
   () => accountsQuery.data.value,
@@ -130,24 +132,28 @@ async function submitCharge() {
 
     <div class="grid grid-cols-4 gap-xs" aria-label="금액 빠른 입력">
       <Button
+        :class="quickAmountButtonClass"
         label="+1만"
         size="small"
         variant="secondary"
         @click="chargeStore.addAmount(10_000)"
       />
       <Button
+        :class="quickAmountButtonClass"
         label="+5만"
         size="small"
         variant="secondary"
         @click="chargeStore.addAmount(50_000)"
       />
       <Button
+        :class="quickAmountButtonClass"
         label="+10만"
         size="small"
         variant="secondary"
         @click="chargeStore.addAmount(100_000)"
       />
       <Button
+        :class="quickAmountButtonClass"
         label="초기화"
         size="small"
         variant="secondary"
