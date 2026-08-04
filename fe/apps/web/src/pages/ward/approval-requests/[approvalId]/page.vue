@@ -1,19 +1,15 @@
 <script setup lang="ts">
-import { Phone, TriangleAlert } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { wardApprovalDetailOptions } from '@/lib/query/ward/home'
-import TransferExceptionDetailsCard from '@/pages/ward/transfer/-components/TransferExceptionDetailsCard.vue'
-import TransferExceptionHero from '@/pages/ward/transfer/-components/TransferExceptionHero.vue'
-import TransferGuardianCallModal from '@/pages/ward/transfer/-components/TransferGuardianCallModal.vue'
+import TransferHeldView from '@/pages/ward/transfer/-components/TransferHeldView.vue'
 import { formatTransferDateTime } from '@/pages/ward/transfer/-utils/transfer-status-route'
 
 const route = useRoute()
 const router = useRouter()
-const isGuardianCallModalOpen = ref(false)
 const approvalId = computed(() => {
   const value = Number(route.params.approvalId)
   return Number.isSafeInteger(value) && value > 0 ? value : null
@@ -76,44 +72,9 @@ const detailRows = computed(() => {
     />
   </section>
 
-  <div v-else class="flex flex-col gap-xl">
-    <TransferExceptionHero
-      title="보호자 승인을 기다리고 있어요"
-      :description="`안전을 위해 보호자가
-거래 내용을 확인하고 있습니다.`"
-    >
-      <template #icon>
-        <TriangleAlert class="size-11" :stroke-width="2.25" />
-      </template>
-    </TransferExceptionHero>
-
-    <TransferExceptionDetailsCard
-      title="승인 대기 송금"
-      badge-label="확인 필요"
-      badge-status="warning"
-      :rows="detailRows"
-    />
-
-    <div class="mt-auto flex flex-col gap-md pt-lg">
-      <Button
-        class="w-full"
-        label="보호자에게 연락하기"
-        variant="outline-primary"
-        size="large"
-        @click="isGuardianCallModalOpen = true"
-      >
-        <template #leading>
-          <Phone :stroke-width="2.5" />
-        </template>
-      </Button>
-      <Button
-        class="w-full"
-        label="홈에서 기다리기"
-        size="large"
-        @click="router.replace({ name: 'ward-home' })"
-      />
-    </div>
-
-    <TransferGuardianCallModal v-model:open="isGuardianCallModalOpen" />
-  </div>
+  <TransferHeldView
+    v-else
+    :rows="detailRows"
+    @wait-home="router.replace({ name: 'ward-home' })"
+  />
 </template>

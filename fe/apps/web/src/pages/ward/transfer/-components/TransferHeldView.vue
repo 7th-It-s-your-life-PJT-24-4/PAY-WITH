@@ -1,0 +1,133 @@
+<script setup lang="ts">
+import { Phone, ShieldCheck, TriangleAlert, X } from '@lucide/vue'
+import { Button } from '@pay-with/ui'
+import { ref } from 'vue'
+
+import TransferCancelModal from '@/pages/ward/transfer/-components/TransferCancelModal.vue'
+import TransferExceptionDetailsCard from '@/pages/ward/transfer/-components/TransferExceptionDetailsCard.vue'
+import TransferExceptionHero from '@/pages/ward/transfer/-components/TransferExceptionHero.vue'
+import TransferGuardianCallModal from '@/pages/ward/transfer/-components/TransferGuardianCallModal.vue'
+
+interface DetailRow {
+  label: string
+  value: string
+  emphasis?: 'primary' | 'error'
+  numeric?: boolean
+  large?: boolean
+}
+
+withDefaults(
+  defineProps<{
+    rows: DetailRow[]
+    canCancel?: boolean
+    cancelling?: boolean
+    errorMessage?: string
+  }>(),
+  {
+    canCancel: false,
+    cancelling: false,
+    errorMessage: '',
+  },
+)
+
+const emit = defineEmits<{
+  waitHome: []
+  cancel: []
+}>()
+
+const isCancelModalOpen = defineModel<boolean>('cancelOpen', {
+  default: false,
+})
+const isGuardianCallModalOpen = ref(false)
+</script>
+
+<template>
+  <div
+    class="flex min-h-[calc(100vh-var(--spacing-header)-var(--spacing-xl))] flex-col gap-xl"
+  >
+    <TransferExceptionHero
+      title="잠깐 확인해 보세요!"
+      :description="`평소와 다른 송금이 감지되어\n안전을 위해 잠시 멈췄습니다.`"
+    >
+      <template #icon>
+        <TriangleAlert class="size-11" :stroke-width="2.25" />
+      </template>
+    </TransferExceptionHero>
+
+    <TransferExceptionDetailsCard
+      title="이상 거래 내용"
+      badge-label="확인 필요"
+      badge-status="warning"
+      :rows="rows"
+    />
+
+    <section
+      class="rounded-large border border-primary-500/30 bg-primary-500/10 p-lg text-primary-200"
+    >
+      <div class="flex gap-md">
+        <ShieldCheck
+          class="mt-xxs size-xl shrink-0"
+          :stroke-width="2.25"
+          aria-hidden="true"
+        />
+        <div>
+          <h3 class="type-h4">PayWith 안전 가이드</h3>
+          <p class="type-body-medium mt-xxs">
+            보호자가 등록한 안전 범위를 벗어난 송금입니다. 잘 모르는 거래라면
+            취소하는 것이 안전합니다.
+          </p>
+        </div>
+      </div>
+
+      <Button
+        class="mt-lg w-full !gap-sm !px-md"
+        label="보호자에게 연락하기"
+        variant="outline-primary"
+        size="default"
+        pill
+        @click="isGuardianCallModalOpen = true"
+      >
+        <template #leading>
+          <Phone :stroke-width="2.5" />
+        </template>
+      </Button>
+    </section>
+
+    <div class="mt-auto flex flex-col gap-md pt-lg">
+      <Button
+        class="w-full !gap-sm !px-md"
+        label="홈에서 기다리기"
+        size="large"
+        @click="emit('waitHome')"
+      />
+      <Button
+        v-if="canCancel"
+        class="w-full !gap-sm !px-md"
+        :label="cancelling ? '거래를 취소하고 있습니다' : '거래 취소하기'"
+        variant="outline-danger"
+        size="large"
+        :disabled="cancelling"
+        @click="isCancelModalOpen = true"
+      >
+        <template #leading>
+          <X :stroke-width="2.5" />
+        </template>
+      </Button>
+      <p
+        v-if="errorMessage"
+        class="type-body-medium text-center text-error"
+        role="alert"
+      >
+        {{ errorMessage }}
+      </p>
+    </div>
+
+    <TransferGuardianCallModal v-model:open="isGuardianCallModalOpen" />
+    <TransferCancelModal
+      v-if="canCancel"
+      v-model:open="isCancelModalOpen"
+      :cancelling="cancelling"
+      @confirm="emit('cancel')"
+    />
+  </div>
+</template>

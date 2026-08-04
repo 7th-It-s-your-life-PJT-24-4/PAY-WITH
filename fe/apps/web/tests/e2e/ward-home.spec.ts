@@ -99,7 +99,13 @@ test('홈의 승인 대기 송금을 approvalId로 상세 조회한다', async (
 
   await expect(page).toHaveURL(/\/ward\/approval-requests\/7$/)
   await expect(
-    page.getByRole('heading', { name: '보호자 승인을 기다리고 있어요' }),
+    page.getByRole('heading', { name: '잠깐 확인해 보세요!' }),
   ).toBeVisible()
   await expect(page.getByText('생활비')).toBeVisible()
+  const safetyGuide = page.locator('section').filter({
+    has: page.getByRole('heading', { name: 'PayWith 안전 가이드' }),
+  })
+  await expect(
+    safetyGuide.getByRole('button', { name: '보호자에게 연락하기' }),
+  ).toBeVisible()
 })
