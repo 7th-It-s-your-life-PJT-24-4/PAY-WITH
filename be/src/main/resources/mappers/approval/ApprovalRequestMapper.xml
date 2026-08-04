@@ -96,6 +96,18 @@
     ORDER BY ar.expired_at ASC
   </select>
 
+  <!-- 홈 목록에서 진입하는 피보호자용 상세. 목록과 같은 조인(wardViewJoins)과 같은 대기 조건을
+       쓰고 approval_id 만 더 건다. type 조건은 걸지 않는다. 목록이 송금만 보여주는 것은 화면
+       계약이고, 상세는 넘겨받은 approval_id 를 그대로 여는 것이 맞다. -->
+  <select id="findByIdAndWardId" resultMap="ApprovalRequestViewResultMap">
+    SELECT <include refid="viewColumns" />
+    <include refid="wardViewJoins" />
+    WHERE ar.approval_id = #{approvalId}
+      AND w.user_id = #{wardId}
+      AND ar.status = 'PENDING'
+      AND ar.expired_at &gt; NOW()
+  </select>
+
   <!-- 목록과 같은 조건을 건다. 처리·만료된 건의 내역은 승인 API 가 아니라 거래내역 조회가 맡는다. -->
   <select id="findByIdAndGuardId" resultMap="ApprovalRequestViewResultMap">
     SELECT <include refid="viewColumns" />

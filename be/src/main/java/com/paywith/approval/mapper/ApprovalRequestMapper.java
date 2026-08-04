@@ -46,6 +46,23 @@ public interface ApprovalRequestMapper {
         @Param("guardId") Long guardId);
 
     /**
+     * 피보호자 본인의 승인 대기 건 상세.
+     *
+     * <p>{@link #findByIdAndGuardId} 와 판정 축이 다르다. 저쪽은 담당 관계(guard_senior)로,
+     * 이쪽은 지갑 소유자(wallets.user_id)로 접근 권한을 가른다. 남의 건에 대해서는 조인이 비어
+     * null 이 되므로 조회 자체가 권한 확인을 겸하는 구조는 같다.
+     *
+     * <p>지갑은 WARD 에게만 생성되므로 보호자 ID 를 넣어도 null 이 된다. 역할 검사를 따로 두지
+     * 않는 이유이며, {@link #findPendingByWardId} 와 같은 방식이다.
+     *
+     * <p>대기 조건(PENDING + 미만료)은 목록과 같게 맞춘다. 화면 세 곳이 "대기 중"을 다른 의미로
+     * 쓰기 시작하면 목록에는 있는데 상세는 404 인 상태가 생긴다.
+     */
+    ApprovalRequestView findByIdAndWardId(
+        @Param("approvalId") Long approvalId,
+        @Param("wardId") Long wardId);
+
+    /**
      * 승인/거절 처리에서만 쓰는 내부 조회. 화면에 나가지 않는다.
      *
      * <p>approval_requests 에는 guard_id 가 없어 거래→지갑→시니어→담당관계를 타고 올라가야
