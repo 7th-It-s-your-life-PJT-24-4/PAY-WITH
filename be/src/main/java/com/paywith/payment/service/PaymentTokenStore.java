@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * QR 토큰 Redis 보조 저장소 전담 (key: qr:{token} → value: paymentId, TTL 60초).
- * Redis 값은 만료·유실될 수 있으므로 결제 상태의 최종 기준은 항상 payment_requests(MySQL)다(A2).
+ * Redis 값은 만료·유실될 수 있으므로 결제 상태의 최종 기준은 항상 payment_requests(MySQL)다.
  */
 @Component
 public class PaymentTokenStore {

@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 가맹점 스캐너(비로그인 제3 액터)용 API — B7 확정으로 permitAll.
- * SecurityConfig 예외는 별도 커밋으로 추가한다.
+ * 가맹점 스캐너(비로그인 제3 액터)용 API — 무토큰 개방(permitAll).
+ * SecurityConfig에 무토큰 예외가 등록돼 있다.
  */
 @RestController
 @RequestMapping("/api/merchants")

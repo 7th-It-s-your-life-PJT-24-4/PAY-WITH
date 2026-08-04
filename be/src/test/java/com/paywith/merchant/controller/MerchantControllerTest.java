@@ -41,7 +41,7 @@ class MerchantControllerTest {
             .andExpect(jsonPath("$.data.merchants[0].name").value("행복마트 종로점"))
             .andExpect(jsonPath("$.data.merchants[0].categoryCode").value("MART"))
             .andExpect(jsonPath("$.data.merchants[0].region").value("서울 종로구"))
-            // A1: 좌표는 서버 관리 값 — 응답 계약에 포함되면 안 된다
+            // 좌표는 서버 관리 값 — 응답 계약에 포함되면 안 된다
             .andExpect(jsonPath("$.data.merchants[0].latitude").doesNotExist())
             .andExpect(jsonPath("$.data.merchants[0].longitude").doesNotExist());
     }

@@ -57,6 +57,7 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+            .hasFieldOrPropertyWithValue("code", "AUTH_004")
             .hasMessage("피보호자만 접근할 수 있습니다.");
     }
 
@@ -66,7 +67,8 @@ class PaymentServiceTest {
 
         assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
             .isInstanceOf(BusinessException.class)
-            .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
+            .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+            .hasFieldOrPropertyWithValue("code", "AUTH_004");
     }
 
     @Test
@@ -77,6 +79,7 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+            .hasFieldOrPropertyWithValue("code", "WARD_001")
             .hasMessage("페어링 완료 후 이용할 수 있습니다.");
     }
 
@@ -89,6 +92,7 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+            .hasFieldOrPropertyWithValue("code", "WALLET_001")
             .hasMessage("지갑 정보를 찾을 수 없습니다.");
     }
 
@@ -101,6 +105,7 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+            .hasFieldOrPropertyWithValue("code", "WALLET_002")
             .hasMessage("현재 거래가 제한된 지갑입니다.");
     }
 
@@ -114,6 +119,7 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.createQr(WARD_ID, PIN))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+            .hasFieldOrPropertyWithValue("code", "PAYMENT_005")
             .hasMessage("결제 비밀번호가 올바르지 않습니다.");
         verify(paymentRequestMapper, never()).insert(any(PaymentRequest.class));
     }
@@ -164,6 +170,7 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.getStatus(WARD_ID, PAYMENT_ID))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+            .hasFieldOrPropertyWithValue("code", "PAYMENT_002")
             .hasMessage("결제 요청을 찾을 수 없습니다.");
     }
 
@@ -176,7 +183,8 @@ class PaymentServiceTest {
 
         assertThatThrownBy(() -> paymentService.getStatus(WARD_ID, PAYMENT_ID))
             .isInstanceOf(BusinessException.class)
-            .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
+            .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+            .hasFieldOrPropertyWithValue("code", "PAYMENT_002");
     }
 
     @Test
@@ -250,17 +258,17 @@ class PaymentServiceTest {
 
     @Test
     void cancel_PROCESSING이면_409_PAYMENT_003() {
-        assertCancelConflict(PaymentRequestStatus.PROCESSING, "이미 처리 중이거나 완료된 결제는 취소할 수 없습니다.");
+        assertCancelConflict(PaymentRequestStatus.PROCESSING, "PAYMENT_003", "이미 처리 중이거나 완료된 결제는 취소할 수 없습니다.");
     }
 
     @Test
     void cancel_COMPLETED면_409_PAYMENT_003() {
-        assertCancelConflict(PaymentRequestStatus.COMPLETED, "이미 처리 중이거나 완료된 결제는 취소할 수 없습니다.");
+        assertCancelConflict(PaymentRequestStatus.COMPLETED, "PAYMENT_003", "이미 처리 중이거나 완료된 결제는 취소할 수 없습니다.");
     }
 
     @Test
     void cancel_EXPIRED면_409_PAYMENT_004() {
-        assertCancelConflict(PaymentRequestStatus.EXPIRED, "이미 만료된 결제 요청입니다.");
+        assertCancelConflict(PaymentRequestStatus.EXPIRED, "PAYMENT_004", "이미 만료된 결제 요청입니다.");
     }
 
     @Test
@@ -273,6 +281,7 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.cancel(WARD_ID, PAYMENT_ID))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+            .hasFieldOrPropertyWithValue("code", "PAYMENT_004")
             .hasMessage("이미 만료된 결제 요청입니다.");
         verify(paymentRequestMapper, never()).cancelIfPending(anyLong());
     }
@@ -303,10 +312,11 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.cancel(WARD_ID, PAYMENT_ID))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+            .hasFieldOrPropertyWithValue("code", "PAYMENT_003")
             .hasMessage("이미 처리 중이거나 완료된 결제는 취소할 수 없습니다.");
     }
 
-    private void assertCancelConflict(PaymentRequestStatus status, String expectedMessage) {
+    private void assertCancelConflict(PaymentRequestStatus status, String expectedCode, String expectedMessage) {
         given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
         PaymentRequest request = pendingRequest(LocalDateTime.now().plusSeconds(30));
         request.setStatus(status);
@@ -315,6 +325,7 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.cancel(WARD_ID, PAYMENT_ID))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+            .hasFieldOrPropertyWithValue("code", expectedCode)
             .hasMessage(expectedMessage);
     }
 

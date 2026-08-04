@@ -10,7 +10,7 @@ public interface PaymentRequestMapper {
 
     /**
      * JWT userId 기준 역할 조회. 인증 파트(JwtTokenProvider) 무수정 원칙에 따라
-     * 역할 검사는 결제 파트에서 DB 조회로 수행한다(B6). 반환값은 users.role('WARD'/'GUARD').
+     * 역할 검사는 결제 파트에서 DB 조회로 수행한다. 반환값은 users.role('WARD'/'GUARD').
      */
     String findUserRole(@Param("userId") Long userId);
 

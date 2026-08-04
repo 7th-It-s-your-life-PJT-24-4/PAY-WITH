@@ -7,7 +7,7 @@ import java.io.UncheckedIOException;
 import java.util.Properties;
 
 /**
- * 로컬 개발용 JWT 발급 도구 (B6).
+ * 로컬 개발용 JWT 발급 도구.
  *
  * 로그인 "발급 과정"만 우회한다 — 발급된 토큰은 실제 Authorization: Bearer 헤더로 전달해
  * 기존 JwtAuthenticationFilter 검증 경로를 그대로 태운다. src/test 전용이라 WAR에 포함되지 않는다.

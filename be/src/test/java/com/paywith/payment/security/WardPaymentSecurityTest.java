@@ -37,9 +37,9 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 /**
- * 인증 3종 테스트 (B6·B9): 무토큰 거부 / GUARDIAN 토큰 403 / 정상 WARD 성공.
+ * 인증 3종 테스트: 무토큰 거부 / GUARDIAN 토큰 403 / 정상 WARD 성공.
  * DevJwtTokenFactory로 발급한 토큰을 실제 JwtAuthenticationFilter + SecurityConfig
- * 필터 체인에 통과시켜 "발급만 우회하고 검증은 실제 경로" 원칙(B6)을 지킨다.
+ * 필터 체인에 통과시켜 "발급만 우회하고 검증은 실제 경로" 원칙을 지킨다.
  */
 @ExtendWith(SpringExtension.class)
 @WebAppConfiguration
@@ -119,7 +119,7 @@ class WardPaymentSecurityTest {
 
         @Bean
         public JwtTokenProvider jwtTokenProvider() {
-            // 로컬 설정값 기반 실제 JwtTokenProvider — 테스트용 시크릿을 코드에 새로 두지 않는다(B6)
+            // 로컬 설정값 기반 실제 JwtTokenProvider — 테스트용 시크릿을 코드에 새로 두지 않는다
             return DevJwtTokenFactory.jwtTokenProvider();
         }
 

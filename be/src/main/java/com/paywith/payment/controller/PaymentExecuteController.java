@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 가맹점 스캐너(비로그인 제3 액터)의 결제 실행 API — 60초 1회용 qrToken이
  * 사실상 자격증명이라 인증 주체 없이 동작한다(permitAll).
- * SecurityConfig 예외는 별도 커밋으로 추가한다.
+ * SecurityConfig에 무토큰 예외가 등록돼 있다.
  */
 @RestController
 @RequestMapping("/api/payments/execute")
