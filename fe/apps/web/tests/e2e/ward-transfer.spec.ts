@@ -338,6 +338,7 @@ test('송금 실패 원인에 맞는 안전한 후속 행동을 제공한다', a
 
   await submitTransferWithPin(page, '333333')
   await expect(page.getByText('송금 가능한 잔액이 부족합니다.')).toBeVisible()
+  await expect(page.getByRole('button', { name: '홈으로' })).toBeVisible()
   await page.getByRole('button', { name: '충전하기' }).click()
   await expect(page).toHaveURL(/\/ward\/charge$/)
 
@@ -346,7 +347,7 @@ test('송금 실패 원인에 맞는 안전한 후속 행동을 제공한다', a
   await expect(
     page.getByRole('button', { name: '비밀번호 다시 입력' }),
   ).toBeHidden()
-  await page.getByRole('button', { name: '홈으로 이동' }).click()
+  await page.getByRole('button', { name: '홈으로' }).click()
   await expect(page).toHaveURL(/\/ward$/)
 })
 

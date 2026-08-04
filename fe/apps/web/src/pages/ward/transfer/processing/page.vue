@@ -35,15 +35,23 @@ const failureButton = computed(() => {
     case 'restart-transfer':
       return { label: '송금 처음부터', routeName: 'ward-transfer' }
     default:
-      return { label: '홈으로 이동', routeName: 'ward-home' }
+      return { label: '홈으로', routeName: 'ward-home' }
   }
 })
+const showHomeButton = computed(
+  () => failureButton.value.routeName !== 'ward-home',
+)
 
 function handleFailure() {
   const { routeName } = failureButton.value
   if (transferStore.processingFailureAction !== 'retry-pin')
     transferStore.reset()
   router.replace({ name: routeName })
+}
+
+function goHome() {
+  transferStore.reset()
+  router.replace({ name: 'ward-home' })
 }
 
 function confirmStatus() {
@@ -115,12 +123,22 @@ watch(
       <p class="type-h3 mt-md text-body-muted">
         {{ transferStore.processingError }}
       </p>
-      <Button
-        class="mt-xl w-full"
-        :label="failureButton.label"
-        size="large"
-        @click="handleFailure"
-      />
+      <div class="mt-xl flex w-full flex-col gap-md">
+        <Button
+          class="w-full"
+          :label="failureButton.label"
+          size="large"
+          @click="handleFailure"
+        />
+        <Button
+          v-if="showHomeButton"
+          class="w-full"
+          label="홈으로"
+          variant="outline-primary"
+          size="large"
+          @click="goHome"
+        />
+      </div>
     </template>
   </div>
 </template>
