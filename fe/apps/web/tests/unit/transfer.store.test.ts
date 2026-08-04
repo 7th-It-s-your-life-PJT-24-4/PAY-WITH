@@ -13,6 +13,7 @@ describe('transfer store', () => {
 
   function prepareTransfer() {
     const store = useTransferStore()
+    store.setBalance(1_250_000)
     store.selectRecipient({
       id: 1,
       name: '김민수',
@@ -48,6 +49,7 @@ describe('transfer store', () => {
 
   it('빠른 금액 입력이 잔액을 초과해도 입력값을 유지한다', () => {
     const store = useTransferStore()
+    store.setBalance(1_250_000)
 
     store.selectRecipient({
       id: 1,
@@ -71,6 +73,7 @@ describe('transfer store', () => {
 
   it('키패드 입력이 잔액을 초과해도 입력값을 유지한다', () => {
     const store = useTransferStore()
+    store.setBalance(1_250_000)
 
     for (const digit of '2000000') store.appendAmountDigit(digit)
 
@@ -92,7 +95,7 @@ describe('transfer store', () => {
     expect(store.bank).toBe('')
     expect(store.amount).toBe(0)
     expect(store.memo).toBe('')
-    expect(store.balance).toBe(1_250_000)
+    expect(store.balance).toBeNull()
   })
 
   it('비밀번호 입력 후 실제 송금 응답을 저장한다', async () => {
@@ -207,6 +210,7 @@ describe('transfer store', () => {
 
   it('API 수취인의 은행 코드를 표시용 은행명보다 우선 사용한다', () => {
     const store = useTransferStore()
+    store.setBalance(1_250_000)
     store.selectRecipient({
       id: 1,
       name: '김민수',

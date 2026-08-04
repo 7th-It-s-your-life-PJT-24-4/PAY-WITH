@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { CircleAlert, CircleQuestionMark, LoaderCircle } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
-import { useMutation } from '@tanstack/vue-query'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { createTransfer } from '@/api/transfers'
+import { wardHomeOptions } from '@/lib/query/ward/home'
+import { wardWalletOptions } from '@/lib/query/ward/wallet'
+import type { WardHome } from '@/schemas/home.schema'
 import type { CreateTransferRequest } from '@/schemas/transfer.schema'
+import type { WalletBalance } from '@/schemas/wallet.schema'
 import { useTransferStore } from '@/stores/transfer.store'
 
 const router = useRouter()
 const transferStore = useTransferStore()
+const queryClient = useQueryClient()
 const transferMutation = useMutation({
   mutationFn: ({
     request,
@@ -62,11 +67,38 @@ watch(
   () => transferStore.processingStatus,
   (status) => {
     const transactionId = transferStore.transferResult?.transactionId
-    if (status === 'success' && transactionId)
+    if (status === 'success' && transactionId) {
+      const balanceAfter = transferStore.transferDetail?.balanceAfter
+      const currentWallet = queryClient.getQueryData<WalletBalance>(
+        wardWalletOptions().queryKey,
+      )
+      if (balanceAfter !== null && balanceAfter !== undefined && currentWallet)
+        queryClient.setQueryData(wardWalletOptions().queryKey, {
+          ...currentWallet,
+          balance: balanceAfter,
+        })
+      if (balanceAfter !== null && balanceAfter !== undefined)
+        queryClient.setQueryData<WardHome>(
+          wardHomeOptions().queryKey,
+          (currentHome) =>
+            currentHome
+              ? {
+                  ...currentHome,
+                  wallet: { ...currentHome.wallet, balance: balanceAfter },
+                }
+              : currentHome,
+        )
+      void queryClient.invalidateQueries({
+        queryKey: wardWalletOptions().queryKey,
+      })
+      void queryClient.invalidateQueries({
+        queryKey: wardHomeOptions().queryKey,
+      })
       router.replace({
         name: 'ward-transfer-complete',
         params: { transactionId },
       })
+    }
     if (status === 'held' && transactionId)
       router.replace({
         name: 'ward-transfer-held',

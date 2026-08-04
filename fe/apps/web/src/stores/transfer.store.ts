@@ -45,8 +45,6 @@ type TransferExecutor = (variables: {
   idempotencyKey: string
 }) => Promise<TransferResult>
 
-// TODO(wallet-api): 홈/지갑 조회 API가 제공되면 초기 잔액을 실제 응답으로 교체한다.
-const initialBalance = 1_250_000
 // 상세 조회 API가 준비되기 전까지 실제 송금 결과를 거래별로 보관해
 // 완료·승인 대기 화면을 새로고침해도 같은 브라우저 세션에서 복구한다.
 const transferResultStorageKey = (transactionId: number) =>
@@ -60,7 +58,7 @@ export const useTransferStore = defineStore('transfer', () => {
   const bank = ref('')
   const amount = ref(0)
   const memo = ref('')
-  const balance = ref(initialBalance)
+  const balance = ref<number | null>(null)
   const bankCandidates = ref<string[]>([])
   const processingStatus = ref<TransferProcessingStatus>('idle')
   const processingError = ref('')
@@ -72,14 +70,24 @@ export const useTransferStore = defineStore('transfer', () => {
   const requestStarted = ref(false)
   const pendingPin = ref('')
 
-  const remainingBalance = computed(() => balance.value - amount.value)
-  const isAmountOverBalance = computed(() => remainingBalance.value < 0)
+  const remainingBalance = computed(() =>
+    balance.value === null ? null : balance.value - amount.value,
+  )
+  const isAmountOverBalance = computed(
+    () => remainingBalance.value !== null && remainingBalance.value < 0,
+  )
   const canTransfer = computed(
     () =>
       recipient.value !== null &&
+      balance.value !== null &&
       amount.value > 0 &&
+      remainingBalance.value !== null &&
       remainingBalance.value >= 0,
   )
+
+  function setBalance(value: number) {
+    balance.value = value
+  }
 
   function selectRecipient(value: TransferRecipient) {
     recipient.value = value
@@ -298,7 +306,7 @@ export const useTransferStore = defineStore('transfer', () => {
     bank.value = ''
     amount.value = 0
     memo.value = ''
-    balance.value = initialBalance
+    balance.value = null
     bankCandidates.value = []
     processingStatus.value = 'idle'
     processingError.value = ''
@@ -330,6 +338,7 @@ export const useTransferStore = defineStore('transfer', () => {
     remainingBalance,
     isAmountOverBalance,
     canTransfer,
+    setBalance,
     setTransferDetail,
     restoreTransferDetail,
     selectRecipient,

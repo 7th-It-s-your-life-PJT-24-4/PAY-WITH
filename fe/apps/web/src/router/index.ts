@@ -24,6 +24,7 @@ import GuardSafeAccountConfirmPage from '@/pages/guard/safe-account/confirm/page
 import GuardSafeAccountPage from '@/pages/guard/safe-account/page.vue'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete/page.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
+import WardApprovalRequestDetailPage from '@/pages/ward/approval-requests/[approvalId]/page.vue'
 import { requireCompletedPairing } from '@/pages/ward/pairing/-utils/pairing-route-guard'
 import WardChargeAccountAddPage from '@/pages/ward/charge/account/add/page.vue'
 import WardChargeAccountCompletePage from '@/pages/ward/charge/account/complete/page.vue'
@@ -233,6 +234,17 @@ const router = createRouter({
           meta: {
             title: '인증 코드 입력',
             activeNavigation: 'payment',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
+        },
+        {
+          path: 'approval-requests/:approvalId',
+          name: 'ward-approval-request-detail',
+          component: WardApprovalRequestDetailPage,
+          meta: {
+            title: '승인 대기 송금',
+            activeNavigation: 'home',
             showBottomNavigation: false,
             backRouteName: 'ward-home',
           },

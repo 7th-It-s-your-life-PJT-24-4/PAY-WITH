@@ -1,43 +1,22 @@
 <script setup lang="ts">
-import {
-  ArrowUpFromLine,
-  ChevronRight,
-  CreditCard,
-  ShieldAlert,
-} from '@lucide/vue'
+import { ArrowUpFromLine, ChevronRight, ShieldAlert } from '@lucide/vue'
 
-import type { PendingTransaction } from '@/types/pending-transaction'
+import type { PendingApprovalItem } from '@/schemas/home.schema'
 
 defineProps<{
-  transactions: PendingTransaction[]
+  transactions: PendingApprovalItem[]
 }>()
 
 const emit = defineEmits<{
-  select: [transaction: PendingTransaction]
+  select: [transaction: PendingApprovalItem]
 }>()
 
 function formatAmount(amount: number) {
   return `${amount.toLocaleString('ko-KR')}원`
 }
 
-function getTitle(transaction: PendingTransaction) {
-  return transaction.type === 'TRANSFER'
-    ? `${transaction.holderName} 님에게`
-    : transaction.merchantName
-}
-
-function getSubtitle(transaction: PendingTransaction) {
-  return transaction.type === 'TRANSFER'
-    ? `${transaction.bankName} · ${transaction.accountNo}`
-    : transaction.paymentMethod
-}
-
-function getTypeLabel(transaction: PendingTransaction) {
-  return transaction.type === 'TRANSFER' ? '송금' : '결제'
-}
-
-function getAccessibleLabel(transaction: PendingTransaction) {
-  return `${getTypeLabel(transaction)} ${getTitle(transaction)} ${formatAmount(transaction.amount)} 상세 확인`
+function getAccessibleLabel(transaction: PendingApprovalItem) {
+  return `송금 ${transaction.holderName} 님에게 ${formatAmount(transaction.amount)} 상세 확인`
 }
 </script>
 
@@ -65,10 +44,7 @@ function getAccessibleLabel(transaction: PendingTransaction) {
     </header>
 
     <ul class="divide-y divide-border border-t border-border">
-      <li
-        v-for="transaction in transactions"
-        :key="`${transaction.type}-${transaction.transactionId}`"
-      >
+      <li v-for="transaction in transactions" :key="transaction.approvalId">
         <button
           type="button"
           class="flex min-h-28 w-full items-center gap-md px-xl py-lg text-left transition-colors hover:bg-primary-900/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary-500"
@@ -79,26 +55,20 @@ function getAccessibleLabel(transaction: PendingTransaction) {
             class="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-900 text-primary-300"
             aria-hidden="true"
           >
-            <ArrowUpFromLine
-              v-if="transaction.type === 'TRANSFER'"
-              class="size-6"
-            />
-            <CreditCard v-else class="size-6" />
+            <ArrowUpFromLine class="size-6" />
           </span>
           <div class="min-w-0 flex-1">
-            <span class="type-body-medium text-primary-300">
-              {{ getTypeLabel(transaction) }}
-            </span>
+            <span class="type-body-medium text-primary-300"> 송금 </span>
             <div class="mt-xxs flex items-baseline justify-between gap-md">
               <strong class="type-h3 truncate text-body">
-                {{ getTitle(transaction) }}
+                {{ transaction.holderName }} 님에게
               </strong>
               <strong class="type-h3 shrink-0 font-number text-body">
                 {{ formatAmount(transaction.amount) }}
               </strong>
             </div>
             <p class="type-body-medium mt-xs truncate text-body-secondary">
-              {{ getSubtitle(transaction) }}
+              {{ transaction.bankName }} · {{ transaction.accountNo }}
             </p>
           </div>
           <ChevronRight

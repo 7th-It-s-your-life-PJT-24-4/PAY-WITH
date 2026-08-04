@@ -50,7 +50,7 @@ function proceed() {
           <dt>송금 후 잔액</dt>
           <dd>
             <span class="font-number">{{
-              formatMoney(transferStore.remainingBalance)
+              formatMoney(transferStore.remainingBalance ?? 0)
             }}</span
             >원
           </dd>

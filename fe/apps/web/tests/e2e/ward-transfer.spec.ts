@@ -14,6 +14,54 @@ async function submitTransferWithPin(page: Page, pin: string) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/ward/home', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          userName: '김시니어',
+          wallet: {
+            walletId: 9207,
+            balance: 1_250_000,
+            updatedAt: '2026-08-04T10:00:00',
+          },
+          pendingApprovalCount: 1,
+          pendingApprovals: [
+            {
+              approvalId: 7,
+              transactionId: 74,
+              type: 'TRANSFER_OUT',
+              amount: 50_000,
+              holderName: '김민수',
+              bankName: '국민은행',
+              accountNo: '43210201234567',
+              riskLevel: 'CAUTION',
+              requestedAt: '2026-08-04T10:00:00',
+              expiredAt: '2026-08-04T10:10:00',
+            },
+          ],
+        },
+        message: null,
+      },
+    })
+  })
+
+  await page.route('**/api/ward/wallet', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          walletId: 9207,
+          balance: 1_250_000,
+          updatedAt: '2026-08-04T10:00:00',
+        },
+        message: null,
+      },
+    })
+  })
+
   await page.route('**/api/ward/transfers/recipient*', async (route) => {
     if (route.request().method() === 'GET') {
       const keyword = new URL(route.request().url()).searchParams.get('keyword')
