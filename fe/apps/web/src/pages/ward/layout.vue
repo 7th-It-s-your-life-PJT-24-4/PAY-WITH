@@ -11,6 +11,7 @@ const router = useRouter()
 const route = useRoute()
 
 const headerTitle = computed(() => String(route.meta.title ?? 'PayWith'))
+const showBack = computed(() => route.meta.showBack !== false)
 const showBottomNavigation = computed(
   () => route.meta.showBottomNavigation !== false,
 )
@@ -45,7 +46,12 @@ function handleNavigate(value: string) {
       <div
         class="fixed inset-x-0 top-0 z-40 mx-auto w-full max-w-[390px] bg-surface-card pt-[env(safe-area-inset-top)]"
       >
-        <AppHeader :title="headerTitle" show-back show-profile @back="goBack" />
+        <AppHeader
+          :title="headerTitle"
+          :show-back="showBack"
+          show-profile
+          @back="goBack"
+        />
       </div>
 
       <main

@@ -22,6 +22,7 @@ test('keeps the ward header and navigation fixed to the viewport', async ({
   })
 
   await expect(header).toBeVisible()
+  await expect(page.getByRole('button', { name: '뒤로 가기' })).toBeHidden()
   await expect(navigation).toBeVisible()
   await expect(navigation.locator('svg.lucide')).toHaveCount(3)
   await expect(homeAction).toBeVisible()
@@ -48,6 +49,7 @@ test('keeps the ward header and navigation fixed to the viewport', async ({
 
   await navigation.getByRole('button', { name: '송금', exact: true }).click()
   await expect(page).toHaveURL(/\/ward\/transfer$/)
+  await expect(page.getByRole('button', { name: '뒤로 가기' })).toBeVisible()
   await expect(paymentLabel).toHaveCSS('color', 'rgb(0, 0, 0)')
 })
 
