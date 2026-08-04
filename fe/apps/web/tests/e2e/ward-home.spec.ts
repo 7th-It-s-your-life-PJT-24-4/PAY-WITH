@@ -71,16 +71,46 @@ test('홈 API의 이름과 잔액을 표시하고 고정 내비게이션을 유�
     name: '시니어 주요 기능',
   })
   const header = page.getByRole('banner')
+  const paymentAction = navigation.getByRole('button', {
+    name: '결제',
+    exact: true,
+  })
+  const paymentLabel = paymentAction.getByText('결제', { exact: true })
+  const paymentBackground = paymentAction.locator('svg:not(.lucide) path')
+  const homeAction = navigation.getByRole('button', {
+    name: '홈',
+    exact: true,
+  })
   await expect(header).toBeVisible()
+  await expect(page.getByRole('button', { name: '뒤로 가기' })).toBeHidden()
   await expect(navigation).toBeVisible()
-
+  await expect(navigation.locator('svg.lucide')).toHaveCount(3)
+  await expect(homeAction).toBeVisible()
+  await expect(paymentLabel).toHaveCSS('color', 'rgb(0, 0, 0)')
+  await expect(paymentBackground).toHaveCSS('fill', 'rgb(255, 255, 255)')
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+
   const headerBox = await header.boundingBox()
   const navigationBox = await navigation.boundingBox()
+  const homeActionBox = await homeAction.boundingBox()
+
+  expect(headerBox).not.toBeNull()
   expect(Math.abs(headerBox?.y ?? 0)).toBeLessThanOrEqual(1)
+  expect(navigationBox).not.toBeNull()
+  expect(homeActionBox).not.toBeNull()
+  expect(homeActionBox?.y ?? 0).toBeLessThan(navigationBox?.y ?? 0)
+  expect(homeActionBox?.x ?? -1).toBeGreaterThanOrEqual(0)
+  expect(
+    (homeActionBox?.x ?? 0) + (homeActionBox?.width ?? 0),
+  ).toBeLessThanOrEqual(390)
   expect(
     Math.abs((navigationBox?.y ?? 0) + (navigationBox?.height ?? 0) - 844),
   ).toBeLessThanOrEqual(1)
+
+  await navigation.getByRole('button', { name: '송금', exact: true }).click()
+  await expect(page).toHaveURL(/\/ward\/transfer$/)
+  await expect(page.getByRole('button', { name: '뒤로 가기' })).toBeVisible()
+  await expect(paymentLabel).toHaveCSS('color', 'rgb(0, 0, 0)')
 })
 
 test('홈의 승인 대기 송금을 approvalId로 상세 조회한다', async ({ page }) => {

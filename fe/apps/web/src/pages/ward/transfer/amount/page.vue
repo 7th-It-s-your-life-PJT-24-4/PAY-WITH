@@ -20,6 +20,8 @@ watch(
   },
   { immediate: true },
 )
+const quickAmountButtonClass =
+  '!border-gray-900 !bg-surface-card whitespace-nowrap hover:!border-gray-900 hover:!bg-surface-card'
 </script>
 
 <template>
@@ -89,24 +91,28 @@ watch(
 
     <div v-if="transferStore.balance !== null" class="grid grid-cols-4 gap-xs">
       <Button
+        :class="quickAmountButtonClass"
         label="+5만원"
         size="small"
         variant="secondary"
         @click="transferStore.addAmount(50_000)"
       />
       <Button
+        :class="quickAmountButtonClass"
         label="+10만원"
         size="small"
         variant="secondary"
         @click="transferStore.addAmount(100_000)"
       />
       <Button
+        :class="quickAmountButtonClass"
         label="+50만원"
         size="small"
         variant="secondary"
         @click="transferStore.addAmount(500_000)"
       />
       <Button
+        :class="quickAmountButtonClass"
         label="전액"
         size="small"
         variant="secondary"

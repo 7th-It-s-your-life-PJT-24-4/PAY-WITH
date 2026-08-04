@@ -225,7 +225,11 @@ const router = createRouter({
           path: '',
           name: 'ward-home',
           component: WardPage,
-          meta: { title: 'PayWith', activeNavigation: 'home' },
+          meta: {
+            title: 'PayWith',
+            activeNavigation: 'home',
+            showBack: false,
+          },
         },
         {
           path: 'pairing',
