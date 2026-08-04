@@ -35,6 +35,7 @@ import WardPage from '@/pages/ward/page.vue'
 import WardTransactionDetailPage from '@/pages/ward/history/[transactionId]/page.vue'
 import WardTransactionHistoryPage from '@/pages/ward/history/page.vue'
 import WardPaymentCompletePage from '@/pages/ward/payment/complete/[transactionId]/page.vue'
+import WardPaymentFailedPage from '@/pages/ward/payment/failed/[paymentId]/page.vue'
 import WardPaymentHeldPage from '@/pages/ward/payment/held/[transactionId]/page.vue'
 import WardPaymentPage from '@/pages/ward/payment/page.vue'
 import WardPaymentQrPage from '@/pages/ward/payment/qr/[paymentId]/page.vue'
@@ -349,6 +350,17 @@ const router = createRouter({
           beforeEnter: requireCompletedPayment,
           meta: {
             title: '결제 완료',
+            activeNavigation: 'payment',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
+        },
+        {
+          path: 'payment/failed/:paymentId',
+          name: 'ward-payment-failed',
+          component: WardPaymentFailedPage,
+          meta: {
+            title: '결제 실패',
             activeNavigation: 'payment',
             showBottomNavigation: false,
             backRouteName: 'ward-home',

@@ -131,8 +131,11 @@ watch(
     }
 
     if (payment.status === 'FAILED') {
-      errorMessage.value = payment.failureMessage || '결제에 실패했습니다.'
       allowLeave.value = true
+      await router.replace({
+        name: 'ward-payment-failed',
+        params: { paymentId: payment.paymentId },
+      })
     }
   },
   { immediate: true },
