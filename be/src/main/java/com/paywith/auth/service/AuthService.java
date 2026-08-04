@@ -3,6 +3,7 @@ package com.paywith.auth.service;
 import com.paywith.common.PhoneNumberNormalizer;
 import com.paywith.user.domain.User;
 import com.paywith.auth.dto.LoginRequest;
+import com.paywith.auth.dto.PasswordResetRequest;
 import com.paywith.auth.dto.RefreshTokenRequest;
 import com.paywith.auth.dto.TokenResponse;
 import com.paywith.exception.BusinessException;
@@ -17,21 +18,26 @@ import java.time.Duration;
 @Service
 public class AuthService {
 
+    private static final String PHONE_PATTERN = "01[016789]\\d{7,8}";
+
     private final UserMapper userMapper;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final RedisTemplate<String, String> redisTemplate;
+    private final PhoneVerificationService phoneVerificationService;
 
     public AuthService(
         UserMapper userMapper,
         JwtTokenProvider jwtTokenProvider,
         PasswordEncoder passwordEncoder,
-        RedisTemplate<String, String> redisTemplate
+        RedisTemplate<String, String> redisTemplate,
+        PhoneVerificationService phoneVerificationService
     ) {
         this.userMapper = userMapper;
         this.jwtTokenProvider = jwtTokenProvider;
         this.passwordEncoder = passwordEncoder;
         this.redisTemplate = redisTemplate;
+        this.phoneVerificationService = phoneVerificationService;
 
     }
 
@@ -71,6 +77,29 @@ public class AuthService {
         return new TokenResponse(newAccessToken, newRefreshToken);
     }
 
+
+    public void resetPassword(PasswordResetRequest request) {
+        String phone = PhoneNumberNormalizer.normalize(request.getPhone());
+        if (phone == null || !phone.matches(PHONE_PATTERN)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "PHONE_001", "잘못된 형식으로 입력하였습니다.");
+        }
+
+        String newPassword = request.getNewPassword();
+        if (newPassword == null || newPassword.length() < 8) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "PASSWORD_001", "비밀번호는 8자 이상이어야 합니다.");
+        }
+
+        phoneVerificationService.requireValidToken(request.getVerificationToken(), phone);
+
+        User user = userMapper.findByPhone(phone);
+        if (user == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "USER_002", "가입되지 않은 전화번호입니다.");
+        }
+        userMapper.updatePassword(user.getId(), passwordEncoder.encode(newPassword));
+        redisTemplate.delete("refresh:" + user.getId());
+
+        phoneVerificationService.invalidateToken(request.getVerificationToken(), phone);
+    }
 
     private boolean matchesPassword(String rawPassword, String savedPassword) {
         return passwordEncoder.matches(rawPassword, savedPassword);
