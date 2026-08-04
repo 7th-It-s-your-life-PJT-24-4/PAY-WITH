@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 
 async function mockChargeApi(
   page: Page,
@@ -90,7 +90,7 @@ async function mockChargeApi(
 test('최근 사용 계좌를 선택해 지갑 충전을 완료한다', async ({ page }) => {
   await mockChargeApi(page)
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/ward/home')
+  await page.goto('/ward')
 
   await page.getByRole('button', { name: '충전하기' }).click()
   await expect(page.getByRole('heading', { name: '충전하기' })).toBeVisible()
@@ -108,7 +108,7 @@ test('최근 사용 계좌를 선택해 지갑 충전을 완료한다', async ({
   await expect(page.getByText('50,000원', { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: '홈으로' }).click()
-  await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(page).toHaveURL(/\/ward$/)
 })
 
 test('새 계좌를 등록하고 충전 계좌로 사용한다', async ({ page }) => {

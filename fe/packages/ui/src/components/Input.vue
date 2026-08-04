@@ -8,6 +8,8 @@ const props = withDefaults(
     id?: string
     type?: 'text' | 'password'
     inputmode?: 'text' | 'numeric' | 'decimal' | 'email' | 'tel' | 'url'
+    autocomplete?: string
+    maxlength?: number
     placeholder?: string
     description?: string
     error?: string
@@ -20,6 +22,8 @@ const props = withDefaults(
     id: undefined,
     type: 'text',
     inputmode: 'text',
+    autocomplete: undefined,
+    maxlength: undefined,
     placeholder: undefined,
     description: undefined,
     error: undefined,
@@ -65,6 +69,8 @@ function updateValue(event: Event) {
       ]"
       :type="type"
       :inputmode="inputmode"
+      :autocomplete="autocomplete"
+      :maxlength="maxlength"
       :placeholder="placeholder"
       :value="modelValue"
       :disabled="disabled"
