@@ -170,6 +170,54 @@
             )
         </if>
     </select>
+    <select id="findWardTransactions" resultType="com.paywith.transaction.dto.GuardTransactionHistoryItem">
+        SELECT
+        t.transaction_id AS transactionId,
+        CASE WHEN t.type = 'TRANSFER_OUT' THEN 'TRANSFER' ELSE t.type END AS type,
+        t.status AS status,
+        CASE t.type
+        WHEN 'CHARGE' THEN b.bank_name
+        WHEN 'PAYMENT' THEN m.name
+        WHEN 'TRANSFER_OUT' THEN r.holder_name
+        END AS counterpartyName,
+        t.amount AS amount,
+        re.risk_level AS riskLevel,
+        (
+        SELECT rr.description
+        FROM risk_evaluation_details red
+        JOIN risk_rules rr ON rr.rule_id = red.rule_id
+        WHERE red.evaluation_id = re.evaluation_id
+        ORDER BY red.score DESC
+        LIMIT 1
+        ) AS riskReason,
+        t.created_at AS createdAt
+        FROM transactions t
+        JOIN wallets w ON w.wallet_id = t.wallet_id
+        JOIN guard_senior gs ON gs.senior_id = w.user_id AND gs.status = 'ACTIVE'
+        LEFT JOIN recipients r ON r.recipient_id = t.recipient_id
+        LEFT JOIN merchants m ON m.merchant_id = t.merchant_id
+        LEFT JOIN linked_accounts la ON la.account_id = t.account_id
+        LEFT JOIN banks b ON b.bank_code = la.bank_code
+        LEFT JOIN risk_evaluations re ON re.transaction_id = t.transaction_id
+        WHERE gs.guard_id = #{guardId}
+        AND w.user_id = #{wardId}
+        <if test="type != null">AND t.type = #{type}</if>
+        <if test="riskLevel != null">AND re.risk_level = #{riskLevel}</if>
+        ORDER BY t.created_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countWardTransactions" resultType="int">
+        SELECT COUNT(*)
+        FROM transactions t
+        JOIN wallets w ON w.wallet_id = t.wallet_id
+        JOIN guard_senior gs ON gs.senior_id = w.user_id AND gs.status = 'ACTIVE'
+        LEFT JOIN risk_evaluations re ON re.transaction_id = t.transaction_id
+        WHERE gs.guard_id = #{guardId}
+        AND w.user_id = #{wardId}
+        <if test="type != null">AND t.type = #{type}</if>
+        <if test="riskLevel != null">AND re.risk_level = #{riskLevel}</if>
+    </select>
 
 
 </mapper>

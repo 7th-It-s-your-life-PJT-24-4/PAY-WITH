@@ -6,11 +6,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.paywith.exception.BusinessException;
+import com.paywith.guard.service.GuardService;
+import com.paywith.transaction.dto.GuardTransactionHistoryItem;
+import com.paywith.transaction.dto.GuardTransactionHistoryListResponse;
 import com.paywith.transaction.dto.TransactionHistoryItem;
 import com.paywith.transaction.dto.TransactionHistoryListResponse;
 import com.paywith.transaction.mapper.TransactionMapper;
@@ -34,14 +38,20 @@ class TransactionHistoryServiceImplTest {
     @Mock
     private WalletService walletService;
 
+    @Mock
+    private GuardService guardService;
+
     @InjectMocks
     private TransactionHistoryServiceImpl transactionHistoryService;
 
     private final Long userId = 1L;
+    private final Long guardId = 2L;
+    private final Long wardId = 1L;
 
     @BeforeEach
     void setUp() {
-        given(walletService.findMyBalance(userId)).willReturn(mock(WalletBalanceResponse.class));
+        lenient().when(walletService.findMyBalance(userId)).thenReturn(mock(WalletBalanceResponse.class));
+        lenient().when(guardService.verifyGuardOfWard(guardId, wardId)).thenReturn(true);
     }
 
     @Test
@@ -174,6 +184,137 @@ class TransactionHistoryServiceImplTest {
 
         TransactionHistoryListResponse response =
                 transactionHistoryService.findMyTransactions(userId, null, null, 2, 20);
+
+        assertThat(response.getTotalPages()).isEqualTo(3);
+        assertThat(response.isHasNext()).isFalse();
+    }
+
+    // ===== findWardTransactions =====
+
+    @Test
+    void 담당_피보호자가_아니면_예외를_던진다() {
+        given(guardService.verifyGuardOfWard(guardId, wardId)).willReturn(false);
+
+        assertThatThrownBy(() -> transactionHistoryService.findWardTransactions(guardId, wardId, null, null, null, null))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("연동된 피보호자를 찾을 수 없습니다.");
+
+        verify(transactionMapper, never()).findWardTransactions(any(), any(), any(), any(), org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anyInt());
+    }
+
+    @Test
+    void type이_허용목록에_없으면_예외를_던진다() {
+        assertThatThrownBy(() -> transactionHistoryService.findWardTransactions(guardId, wardId, "REFUND", null, null, null))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasMessageContaining("요청 값이 올바르지 않습니다.");
+
+        verify(transactionMapper, never()).countWardTransactions(any(), any(), any(), any());
+    }
+
+    @Test
+    void riskLevel이_허용목록에_없으면_예외를_던진다() {
+        assertThatThrownBy(() -> transactionHistoryService.findWardTransactions(guardId, wardId, null, "HIGH", null, null))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasMessageContaining("요청 값이 올바르지 않습니다.");
+    }
+
+    @Test
+    void 보호자_조회도_page가_음수면_예외를_던진다() {
+        assertThatThrownBy(() -> transactionHistoryService.findWardTransactions(guardId, wardId, null, null, -1, 20))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void 보호자_조회도_size가_범위를_벗어나면_예외를_던진다() {
+        assertThatThrownBy(() -> transactionHistoryService.findWardTransactions(guardId, wardId, null, null, 0, 101))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void type_riskLevel_page_size가_없으면_기본값_0_20으로_조회한다() {
+        given(transactionMapper.findWardTransactions(eq(guardId), eq(wardId), isNull(), isNull(), eq(0), eq(20)))
+                .willReturn(List.of());
+        given(transactionMapper.countWardTransactions(eq(guardId), eq(wardId), isNull(), isNull())).willReturn(0);
+
+        GuardTransactionHistoryListResponse response =
+                transactionHistoryService.findWardTransactions(guardId, wardId, null, null, null, null);
+
+        assertThat(response.getPage()).isEqualTo(0);
+        assertThat(response.getSize()).isEqualTo(20);
+        assertThat(response.getTotalElements()).isEqualTo(0);
+        verify(transactionMapper).findWardTransactions(guardId, wardId, null, null, 0, 20);
+    }
+
+    @Test
+    void type이_TRANSFER면_TRANSFER_OUT으로_변환해서_조회한다() {
+        given(transactionMapper.findWardTransactions(eq(guardId), eq(wardId), eq("TRANSFER_OUT"), isNull(), eq(0), eq(20)))
+                .willReturn(List.of());
+        given(transactionMapper.countWardTransactions(eq(guardId), eq(wardId), eq("TRANSFER_OUT"), isNull())).willReturn(0);
+
+        transactionHistoryService.findWardTransactions(guardId, wardId, "TRANSFER", null, null, null);
+
+        verify(transactionMapper).findWardTransactions(guardId, wardId, "TRANSFER_OUT", null, 0, 20);
+    }
+
+    @Test
+    void type이_CHARGE_PAYMENT면_DB값_그대로_전달한다() {
+        given(transactionMapper.findWardTransactions(eq(guardId), eq(wardId), eq("CHARGE"), isNull(), eq(0), eq(20)))
+                .willReturn(List.of());
+        given(transactionMapper.countWardTransactions(eq(guardId), eq(wardId), eq("CHARGE"), isNull())).willReturn(0);
+
+        transactionHistoryService.findWardTransactions(guardId, wardId, "CHARGE", null, null, null);
+
+        verify(transactionMapper).findWardTransactions(guardId, wardId, "CHARGE", null, 0, 20);
+    }
+
+    @Test
+    void 보호자_조회도_page와_size를_곱해서_offset을_계산한다() {
+        given(transactionMapper.findWardTransactions(eq(guardId), eq(wardId), isNull(), isNull(), eq(40), eq(20)))
+                .willReturn(List.of());
+        given(transactionMapper.countWardTransactions(eq(guardId), eq(wardId), isNull(), isNull())).willReturn(0);
+
+        transactionHistoryService.findWardTransactions(guardId, wardId, null, null, 2, 20);
+
+        verify(transactionMapper).findWardTransactions(guardId, wardId, null, null, 40, 20);
+    }
+
+    @Test
+    void 정상_조회시_피보호자_거래내역과_페이지_정보를_그대로_응답한다() {
+        GuardTransactionHistoryItem item = GuardTransactionHistoryItem.builder()
+                .transactionId(141L)
+                .type("PAYMENT")
+                .status("COMPLETED")
+                .counterpartyName("이마트 서울점")
+                .amount(45_200L)
+                .riskLevel("CAUTION")
+                .riskReason("평소보다 큰 금액")
+                .build();
+        given(transactionMapper.findWardTransactions(eq(guardId), eq(wardId), isNull(), eq("CAUTION"), eq(0), eq(20)))
+                .willReturn(List.of(item));
+        given(transactionMapper.countWardTransactions(eq(guardId), eq(wardId), isNull(), eq("CAUTION"))).willReturn(43);
+
+        GuardTransactionHistoryListResponse response =
+                transactionHistoryService.findWardTransactions(guardId, wardId, null, "CAUTION", 0, 20);
+
+        assertThat(response.getTransactions()).containsExactly(item);
+        assertThat(response.getTotalElements()).isEqualTo(43);
+        assertThat(response.getTotalPages()).isEqualTo(3);
+        assertThat(response.isHasNext()).isTrue();
+    }
+
+    @Test
+    void 보호자_조회도_마지막_페이지면_hasNext가_false다() {
+        given(transactionMapper.findWardTransactions(eq(guardId), eq(wardId), isNull(), isNull(), eq(40), eq(20)))
+                .willReturn(List.of());
+        given(transactionMapper.countWardTransactions(eq(guardId), eq(wardId), isNull(), isNull())).willReturn(43);
+
+        GuardTransactionHistoryListResponse response =
+                transactionHistoryService.findWardTransactions(guardId, wardId, null, null, 2, 20);
 
         assertThat(response.getTotalPages()).isEqualTo(3);
         assertThat(response.isHasNext()).isFalse();

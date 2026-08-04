@@ -3,6 +3,9 @@ package com.paywith.transaction.mapper;
 import com.paywith.charge.dto.ChargeDetailResponse;
 import com.paywith.charge.dto.ChargeHistoryItem;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transaction.dto.GuardTransactionHistoryItem;
+import com.paywith.transaction.dto.RiskReasonDetailResponse;
+import com.paywith.transaction.dto.TransactionDetailResponse;
 import com.paywith.transaction.dto.TransactionHistoryItem;
 import com.paywith.transfer.dto.TransferExecutionContext;
 import org.apache.ibatis.annotations.Mapper;
@@ -57,6 +60,36 @@ public interface TransactionMapper {
             @Param("wardId") Long wardId,
             @Param("type") String type,
             @Param("keyword") String keyword
+    );
+
+//    // 피보호자 본인 거래 상세
+//    TransactionDetailResponse findMyTransactionDetail(
+//            @Param("transactionId") Long transactionId,
+//            @Param("wardId") Long wardId
+//    );
+//
+//    // 위험 판단 사유 목록
+//    List<RiskReasonDetailResponse> findRiskReasons(@Param("transactionId") Long transactionId);
+//
+//    // LLM 사후 재검토 요약
+//    String findLlmSummary(@Param("transactionId") Long transactionId);
+
+    // 보호자가 피보호자의 거래 내역 조회
+    List<GuardTransactionHistoryItem> findWardTransactions(
+            @Param("guardId") Long guardId,
+            @Param("wardId") Long wardId,
+            @Param("type") String type,
+            @Param("riskLevel") String riskLevel,
+            @Param("offset") int offset,
+            @Param("size") int size
+    );
+
+    // 보호자가 피보호자의 거래 내역 총 건 조회
+    int countWardTransactions(
+            @Param("guardId") Long guardId,
+            @Param("wardId") Long wardId,
+            @Param("type") String type,
+            @Param("riskLevel") String riskLevel
     );
 
 }
