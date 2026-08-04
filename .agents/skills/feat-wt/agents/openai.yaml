@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feature Worktree"
+  short_description: "최신 개발 기준으로 기능 워크트리를 준비합니다."
+  default_prompt: "Use $feat-wt to prepare a feature worktree for the requested task."
