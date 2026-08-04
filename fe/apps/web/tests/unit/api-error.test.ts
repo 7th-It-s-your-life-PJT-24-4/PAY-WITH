@@ -2,7 +2,7 @@ import { HTTPError } from 'ky'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
-import { getApiErrorMessage } from '@/api/error'
+import { getApiErrorCode, getApiErrorMessage } from '@/api/error'
 
 function createHttpError(data: unknown) {
   const request = new Request('http://localhost/api/ward/charges')
@@ -33,5 +33,15 @@ describe('getApiErrorMessage', () => {
     await expect(
       getApiErrorMessage(new Error('내부 네트워크 오류'), '요청 실패'),
     ).resolves.toBe('요청 실패')
+  })
+
+  it('검증된 API 오류 코드를 반환한다', () => {
+    const error = createHttpError({
+      code: 'PAIRING_004',
+      message: '인증 코드 입력 횟수를 초과했습니다.',
+    })
+
+    expect(getApiErrorCode(error)).toBe('PAIRING_004')
+    expect(getApiErrorCode(new Error('내부 오류'))).toBeNull()
   })
 })

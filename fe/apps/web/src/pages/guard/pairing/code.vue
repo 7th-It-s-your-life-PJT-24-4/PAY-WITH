@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import kakaoLogoUrl from '@pay-with/ui/svg/kakao-logo.svg'
 import { Toast } from '@pay-with/ui'
-import { ChevronLeft, Copy, Link } from '@lucide/vue'
+import { ChevronLeft, Copy, Link, Share2 } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -13,7 +12,6 @@ const toastMessage = ref('')
 const isToastOpen = ref(false)
 const remainingSeconds = ref(0)
 let countdownTimer: ReturnType<typeof globalThis.setInterval> | undefined
-let mockPairingTimer: ReturnType<typeof globalThis.setTimeout> | undefined
 
 const formattedRemainingTime = computed(() => {
   const minutes = Math.floor(remainingSeconds.value / 60)
@@ -39,12 +37,10 @@ function startCountdown() {
   countdownTimer = globalThis.setInterval(updateRemainingTime, 1000)
 }
 
-function startMockPairingCompletion() {
-  if (mockPairingTimer) globalThis.clearTimeout(mockPairingTimer)
-  mockPairingTimer = globalThis.setTimeout(() => {
-    pairingStore.completeGuardianMockPairing()
-    router.push({ name: 'guard-home' })
-  }, 5000)
+async function issueCode() {
+  if (await pairingStore.issueCode()) {
+    startCountdown()
+  }
 }
 
 function showToast(message: string) {
@@ -82,7 +78,7 @@ function copyLink() {
   return copyText(pairingStore.inviteUrl, '링크가 복사되었습니다')
 }
 
-async function shareWithKakao() {
+async function sharePairingLink() {
   const shareData = {
     title: 'PayWith 시니어 연결',
     text: `인증 코드 ${pairingStore.code}를 입력해 주세요.`,
@@ -99,16 +95,15 @@ async function shareWithKakao() {
 
 onMounted(async () => {
   if (!pairingStore.code) {
-    await pairingStore.issueCode()
+    await issueCode()
+    return
   }
 
   startCountdown()
-  startMockPairingCompletion()
 })
 
 onBeforeUnmount(() => {
   if (countdownTimer) globalThis.clearInterval(countdownTimer)
-  if (mockPairingTimer) globalThis.clearTimeout(mockPairingTimer)
 })
 </script>
 
@@ -152,7 +147,7 @@ onBeforeUnmount(() => {
         <p
           class="mt-[9px] text-[28px] font-semibold leading-[1.2] tracking-[2.24px] text-black"
         >
-          {{ pairingStore.code }}
+          {{ pairingStore.code || '-----' }}
         </p>
         <p
           class="absolute right-md top-md text-[14px] font-medium leading-[14px] tracking-[-0.2px] text-error"
@@ -160,6 +155,24 @@ onBeforeUnmount(() => {
           {{ formattedRemainingTime }}
         </p>
       </section>
+
+      <p
+        v-if="pairingStore.errorMessage"
+        class="mt-sm text-center text-[14px] font-medium leading-[1.4] text-error"
+        role="alert"
+      >
+        {{ pairingStore.errorMessage }}
+      </p>
+
+      <button
+        v-if="remainingSeconds === 0 || pairingStore.errorMessage"
+        class="mx-auto mt-md block text-[14px] font-semibold text-primary-500 disabled:text-gray-400"
+        type="button"
+        :disabled="pairingStore.isIssuingCode"
+        @click="issueCode"
+      >
+        {{ pairingStore.isIssuingCode ? '발급 중...' : '인증 코드 다시 발급' }}
+      </button>
 
       <div class="mt-xl grid grid-cols-3 gap-[12px] px-[29px] text-center">
         <button
@@ -199,17 +212,17 @@ onBeforeUnmount(() => {
         <button
           class="flex flex-col items-center"
           type="button"
-          @click="shareWithKakao"
+          @click="sharePairingLink"
         >
           <span
-            class="flex size-[48px] items-center justify-center rounded-full bg-[#fee500]"
+            class="flex size-[48px] items-center justify-center rounded-full bg-gray-400 text-white"
           >
-            <img class="size-6" :src="kakaoLogoUrl" alt="" aria-hidden="true" />
+            <Share2 class="size-6" :stroke-width="1.8" aria-hidden="true" />
           </span>
           <span
             class="mt-xxs text-[14px] font-medium leading-[26px] tracking-[-0.2px] text-gray-400"
           >
-            링크 복사
+            공유하기
           </span>
         </button>
       </div>

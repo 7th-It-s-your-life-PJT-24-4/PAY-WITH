@@ -38,7 +38,7 @@ async function startPairing() {
 <template>
   <main class="min-h-screen pb-[calc(66px+env(safe-area-inset-bottom))]">
     <section
-      v-if="!pairingStore.isGuardianMockPaired"
+      v-if="!pairingStore.isPaired"
       class="flex min-h-[calc(100dvh-66px-env(safe-area-inset-bottom))] flex-col items-center justify-center px-mobile-gutter text-center"
       aria-labelledby="guard-unpaired-title"
     >
@@ -56,6 +56,13 @@ async function startPairing() {
       >
         시니어와 연결하기
       </button>
+      <p
+        v-if="pairingStore.errorMessage"
+        class="mt-sm text-[14px] font-medium text-error"
+        role="alert"
+      >
+        {{ pairingStore.errorMessage }}
+      </p>
     </section>
 
     <div v-else class="px-mobile-gutter pt-md">
