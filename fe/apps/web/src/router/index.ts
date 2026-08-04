@@ -1,7 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import { getUserIdFromAccessToken, tokenStorage } from '@/api/token-storage'
-import { refreshAccessToken } from '@/api/token-refresh'
+import {
+  clearAuthenticationSession,
+  markSessionActive,
+} from '@/api/auth-session'
+import {
+  refreshAccessToken,
+  scheduleAccessTokenRefresh,
+} from '@/api/token-refresh'
+import {
+  getUserIdFromAccessToken,
+  isAccessTokenExpiring,
+  tokenStorage,
+} from '@/api/token-storage'
 import { getUser } from '@/api/users'
 import SignInPage from '@/pages/auth/sign-in/page.vue'
 import SignUpPage from '@/pages/auth/sign-up/page.vue'
@@ -540,25 +551,40 @@ const router = createRouter({
 async function getAuthenticatedUserId() {
   const accessToken = tokenStorage.getAccessToken()
   const userId = accessToken ? getUserIdFromAccessToken(accessToken) : null
-  if (userId) return userId
+  if (accessToken && userId && !isAccessTokenExpiring(accessToken)) {
+    scheduleAccessTokenRefresh()
+    return userId
+  }
 
   if (!tokenStorage.getRefreshToken()) return null
 
   try {
     const refreshedAccessToken = await refreshAccessToken()
+    markSessionActive()
     return getUserIdFromAccessToken(refreshedAccessToken)
   } catch {
+    clearAuthenticationSession()
     return null
   }
 }
 
 router.beforeEach(async (to) => {
   const isAuthRoute = to.path.startsWith('/auth')
+  const hadStoredSession = Boolean(
+    tokenStorage.getAccessToken() || tokenStorage.getRefreshToken(),
+  )
   const userId = await getAuthenticatedUserId()
 
   if (!userId) {
-    tokenStorage.clearTokens()
-    return isAuthRoute ? true : { name: 'auth-sign-in' }
+    clearAuthenticationSession()
+    if (isAuthRoute) return true
+
+    return {
+      name: 'auth-sign-in',
+      query: hadStoredSession
+        ? { reason: 'session-expired', redirect: to.fullPath }
+        : undefined,
+    }
   }
 
   if (!isAuthRoute) return true
@@ -567,7 +593,7 @@ router.beforeEach(async (to) => {
     const user = await getUser(userId)
     return getRoleHomePath(user.role)
   } catch {
-    tokenStorage.clearTokens()
+    clearAuthenticationSession()
     return to.name === 'auth-sign-in' ? true : { name: 'auth-sign-in' }
   }
 })

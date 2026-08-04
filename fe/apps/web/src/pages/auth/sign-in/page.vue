@@ -7,6 +7,7 @@ import { getApiErrorMessage } from '@/api/error'
 import { getUserIdFromAccessToken } from '@/api/token-storage'
 import { getUser } from '@/api/users'
 import { useLoginMutation } from '@/composables/useLoginMutation'
+import { getRoleHomePath, getSafePostLoginPath } from '@/router/auth-navigation'
 
 const phoneNumber = ref('')
 const password = ref('')
@@ -20,6 +21,7 @@ const formError = ref(
     ? '가입이 완료됐어요. 전화번호와 비밀번호로 로그인해 주세요.'
     : '',
 )
+const sessionExpired = computed(() => route.query.reason === 'session-expired')
 const phoneInputId = useId()
 const passwordInputId = useId()
 const passwordInputType = computed(() =>
@@ -40,7 +42,10 @@ async function submitLogin() {
     }
 
     const user = await getUser(userId)
-    await router.replace(user.role === 'GUARD' ? '/guard' : '/ward')
+    await router.replace(
+      getSafePostLoginPath(route.query.redirect, user.role) ??
+        getRoleHomePath(user.role),
+    )
   } catch (error) {
     formError.value = await getApiErrorMessage(
       error,
@@ -105,6 +110,13 @@ async function submitLogin() {
       </header>
 
       <form class="flex w-full flex-col gap-5" @submit.prevent="submitLogin">
+        <p
+          v-if="sessionExpired"
+          class="w-full rounded-lg bg-primary-800 px-4 py-3 text-center text-sm font-medium text-primary-50"
+          role="status"
+        >
+          로그인이 만료되었습니다. 안전한 이용을 위해 다시 로그인해 주세요.
+        </p>
         <div class="flex flex-col gap-1">
           <label
             :for="phoneInputId"

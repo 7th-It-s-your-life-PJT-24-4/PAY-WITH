@@ -1,5 +1,9 @@
 import { expect, test } from './fixtures'
 
+function createAccessToken(expiresAt: number) {
+  return `header.${btoa(JSON.stringify({ sub: '1', exp: expiresAt }))}.signature`
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/ward/home', async (route) => {
     await route.fulfill({
@@ -111,6 +115,78 @@ test('홈 API의 이름과 잔액을 표시하고 고정 내비게이션을 유�
   await expect(page).toHaveURL(/\/ward\/transfer$/)
   await expect(page.getByRole('button', { name: '뒤로 가기' })).toBeVisible()
   await expect(paymentLabel).toHaveCSS('color', 'rgb(0, 0, 0)')
+})
+
+test('만료된 access token을 자동 갱신하고 홈을 유지한다', async ({ page }) => {
+  const refreshedAccessToken = createAccessToken(
+    Math.floor(Date.now() / 1_000) + 900,
+  )
+  let refreshCount = 0
+
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'accessToken',
+      'header.eyJzdWIiOiIxIiwiZXhwIjoxfQ.signature',
+    )
+    localStorage.setItem('refreshToken', 'valid-refresh-token')
+  })
+  await page.route('**/api/auth/refresh', async (route) => {
+    refreshCount += 1
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          accessToken: refreshedAccessToken,
+          refreshToken: 'rotated-refresh-token',
+          tokenType: 'Bearer',
+        },
+        message: null,
+      },
+    })
+  })
+
+  await page.goto('/ward')
+
+  await expect(page).toHaveURL(/\/ward$/)
+  expect(refreshCount).toBe(1)
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('refreshToken')))
+    .toBe('rotated-refresh-token')
+})
+
+test('refresh token도 만료되면 로그인 화면으로 이동한다', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'accessToken',
+      'header.eyJzdWIiOiIxIiwiZXhwIjoxfQ.signature',
+    )
+    localStorage.setItem('refreshToken', 'expired-refresh-token')
+  })
+  await page.route('**/api/auth/refresh', async (route) => {
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      json: {
+        success: false,
+        data: null,
+        code: 'AUTH_002',
+        message: '리프레시 토큰이 유효하지 않습니다.',
+      },
+    })
+  })
+
+  await page.goto('/ward')
+
+  await expect(page).toHaveURL(/\/auth\/sign-in\?reason=session-expired/)
+  await expect(
+    page.getByText(
+      '로그인이 만료되었습니다. 안전한 이용을 위해 다시 로그인해 주세요.',
+    ),
+  ).toBeVisible()
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('accessToken')))
+    .toBeNull()
 })
 
 test('홈의 승인 대기 송금을 approvalId로 상세 조회한다', async ({ page }) => {
