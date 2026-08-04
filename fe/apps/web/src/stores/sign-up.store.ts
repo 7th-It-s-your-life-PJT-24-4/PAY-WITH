@@ -17,6 +17,7 @@ type PersistedSignUpDraft = Omit<
     | 'phoneNumber'
     | 'birthDate'
     | 'gender'
+    | 'avatarId'
     | 'serviceTerms'
     | 'privacyTerms'
     | 'identifierTerms'
@@ -78,6 +79,11 @@ function readPersistedDraft(): SignUpDraft | null {
       typeof draft.fullName !== 'string' ||
       typeof draft.phoneNumber !== 'string' ||
       typeof draft.birthDate !== 'string' ||
+      (draft.avatarId !== null &&
+        draft.avatarId !== undefined &&
+        (!Number.isInteger(draft.avatarId) ||
+          draft.avatarId < 1 ||
+          draft.avatarId > 6)) ||
       typeof draft.serviceTerms !== 'boolean' ||
       typeof draft.privacyTerms !== 'boolean' ||
       typeof draft.identifierTerms !== 'boolean'
@@ -90,6 +96,7 @@ function readPersistedDraft(): SignUpDraft | null {
       phoneNumber: draft.phoneNumber,
       birthDate: draft.birthDate,
       gender: hasValidGender ? draft.gender : undefined,
+      avatarId: draft.avatarId ?? null,
       loginPassword: '',
       paymentPassword: '',
       serviceTerms: draft.serviceTerms,
@@ -107,6 +114,7 @@ function toPersistedDraft(draft: SignUpDraft): PersistedSignUpDraft {
     phoneNumber: draft.phoneNumber,
     birthDate: draft.birthDate,
     gender: draft.gender,
+    avatarId: draft.avatarId,
     serviceTerms: draft.serviceTerms,
     privacyTerms: draft.privacyTerms,
     identifierTerms: draft.identifierTerms,

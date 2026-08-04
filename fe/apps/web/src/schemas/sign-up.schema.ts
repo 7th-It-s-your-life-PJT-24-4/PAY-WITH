@@ -59,6 +59,7 @@ const signUpDetailsFields = {
   fullName: nameSchema,
   loginPassword: loginPasswordSchema,
   paymentPassword: paymentPasswordSchema,
+  avatarId: z.number().int().min(1).max(6).nullable(),
   serviceTerms: z.boolean().refine((value) => value, {
     error: '필수 약관에 모두 동의해 주세요.',
   }),
