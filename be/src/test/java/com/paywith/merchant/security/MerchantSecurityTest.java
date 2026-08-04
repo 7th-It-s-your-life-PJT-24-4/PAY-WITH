@@ -3,7 +3,9 @@ package com.paywith.merchant.security;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,7 +37,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 /**
- * B7(permitAll) 검증: 가맹점 스캐너는 로그인 계정이 없는 제3 액터이므로
+ * 무토큰 개방(permitAll) 검증: 가맹점 스캐너는 로그인 계정이 없는 제3 액터이므로
  * GET /api/merchants는 무토큰으로도 실제 SecurityConfig 필터 체인을 통과해야 한다.
  */
 @ExtendWith(SpringExtension.class)
@@ -67,6 +69,19 @@ class MerchantSecurityTest {
             .andExpect(jsonPath("$.success").value(true));
     }
 
+    @Test
+    void Vite_IP_개발서버의_preflight를_허용한다() throws Exception {
+        mockMvc.perform(options("/api/auth/phone/code")
+                .header("Origin", "http://127.0.0.1:5173")
+                .header("Access-Control-Request-Method", "POST")
+                .header("Access-Control-Request-Headers", "content-type"))
+            .andExpect(status().isOk())
+            .andExpect(header().string(
+                "Access-Control-Allow-Origin",
+                "http://127.0.0.1:5173"
+            ));
+    }
+
     @Configuration
     @EnableWebMvc
     static class TestConfig {
@@ -88,7 +103,7 @@ class MerchantSecurityTest {
 
         @Bean
         public JwtTokenProvider jwtTokenProvider() {
-            // 로컬 설정값 기반 실제 JwtTokenProvider — 테스트용 시크릿을 코드에 새로 두지 않는다(B6)
+            // 로컬 설정값 기반 실제 JwtTokenProvider — 테스트용 시크릿을 코드에 새로 두지 않는다
             return DevJwtTokenFactory.jwtTokenProvider();
         }
 

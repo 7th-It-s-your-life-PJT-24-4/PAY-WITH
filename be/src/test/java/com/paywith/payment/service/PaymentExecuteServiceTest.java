@@ -159,6 +159,7 @@ class PaymentExecuteServiceTest {
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+            .hasFieldOrPropertyWithValue("code", "WALLET_001")
             .hasMessage("잔액이 부족합니다.");
         verifyNoInteractions(merchantMapper, walletMapper, transactionMapper);
     }
@@ -209,6 +210,7 @@ class PaymentExecuteServiceTest {
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+            .hasFieldOrPropertyWithValue("code", "PAY_001")
             .hasMessage("유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요.");
         verifyNoInteractions(merchantMapper, walletMapper, transactionMapper);
     }
@@ -222,6 +224,7 @@ class PaymentExecuteServiceTest {
 
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("code", "PAY_001")
             .hasMessage("유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요.");
         verify(paymentRequestMapper).markExpiredIfPending(PAYMENT_ID);
         verifyNoInteractions(merchantMapper, walletMapper, transactionMapper);
@@ -236,6 +239,7 @@ class PaymentExecuteServiceTest {
 
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("code", "PAY_001")
             .hasMessage("유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요.");
     }
 
@@ -249,6 +253,7 @@ class PaymentExecuteServiceTest {
 
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("code", "PAY_001")
             .hasMessage("유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요.");
         verifyNoInteractions(walletMapper, transactionMapper);
     }
@@ -263,6 +268,7 @@ class PaymentExecuteServiceTest {
 
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("code", "PAY_001")
             .hasMessage("유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요.");
         verifyNoInteractions(walletMapper, transactionMapper);
     }
@@ -277,6 +283,7 @@ class PaymentExecuteServiceTest {
 
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("code", "PAY_001")
             .hasMessage("유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요.");
         verify(paymentRequestMapper).markExpiredIfPending(PAYMENT_ID);
         verifyNoInteractions(walletMapper, transactionMapper);
@@ -293,6 +300,7 @@ class PaymentExecuteServiceTest {
 
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("code", "PAY_001")
             .hasMessage("유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요.");
         verifyNoInteractions(walletMapper, transactionMapper);
     }
@@ -307,6 +315,7 @@ class PaymentExecuteServiceTest {
 
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("code", "PAY_001")
             .hasMessage("유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요.");
         verifyNoInteractions(walletMapper, transactionMapper);
     }
@@ -321,6 +330,7 @@ class PaymentExecuteServiceTest {
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+            .hasFieldOrPropertyWithValue("code", "MERCHANT_001")
             .hasMessage("가맹점을 찾을 수 없습니다.");
         verify(paymentRequestMapper, never()).findByTokenForUpdate(anyString());
         verifyNoInteractions(walletMapper, transactionMapper);
@@ -337,6 +347,7 @@ class PaymentExecuteServiceTest {
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+            .hasFieldOrPropertyWithValue("code", "MERCHANT_001")
             .hasMessage("결제할 수 없는 가맹점입니다.");
         verify(paymentRequestMapper, never()).findByTokenForUpdate(anyString());
     }
@@ -355,6 +366,7 @@ class PaymentExecuteServiceTest {
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+            .hasFieldOrPropertyWithValue("code", "WALLET_001")
             .hasMessage("잔액이 부족합니다.");
         verify(paymentRequestMapper).failPayment(PAYMENT_ID, "INSUFFICIENT_BALANCE");
         verify(paymentRequestMapper, never()).completePayment(anyLong(), anyLong());

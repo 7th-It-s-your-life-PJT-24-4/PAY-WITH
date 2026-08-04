@@ -15,8 +15,12 @@ public interface TransactionMapper {
     //거래 추가 -> ChargeServiceImpl, TransferServiceImpl에서 사용
     void insertTransaction(Transaction transaction);
 
-    // 거래 상태 업데이트 (REQUESTED -> COMPLETED) TransferServiceImple에서
+    // 거래 상태 업데이트 (REQUESTED -> COMPLETED) TransferServiceImpl에서
     int updateStatus(@Param("transactionId") Long transactionId, @Param("status") String status);
+
+    // 거래 실패 시 상태 업데이트 (REQUESTED -> FAILED) 잔액 부족 등 finalize 단계 실패
+    // (HELD/APPROVED 등 다른 경로로 이미 진행된 거래는 건드리지 않음)
+    int markFailedIfRequested(@Param("transactionId") Long transactionId);
 
     // 거래 완료시 상태 업데이트
     int completeTransaction(

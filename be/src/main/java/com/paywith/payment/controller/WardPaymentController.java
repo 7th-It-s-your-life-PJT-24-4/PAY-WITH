@@ -66,7 +66,7 @@ public class WardPaymentController {
             }
             return paymentId;
         } catch (NumberFormatException exception) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "결제 요청 번호가 올바르지 않습니다.");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "PAYMENT_001", "결제 요청 번호가 올바르지 않습니다.");
         }
     }
 }

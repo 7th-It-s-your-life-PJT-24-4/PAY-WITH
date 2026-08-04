@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('비밀번호 확인 후 QR을 만들고 결제 완료 상태로 이동한다', async ({
   page,
@@ -53,7 +53,7 @@ test('비밀번호 확인 후 QR을 만들고 결제 완료 상태로 이동한�
   })
 
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/ward/home')
+  await page.goto('/ward')
   await page.getByRole('button', { name: '결제하기' }).click()
 
   await expect(
@@ -74,7 +74,7 @@ test('비밀번호 확인 후 QR을 만들고 결제 완료 상태로 이동한�
   await expect(page.getByText('스타벅스 강남점')).toBeVisible()
 
   await page.getByRole('button', { name: '홈으로' }).click()
-  await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(page).toHaveURL(/\/ward$/)
 })
 
 test('결제 실패 상태에서는 기존 QR 코드를 숨긴다', async ({ page }) => {

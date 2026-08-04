@@ -96,6 +96,22 @@ class AuthServiceTest {
         }
 
         @Test
+        @DisplayName("하이픈이 포함된 전화번호도 숫자 형식으로 조회한다")
+        void normalizesHyphenatedPhone() {
+            LoginRequest request = loginRequest();
+            request.setPhone("010-1234-5678");
+            given(userMapper.findByPhone(PHONE)).willReturn(user());
+            given(passwordEncoder.matches("raw-password", "encoded-password")).willReturn(true);
+            given(jwtTokenProvider.createAccessToken(USER_ID, PHONE)).willReturn("access-token");
+            given(jwtTokenProvider.createRefreshToken(USER_ID, PHONE)).willReturn("refresh-token");
+            given(jwtTokenProvider.getRefreshTokenValidityMs()).willReturn(REFRESH_TTL_MS);
+
+            authService.login(request);
+
+            then(userMapper).should().findByPhone(PHONE);
+        }
+
+        @Test
         @DisplayName("존재하지 않는 전화번호면 401 예외를 던진다")
         void phoneNotFound() {
             given(userMapper.findByPhone(PHONE)).willReturn(null);

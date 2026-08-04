@@ -107,6 +107,23 @@ class UserServiceTest {
         }
 
         @Test
+        @DisplayName("하이픈이 포함된 전화번호도 숫자 형식으로 인증·저장한다")
+        void normalizesHyphenatedPhone() {
+            UserCreateRequest request = createRequest("WARD");
+            request.setPhone("010-1234-5678");
+            given(userMapper.findByPhone(PHONE)).willReturn(null);
+            given(userMapper.findById(1L)).willReturn(wardUser());
+
+            userService.create(request);
+
+            ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+            then(phoneVerificationService).should().requireValidToken(TOKEN, PHONE);
+            then(userMapper).should().insert(captor.capture());
+            then(phoneVerificationService).should().invalidateToken(TOKEN, PHONE);
+            assertThat(captor.getValue().getPhone()).isEqualTo(PHONE);
+        }
+
+        @Test
         @DisplayName("verificationToken이 유효하지 않으면 가입 로직을 실행하지 않는다")
         void invalidToken_stopsBeforeCreate() {
             org.mockito.Mockito.doThrow(new BusinessException(HttpStatus.BAD_REQUEST, "PHONE_004", "휴대폰 인증이 필요합니다."))

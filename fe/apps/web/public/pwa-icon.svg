@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">PayWith</title>
+  <rect width="512" height="512" rx="112" fill="#00b1d2" />
+  <path fill="#f4f9fa" d="M128 116h118c66 0 110 39 110 101s-44 101-110 101h-45v78h-73V116Zm73 62v78h39c25 0 42-13 42-39s-17-39-42-39h-39Z" />
+  <path fill="#f4f9fa" d="m278 396 44-130h59l31 82 31-82h59l-49 130h-61l-31-78-30 78h-63Z" />
+</svg>

@@ -5,6 +5,7 @@ import com.paywith.auth.dto.PhoneCodeResponse;
 import com.paywith.auth.dto.PhoneVerifyRequest;
 import com.paywith.auth.dto.PhoneVerifyResponse;
 import com.paywith.auth.service.sms.SmsSender;
+import com.paywith.common.PhoneNumberNormalizer;
 import com.paywith.exception.BusinessException;
 import com.paywith.user.mapper.UserMapper;
 import java.security.SecureRandom;
@@ -44,7 +45,7 @@ public class PhoneVerificationService {
     }
 
     public PhoneCodeResponse sendCode(PhoneCodeRequest request) {
-        String phone = request.getPhone();
+        String phone = PhoneNumberNormalizer.normalize(request.getPhone());
         if (phone == null || !phone.matches(PHONE_PATTERN)) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "PHONE_001", "전화번호 형식이 올바르지 않습니다.");
         }
@@ -93,7 +94,7 @@ public class PhoneVerificationService {
     }
 
     public PhoneVerifyResponse verifyCode(PhoneVerifyRequest request) {
-        String phone = request.getPhone();
+        String phone = PhoneNumberNormalizer.normalize(request.getPhone());
         String code = request.getCode();
         if (phone == null || !phone.matches(PHONE_PATTERN) || code == null || !code.matches(CODE_PATTERN)) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "PHONE_001", "잘못된 형식으로 입력하였습니다.");
@@ -139,6 +140,7 @@ public class PhoneVerificationService {
     }
 
     public void requireValidToken(String token, String phone) {
+        phone = PhoneNumberNormalizer.normalize(phone);
         String savedPhone = token == null ? null : redisTemplate.opsForValue().get(tokenKey(token));
         if (savedPhone == null || !savedPhone.equals(phone)) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "PHONE_004", "휴대폰 인증이 필요합니다.");
@@ -146,6 +148,7 @@ public class PhoneVerificationService {
     }
 
     public void invalidateToken(String token, String phone) {
+        phone = PhoneNumberNormalizer.normalize(phone);
         redisTemplate.delete(tokenKey(token));
         redisTemplate.delete(tokenByPhoneKey(phone));
     }

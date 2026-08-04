@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('keeps the ward header and navigation fixed to the viewport', async ({
   page,

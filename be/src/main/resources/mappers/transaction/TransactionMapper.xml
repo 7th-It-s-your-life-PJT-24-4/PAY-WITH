@@ -35,6 +35,13 @@
         WHERE transaction_id = #{transactionId}
     </update>
 
+    <update id="markFailedIfRequested">
+        update transactions
+        set status = 'FAILED'
+        where transaction_id = #{transactionId}
+        and status = 'REQUESTED'
+    </update>
+
     <select id="findChargeHistoriesByGuardId" parameterType="Long"
             resultType="com.paywith.charge.dto.ChargeHistoryItem">
         SELECT

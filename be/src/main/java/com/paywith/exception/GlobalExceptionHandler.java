@@ -27,7 +27,8 @@ public class GlobalExceptionHandler {
             .findFirst()
             .map(error -> error.getField() + ": " + error.getDefaultMessage())
             .orElse("요청 값이 올바르지 않습니다.");
-        return ResponseEntity.badRequest().body(ApiResponse.error(message));
+        // 명세의 형식 오류 공통 코드 — 필드별 상세는 message가 전달한다
+        return ResponseEntity.badRequest().body(ApiResponse.error("REQUEST_001", message));
     }
 
     @ExceptionHandler(Exception.class)
