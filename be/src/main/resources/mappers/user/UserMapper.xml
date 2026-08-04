@@ -12,6 +12,7 @@
     <result property="name" column="name" />
     <result property="birthDate" column="birth_date" />
     <result property="gender" column="gender" />
+    <result property="avatarId" column="avatar_id" />
     <result property="pin" column="pin" />
     <result property="fcmToken" column="fcm_token" />
     <result property="status" column="status" />
@@ -20,26 +21,26 @@
   </resultMap>
 
   <select id="findAll" resultMap="UserResultMap">
-    SELECT user_id, role, phone, password, name, birth_date, gender, pin, fcm_token, status, created_at, updated_at
+    SELECT user_id, role, phone, password, name, birth_date, gender, avatar_id, pin, fcm_token, status, created_at, updated_at
     FROM users
     ORDER BY user_id DESC
   </select>
 
   <select id="findById" resultMap="UserResultMap">
-    SELECT user_id, role, phone, password, name, birth_date, gender, pin, fcm_token, status, created_at, updated_at
+    SELECT user_id, role, phone, password, name, birth_date, gender, avatar_id, pin, fcm_token, status, created_at, updated_at
     FROM users
     WHERE user_id = #{id}
   </select>
 
   <select id="findByPhone" resultMap="UserResultMap">
-    SELECT user_id, role, phone, password, name, birth_date, gender, pin, fcm_token, status, created_at, updated_at
+    SELECT user_id, role, phone, password, name, birth_date, gender, avatar_id, pin, fcm_token, status, created_at, updated_at
     FROM users
     WHERE phone = #{phone}
   </select>
 
   <insert id="insert" parameterType="com.paywith.user.domain.User" useGeneratedKeys="true" keyProperty="id" keyColumn="user_id">
-    INSERT INTO users (role, phone, password, name, birth_date, gender, pin)
-    VALUES (#{role}, #{phone}, #{password}, #{name}, #{birthDate}, #{gender}, #{pin})
+    INSERT INTO users (role, phone, password, name, birth_date, gender, avatar_id, pin)
+    VALUES (#{role}, #{phone}, #{password}, #{name}, #{birthDate}, #{gender}, #{avatarId}, #{pin})
   </insert>
 
   <update id="update" parameterType="com.paywith.user.domain.User">

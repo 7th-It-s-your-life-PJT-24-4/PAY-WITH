@@ -1,5 +1,7 @@
 package com.paywith.user.dto;
 
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
@@ -30,6 +32,10 @@ public class UserCreateRequest {
     @NotBlank
     @Pattern(regexp = "[남여]", message = "gender는 남 또는 여여야 합니다.")
     private String gender;
+
+    @Min(value = 1, message = "avatarId는 1~6 사이여야 합니다.")
+    @Max(value = 6, message = "avatarId는 1~6 사이여야 합니다.")
+    private Integer avatarId;
 
     @NotBlank(message = "결제 비밀번호는 필수입니다.")
     @Pattern(regexp = "\\d{6}", message = "결제 비밀번호는 숫자 6자리여야 합니다.")
