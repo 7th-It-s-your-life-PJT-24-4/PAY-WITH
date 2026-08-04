@@ -1,4 +1,17 @@
-import { expect, test } from './fixtures'
+import { expect, test, type Page } from './fixtures'
+
+async function submitTransferWithPin(page: Page, pin: string) {
+  await page.goto('/ward/transfer')
+  await page
+    .getByRole('button', { name: /김민수/ })
+    .first()
+    .click()
+  await page.getByRole('button', { name: '+5만원', exact: true }).click()
+  await page.getByRole('button', { name: '다음으로' }).click()
+  await page.getByRole('button', { name: '송금하기' }).click()
+  for (const digit of pin)
+    await page.getByRole('button', { name: digit, exact: true }).click()
+}
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/ward/transfers/recipient*', async (route) => {
@@ -89,6 +102,49 @@ test.beforeEach(async ({ page }) => {
             balanceAfter: null,
           },
           message: null,
+        },
+      })
+      return
+    }
+
+    if (request.transferPin === '000000') {
+      await route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        json: {
+          success: false,
+          data: null,
+          code: null,
+          message: '송금 비밀번호가 올바르지 않습니다.',
+        },
+      })
+      return
+    }
+
+    if (request.transferPin === '333333') {
+      await route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        json: {
+          success: false,
+          data: null,
+          code: null,
+          message: '송금 가능한 잔액이 부족합니다.',
+        },
+      })
+      return
+    }
+
+    if (request.transferPin === '999999') {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        json: {
+          success: false,
+          data: null,
+          code: null,
+          message:
+            '송금 처리 중 오류가 발생했습니다. 잔액을 확인 후 고객센터로 문의해주세요.',
         },
       })
       return
@@ -270,6 +326,28 @@ test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다',
 
   await page.goBack()
   await expect(page).toHaveURL(/\/ward\/transfer$/)
+})
+
+test('송금 실패 원인에 맞는 안전한 후속 행동을 제공한다', async ({ page }) => {
+  await submitTransferWithPin(page, '000000')
+  await expect(
+    page.getByText('송금 비밀번호가 올바르지 않습니다.'),
+  ).toBeVisible()
+  await page.getByRole('button', { name: '비밀번호 다시 입력' }).click()
+  await expect(page).toHaveURL(/\/ward\/transfer\/password$/)
+
+  await submitTransferWithPin(page, '333333')
+  await expect(page.getByText('송금 가능한 잔액이 부족합니다.')).toBeVisible()
+  await page.getByRole('button', { name: '충전하기' }).click()
+  await expect(page).toHaveURL(/\/ward\/charge$/)
+
+  await submitTransferWithPin(page, '999999')
+  await expect(page.getByText(/잔액을 확인 후 고객센터/)).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '비밀번호 다시 입력' }),
+  ).toBeHidden()
+  await page.getByRole('button', { name: '홈으로 이동' }).click()
+  await expect(page).toHaveURL(/\/ward$/)
 })
 
 test('이상 거래 승인 대기 중에도 새 송금을 시작할 수 있다', async ({

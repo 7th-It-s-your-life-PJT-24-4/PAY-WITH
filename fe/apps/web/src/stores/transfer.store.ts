@@ -2,7 +2,11 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getTransferBankCode } from '@/pages/ward/transfer/-utils/transfer-bank'
-import { getTransferApiError } from '@/pages/ward/transfer/-utils/transfer-api-error'
+import {
+  getTransferApiError,
+  getTransferFailureAction,
+  type TransferFailureAction,
+} from '@/pages/ward/transfer/-utils/transfer-api-error'
 import type {
   CreateTransferRequest,
   TransferResult,
@@ -60,6 +64,7 @@ export const useTransferStore = defineStore('transfer', () => {
   const bankCandidates = ref<string[]>([])
   const processingStatus = ref<TransferProcessingStatus>('idle')
   const processingError = ref('')
+  const processingFailureAction = ref<TransferFailureAction | null>(null)
   const transferIntent = ref<TransferIntent | null>(null)
   const transferResult = ref<TransferSubmissionResult | null>(null)
   const transferDetail = ref<TransferDetail | null>(null)
@@ -135,6 +140,7 @@ export const useTransferStore = defineStore('transfer', () => {
     requestStarted.value = false
     processingStatus.value = 'idle'
     processingError.value = ''
+    processingFailureAction.value = null
     return transferIntent.value
   }
 
@@ -207,6 +213,7 @@ export const useTransferStore = defineStore('transfer', () => {
     if (!transferIntent.value || !pendingPin.value) return
     processingStatus.value = 'pending'
     processingError.value = ''
+    processingFailureAction.value = null
     const intent = transferIntent.value
     try {
       const result = await execute({
@@ -235,9 +242,10 @@ export const useTransferStore = defineStore('transfer', () => {
     } catch (error) {
       const apiError = await getTransferApiError(
         error,
-        '송금을 완료하지 못했습니다.',
+        '송금 처리 결과를 확인할 수 없습니다. 다시 송금하지 말고 홈에서 거래 내역을 확인해 주세요.',
       )
-      if (apiError.status === 409 && apiError.message.includes('처리 중')) {
+      const failureAction = getTransferFailureAction(apiError)
+      if (failureAction === 'check-status') {
         processingStatus.value = 'unknown'
         return
       }
@@ -245,6 +253,7 @@ export const useTransferStore = defineStore('transfer', () => {
       requestStarted.value = false
       processingStatus.value = 'error'
       processingError.value = apiError.message
+      processingFailureAction.value = failureAction
     }
   }
 
@@ -258,11 +267,6 @@ export const useTransferStore = defineStore('transfer', () => {
   async function confirmTransferStatus(execute: TransferExecutor) {
     if (processingStatus.value !== 'unknown') return
     await executeTransfer(execute)
-  }
-
-  function restartAfterFailure(idempotencyKey = crypto.randomUUID()) {
-    transferIntent.value = null
-    createTransferIntent(idempotencyKey)
   }
 
   function appendAccountDigit(value: string) {
@@ -297,6 +301,7 @@ export const useTransferStore = defineStore('transfer', () => {
     bankCandidates.value = []
     processingStatus.value = 'idle'
     processingError.value = ''
+    processingFailureAction.value = null
     transferIntent.value = null
     transferResult.value = null
     transferDetail.value = null
@@ -315,6 +320,7 @@ export const useTransferStore = defineStore('transfer', () => {
     bankCandidates,
     processingStatus,
     processingError,
+    processingFailureAction,
     transferIntent,
     transferResult,
     transferDetail,
@@ -331,7 +337,6 @@ export const useTransferStore = defineStore('transfer', () => {
     createTransferIntent,
     beginTransfer,
     confirmTransferStatus,
-    restartAfterFailure,
     appendAccountDigit,
     removeAccountDigit,
     appendAmountDigit,

@@ -1,4 +1,5 @@
 import { createPinia, setActivePinia } from 'pinia'
+import { HTTPError } from 'ky'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useTransferStore } from '@/stores/transfer.store'
@@ -20,6 +21,14 @@ describe('transfer store', () => {
     })
     store.amount = 50_000
     return store
+  }
+
+  function createTransferError(status: number, message: string) {
+    const request = new Request('http://localhost/api/ward/transfers')
+    const response = new Response(null, { status })
+    const error = new HTTPError(response, request, {} as never)
+    error.data = { success: false, data: null, code: null, message }
+    return error
   }
 
   it('선택한 수취인의 계좌 정보를 저장한다', () => {
@@ -234,12 +243,59 @@ describe('transfer store', () => {
     expect(store.transferResult?.idempotencyKey).toBe('transfer-key')
   })
 
-  it('실패 후 재시도에는 새 요청 식별자를 사용한다', () => {
+  it('비밀번호 오류에는 기존 요청 식별자를 유지하고 비밀번호 재입력을 허용한다', async () => {
     const store = prepareTransfer()
-    store.createTransferIntent('failed-key')
+    store.createTransferIntent('pin-error-key')
 
-    store.restartAfterFailure('retry-key')
+    await store.beginTransfer(
+      '000000',
+      vi
+        .fn()
+        .mockRejectedValue(
+          createTransferError(400, '송금 비밀번호가 올바르지 않습니다.'),
+        ),
+    )
 
-    expect(store.transferIntent?.idempotencyKey).toBe('retry-key')
+    expect(store.processingStatus).toBe('error')
+    expect(store.processingFailureAction).toBe('retry-pin')
+    expect(store.transferIntent?.idempotencyKey).toBe('pin-error-key')
+    expect(store.requestStarted).toBe(false)
+  })
+
+  it('잔액 부족 오류에는 충전 행동을 제공한다', async () => {
+    const store = prepareTransfer()
+    store.createTransferIntent('balance-error-key')
+
+    await store.beginTransfer(
+      '123456',
+      vi
+        .fn()
+        .mockRejectedValue(
+          createTransferError(422, '송금 가능한 잔액이 부족합니다.'),
+        ),
+    )
+
+    expect(store.processingFailureAction).toBe('charge')
+  })
+
+  it('처리 중 실패에는 새 송금 재시도를 허용하지 않는다', async () => {
+    const store = prepareTransfer()
+    store.createTransferIntent('irrecoverable-key')
+
+    await store.beginTransfer(
+      '123456',
+      vi
+        .fn()
+        .mockRejectedValue(
+          createTransferError(
+            409,
+            '이전 요청이 처리 중 실패했습니다. 잔액을 확인 후 고객센터로 문의해주세요.',
+          ),
+        ),
+    )
+
+    expect(store.processingStatus).toBe('error')
+    expect(store.processingFailureAction).toBe('go-home')
+    expect(store.transferIntent?.idempotencyKey).toBe('irrecoverable-key')
   })
 })

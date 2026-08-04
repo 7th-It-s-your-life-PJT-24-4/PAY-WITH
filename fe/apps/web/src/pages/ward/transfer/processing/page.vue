@@ -2,7 +2,7 @@
 import { CircleAlert, CircleQuestionMark, LoaderCircle } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
 import { useMutation } from '@tanstack/vue-query'
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { createTransfer } from '@/api/transfers'
@@ -21,9 +21,29 @@ const transferMutation = useMutation({
   }) => createTransfer(request, idempotencyKey),
 })
 
-function retryPassword() {
-  transferStore.restartAfterFailure()
-  router.replace({ name: 'ward-transfer-password' })
+const failureButton = computed(() => {
+  switch (transferStore.processingFailureAction) {
+    case 'retry-pin':
+      return {
+        label: '비밀번호 다시 입력',
+        routeName: 'ward-transfer-password',
+      }
+    case 'edit-account':
+      return { label: '계좌번호 다시 입력', routeName: 'ward-transfer-account' }
+    case 'charge':
+      return { label: '충전하기', routeName: 'ward-charge' }
+    case 'restart-transfer':
+      return { label: '송금 처음부터', routeName: 'ward-transfer' }
+    default:
+      return { label: '홈으로 이동', routeName: 'ward-home' }
+  }
+})
+
+function handleFailure() {
+  const { routeName } = failureButton.value
+  if (transferStore.processingFailureAction !== 'retry-pin')
+    transferStore.reset()
+  router.replace({ name: routeName })
 }
 
 function confirmStatus() {
@@ -97,9 +117,9 @@ watch(
       </p>
       <Button
         class="mt-xl w-full"
-        label="비밀번호 다시 입력"
+        :label="failureButton.label"
         size="large"
-        @click="retryPassword"
+        @click="handleFailure"
       />
     </template>
   </div>
