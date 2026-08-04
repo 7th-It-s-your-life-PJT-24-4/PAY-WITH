@@ -27,6 +27,17 @@ public interface ApprovalRequestMapper {
         @Param("wardId") Long wardId);
 
     /**
+     * 피보호자 본인의 승인 대기 목록. 홈 화면에서 쓴다.
+     *
+     * <p>{@link #findPendingByGuardId} 와 달리 guard_senior 를 타지 않는다. 지갑 소유자가 곧
+     * 본인이라 담당 보호자를 거칠 이유가 없고, 보호자가 아직 연결되지 않았거나 연결이 해제된
+     * 상태에서도 본인 건은 보여야 한다.
+     *
+     * <p>송금(TRANSFER_OUT)만 반환한다. 결제는 승인 대기를 만드는 경로가 아직 없다.
+     */
+    List<ApprovalRequestView> findPendingByWardId(@Param("wardId") Long wardId);
+
+    /**
      * 승인 대기 건의 상세. 목록과 같은 조건(대기 중 + 미만료)을 걸어 두 조회가 "대기 중"을 같은
      * 의미로 쓴다. 담당 관계가 없어도 null 이 되어 권한 확인을 겸한다.
      */
