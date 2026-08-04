@@ -66,7 +66,6 @@ export const useTransferStore = defineStore('transfer', () => {
   const transferIntent = ref<TransferIntent | null>(null)
   const transferResult = ref<TransferSubmissionResult | null>(null)
   const transferDetail = ref<TransferDetail | null>(null)
-  const transferDetailSource = ref<'api' | 'mock' | null>(null)
   const requestStarted = ref(false)
   const pendingPin = ref('')
 
@@ -153,13 +152,9 @@ export const useTransferStore = defineStore('transfer', () => {
     return transferIntent.value
   }
 
-  function setTransferDetail(
-    detail: TransferDetail,
-    source: 'api' | 'mock' = 'mock',
-  ) {
+  function setTransferDetail(detail: TransferDetail) {
     transferDetail.value = detail
-    transferDetailSource.value = source
-    if (source === 'api' && typeof sessionStorage !== 'undefined')
+    if (typeof sessionStorage !== 'undefined')
       sessionStorage.setItem(
         transferResultStorageKey(detail.transactionId),
         JSON.stringify(detail),
@@ -178,7 +173,6 @@ export const useTransferStore = defineStore('transfer', () => {
         return null
       }
       transferDetail.value = parsed.data
-      transferDetailSource.value = 'api'
       return transferDetail.value
     } catch {
       sessionStorage.removeItem(key)
@@ -240,7 +234,7 @@ export const useTransferStore = defineStore('transfer', () => {
         status: result.status,
         idempotencyKey: intent.idempotencyKey,
       }
-      setTransferDetail(createTransferDetail(result), 'api')
+      setTransferDetail(createTransferDetail(result))
       pendingPin.value = ''
       if (result.status === 'HELD') {
         processingStatus.value = 'held'
@@ -314,7 +308,6 @@ export const useTransferStore = defineStore('transfer', () => {
     transferIntent.value = null
     transferResult.value = null
     transferDetail.value = null
-    transferDetailSource.value = null
     requestStarted.value = false
     pendingPin.value = ''
   }
@@ -333,7 +326,6 @@ export const useTransferStore = defineStore('transfer', () => {
     transferIntent,
     transferResult,
     transferDetail,
-    transferDetailSource,
     requestStarted,
     remainingBalance,
     isAmountOverBalance,
