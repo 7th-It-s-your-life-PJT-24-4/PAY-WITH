@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { Button } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
-import { computed } from 'vue'
+import { HTTPError } from 'ky'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { wardApprovalDetailOptions } from '@/lib/query/ward/home'
+import { getApiErrorMessage } from '@/api/error'
 import TransferHeldView from '@/pages/ward/transfer/-components/TransferHeldView.vue'
 import { formatTransferDateTime } from '@/pages/ward/transfer/-utils/transfer-status-route'
 
@@ -15,6 +17,12 @@ const approvalId = computed(() => {
   return Number.isSafeInteger(value) && value > 0 ? value : null
 })
 const approvalQuery = useQuery(wardApprovalDetailOptions(approvalId))
+const errorMessage = ref('')
+const approvalNotFound = computed(
+  () =>
+    approvalQuery.error.value instanceof HTTPError &&
+    approvalQuery.error.value.response.status === 404,
+)
 const formatMoney = (value: number) =>
   `${new Intl.NumberFormat('ko-KR').format(value)}원`
 const detailRows = computed(() => {
@@ -44,11 +52,39 @@ const detailRows = computed(() => {
     },
   ]
 })
+
+watch(
+  () => approvalQuery.error.value,
+  async (error) => {
+    errorMessage.value =
+      error && !approvalNotFound.value
+        ? await getApiErrorMessage(
+            error,
+            '승인 대기 거래를 불러오지 못했습니다.',
+          )
+        : ''
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
+  <section
+    v-if="approvalId === null"
+    class="flex min-h-64 flex-col items-center justify-center rounded-large border border-border bg-surface-card p-xl text-center shadow-card"
+    role="alert"
+  >
+    <h1 class="type-h3 text-body">올바르지 않은 승인 요청 번호입니다</h1>
+    <Button
+      class="mt-xl w-full"
+      label="홈으로 돌아가기"
+      size="large"
+      @click="router.replace({ name: 'ward-home' })"
+    />
+  </section>
+
   <div
-    v-if="approvalQuery.isPending.value"
+    v-else-if="approvalQuery.isPending.value"
     class="flex min-h-64 items-center justify-center"
     aria-busy="true"
   >
@@ -56,7 +92,7 @@ const detailRows = computed(() => {
   </div>
 
   <section
-    v-else-if="approvalQuery.isError.value || !approvalQuery.data.value"
+    v-else-if="approvalNotFound"
     class="flex min-h-64 flex-col items-center justify-center rounded-large border border-border bg-surface-card p-xl text-center shadow-card"
     role="alert"
   >
@@ -70,6 +106,35 @@ const detailRows = computed(() => {
       size="large"
       @click="router.replace({ name: 'ward-home' })"
     />
+  </section>
+
+  <section
+    v-else-if="approvalQuery.isError.value || !approvalQuery.data.value"
+    class="flex min-h-64 flex-col items-center justify-center rounded-large border border-border bg-surface-card p-xl text-center shadow-card"
+    role="alert"
+  >
+    <h1 class="type-h3 text-body">승인 대기 거래를 불러오지 못했습니다</h1>
+    <p class="type-body-medium mt-xs text-body-muted">{{ errorMessage }}</p>
+    <div class="mt-xl grid w-full gap-md">
+      <Button
+        class="w-full"
+        :label="
+          approvalQuery.isFetching.value
+            ? '다시 확인하고 있습니다'
+            : '다시 시도'
+        "
+        size="large"
+        :disabled="approvalQuery.isFetching.value"
+        @click="approvalQuery.refetch()"
+      />
+      <Button
+        class="w-full"
+        label="홈으로 돌아가기"
+        variant="outline-primary"
+        size="large"
+        @click="router.replace({ name: 'ward-home' })"
+      />
+    </div>
   </section>
 
   <TransferHeldView

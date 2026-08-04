@@ -108,4 +108,42 @@ test('홈의 승인 대기 송금을 approvalId로 상세 조회한다', async (
   await expect(
     safetyGuide.getByRole('button', { name: '보호자에게 연락하기' }),
   ).toBeVisible()
+  await expect(page.getByRole('button', { name: '거래 취소하기' })).toBeHidden()
+  await expect(page.getByText('보호자에게 연락해 주세요')).toBeVisible()
+})
+
+test('잘못된 승인 요청 번호를 홈으로 안내한다', async ({ page }) => {
+  await page.goto('/ward/approval-requests/invalid')
+
+  await expect(
+    page.getByRole('heading', { name: '올바르지 않은 승인 요청 번호입니다' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '홈으로 돌아가기' }),
+  ).toBeVisible()
+})
+
+test('승인 상세 일시 오류에는 재시도를 제공한다', async ({ page }) => {
+  await page.unroute('**/api/ward/approval-requests/7')
+  await page.route('**/api/ward/approval-requests/7', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      json: {
+        success: false,
+        data: null,
+        code: 'INTERNAL_ERROR',
+        message: '일시적으로 거래를 조회할 수 없습니다.',
+      },
+    })
+  })
+
+  await page.goto('/ward/approval-requests/7')
+
+  await expect(
+    page.getByRole('heading', {
+      name: '승인 대기 거래를 불러오지 못했습니다',
+    }),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: '다시 시도' })).toBeVisible()
 })

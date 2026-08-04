@@ -10,6 +10,5 @@ export function wardWalletOptions() {
   return queryOptions({
     queryKey: wardWalletKeys.all,
     queryFn: getWardWallet,
-    staleTime: 30_000,
   })
 }

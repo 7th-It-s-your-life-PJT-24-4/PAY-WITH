@@ -73,8 +73,14 @@ const isGuardianCallModalOpen = ref(false)
         <div>
           <h3 class="type-h4">PayWith 안전 가이드</h3>
           <p class="type-body-medium mt-xxs">
-            보호자가 등록한 안전 범위를 벗어난 송금입니다. 잘 모르는 거래라면
-            취소하는 것이 안전합니다.
+            <template v-if="canCancel">
+              보호자가 등록한 안전 범위를 벗어난 송금입니다. 잘 모르는 거래라면
+              취소하는 것이 안전합니다.
+            </template>
+            <template v-else>
+              보호자가 거래 내용을 확인하고 있습니다. 궁금한 점이 있다면
+              보호자에게 연락해 주세요.
+            </template>
           </p>
         </div>
       </div>

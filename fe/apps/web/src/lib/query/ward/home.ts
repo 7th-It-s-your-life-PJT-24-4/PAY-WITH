@@ -1,4 +1,5 @@
 import { queryOptions } from '@tanstack/vue-query'
+import { HTTPError } from 'ky'
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
 import { getWardApprovalDetail, getWardHome } from '@/api/home'
@@ -26,5 +27,11 @@ export function wardApprovalDetailOptions(
     queryKey: computed(() => wardHomeKeys.approval(resolvedApprovalId.value)),
     queryFn: () => getWardApprovalDetail(resolvedApprovalId.value!),
     enabled: computed(() => resolvedApprovalId.value !== null),
+    retry: (failureCount, error) =>
+      error instanceof HTTPError && error.response.status === 404
+        ? false
+        : failureCount < 1,
+    refetchInterval: (query) => (query.state.error ? false : 3_000),
+    refetchOnWindowFocus: true,
   })
 }
