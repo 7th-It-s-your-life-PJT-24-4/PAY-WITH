@@ -1,10 +1,10 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('keeps the ward header and navigation fixed to the viewport', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/ward/home')
+  await page.goto('/ward')
 
   const navigation = page.getByRole('navigation', {
     name: '시니어 주요 기능',
@@ -41,7 +41,7 @@ test('keeps the ward header and navigation fixed to the viewport', async ({
 
 test('보호자 승인 대기 거래를 상세 화면에서 확인한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/ward/home')
+  await page.goto('/ward')
 
   const pendingSection = page.getByRole('region', {
     name: '보호자 승인을 기다리고 있어요',
@@ -75,7 +75,7 @@ test('보호자 승인 대기 거래를 상세 화면에서 확인한다', async
   await expect(cancelDialog).toBeVisible()
   await cancelDialog.getByRole('button', { name: '결제 취소하기' }).click()
 
-  await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(page).toHaveURL(/\/ward$/)
   await expect(
     page.getByRole('button', {
       name: '결제 우리동네마트 32,000원 상세 확인',

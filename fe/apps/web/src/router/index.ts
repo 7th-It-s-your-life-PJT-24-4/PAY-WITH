@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+import { getUserIdFromAccessToken, tokenStorage } from '@/api/token-storage'
+import { getUser } from '@/api/users'
 import SignInPage from '@/pages/auth/sign-in/page.vue'
-import KakaoCallbackPage from '@/pages/auth/kakao/callback/page.vue'
 import SignUpPage from '@/pages/auth/sign-up/page.vue'
 import SignUpDetailsPage from '@/pages/auth/sign-up/details/page.vue'
 import SignUpTermsPage from '@/pages/auth/sign-up/terms/page.vue'
@@ -67,6 +68,7 @@ import {
   requireTransferIntent,
   requireTransferRecipient,
 } from '@/pages/ward/transfer/-utils/transfer-route-guard'
+import { getRoleHomePath } from '@/router/auth-navigation'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -75,11 +77,6 @@ const router = createRouter({
       path: '/auth/sign-in',
       name: 'auth-sign-in',
       component: SignInPage,
-    },
-    {
-      path: '/auth/kakao/callback',
-      name: 'auth-kakao-callback',
-      component: KakaoCallbackPage,
     },
     {
       path: '/auth/sign-up',
@@ -467,9 +464,30 @@ const router = createRouter({
     },
     {
       path: '/',
-      redirect: '/ward',
+      redirect: '/auth/sign-in',
     },
   ],
+})
+
+router.beforeEach(async (to) => {
+  const isAuthRoute = to.path.startsWith('/auth')
+  const accessToken = tokenStorage.getAccessToken()
+  const userId = accessToken ? getUserIdFromAccessToken(accessToken) : null
+
+  if (!userId) {
+    tokenStorage.clearTokens()
+    return isAuthRoute ? true : { name: 'auth-sign-in' }
+  }
+
+  if (!isAuthRoute) return true
+
+  try {
+    const user = await getUser(userId)
+    return getRoleHomePath(user.role)
+  } catch {
+    tokenStorage.clearTokens()
+    return to.name === 'auth-sign-in' ? true : { name: 'auth-sign-in' }
+  }
 })
 
 export default router

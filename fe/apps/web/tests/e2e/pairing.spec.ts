@@ -1,8 +1,8 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('보호자가 직접 접속해 인증 코드를 생성하고 복사한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 820 })
-  await page.goto('/ward/home')
+  await page.goto('/ward')
   await page.evaluate(() => {
     globalThis.history.pushState({}, '', '/guard/pairing/code')
     globalThis.dispatchEvent(new PopStateEvent('popstate'))
@@ -25,7 +25,7 @@ test('미연결 시니어가 보호자 코드를 입력하고 연결을 완료�
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 854 })
-  await page.goto('/ward/home?pairing=unpaired')
+  await page.goto('/ward?pairing=unpaired')
 
   await page.getByRole('button', { name: '보호자와 연결하기' }).click()
   await expect(page).toHaveURL(/\/ward\/pairing$/)
@@ -46,7 +46,7 @@ test('미연결 시니어가 보호자 코드를 입력하고 연결을 완료�
   await expect(page.getByText('김철수 보호자님')).toBeVisible()
 
   await page.getByRole('button', { name: '홈으로' }).click()
-  await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(page).toHaveURL(/\/ward$/)
   await expect(
     page.getByRole('button', { name: '보호자와 연결하기' }),
   ).toBeHidden()

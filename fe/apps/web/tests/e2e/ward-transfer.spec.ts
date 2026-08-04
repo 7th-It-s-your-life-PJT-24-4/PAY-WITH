@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('모달이 열려도 고정 헤더와 하단 내비게이션 위치를 유지한다', async ({
   page,
@@ -76,7 +76,7 @@ test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ 
 
 test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/ward/home')
+  await page.goto('/ward')
 
   await page.getByRole('button', { name: '송금하기' }).click()
   await expect(
@@ -115,7 +115,7 @@ test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다',
   await expect(page.getByText('김민수')).toBeVisible()
 
   await page.goBack()
-  await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(page).toHaveURL(/\/ward$/)
   await expect(page.getByRole('heading', { name: 'PayWith' })).toBeVisible()
   await expect(page.getByText('안전하게 송금하고 있습니다')).toBeHidden()
 
@@ -168,7 +168,7 @@ test('이상 거래 승인 대기 중에도 새 송금을 시작할 수 있다',
   await page.getByRole('button', { name: '거래 유지하기' }).click()
 
   await page.getByRole('button', { name: '뒤로 가기' }).click()
-  await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(page).toHaveURL(/\/ward$/)
 
   await page.getByRole('button', { name: '송금하기' }).click()
   await expect(page).toHaveURL(/\/ward\/transfer$/)
@@ -182,7 +182,7 @@ test('승인 대기 거래를 유지하고 홈에서 기다린다', async ({ pag
 
   await page.getByRole('button', { name: '홈에서 기다리기' }).click()
 
-  await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(page).toHaveURL(/\/ward$/)
   await expect(
     page.getByRole('button', {
       name: '송금 김민수 님에게 50,000원 상세 확인',
@@ -228,7 +228,7 @@ test('승인 대기 거래를 취소하고 홈으로 이동한다', async ({ pag
   await expect(dialog).toBeVisible()
   await dialog.getByRole('button', { name: '거래 취소하기' }).click()
 
-  await expect(page).toHaveURL(/\/ward\/home$/)
+  await expect(page).toHaveURL(/\/ward$/)
   await expect(page.getByRole('heading', { name: 'PayWith' })).toBeVisible()
 })
 

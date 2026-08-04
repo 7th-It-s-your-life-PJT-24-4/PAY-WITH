@@ -1,19 +1,48 @@
 <script setup lang="ts">
 import { Eye, EyeOff, LockKeyhole, Phone } from '@lucide/vue'
-import kakaoLogoUrl from '@pay-with/ui/svg/kakao-logo.svg'
 import { computed, ref, useId } from 'vue'
+import { useRouter } from 'vue-router'
 
-import { startKakaoLogin } from '@/composables/useKakaoLogin'
+import { getApiErrorMessage } from '@/api/error'
+import { getUserIdFromAccessToken } from '@/api/token-storage'
+import { getUser } from '@/api/users'
+import { useLoginMutation } from '@/composables/useLoginMutation'
 
 const phoneNumber = ref('')
 const password = ref('')
 const isPasswordVisible = ref(false)
+const formError = ref('')
 
+const router = useRouter()
+const loginMutation = useLoginMutation()
 const phoneInputId = useId()
 const passwordInputId = useId()
 const passwordInputType = computed(() =>
   isPasswordVisible.value ? 'text' : 'password',
 )
+
+async function submitLogin() {
+  formError.value = ''
+
+  try {
+    const token = await loginMutation.mutateAsync({
+      phone: phoneNumber.value,
+      password: password.value,
+    })
+    const userId = getUserIdFromAccessToken(token.accessToken)
+    if (!userId) {
+      throw new Error('로그인 사용자 정보를 확인할 수 없습니다.')
+    }
+
+    const user = await getUser(userId)
+    await router.replace(user.role === 'GUARD' ? '/guard' : '/ward')
+  } catch (error) {
+    formError.value = await getApiErrorMessage(
+      error,
+      '전화번호 또는 비밀번호를 다시 확인해 주세요.',
+    )
+  }
+}
 </script>
 
 <template>
@@ -70,7 +99,7 @@ const passwordInputType = computed(() =>
         </div>
       </header>
 
-      <form class="flex w-full flex-col gap-5" @submit.prevent>
+      <form class="flex w-full flex-col gap-5" @submit.prevent="submitLogin">
         <div class="flex flex-col gap-1">
           <label
             :for="phoneInputId"
@@ -145,9 +174,14 @@ const passwordInputType = computed(() =>
         <button
           class="h-14 w-full rounded-lg bg-[#00b1d2] text-base font-semibold tracking-[-0.32px] text-[#f4f9fa] shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)] transition-colors hover:bg-[#009ab7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00b1d2]"
           type="submit"
+          :disabled="loginMutation.isPending.value"
         >
-          로그인
+          {{ loginMutation.isPending.value ? '로그인 중...' : '로그인' }}
         </button>
+
+        <p v-if="formError" class="text-center text-sm text-error" role="alert">
+          {{ formError }}
+        </p>
 
         <nav aria-label="계정 도움말" class="flex justify-center">
           <RouterLink
@@ -157,26 +191,6 @@ const passwordInputType = computed(() =>
           >
         </nav>
       </form>
-
-      <section
-        class="mt-8 w-full border-t border-[#dfe6ec] pt-6"
-        aria-labelledby="social-login-title"
-      >
-        <p
-          id="social-login-title"
-          class="text-center text-xs font-medium leading-[18px] text-[#5c6770]"
-        >
-          다른 방법으로 로그인
-        </p>
-        <button
-          aria-label="카카오로 로그인"
-          class="mx-auto mt-4 flex size-12 items-center justify-center rounded-full bg-[#FEE500] text-[#000000] transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00b1d2]"
-          type="button"
-          @click="startKakaoLogin"
-        >
-          <img alt="" class="size-6" :src="kakaoLogoUrl" />
-        </button>
-      </section>
     </section>
   </main>
 </template>
