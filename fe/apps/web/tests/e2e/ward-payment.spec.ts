@@ -53,8 +53,7 @@ test('비밀번호 확인 후 QR을 만들고 결제 완료 상태로 이동한�
   })
 
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/ward')
-  await page.getByRole('button', { name: '결제하기' }).click()
+  await page.goto('/ward/payment')
 
   await expect(
     page.getByRole('heading', { name: '비밀번호 입력' }),
@@ -77,7 +76,7 @@ test('비밀번호 확인 후 QR을 만들고 결제 완료 상태로 이동한�
   await expect(page).toHaveURL(/\/ward$/)
 })
 
-test('결제 실패 상태에서는 기존 QR 코드를 숨긴다', async ({ page }) => {
+test('결제 실패 상태에서는 실패 페이지로 이동한다', async ({ page }) => {
   await page.route('**/api/ward/payments', async (route) => {
     if (route.request().method() !== 'POST') return route.fallback()
 
@@ -125,10 +124,11 @@ test('결제 실패 상태에서는 기존 QR 코드를 숨긴다', async ({ pag
     await page.getByRole('button', { name: digit, exact: true }).click()
   }
 
-  await expect(page).toHaveURL(/\/ward\/payment\/qr\/43$/)
+  await expect(page).toHaveURL(/\/ward\/payment\/failed\/43$/)
+  await expect(
+    page.getByRole('heading', { name: '결제가 실패했습니다' }),
+  ).toBeVisible()
   await expect(page.getByText('결제 가능한 잔액이 부족합니다.')).toBeVisible()
   await expect(page.getByLabel('결제 QR 코드')).toHaveCount(0)
-  await expect(
-    page.getByRole('button', { name: 'QR 코드 재발급' }),
-  ).toBeVisible()
+  await expect(page.getByRole('button', { name: '홈으로' })).toBeVisible()
 })
