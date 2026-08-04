@@ -1,8 +1,21 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import { getMockPendingTransactions } from '@/mocks/pending-transaction.mock'
 import WardPendingTransactionList from '@/pages/ward/-components/WardPendingTransactionList.vue'
+import type { PendingApprovalItem } from '@/schemas/home.schema'
+
+const transaction: PendingApprovalItem = {
+  approvalId: 7,
+  transactionId: 74,
+  type: 'TRANSFER_OUT',
+  amount: 50_000,
+  holderName: '김민수',
+  bankName: '국민은행',
+  accountNo: '43210201234567',
+  riskLevel: 'CAUTION',
+  requestedAt: '2026-08-04T10:00:00',
+  expiredAt: '2026-08-04T10:10:00',
+}
 
 describe('WardPendingTransactionList', () => {
   it('대기 거래가 없으면 표시하지 않는다', () => {
@@ -13,18 +26,18 @@ describe('WardPendingTransactionList', () => {
     expect(wrapper.find('section').exists()).toBe(false)
   })
 
-  it('송금과 결제 거래를 구분해 표시하고 선택한 거래를 전달한다', async () => {
-    const transactions = getMockPendingTransactions()
+  it('승인 대기 송금을 표시하고 선택한 거래를 전달한다', async () => {
+    const transactions = [transaction]
     const wrapper = mount(WardPendingTransactionList, {
       props: { transactions },
     })
 
     expect(wrapper.text()).toContain('송금')
-    expect(wrapper.text()).toContain('결제')
-    expect(wrapper.text()).toContain('우리동네마트')
+    expect(wrapper.text()).toContain('김민수')
+    expect(wrapper.text()).not.toContain('결제')
 
-    await wrapper.findAll('button')[1]?.trigger('click')
+    await wrapper.get('button').trigger('click')
 
-    expect(wrapper.emitted('select')?.[0]).toEqual([transactions[1]])
+    expect(wrapper.emitted('select')?.[0]).toEqual([transaction])
   })
 })

@@ -21,7 +21,7 @@ export function getMockPendingTransactions(): PendingTransaction[] {
   const transfer = getMockHeldTransfers().at(0)
   const pendingTransactions: PendingTransaction[] = []
 
-  if (transfer) {
+  if (transfer?.expiredAt) {
     pendingTransactions.push({
       transactionId: transfer.transactionId,
       type: 'TRANSFER',

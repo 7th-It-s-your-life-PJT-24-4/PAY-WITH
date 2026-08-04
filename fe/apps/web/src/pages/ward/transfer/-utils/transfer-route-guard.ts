@@ -7,6 +7,9 @@ import type { TransferStatus } from '@/types/transfer'
 
 const transferStart = { name: 'ward-transfer' }
 
+// TODO(transfer-detail-api): sessionStorage에 없는 거래는 상세 조회 API가
+// 제공될 때 실제 응답으로 복구하고, 그전까지 시연용 mock을 유지한다.
+
 export const isValidTransferAccountNumber = (accountNumber: string) =>
   /^\d{8,16}$/.test(accountNumber)
 
@@ -49,10 +52,16 @@ function requireTransferStatus(...allowedStatuses: TransferStatus[]) {
     const transactionId = getTransactionId(to.params.transactionId)
     if (!transactionId) return transferStart
 
+    const store = useTransferStore()
+    const currentDetail =
+      store.transferDetail?.transactionId === transactionId
+        ? store.transferDetail
+        : store.restoreTransferDetail(transactionId)
+
     try {
-      const detail = await getMockTransferDetail(transactionId)
-      const store = useTransferStore()
-      store.setTransferDetail(detail)
+      const detail =
+        currentDetail ?? (await getMockTransferDetail(transactionId))
+      if (!currentDetail) store.setTransferDetail(detail, 'mock')
       if (allowedStatuses.includes(detail.status)) return true
 
       return (
@@ -70,3 +79,6 @@ export const requireCompletedTransfer = requireTransferStatus('COMPLETED')
 export const requireHeldTransfer = requireTransferStatus('HELD')
 export const requireRejectedTransfer = requireTransferStatus('REJECTED')
 export const requirePendingTransfer = requireTransferStatus('HELD')
+export const requireCanceledTransfer = requireTransferStatus('CANCELED')
+export const requireExpiredTransfer = requireTransferStatus('EXPIRED')
+export const requireFailedTransfer = requireTransferStatus('FAILED')

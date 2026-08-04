@@ -3,5 +3,5 @@ import TransferResultPage from '@/pages/ward/transfer/-components/TransferResult
 </script>
 
 <template>
-  <TransferResultPage status="COMPLETED" />
+  <TransferResultPage status="FAILED" />
 </template>

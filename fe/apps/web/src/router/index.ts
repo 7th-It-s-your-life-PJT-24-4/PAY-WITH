@@ -24,6 +24,7 @@ import GuardSafeAccountConfirmPage from '@/pages/guard/safe-account/confirm/page
 import GuardSafeAccountPage from '@/pages/guard/safe-account/page.vue'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete/page.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
+import WardApprovalRequestDetailPage from '@/pages/ward/approval-requests/[approvalId]/page.vue'
 import { requireCompletedPairing } from '@/pages/ward/pairing/-utils/pairing-route-guard'
 import WardChargeAccountAddPage from '@/pages/ward/charge/account/add/page.vue'
 import WardChargeAccountCompletePage from '@/pages/ward/charge/account/complete/page.vue'
@@ -45,8 +46,11 @@ import {
 import WardTransferAccountPage from '@/pages/ward/transfer/account/page.vue'
 import WardTransferAmountPage from '@/pages/ward/transfer/amount/page.vue'
 import WardTransferBankPage from '@/pages/ward/transfer/bank/page.vue'
+import WardTransferCanceledPage from '@/pages/ward/transfer/[transactionId]/canceled/page.vue'
 import WardTransferCompletePage from '@/pages/ward/transfer/[transactionId]/complete/page.vue'
 import WardTransferConfirmPage from '@/pages/ward/transfer/confirm/page.vue'
+import WardTransferExpiredPage from '@/pages/ward/transfer/[transactionId]/expired/page.vue'
+import WardTransferFailedPage from '@/pages/ward/transfer/[transactionId]/failed/page.vue'
 import WardTransferHeldPage from '@/pages/ward/transfer/[transactionId]/held/page.vue'
 import WardTransferPage from '@/pages/ward/transfer/page.vue'
 import WardTransferPasswordPage from '@/pages/ward/transfer/password/page.vue'
@@ -59,7 +63,10 @@ import {
   requireNewChargeAccount,
 } from '@/pages/ward/charge/-utils/charge-route-guard'
 import {
+  requireCanceledTransfer,
   requireCompletedTransfer,
+  requireExpiredTransfer,
+  requireFailedTransfer,
   requireHeldTransfer,
   requirePendingTransfer,
   requireProcessingTransfer,
@@ -231,6 +238,17 @@ const router = createRouter({
           meta: {
             title: '인증 코드 입력',
             activeNavigation: 'payment',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
+        },
+        {
+          path: 'approval-requests/:approvalId',
+          name: 'ward-approval-request-detail',
+          component: WardApprovalRequestDetailPage,
+          meta: {
+            title: '승인 대기 송금',
+            activeNavigation: 'home',
             showBottomNavigation: false,
             backRouteName: 'ward-home',
           },
@@ -461,6 +479,39 @@ const router = createRouter({
           beforeEnter: requireCompletedTransfer,
           meta: {
             title: '송금 완료',
+            activeNavigation: 'transfer',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'transfer/:transactionId/expired',
+          name: 'ward-transfer-expired',
+          component: WardTransferExpiredPage,
+          beforeEnter: requireExpiredTransfer,
+          meta: {
+            title: '송금 만료',
+            activeNavigation: 'transfer',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'transfer/:transactionId/failed',
+          name: 'ward-transfer-failed',
+          component: WardTransferFailedPage,
+          beforeEnter: requireFailedTransfer,
+          meta: {
+            title: '송금 실패',
+            activeNavigation: 'transfer',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'transfer/:transactionId/canceled',
+          name: 'ward-transfer-canceled',
+          component: WardTransferCanceledPage,
+          beforeEnter: requireCanceledTransfer,
+          meta: {
+            title: '송금 취소',
             activeNavigation: 'transfer',
             showBottomNavigation: false,
           },

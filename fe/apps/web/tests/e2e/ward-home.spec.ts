@@ -1,10 +1,71 @@
 import { expect, test } from './fixtures'
 
-test('keeps the ward header and navigation fixed to the viewport', async ({
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/ward/home', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          userName: '김시니어',
+          wallet: {
+            walletId: 9207,
+            balance: 500_000,
+            updatedAt: '2026-08-04T10:00:00',
+          },
+          pendingApprovalCount: 1,
+          pendingApprovals: [
+            {
+              approvalId: 7,
+              transactionId: 74,
+              type: 'TRANSFER_OUT',
+              amount: 50_000,
+              holderName: '김민수',
+              bankName: '국민은행',
+              accountNo: '43210201234567',
+              riskLevel: 'CAUTION',
+              requestedAt: '2026-08-04T10:00:00',
+              expiredAt: '2026-08-04T10:10:00',
+            },
+          ],
+        },
+        message: null,
+      },
+    })
+  })
+
+  await page.route('**/api/ward/approval-requests/7', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          approvalId: 7,
+          transactionId: 74,
+          type: 'TRANSFER_OUT',
+          amount: 50_000,
+          memo: '생활비',
+          holderName: '김민수',
+          bankName: '국민은행',
+          accountNo: '43210201234567',
+          riskLevel: 'CAUTION',
+          requestedAt: '2026-08-04T10:00:00',
+          expiredAt: '2026-08-04T10:10:00',
+        },
+        message: null,
+      },
+    })
+  })
+})
+
+test('홈 API의 이름과 잔액을 표시하고 고정 내비게이션을 유지한다', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/ward')
+
+  await expect(page.getByText('김시니어')).toBeVisible()
+  await expect(page.getByText('500,000')).toBeVisible()
 
   const navigation = page.getByRole('navigation', {
     name: '시니어 주요 기능',
@@ -20,7 +81,6 @@ test('keeps the ward header and navigation fixed to the viewport', async ({
     name: '홈',
     exact: true,
   })
-
   await expect(header).toBeVisible()
   await expect(page.getByRole('button', { name: '뒤로 가기' })).toBeHidden()
   await expect(navigation).toBeVisible()
@@ -53,46 +113,67 @@ test('keeps the ward header and navigation fixed to the viewport', async ({
   await expect(paymentLabel).toHaveCSS('color', 'rgb(0, 0, 0)')
 })
 
-test('보호자 승인 대기 거래를 상세 화면에서 확인한다', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
+test('홈의 승인 대기 송금을 approvalId로 상세 조회한다', async ({ page }) => {
   await page.goto('/ward')
 
-  const pendingSection = page.getByRole('region', {
-    name: '보호자 승인을 기다리고 있어요',
+  const pendingTransfer = page.getByRole('button', {
+    name: '송금 김민수 님에게 50,000원 상세 확인',
   })
-  await expect(pendingSection).toBeVisible()
+  await expect(pendingTransfer).toBeVisible()
   await expect(
-    pendingSection.getByText('확인이 필요한 거래 2건이 있습니다.'),
-  ).toBeVisible()
-
-  const pendingPayment = pendingSection.getByRole('button', {
-    name: '결제 우리동네마트 32,000원 상세 확인',
-  })
-  await expect(pendingPayment.getByText('32,000원')).toBeVisible()
-  await pendingPayment.click()
-
-  await expect(page).toHaveURL(/\/ward\/payment\/held\/81$/)
-  await expect(
-    page.getByRole('heading', { name: '결제 승인을 기다리고 있어요' }),
-  ).toBeVisible()
-
-  await page.getByRole('button', { name: '보호자에게 연락하기' }).click()
-  await expect(
-    page.getByRole('dialog', { name: '보호자에게 전화할까요?' }),
-  ).toBeVisible()
-  await page.getByRole('button', { name: '취소', exact: true }).click()
-
-  await page.getByRole('button', { name: '결제 취소하기' }).click()
-  const cancelDialog = page.getByRole('dialog', {
-    name: '대기 중인 결제를 취소할까요?',
-  })
-  await expect(cancelDialog).toBeVisible()
-  await cancelDialog.getByRole('button', { name: '결제 취소하기' }).click()
-
-  await expect(page).toHaveURL(/\/ward$/)
-  await expect(
-    page.getByRole('button', {
-      name: '결제 우리동네마트 32,000원 상세 확인',
-    }),
+    page
+      .getByRole('region', { name: '보호자 승인을 기다리고 있어요' })
+      .getByText('결제', { exact: true }),
   ).toBeHidden()
+  await pendingTransfer.click()
+
+  await expect(page).toHaveURL(/\/ward\/approval-requests\/7$/)
+  await expect(
+    page.getByRole('heading', { name: '잠깐 확인해 보세요!' }),
+  ).toBeVisible()
+  await expect(page.getByText('생활비')).toBeVisible()
+  const safetyGuide = page.locator('section').filter({
+    has: page.getByRole('heading', { name: 'PayWith 안전 가이드' }),
+  })
+  await expect(
+    safetyGuide.getByRole('button', { name: '보호자에게 연락하기' }),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: '거래 취소하기' })).toBeHidden()
+  await expect(page.getByText('보호자에게 연락해 주세요')).toBeVisible()
+})
+
+test('잘못된 승인 요청 번호를 홈으로 안내한다', async ({ page }) => {
+  await page.goto('/ward/approval-requests/invalid')
+
+  await expect(
+    page.getByRole('heading', { name: '올바르지 않은 승인 요청 번호입니다' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '홈으로 돌아가기' }),
+  ).toBeVisible()
+})
+
+test('승인 상세 일시 오류에는 재시도를 제공한다', async ({ page }) => {
+  await page.unroute('**/api/ward/approval-requests/7')
+  await page.route('**/api/ward/approval-requests/7', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      json: {
+        success: false,
+        data: null,
+        code: 'INTERNAL_ERROR',
+        message: '일시적으로 거래를 조회할 수 없습니다.',
+      },
+    })
+  })
+
+  await page.goto('/ward/approval-requests/7')
+
+  await expect(
+    page.getByRole('heading', {
+      name: '승인 대기 거래를 불러오지 못했습니다',
+    }),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: '다시 시도' })).toBeVisible()
 })

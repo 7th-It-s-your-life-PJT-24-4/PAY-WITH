@@ -11,6 +11,9 @@ import { useTransferStore } from '@/stores/transfer.store'
 
 const pollingInterval = 3_000
 
+// TODO(transfer-detail-api): 피보호자 거래 상세 조회·취소 API가 제공되면
+// mock 조회와 수동 polling을 TanStack Query 기반 실제 연동으로 교체한다.
+
 export function useTransferStatus(
   transactionId: MaybeRefOrGetter<number>,
   options: { pollWhileHeld?: boolean } = {},
@@ -28,6 +31,7 @@ export function useTransferStatus(
     const detail = transferStore.transferDetail
     return detail?.transactionId === toValue(transactionId) ? detail : null
   })
+  const canCancel = computed(() => transferStore.transferDetailSource !== 'api')
 
   function stopPolling() {
     if (pollingTimer !== undefined) globalThis.clearTimeout(pollingTimer)
@@ -50,6 +54,7 @@ export function useTransferStatus(
     if (
       disposed ||
       !options.pollWhileHeld ||
+      transferStore.transferDetailSource === 'api' ||
       transferDetail.value?.status !== 'HELD'
     )
       return
@@ -61,6 +66,9 @@ export function useTransferStatus(
   }
 
   async function refresh() {
+    if (transferStore.transferDetailSource === 'api' && transferDetail.value)
+      return transferDetail.value
+
     isLoading.value = true
     errorMessage.value = ''
     try {
@@ -81,6 +89,11 @@ export function useTransferStatus(
 
   async function cancel() {
     if (isCancelling.value) return null
+    if (!canCancel.value) {
+      errorMessage.value =
+        '송금 취소 기능은 준비 중입니다. 보호자에게 연락해 주세요.'
+      return null
+    }
     isCancelling.value = true
     errorMessage.value = ''
     stopPolling()
@@ -124,6 +137,7 @@ export function useTransferStatus(
 
   return {
     transferDetail,
+    canCancel,
     isLoading,
     isCancelling,
     errorMessage,
