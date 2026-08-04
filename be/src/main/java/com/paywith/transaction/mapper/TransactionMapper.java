@@ -3,6 +3,7 @@ package com.paywith.transaction.mapper;
 import com.paywith.charge.dto.ChargeDetailResponse;
 import com.paywith.charge.dto.ChargeHistoryItem;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transaction.dto.TransactionHistoryItem;
 import com.paywith.transfer.dto.TransferExecutionContext;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -42,5 +43,20 @@ public interface TransactionMapper {
             @Param("guardId") Long guardId
     );
 
+    // 피보호자 본인의 거래 내역 목록
+    List<TransactionHistoryItem> findMyTransactions(
+            @Param("wardId") Long wardId,
+            @Param("type") String type,
+            @Param("keyword") String keyword,
+            @Param("offset") int offset,
+            @Param("size") int size
+    );
+
+    // 피보호자 목록 조회 총 건 count
+    int countMyTransactions(
+            @Param("wardId") Long wardId,
+            @Param("type") String type,
+            @Param("keyword") String keyword
+    );
 
 }

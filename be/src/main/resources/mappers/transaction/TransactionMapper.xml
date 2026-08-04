@@ -116,5 +116,60 @@
         JOIN banks b       ON r.bank_code = b.bank_code
         WHERE t.transaction_id = #{transactionId}
     </select>
+    <select id="findMyTransactions" resultType="com.paywith.transaction.dto.TransactionHistoryItem">
+        SELECT
+        t.transaction_id AS transactionId,
+        CASE WHEN t.type = 'TRANSFER_OUT' THEN 'TRANSFER' ELSE t.type END AS type,
+        CASE WHEN t.type = 'CHARGE' THEN 'IN' ELSE 'OUT' END AS direction,
+        CASE t.type
+        WHEN 'CHARGE' THEN b.bank_name
+        WHEN 'PAYMENT' THEN m.name
+        WHEN 'TRANSFER_OUT' THEN r.holder_name
+        END AS title,
+        t.amount AS amount,
+        t.status AS status,
+        re.risk_level AS riskLevel,
+        t.created_at AS occurredAt
+        FROM transactions t
+        JOIN wallets w ON w.wallet_id = t.wallet_id
+        LEFT JOIN recipients r ON r.recipient_id = t.recipient_id
+        LEFT JOIN merchants m ON m.merchant_id = t.merchant_id
+        LEFT JOIN linked_accounts la ON la.account_id = t.account_id
+        LEFT JOIN banks b ON b.bank_code = la.bank_code
+        LEFT JOIN risk_evaluations re ON re.transaction_id = t.transaction_id
+        WHERE w.user_id = #{wardId}
+        <if test="type != null">
+            AND t.type = #{type}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (
+            COALESCE(r.holder_name, m.name, b.bank_name) LIKE CONCAT('%', #{keyword}, '%')
+            OR CAST(t.amount AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        ORDER BY t.created_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countMyTransactions" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM transactions t
+        JOIN wallets w ON w.wallet_id = t.wallet_id
+        LEFT JOIN recipients r ON r.recipient_id = t.recipient_id
+        LEFT JOIN merchants m ON m.merchant_id = t.merchant_id
+        LEFT JOIN linked_accounts la ON la.account_id = t.account_id
+        LEFT JOIN banks b ON b.bank_code = la.bank_code
+        WHERE w.user_id = #{wardId}
+        <if test="type != null">
+            AND t.type = #{type}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (
+            COALESCE(r.holder_name, m.name, b.bank_name) LIKE CONCAT('%', #{keyword}, '%')
+            OR CAST(t.amount AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+    </select>
+
 
 </mapper>
