@@ -23,6 +23,12 @@ public class ApprovalRequestView {
     private Long wardId;
     private String wardName;
 
+    /**
+     * 거래 종류(transactions.type). 현재 승인 대기는 송금(TRANSFER_OUT)에서만 생성되지만,
+     * 결제 승인 경로가 생기면 화면이 종류를 구분해야 하므로 조회 시점부터 들고 있는다.
+     */
+    private String type;
+
     private BigDecimal amount;
     private String memo;
 
