@@ -7,7 +7,7 @@
 -- (2026-07-31 스키마 정합: users.birth_date·gender NOT NULL 추가 반영)
 -- 적용 방법 (Docker MySQL 기동 상태에서, 저장소 루트 기준):
 --   docker compose -f be/docker-compose.yml exec -T mysql \
---     mysql -upaywith -ppaywith pay_with < be/src/test/resources/db/dev-payment-seed.sql
+--     mysql -upaywith -ppaywith paywith < be/src/test/resources/db/dev-payment-seed.sql
 -- 주의: users.password는 로그인에 쓰지 않는 더미 값(B6는 JWT 직접 발급으로 로그인을 우회).
 --       users.pin은 결제 비밀번호 검증(A7)에 실제 사용 — 개발용 PIN은 "123456" (BCrypt 해시 저장).
 --       (2026-07-30 스키마 이전: pin 저장 위치 wallets.pin → users.pin, role SENIOR → WARD)

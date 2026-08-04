@@ -22,7 +22,7 @@
 --
 -- 적용 (저장소 루트 기준, MySQL 기동 상태에서):
 --   docker compose -f be/docker-compose.yml exec -T mysql \
---     mysql --default-character-set=utf8mb4 -upaywith -ppaywith pay_with \
+--     mysql --default-character-set=utf8mb4 -upaywith -ppaywith paywith \
 --     < be/src/test/resources/db/dev-approval-seed.sql
 --
 -- 로그인: POST /api/auth/login 에 phone + password 로 요청한다. 개발용 비밀번호는 모두 "123456"

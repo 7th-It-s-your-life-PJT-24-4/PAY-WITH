@@ -15,14 +15,17 @@ services:
       context: ../be
     restart: unless-stopped
     depends_on:
-      mysql:
-        condition: service_healthy
       redis:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
       TZ: Asia/Seoul
-      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      # DB 는 RDS 를 쓴다. sslMode 로 전송 구간을 암호화하므로 allowPublicKeyRetrieval 은
+      # 필요 없다(TLS 없이 서버 공개키를 평문으로 받아오는 옵션). useSSL 은 Connector/J
+      # 8.0.13 부터 deprecated 라 쓰지 않는다.
+      # REQUIRED 는 암호화만 강제하고 서버 인증서는 검증하지 않는다. 검증까지 하려면
+      # VERIFY_IDENTITY 로 올리고 RDS CA 번들을 트러스트스토어에 넣어야 한다.
+      DB_URL: "jdbc:mysql://${RDS_ENDPOINT}:3306/${MYSQL_DATABASE}?sslMode=REQUIRED&serverTimezone=Asia/Seoul&characterEncoding=UTF-8"
       DB_USERNAME: ${MYSQL_USER}
       DB_PASSWORD: ${MYSQL_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
@@ -31,25 +34,6 @@ services:
       PAIRING_INVITE_BASE_URL: ${PAIRING_INVITE_BASE_URL}
     expose:
       - '8080'
-
-  mysql:
-    image: mysql:8.4
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      TZ: Asia/Seoul
-    volumes:
-      - mysql-data:/var/lib/mysql
-      - ../be/src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-      - ../be/src/main/resources/db/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
-    healthcheck:
-      test: ['CMD-SHELL', 'mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD']
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -64,5 +48,4 @@ services:
       retries: 10
 
 volumes:
-  mysql-data:
   redis-data:
