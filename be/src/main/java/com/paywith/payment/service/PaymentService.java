@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PaymentService {
 
-    /** users.role — A5 확정으로 API·DB 모두 'WARD' (2026-07-30 스키마 반영, 매핑 불필요) */
+    /** users.role — 역할명 ward 통일 확정으로 API·DB 모두 'WARD' (2026-07-30 스키마 반영, 매핑 불필요) */
     private static final String DB_ROLE_WARD = "WARD";
     private static final String WALLET_STATUS_LOCKED = "LOCKED";
     private static final String FAILURE_CODE_INSUFFICIENT_BALANCE = "INSUFFICIENT_BALANCE";
@@ -49,7 +49,7 @@ public class PaymentService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /** QR 생성 — 검증(역할→페어링→지갑→비밀번호) 통과 후 토큰 생성 → INSERT → Redis SET 순서(A2) */
+    /** QR 생성 — 검증(역할→페어링→지갑→비밀번호) 통과 후 토큰 생성 → INSERT → Redis SET 순서(최종 기준인 DB에 먼저 기록) */
     @Transactional
     public QrCreateResponse createQr(Long userId, String pin) {
         requireWardRole(userId);
@@ -65,7 +65,7 @@ public class PaymentService {
         if (WALLET_STATUS_LOCKED.equals(wallet.getStatus())) {
             throw new BusinessException(HttpStatus.CONFLICT, "WALLET_002", "현재 거래가 제한된 지갑입니다.");
         }
-        // 결제 비밀번호 = 송금 비밀번호와 동일한 users.pin(BCrypt) — QR 표시 전 본인 확인(A7)
+        // 결제 비밀번호 = 송금 비밀번호와 동일한 users.pin(BCrypt) — QR 표시 전 본인 확인
         if (!passwordEncoder.matches(pin, wallet.getPin())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "PAYMENT_005", "결제 비밀번호가 올바르지 않습니다.");
         }
