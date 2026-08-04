@@ -73,6 +73,7 @@ export const useTransferStore = defineStore('transfer', () => {
   const pendingPin = ref('')
 
   const remainingBalance = computed(() => balance.value - amount.value)
+  const isAmountOverBalance = computed(() => remainingBalance.value < 0)
   const canTransfer = computed(
     () =>
       recipient.value !== null &&
@@ -279,11 +280,11 @@ export const useTransferStore = defineStore('transfer', () => {
 
   function appendAmountDigit(value: string) {
     const next = Number(`${amount.value || ''}${value}`)
-    amount.value = Math.min(next, balance.value)
+    amount.value = next
   }
 
   function addAmount(value: number) {
-    amount.value = Math.min(amount.value + value, balance.value)
+    amount.value += value
   }
 
   function removeAmountDigit() {
@@ -327,6 +328,7 @@ export const useTransferStore = defineStore('transfer', () => {
     transferDetailSource,
     requestStarted,
     remainingBalance,
+    isAmountOverBalance,
     canTransfer,
     setTransferDetail,
     restoreTransferDetail,

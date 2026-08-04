@@ -351,6 +351,32 @@ test('송금 실패 원인에 맞는 안전한 후속 행동을 제공한다', a
   await expect(page).toHaveURL(/\/ward$/)
 })
 
+test('잔액 초과 금액을 유지하고 수정 안내를 표시한다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/ward/transfer')
+
+  await page
+    .getByRole('button', { name: /김민수/ })
+    .first()
+    .click()
+
+  for (const digit of '2000000') {
+    await page.getByRole('button', { name: digit, exact: true }).click()
+  }
+
+  await expect(page.getByText('2,000,000')).toBeVisible()
+  await expect(
+    page.getByText('잔액을 초과했어요. 최대 1,250,000원까지 송금할 수 있어요.'),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: '다음으로' })).toBeDisabled()
+
+  await page.getByRole('button', { name: '한 글자 지우기' }).click()
+
+  await expect(page.getByText('200,000')).toBeVisible()
+  await expect(page.getByRole('alert')).toBeHidden()
+  await expect(page.getByRole('button', { name: '다음으로' })).toBeEnabled()
+})
+
 test('이상 거래 승인 대기 중에도 새 송금을 시작할 수 있다', async ({
   page,
 }) => {

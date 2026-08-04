@@ -46,7 +46,7 @@ describe('transfer store', () => {
     expect(store.accountNumber).toBe('432102-01-234567')
   })
 
-  it('잔액을 초과하지 않는 범위에서 송금 금액을 계산한다', () => {
+  it('빠른 금액 입력이 잔액을 초과해도 입력값을 유지한다', () => {
     const store = useTransferStore()
 
     store.selectRecipient({
@@ -63,8 +63,19 @@ describe('transfer store', () => {
 
     store.addAmount(2_000_000)
 
-    expect(store.amount).toBe(store.balance)
-    expect(store.remainingBalance).toBe(0)
+    expect(store.amount).toBe(2_050_000)
+    expect(store.remainingBalance).toBe(-800_000)
+    expect(store.isAmountOverBalance).toBe(true)
+    expect(store.canTransfer).toBe(false)
+  })
+
+  it('키패드 입력이 잔액을 초과해도 입력값을 유지한다', () => {
+    const store = useTransferStore()
+
+    for (const digit of '2000000') store.appendAmountDigit(digit)
+
+    expect(store.amount).toBe(2_000_000)
+    expect(store.isAmountOverBalance).toBe(true)
   })
 
   it('송금 상태를 초기값으로 되돌린다', () => {
