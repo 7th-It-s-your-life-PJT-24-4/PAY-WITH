@@ -66,6 +66,7 @@ public class UserService {
         user.setName(request.getName());
         user.setBirthDate(parseBirthDate(request.getBirthDate()));
         user.setGender(request.getGender());
+        user.setAvatarId(request.getAvatarId() != null ? request.getAvatarId() : 1);
         user.setPin(passwordEncoder.encode(request.getPaymentPassword()));
         userMapper.insert(user);
 

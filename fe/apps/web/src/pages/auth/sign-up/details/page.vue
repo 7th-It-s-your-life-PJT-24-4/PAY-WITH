@@ -1,74 +1,177 @@
 <script setup lang="ts">
-import { Camera, Check, ChevronRight, Eye, EyeOff, Plus } from '@lucide/vue'
+import { Check, ChevronDown, ChevronRight, Eye, EyeOff } from '@lucide/vue'
 import { AppHeader, Button, Input } from '@pay-with/ui'
-import { CheckboxIndicator, CheckboxRoot } from 'reka-ui'
-import { computed, ref, useId } from 'vue'
+import { useMutation } from '@tanstack/vue-query'
+import {
+  CheckboxIndicator,
+  CheckboxRoot,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectPortal,
+  SelectRoot,
+  SelectTrigger,
+  SelectValue,
+  SelectViewport,
+} from 'reka-ui'
+import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 
 import {
-  kakaoSignUpDetailsSchema,
   signUpDetailsSchema,
   type SignUpDetailsForm,
 } from '@/schemas/sign-up.schema'
+import { getApiErrorMessage } from '@/api/error'
+import { sendPhoneCode, verifyPhoneCode } from '@/api/auth'
+import {
+  phoneCodeRequestSchema,
+  phoneVerifyRequestSchema,
+} from '@/schemas/auth.schema'
 import { signUpTerms, type SignUpTermId } from '@/constants/sign-up-terms'
+import { useCreateUserMutation } from '@/composables/useCreateUserMutation'
+import { useLoginMutation } from '@/composables/useLoginMutation'
 import { usePairingStore } from '@/stores/pairing.store'
 import { useSignUpStore } from '@/stores/sign-up.store'
 
 const router = useRouter()
 const signUpStore = useSignUpStore()
 const pairingStore = usePairingStore()
-const isKakaoSignUp = computed(() => signUpStore.signUpMethod === 'kakao')
-const profileImageUrl = ref<string | null>(
-  signUpStore.kakaoProfile?.profileImageUrl ?? null,
-)
-const profileImageInput = ref<{ click: () => void } | null>(null)
 const isPasswordVisible = ref(false)
+const isAvatarModalOpen = ref(false)
+const pendingAvatarId = ref<number | null>(null)
 const formError = ref('')
+const phoneRequestError = ref('')
+const phoneVerificationCode = ref('')
+const phoneVerificationMessage = ref('')
+const phoneCodeRequested = ref(false)
+const phoneCodeExpiresAt = ref<number | null>(null)
+const remainingPhoneCodeSeconds = ref(0)
+let phoneCodeTimer: ReturnType<typeof globalThis.setInterval> | undefined
+let signUpDraftTimer: ReturnType<typeof globalThis.setTimeout> | undefined
+let shouldPersistSignUpDraft = true
+const SIGN_UP_DRAFT_SAVE_DELAY = 300
 const paymentPasswordInputIds = Array.from({ length: 6 }, () => useId())
+const sendPhoneCodeMutation = useMutation({ mutationFn: sendPhoneCode })
+const verifyPhoneCodeMutation = useMutation({ mutationFn: verifyPhoneCode })
+const createUserMutation = useCreateUserMutation()
+const loginMutation = useLoginMutation()
 
-const { defineField, setErrors } = useForm<SignUpDetailsForm>({
-  initialValues: signUpStore.details ?? {
-    fullName: signUpStore.kakaoProfile?.name ?? '',
+const initialDetails = signUpStore.draft ??
+  signUpStore.details ?? {
+    fullName: '',
     phoneNumber: '',
+    birthDate: '',
+    gender: undefined,
+    avatarId: null,
     loginPassword: '',
     paymentPassword: '',
     serviceTerms: false,
     privacyTerms: false,
     identifierTerms: false,
+  }
+const savedPhoneVerification = signUpStore.phoneVerification
+const verificationToken = ref<string | null>(
+  savedPhoneVerification?.phone ===
+    initialDetails.phoneNumber.replace(/\D/g, '')
+    ? savedPhoneVerification.verificationToken
+    : null,
+)
+
+const { defineField, errors, setErrors } = useForm<SignUpDetailsForm>({
+  initialValues: {
+    ...initialDetails,
+    birthDate: formatBirthDate(initialDetails.birthDate),
   },
 })
 
 const [fullName] = defineField('fullName')
 const [phoneNumber] = defineField('phoneNumber')
+const [birthDate] = defineField('birthDate')
+const [gender] = defineField('gender')
+const [avatarId] = defineField('avatarId')
 const [loginPassword] = defineField('loginPassword')
 const [paymentPassword] = defineField('paymentPassword')
 const [serviceTerms] = defineField('serviceTerms')
 const [privacyTerms] = defineField('privacyTerms')
 const [identifierTerms] = defineField('identifierTerms')
 
+function saveSignUpDraft() {
+  if (!shouldPersistSignUpDraft) return
+
+  signUpStore.setDraft({
+    fullName: fullName.value,
+    phoneNumber: phoneNumber.value,
+    birthDate: birthDate.value,
+    gender: gender.value,
+    avatarId: avatarId.value,
+    loginPassword: loginPassword.value,
+    paymentPassword: paymentPassword.value,
+    serviceTerms: serviceTerms.value,
+    privacyTerms: privacyTerms.value,
+    identifierTerms: identifierTerms.value,
+  })
+}
+
+function clearSignUpDraftTimer() {
+  if (!signUpDraftTimer) return
+
+  globalThis.clearTimeout(signUpDraftTimer)
+  signUpDraftTimer = undefined
+}
+
+function scheduleSignUpDraftSave() {
+  clearSignUpDraftTimer()
+  signUpDraftTimer = globalThis.setTimeout(() => {
+    signUpDraftTimer = undefined
+    saveSignUpDraft()
+  }, SIGN_UP_DRAFT_SAVE_DELAY)
+}
+
+function flushSignUpDraftSave() {
+  clearSignUpDraftTimer()
+  saveSignUpDraft()
+}
+
+watch(
+  [
+    fullName,
+    phoneNumber,
+    birthDate,
+    gender,
+    avatarId,
+    loginPassword,
+    paymentPassword,
+    serviceTerms,
+    privacyTerms,
+    identifierTerms,
+  ],
+  scheduleSignUpDraftSave,
+)
+
 const requiredTermsAgreed = computed(
   () => serviceTerms.value && privacyTerms.value && identifierTerms.value,
 )
 const allTermsAgreed = computed(() => requiredTermsAgreed.value)
-const activeDetailsSchema = computed(() =>
-  isKakaoSignUp.value ? kakaoSignUpDetailsSchema : signUpDetailsSchema,
-)
 const isReadyToSubmit = computed(() => {
-  const hasValidPhoneNumber = /^01[016789]-?\d{3,4}-?\d{4}$/.test(
-    phoneNumber.value,
-  )
-  const hasValidLoginPassword =
-    loginPassword.value.length >= 8 &&
-    /[A-Za-z]/.test(loginPassword.value) &&
-    /\d/.test(loginPassword.value)
+  const result = signUpDetailsSchema.safeParse({
+    fullName: fullName.value,
+    phoneNumber: phoneNumber.value,
+    birthDate: birthDate.value,
+    gender: gender.value,
+    avatarId: avatarId.value,
+    loginPassword: loginPassword.value,
+    paymentPassword: paymentPassword.value,
+    serviceTerms: serviceTerms.value,
+    privacyTerms: privacyTerms.value,
+    identifierTerms: identifierTerms.value,
+  })
 
   return (
-    fullName.value.trim().length > 0 &&
-    (isKakaoSignUp.value || hasValidPhoneNumber) &&
-    hasValidLoginPassword &&
-    /^\d{6}$/.test(paymentPassword.value) &&
-    requiredTermsAgreed.value
+    result.success &&
+    verificationToken.value !== null &&
+    signUpStore.role !== null
   )
 })
 
@@ -81,7 +184,71 @@ function formatPhoneNumber(value: string) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
 }
 
+function formatBirthDate(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 8)
+
+  if (digits.length <= 4) return digits
+  if (digits.length <= 6) return `${digits.slice(0, 4)}.${digits.slice(4)}`
+
+  return `${digits.slice(0, 4)}.${digits.slice(4, 6)}.${digits.slice(6)}`
+}
+
+function updateBirthDate(value: string) {
+  birthDate.value = formatBirthDate(value)
+}
+
+function updatePhoneVerificationCode(value: string) {
+  phoneVerificationCode.value = value.replace(/\D/g, '').slice(0, 6)
+}
+
+function clearPhoneCodeTimer() {
+  if (phoneCodeTimer) globalThis.clearInterval(phoneCodeTimer)
+  phoneCodeTimer = undefined
+  phoneCodeExpiresAt.value = null
+  remainingPhoneCodeSeconds.value = 0
+}
+
+function updatePhoneCodeTimer() {
+  if (!phoneCodeExpiresAt.value) return
+
+  remainingPhoneCodeSeconds.value = Math.max(
+    0,
+    Math.ceil((phoneCodeExpiresAt.value - Date.now()) / 1000),
+  )
+
+  if (remainingPhoneCodeSeconds.value === 0) {
+    clearPhoneCodeTimer()
+    if (!verificationToken.value) {
+      phoneVerificationMessage.value =
+        '인증 시간이 만료되었습니다. 인증번호를 재요청해 주세요.'
+    }
+  }
+}
+
+function startPhoneCodeTimer(expireIn: number) {
+  clearPhoneCodeTimer()
+  phoneCodeExpiresAt.value = Date.now() + expireIn * 1000
+  updatePhoneCodeTimer()
+  phoneCodeTimer = globalThis.setInterval(updatePhoneCodeTimer, 1000)
+}
+
+const phoneCodeTimerLabel = computed(() => {
+  const minutes = Math.floor(remainingPhoneCodeSeconds.value / 60)
+  const seconds = String(remainingPhoneCodeSeconds.value % 60).padStart(2, '0')
+
+  return `${minutes}:${seconds}`
+})
+
 function updatePhoneNumber(value: string) {
+  if (phoneNumber.value !== formatPhoneNumber(value)) {
+    verificationToken.value = null
+    signUpStore.clearPhoneVerification()
+    phoneVerificationCode.value = ''
+    phoneVerificationMessage.value = ''
+    phoneRequestError.value = ''
+    phoneCodeRequested.value = false
+    clearPhoneCodeTimer()
+  }
   phoneNumber.value = formatPhoneNumber(value)
 }
 
@@ -99,24 +266,8 @@ function updatePhoneNumberFromEvent(event: unknown) {
   updatePhoneNumber(inputValueFromEvent(event))
 }
 
-function selectProfileImage() {
-  profileImageInput.value?.click()
-}
-
-function updateProfileImage(event: unknown) {
-  if (typeof event !== 'object' || event === null) return
-
-  const target = Reflect.get(event, 'target')
-  if (typeof target !== 'object' || target === null) return
-
-  const files = Reflect.get(target, 'files')
-  if (typeof files !== 'object' || files === null) return
-
-  const image = Reflect.get(files, '0')
-
-  if (!(image instanceof globalThis.Blob)) return
-
-  profileImageUrl.value = globalThis.URL.createObjectURL(image)
+function updateBirthDateFromEvent(event: unknown) {
+  updateBirthDate(inputValueFromEvent(event))
 }
 
 function toggleAllTerms(value: boolean | 'indeterminate') {
@@ -164,14 +315,102 @@ function updatePaymentPasswordFromEvent(index: number, event: unknown) {
   updatePaymentPassword(index, inputValueFromEvent(event))
 }
 
+function handlePaymentPasswordKeydown(
+  index: number,
+  event: globalThis.KeyboardEvent,
+) {
+  if (event.key !== 'Backspace' || index === 0) return
+
+  event.preventDefault()
+  if (paymentDigit(index)) updatePaymentPassword(index, '')
+  globalThis.document
+    .getElementById(paymentPasswordInputIds[index - 1])
+    ?.focus()
+}
+
 function paymentDigit(index: number) {
   return paymentPassword.value[index] ?? ''
 }
 
-function submitSignUp() {
-  const result = activeDetailsSchema.value.safeParse({
+async function requestPhoneCode() {
+  formError.value = ''
+  phoneRequestError.value = ''
+  phoneVerificationMessage.value = ''
+  verificationToken.value = null
+  signUpStore.clearPhoneVerification()
+
+  const result = phoneCodeRequestSchema.safeParse({
+    phone: phoneNumber.value,
+    purpose: 'SIGNUP',
+  })
+  if (!result.success) {
+    const message =
+      result.error.issues[0]?.message ?? '휴대폰 번호를 확인해 주세요.'
+    setErrors({ phoneNumber: message })
+    phoneRequestError.value = message
+    return
+  }
+
+  try {
+    const response = await sendPhoneCodeMutation.mutateAsync(result.data)
+    phoneCodeRequested.value = true
+    phoneVerificationCode.value = ''
+    startPhoneCodeTimer(response.expireIn)
+    phoneVerificationMessage.value =
+      '인증번호를 발송했어요. 제한 시간 안에 입력해 주세요.'
+  } catch (error) {
+    phoneRequestError.value = await getApiErrorMessage(
+      error,
+      '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+    )
+  }
+}
+
+async function confirmPhoneCode() {
+  formError.value = ''
+  const result = phoneVerifyRequestSchema.safeParse({
+    phone: phoneNumber.value,
+    code: phoneVerificationCode.value,
+  })
+  if (!result.success) {
+    formError.value =
+      result.error.issues[0]?.message ?? '인증번호를 확인해 주세요.'
+    return
+  }
+
+  if (remainingPhoneCodeSeconds.value === 0) {
+    formError.value = '인증 시간이 만료되었습니다. 인증번호를 재요청해 주세요.'
+    return
+  }
+
+  try {
+    const response = await verifyPhoneCodeMutation.mutateAsync(result.data)
+    verificationToken.value = response.verificationToken
+    signUpStore.setPhoneVerification({
+      phone: result.data.phone,
+      verificationToken: response.verificationToken,
+    })
+    clearPhoneCodeTimer()
+    phoneVerificationMessage.value = '인증 완료했어요.'
+  } catch (error) {
+    formError.value = await getApiErrorMessage(
+      error,
+      '인증번호를 다시 확인해 주세요.',
+    )
+  }
+}
+
+onBeforeUnmount(() => {
+  flushSignUpDraftSave()
+  clearPhoneCodeTimer()
+})
+
+async function submitSignUp() {
+  const result = signUpDetailsSchema.safeParse({
     fullName: fullName.value,
     phoneNumber: phoneNumber.value,
+    birthDate: birthDate.value,
+    gender: gender.value,
     loginPassword: loginPassword.value,
     paymentPassword: paymentPassword.value,
     serviceTerms: serviceTerms.value,
@@ -190,12 +429,72 @@ function submitSignUp() {
     return
   }
 
-  signUpStore.setDetails(result.data)
-  formError.value = ''
-  if (signUpStore.role === 'senior') pairingStore.reset()
-  router.push({
-    name: signUpStore.role === 'guardian' ? 'guard-pairing-code' : 'ward-home',
-  })
+  if (!verificationToken.value || !signUpStore.role) {
+    formError.value =
+      verificationToken.value === null
+        ? '휴대폰 인증을 완료해 주세요.'
+        : '가입 유형을 다시 선택해 주세요.'
+    return
+  }
+
+  const role = signUpStore.role === 'senior' ? 'WARD' : 'GUARD'
+
+  let isUserCreated = false
+
+  try {
+    await createUserMutation.mutateAsync({
+      role,
+      phone: result.data.phoneNumber,
+      password: result.data.loginPassword,
+      name: result.data.fullName,
+      birthDate: result.data.birthDate,
+      gender: result.data.gender,
+      avatarId: result.data.avatarId,
+      paymentPassword: result.data.paymentPassword,
+      verificationToken: verificationToken.value,
+    })
+    isUserCreated = true
+    await loginMutation.mutateAsync({
+      phone: result.data.phoneNumber,
+      password: result.data.loginPassword,
+    })
+
+    shouldPersistSignUpDraft = false
+    clearSignUpDraftTimer()
+    signUpStore.setDetails(result.data)
+    signUpStore.clearDraft()
+    signUpStore.clearPhoneVerification()
+    formError.value = ''
+    if (signUpStore.role === 'senior') pairingStore.reset()
+    await router.replace(signUpStore.role === 'guardian' ? '/guard' : '/ward')
+  } catch (error) {
+    if (isUserCreated) {
+      shouldPersistSignUpDraft = false
+      clearSignUpDraftTimer()
+      signUpStore.clearDraft()
+      signUpStore.clearPhoneVerification()
+      await router.replace({
+        name: 'auth-sign-in',
+        query: { signup: 'completed' },
+      })
+      return
+    }
+
+    formError.value = await getApiErrorMessage(
+      error,
+      '회원가입에 실패했습니다. 입력 정보를 다시 확인해 주세요.',
+    )
+  }
+}
+
+function openAvatarModal() {
+  pendingAvatarId.value = avatarId.value ?? null
+  isAvatarModalOpen.value = true
+}
+
+function confirmAvatar() {
+  avatarId.value = pendingAvatarId.value
+  isAvatarModalOpen.value = false
 }
 </script>
 
@@ -220,6 +519,36 @@ function submitSignUp() {
           </p>
         </section>
 
+        <section>
+          <p class="type-h4 text-body">프로필 이미지</p>
+          <p class="type-body mt-xs text-body-muted">
+            나를 표현할 아바타를 선택해 주세요.
+          </p>
+          <button
+            class="mt-md flex items-center gap-md"
+            type="button"
+            @click="openAvatarModal"
+          >
+            <img
+              v-if="avatarId"
+              :src="`/images/avatar/avatar${avatarId}.png`"
+              alt="선택한 프로필 아바타"
+              class="size-16 rounded-full object-cover"
+            />
+            <span
+              v-else
+              class="flex size-16 items-center justify-center rounded-full bg-disabled text-body-muted"
+              >선택</span
+            >
+            <span class="type-body-medium text-primary-500"
+              >아바타 선택하기</span
+            >
+          </button>
+        </section>
+
+        <!--
+          프로필 사진은 현재 백엔드 사용자 스키마와 회원가입 API에 저장 필드가 없어
+          저장 기능이 구현될 때까지 노출하지 않는다.
         <section>
           <p class="type-h4 text-body">프로필 이미지</p>
           <p class="type-body mt-xs text-body-muted">
@@ -268,15 +597,115 @@ function submitSignUp() {
             />
           </div>
         </section>
+        -->
 
         <div class="flex flex-col gap-xl">
           <Input
             v-model="fullName"
+            :error="errors.fullName"
+            :maxlength="30"
+            autocomplete="name"
             label="성함 (실명)"
             placeholder="성함을 입력하세요"
           />
 
-          <section v-if="!isKakaoSignUp" class="flex flex-col gap-sm">
+          <section class="flex flex-col gap-sm">
+            <label class="type-h4 text-body" for="sign-up-birth-date"
+              >생년월일</label
+            >
+            <input
+              id="sign-up-birth-date"
+              :value="birthDate"
+              autocomplete="bday"
+              class="h-[52px] w-full rounded-medium border border-border-strong bg-surface-card px-md text-[16px] font-normal leading-[1.2] tracking-[-0.32px] text-body outline-none placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
+              inputmode="numeric"
+              maxlength="10"
+              pattern="\d{4}\.\d{2}\.\d{2}"
+              placeholder="YYYY.MM.DD"
+              type="text"
+              :aria-invalid="errors.birthDate ? 'true' : undefined"
+              :aria-describedby="
+                errors.birthDate ? 'sign-up-birth-date-error' : undefined
+              "
+              @input="updateBirthDateFromEvent($event)"
+            />
+            <p
+              v-if="errors.birthDate"
+              id="sign-up-birth-date-error"
+              class="type-caption text-error"
+            >
+              {{ errors.birthDate }}
+            </p>
+          </section>
+
+          <section class="flex flex-col gap-sm">
+            <label id="sign-up-gender-label" class="type-h4 text-body"
+              >성별</label
+            >
+            <SelectRoot v-model="gender">
+              <SelectTrigger
+                aria-labelledby="sign-up-gender-label"
+                :aria-invalid="errors.gender ? 'true' : undefined"
+                class="group flex h-[52px] w-full items-center gap-sm rounded-medium border border-border-strong bg-surface-card px-md text-left text-[14px] font-medium leading-[1.2] tracking-[-0.28px] text-body outline-none transition-colors data-[placeholder]:text-body-muted data-[state=open]:border-primary-500 focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus/20"
+              >
+                <SelectValue
+                  class="min-w-0 flex-1"
+                  placeholder="성별을 선택해 주세요"
+                />
+                <ChevronDown
+                  class="size-xl shrink-0 text-body-muted transition-transform group-data-[state=open]:rotate-180"
+                  aria-hidden="true"
+                />
+              </SelectTrigger>
+
+              <SelectPortal>
+                <SelectContent
+                  class="z-50 w-[var(--reka-select-trigger-width)] overflow-hidden rounded-large border border-border bg-surface-card p-sm shadow-modal"
+                  position="popper"
+                  :side-offset="8"
+                  align="start"
+                >
+                  <SelectViewport class="flex flex-col gap-xs">
+                    <SelectItem
+                      class="group/item relative flex min-h-touch-target cursor-pointer select-none items-center rounded-medium px-md py-sm outline-none data-[highlighted]:bg-primary-900 data-[state=checked]:text-primary-500"
+                      value="남"
+                    >
+                      <SelectItemText class="flex-1 text-[14px] font-medium"
+                        >남성</SelectItemText
+                      >
+                      <SelectItemIndicator class="text-primary-500">
+                        <Check
+                          class="size-xl"
+                          :stroke-width="2.5"
+                          aria-hidden="true"
+                        />
+                      </SelectItemIndicator>
+                    </SelectItem>
+                    <SelectItem
+                      class="group/item relative flex min-h-touch-target cursor-pointer select-none items-center rounded-medium px-md py-sm outline-none data-[highlighted]:bg-primary-900 data-[state=checked]:text-primary-500"
+                      value="여"
+                    >
+                      <SelectItemText class="flex-1 text-[14px] font-medium"
+                        >여성</SelectItemText
+                      >
+                      <SelectItemIndicator class="text-primary-500">
+                        <Check
+                          class="size-xl"
+                          :stroke-width="2.5"
+                          aria-hidden="true"
+                        />
+                      </SelectItemIndicator>
+                    </SelectItem>
+                  </SelectViewport>
+                </SelectContent>
+              </SelectPortal>
+            </SelectRoot>
+            <p v-if="errors.gender" class="type-caption text-error">
+              {{ errors.gender }}
+            </p>
+          </section>
+
+          <section class="flex flex-col gap-sm">
             <label class="type-h4 text-body" for="sign-up-phone"
               >휴대폰 번호</label
             >
@@ -287,11 +716,103 @@ function submitSignUp() {
                 autocomplete="tel"
                 class="h-[52px] min-w-0 flex-1 rounded-medium border border-border-strong bg-surface-card px-md text-[16px] font-normal leading-[1.2] tracking-[-0.32px] text-body outline-none placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
                 inputmode="tel"
+                maxlength="13"
+                pattern="01[016789]-?\d{3,4}-?\d{4}"
                 placeholder="010-0000-0000"
                 type="tel"
+                :aria-invalid="errors.phoneNumber ? 'true' : undefined"
+                :aria-describedby="
+                  errors.phoneNumber ? 'sign-up-phone-error' : undefined
+                "
                 @input="updatePhoneNumberFromEvent($event)"
               />
-              <Button label="인증하기" variant="secondary" type="button" />
+              <Button
+                :disabled="
+                  verificationToken !== null ||
+                  sendPhoneCodeMutation.isPending.value
+                "
+                :label="
+                  verificationToken
+                    ? '인증 완료'
+                    : sendPhoneCodeMutation.isPending.value
+                      ? '발송 중'
+                      : phoneCodeRequested
+                        ? '재요청'
+                        : '인증하기'
+                "
+                variant="secondary"
+                type="button"
+                @click="requestPhoneCode"
+              />
+            </div>
+            <p
+              v-if="errors.phoneNumber"
+              id="sign-up-phone-error"
+              class="type-caption text-error"
+            >
+              {{ errors.phoneNumber }}
+            </p>
+            <p
+              v-if="phoneRequestError"
+              class="type-caption text-error"
+              role="alert"
+            >
+              {{ phoneRequestError }}
+            </p>
+            <div
+              v-if="phoneCodeRequested || verificationToken"
+              class="flex flex-col gap-sm"
+            >
+              <div class="flex gap-sm">
+                <input
+                  :value="phoneVerificationCode"
+                  aria-label="휴대폰 인증번호"
+                  class="h-[52px] min-w-0 flex-1 rounded-medium border border-border-strong bg-surface-card px-md text-[16px] font-normal leading-[1.2] tracking-[-0.32px] text-body outline-none placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
+                  inputmode="numeric"
+                  maxlength="6"
+                  pattern="\d{6}"
+                  placeholder="인증번호 6자리"
+                  :disabled="verificationToken !== null"
+                  type="text"
+                  @input="
+                    updatePhoneVerificationCode(inputValueFromEvent($event))
+                  "
+                />
+                <Button
+                  v-if="verificationToken === null"
+                  :disabled="verifyPhoneCodeMutation.isPending.value"
+                  :label="
+                    verifyPhoneCodeMutation.isPending.value ? '확인 중' : '확인'
+                  "
+                  variant="secondary"
+                  type="button"
+                  @click="confirmPhoneCode"
+                />
+                <span
+                  v-else
+                  aria-hidden="true"
+                  class="h-[52px] w-[80px] shrink-0"
+                />
+              </div>
+              <p
+                v-if="verificationToken === null"
+                class="type-caption flex items-center justify-between text-body-muted"
+              >
+                <span>인증번호 유효시간</span>
+                <span class="font-semibold tabular-nums text-error">
+                  {{ phoneCodeTimerLabel }}
+                </span>
+              </p>
+              <p
+                class="type-caption"
+                :class="
+                  phoneVerificationMessage === '인증 완료했어요.'
+                    ? 'text-success'
+                    : 'text-body-muted'
+                "
+              >
+                {{ phoneVerificationMessage }}
+              </p>
             </div>
           </section>
 
@@ -307,6 +828,12 @@ function submitSignUp() {
                 autocomplete="new-password"
                 class="h-[52px] w-full rounded-medium border border-border-strong bg-surface-card px-md pr-[52px] text-[16px] font-normal leading-[1.2] tracking-[-0.32px] text-body outline-none placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
                 placeholder="비밀번호를 입력하세요"
+                maxlength="64"
+                minlength="8"
+                :aria-invalid="errors.loginPassword ? 'true' : undefined"
+                :aria-describedby="
+                  errors.loginPassword ? 'sign-up-password-error' : undefined
+                "
               />
               <button
                 :aria-label="
@@ -320,7 +847,13 @@ function submitSignUp() {
                 <Eye v-else class="size-xl" />
               </button>
             </div>
-            <p class="type-caption text-body-muted">숫자, 영문 포함 8자 이상</p>
+            <p
+              id="sign-up-password-error"
+              class="type-caption"
+              :class="errors.loginPassword ? 'text-error' : 'text-body-muted'"
+            >
+              {{ errors.loginPassword ?? '숫자, 영문 포함 8자 이상' }}
+            </p>
           </section>
 
           <section class="flex flex-col gap-sm">
@@ -335,12 +868,20 @@ function submitSignUp() {
                 class="type-h3 h-[52px] min-w-0 rounded-medium border border-border-strong bg-surface-card text-center text-body outline-none focus:border-focus focus:ring-2 focus:ring-focus/20"
                 inputmode="numeric"
                 maxlength="1"
+                pattern="\d"
                 type="password"
                 @input="updatePaymentPasswordFromEvent(index, $event)"
+                @keydown="handlePaymentPasswordKeydown(index, $event)"
               />
             </div>
-            <p class="type-caption text-body-muted">
-              결제 시 사용할 숫자 6자리를 입력해주세요.
+            <p
+              class="type-caption"
+              :class="errors.paymentPassword ? 'text-error' : 'text-body-muted'"
+            >
+              {{
+                errors.paymentPassword ??
+                '결제 시 사용할 숫자 6자리를 입력해주세요.'
+              }}
             </p>
           </section>
         </div>
@@ -390,6 +931,7 @@ function submitSignUp() {
                 :aria-label="`${term.title} 상세 보기`"
                 :to="`/auth/sign-up/terms/${termId}`"
                 class="flex size-touch-target shrink-0 items-center justify-center text-body-muted outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                @click="flushSignUpDraftSave"
               >
                 <ChevronRight aria-hidden="true" class="size-md" />
               </RouterLink>
@@ -410,11 +952,61 @@ function submitSignUp() {
       >
         <Button
           class="w-full shadow-[0_10px_15px_-3px_rgb(0_0_0/10%),0_4px_6px_-4px_rgb(0_0_0/10%)]"
-          label="가입하기"
+          :label="
+            createUserMutation.isPending.value ? '가입 중...' : '가입하기'
+          "
           type="submit"
-          :disabled="!isReadyToSubmit"
+          :disabled="
+            !isReadyToSubmit ||
+            createUserMutation.isPending.value ||
+            loginMutation.isPending.value
+          "
         />
       </div>
     </form>
+
+    <div
+      v-if="isAvatarModalOpen"
+      class="fixed inset-0 z-50 flex items-end bg-black/40"
+      role="dialog"
+      aria-modal="true"
+      aria-label="프로필 아바타 선택"
+    >
+      <section
+        class="w-full rounded-t-large bg-surface px-mobile-gutter pb-[calc(24px+env(safe-area-inset-bottom))] pt-xl"
+      >
+        <h2 class="type-h3 text-body">프로필 아바타 선택</h2>
+        <div class="mt-lg grid grid-cols-3 gap-md">
+          <button
+            v-for="id in 6"
+            :key="id"
+            class="rounded-full p-1"
+            :class="pendingAvatarId === id ? 'ring-2 ring-primary-500' : ''"
+            type="button"
+            @click="pendingAvatarId = id"
+          >
+            <img
+              :src="`/images/avatar/avatar${id}.png`"
+              :alt="`아바타 ${id}`"
+              class="aspect-square w-full rounded-full object-cover"
+            />
+          </button>
+        </div>
+        <div class="mt-xl grid grid-cols-2 gap-sm">
+          <Button
+            label="취소"
+            variant="outline-primary"
+            type="button"
+            @click="isAvatarModalOpen = false"
+          />
+          <Button
+            label="확인"
+            type="button"
+            :disabled="pendingAvatarId === null"
+            @click="confirmAvatar"
+          />
+        </div>
+      </section>
+    </div>
   </main>
 </template>

@@ -57,6 +57,12 @@ public interface PaymentRequestMapper {
     int markExpiredIfPending(@Param("paymentId") Long paymentId);
 
     /**
+     * 일괄 만료 전이: PENDING이면서 expires_at이 경과한 모든 행을 EXPIRED로 갱신.
+     * 만료 스캔(PaymentExpiryService) 전용 — 개별 건의 lazy 전이는 markExpiredIfPending을 쓴다.
+     */
+    int expireOverdue();
+
+    /**
      * 조건부 취소: PENDING이고 아직 만료되지 않은 경우에만 CANCELED로 갱신.
      * 반환값 0이면 만료·스캔 등으로 상태가 선점된 것이므로 재조회로 판단한다.
      */

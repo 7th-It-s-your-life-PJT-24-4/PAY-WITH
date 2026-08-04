@@ -38,4 +38,18 @@
         AND senior_id = #{wardId}
     </select>
 
+    <resultMap id="WardSummaryResultMap" type="com.paywith.guard.domain.WardSummary">
+        <id     property="wardId" column="ward_id" />
+        <result property="name"   column="name" />
+    </resultMap>
+
+    <select id="findActiveWards" resultMap="WardSummaryResultMap">
+        SELECT u.user_id AS ward_id, u.name
+        FROM guard_senior gs
+        JOIN users u ON u.user_id = gs.senior_id
+        WHERE gs.guard_id = #{guardId}
+        AND gs.status = 'ACTIVE'
+        ORDER BY gs.connected_at ASC
+    </select>
+
 </mapper>

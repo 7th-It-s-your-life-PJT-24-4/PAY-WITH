@@ -5,6 +5,9 @@ import type { TransferStatus } from '@/types/transfer'
 const terminalRouteNames: Partial<Record<TransferStatus, string>> = {
   COMPLETED: 'ward-transfer-complete',
   REJECTED: 'ward-transfer-rejected',
+  CANCELED: 'ward-transfer-canceled',
+  EXPIRED: 'ward-transfer-expired',
+  FAILED: 'ward-transfer-failed',
 }
 
 export function resolveTransferStatusRoute(
@@ -36,8 +39,6 @@ export function resolveTransferStatusRoute(
 
   if (routeName) return null
 
-  // TODO(transfer-result-ui): EXPIRED, FAILED, CANCELED 전용 디자인이
-  // 확정되면 상태별 결과 화면으로 연결한다. 현재는 임의 UI를 만들지 않고 홈으로 보낸다.
   return { name: 'ward-home', replace: true }
 }
 

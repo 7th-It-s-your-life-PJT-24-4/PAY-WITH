@@ -1,14 +1,26 @@
 <script setup lang="ts">
 import { PinKeypad } from '@pay-with/ui'
+import { useMutation } from '@tanstack/vue-query'
 import { useRouter } from 'vue-router'
 
+import { createTransfer } from '@/api/transfers'
+import type { CreateTransferRequest } from '@/schemas/transfer.schema'
 import { useTransferStore } from '@/stores/transfer.store'
 
 const router = useRouter()
 const transferStore = useTransferStore()
+const transferMutation = useMutation({
+  mutationFn: ({
+    request,
+    idempotencyKey,
+  }: {
+    request: CreateTransferRequest
+    idempotencyKey: string
+  }) => createTransfer(request, idempotencyKey),
+})
 
 function handleComplete(pin: string) {
-  void transferStore.beginMockTransfer(pin)
+  void transferStore.beginTransfer(pin, transferMutation.mutateAsync)
   router.replace({ name: 'ward-transfer-processing' })
 }
 </script>

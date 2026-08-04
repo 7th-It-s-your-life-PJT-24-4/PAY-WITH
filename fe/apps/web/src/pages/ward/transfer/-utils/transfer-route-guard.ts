@@ -1,6 +1,5 @@
 import type { NavigationGuard } from 'vue-router'
 
-import { getMockTransferDetail } from '@/mocks/transfer.mock'
 import { resolveTransferStatusRoute } from '@/pages/ward/transfer/-utils/transfer-status-route'
 import { useTransferStore } from '@/stores/transfer.store'
 import type { TransferStatus } from '@/types/transfer'
@@ -49,19 +48,22 @@ function requireTransferStatus(...allowedStatuses: TransferStatus[]) {
     const transactionId = getTransactionId(to.params.transactionId)
     if (!transactionId) return transferStart
 
-    try {
-      const detail = await getMockTransferDetail(transactionId)
-      const store = useTransferStore()
-      store.setTransferDetail(detail)
-      if (allowedStatuses.includes(detail.status)) return true
+    const store = useTransferStore()
+    const currentDetail =
+      store.transferDetail?.transactionId === transactionId
+        ? store.transferDetail
+        : store.restoreTransferDetail(transactionId)
 
-      return (
-        resolveTransferStatusRoute(detail.status, transactionId, to.name) ??
-        transferStart
-      )
-    } catch {
-      return transferStart
-    }
+    if (!currentDetail) return transferStart
+    if (allowedStatuses.includes(currentDetail.status)) return true
+
+    return (
+      resolveTransferStatusRoute(
+        currentDetail.status,
+        transactionId,
+        to.name,
+      ) ?? transferStart
+    )
   }
   return guard
 }
@@ -70,3 +72,6 @@ export const requireCompletedTransfer = requireTransferStatus('COMPLETED')
 export const requireHeldTransfer = requireTransferStatus('HELD')
 export const requireRejectedTransfer = requireTransferStatus('REJECTED')
 export const requirePendingTransfer = requireTransferStatus('HELD')
+export const requireCanceledTransfer = requireTransferStatus('CANCELED')
+export const requireExpiredTransfer = requireTransferStatus('EXPIRED')
+export const requireFailedTransfer = requireTransferStatus('FAILED')

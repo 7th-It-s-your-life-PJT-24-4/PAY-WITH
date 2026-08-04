@@ -31,9 +31,10 @@ function removeDigit() {
 async function connectGuardian() {
   if (!(await pairingStore.verifyCode(enteredCode.value))) {
     errorMessage.value =
-      pairingStore.errorCode === 'PAIRING_004'
+      pairingStore.errorMessage ||
+      (pairingStore.errorCode === 'PAIRING_004'
         ? '입력 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.'
-        : '인증 코드가 유효하지 않거나 만료되었습니다.'
+        : '인증 코드가 유효하지 않거나 만료되었습니다.')
     return
   }
 

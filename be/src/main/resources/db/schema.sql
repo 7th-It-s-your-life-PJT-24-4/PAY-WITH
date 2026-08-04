@@ -39,6 +39,7 @@ CREATE TABLE users (
                        password    VARCHAR(255) NOT NULL,               -- BCrypt 해시
                        birth_date  DATE         NOT NULL,
                        gender      CHAR(1)      NOT NULL COMMENT '남 또는 여',
+                       avatar_id   TINYINT      NOT NULL DEFAULT 1 COMMENT '회원가입 시 선택한 프리셋 아바타 번호(1~6). 실제 이미지 파일은 FE가 정적 자산으로 보유',
                        pin         VARCHAR(255) NOT NULL COMMENT '간편비밀번호 확인용 6자리 PIN(BCrypt 해시). WARD는 결제, GUARD는 충전 대행 시 사용. password(로그인)와 별개',
                        fcm_token   VARCHAR(255) NULL,
                        status      ENUM('PENDING_PAIRING','ACTIVE','WITHDRAWN') NOT NULL DEFAULT 'PENDING_PAIRING',

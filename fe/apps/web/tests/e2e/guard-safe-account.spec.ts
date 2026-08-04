@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('보호자가 안전계좌 정보를 확인하고 추가를 완료한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 820 })

@@ -1,20 +1,28 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
+import { getTransferBankCode } from '@/pages/ward/transfer/-utils/transfer-bank'
 import {
-  confirmMockTransferStatus,
-  getMockBankCode,
-  setMockTransferDetail,
-  submitMockTransfer,
-} from '@/mocks/transfer.mock'
+  getTransferApiError,
+  getTransferFailureAction,
+  type TransferFailureAction,
+} from '@/pages/ward/transfer/-utils/transfer-api-error'
+import type {
+  CreateTransferRequest,
+  TransferResult,
+} from '@/schemas/transfer.schema'
+import { storedTransferDetailSchema } from '@/schemas/transfer.schema'
 import type { TransferDetail } from '@/types/transfer'
 
 export interface TransferRecipient {
   id: number
   name: string
+  holderName?: string
+  bankCode?: string
   relation?: string
   bank: string
   accountNumber: string
+  isContact?: boolean
 }
 
 export interface TransferIntent {
@@ -26,13 +34,21 @@ export interface TransferIntent {
   memo: string | null
 }
 
-export interface MockTransferResult {
+export interface TransferSubmissionResult {
   transactionId: number
   status: 'COMPLETED' | 'HELD'
   idempotencyKey: string
 }
 
-const initialBalance = 1_250_000
+type TransferExecutor = (variables: {
+  request: CreateTransferRequest
+  idempotencyKey: string
+}) => Promise<TransferResult>
+
+// 상세 조회 API가 준비되기 전까지 실제 송금 결과를 거래별로 보관해
+// 완료·승인 대기 화면을 새로고침해도 같은 브라우저 세션에서 복구한다.
+const transferResultStorageKey = (transactionId: number) =>
+  `pay-with:ward-transfer:${transactionId}`
 export type TransferProcessingStatus =
   'idle' | 'pending' | 'held' | 'unknown' | 'success' | 'error'
 
@@ -42,22 +58,35 @@ export const useTransferStore = defineStore('transfer', () => {
   const bank = ref('')
   const amount = ref(0)
   const memo = ref('')
-  const balance = ref(initialBalance)
+  const balance = ref<number | null>(null)
   const bankCandidates = ref<string[]>([])
   const processingStatus = ref<TransferProcessingStatus>('idle')
   const processingError = ref('')
+  const processingFailureAction = ref<TransferFailureAction | null>(null)
   const transferIntent = ref<TransferIntent | null>(null)
-  const transferResult = ref<MockTransferResult | null>(null)
+  const transferResult = ref<TransferSubmissionResult | null>(null)
   const transferDetail = ref<TransferDetail | null>(null)
   const requestStarted = ref(false)
+  const pendingPin = ref('')
 
-  const remainingBalance = computed(() => balance.value - amount.value)
+  const remainingBalance = computed(() =>
+    balance.value === null ? null : balance.value - amount.value,
+  )
+  const isAmountOverBalance = computed(
+    () => remainingBalance.value !== null && remainingBalance.value < 0,
+  )
   const canTransfer = computed(
     () =>
       recipient.value !== null &&
+      balance.value !== null &&
       amount.value > 0 &&
+      remainingBalance.value !== null &&
       remainingBalance.value >= 0,
   )
+
+  function setBalance(value: number) {
+    balance.value = value
+  }
 
   function selectRecipient(value: TransferRecipient) {
     recipient.value = value
@@ -65,11 +94,12 @@ export const useTransferStore = defineStore('transfer', () => {
     accountNumber.value = value.accountNumber
   }
 
-  function selectManualRecipient(selectedBank: string) {
+  function selectManualRecipient(selectedBank: string, bankCode?: string) {
     bank.value = selectedBank
     recipient.value = {
       id: 0,
       name: '김준호',
+      bankCode,
       bank: selectedBank,
       accountNumber: accountNumber.value,
     }
@@ -79,17 +109,23 @@ export const useTransferStore = defineStore('transfer', () => {
     bankCandidates.value = value
   }
 
-  function setVerifiedRecipient(name: string, selectedBank: string) {
-    selectManualRecipient(selectedBank)
+  function setVerifiedRecipient(
+    name: string,
+    selectedBank: string,
+    bankCode: string,
+  ) {
+    selectManualRecipient(selectedBank, bankCode)
     if (recipient.value) recipient.value.name = name
   }
 
   function createTransferIntent(idempotencyKey = crypto.randomUUID()) {
     if (!recipient.value || !canTransfer.value) return null
+    const bankCode = recipient.value.bankCode ?? getTransferBankCode(bank.value)
+    if (!bankCode) return null
 
     const nextIntent: TransferIntent = {
       idempotencyKey,
-      bankCode: getMockBankCode(bank.value),
+      bankCode,
       bankName: bank.value,
       accountNo: accountNumber.value.replaceAll('-', ''),
       amount: amount.value,
@@ -106,103 +142,134 @@ export const useTransferStore = defineStore('transfer', () => {
     )
       return currentIntent
 
+    clearStoredTransferDetail()
     transferIntent.value = nextIntent
     transferResult.value = null
     requestStarted.value = false
     processingStatus.value = 'idle'
     processingError.value = ''
+    processingFailureAction.value = null
     return transferIntent.value
   }
 
   function setTransferDetail(detail: TransferDetail) {
     transferDetail.value = detail
+    if (typeof sessionStorage !== 'undefined')
+      sessionStorage.setItem(
+        transferResultStorageKey(detail.transactionId),
+        JSON.stringify(detail),
+      )
   }
 
-  function createTransferDetail(
-    transactionId: number,
-    status: 'COMPLETED' | 'HELD',
-  ): TransferDetail {
+  function restoreTransferDetail(transactionId: number) {
+    if (typeof sessionStorage === 'undefined') return null
+    const key = transferResultStorageKey(transactionId)
+    try {
+      const raw = sessionStorage.getItem(key)
+      if (!raw) return null
+      const parsed = storedTransferDetailSchema.safeParse(JSON.parse(raw))
+      if (!parsed.success || parsed.data.transactionId !== transactionId) {
+        sessionStorage.removeItem(key)
+        return null
+      }
+      transferDetail.value = parsed.data
+      return transferDetail.value
+    } catch {
+      sessionStorage.removeItem(key)
+      return null
+    }
+  }
+
+  function clearStoredTransferDetail(
+    transactionId = transferDetail.value?.transactionId,
+  ) {
+    if (transactionId && typeof sessionStorage !== 'undefined')
+      sessionStorage.removeItem(transferResultStorageKey(transactionId))
+  }
+
+  function createTransferDetail(result: TransferResult): TransferDetail {
     const requestedAt = new Date().toISOString()
-    const completed = status === 'COMPLETED'
+    const completed = result.status === 'COMPLETED'
     return {
-      transactionId,
-      status,
-      holderName: recipient.value?.name ?? '',
-      bankCode: transferIntent.value?.bankCode ?? getMockBankCode(bank.value),
-      bankName: bank.value,
-      accountNo: accountNumber.value,
-      amount: amount.value,
-      memo: memo.value.trim() || null,
+      transactionId: result.transactionId,
+      status: result.status,
+      holderName: completed ? result.holderName : (recipient.value?.name ?? ''),
+      bankCode: completed
+        ? result.bankCode
+        : (transferIntent.value?.bankCode ?? ''),
+      bankName: completed ? result.bankName : bank.value,
+      accountNo: completed ? result.accountNo : accountNumber.value,
+      amount: completed ? result.amount : amount.value,
+      memo: completed ? result.memo : memo.value.trim() || null,
       requestedAt,
-      expiredAt: new Date(Date.now() + 10 * 60 * 1_000).toISOString(),
+      expiredAt: null,
       respondedAt: completed ? requestedAt : null,
-      completedAt: completed ? requestedAt : null,
-      balanceAfter: completed ? remainingBalance.value : null,
-      riskAnalysis: {
-        riskScore: completed ? 0 : 80,
-        reasons: completed
-          ? []
-          : [
-              {
-                ruleCode: 'HIGH_AMOUNT',
-                description: '평소보다 큰 금액의 송금입니다.',
-                score: 80,
-              },
-            ],
-      },
+      completedAt: completed ? result.completedAt : null,
+      balanceAfter: completed ? result.balanceAfter : null,
+      riskAnalysis: null,
       failureCode: null,
       failureMessage: null,
     }
   }
 
-  async function beginMockTransfer(pin: string) {
-    if (!transferIntent.value || requestStarted.value) return
-    requestStarted.value = true
+  async function executeTransfer(execute: TransferExecutor) {
+    if (!transferIntent.value || !pendingPin.value) return
     processingStatus.value = 'pending'
     processingError.value = ''
+    processingFailureAction.value = null
+    const intent = transferIntent.value
     try {
-      const result = await submitMockTransfer(
-        pin,
-        transferIntent.value.idempotencyKey,
-      )
-      if (result.status === 'unknown') {
-        processingStatus.value = 'unknown'
-        return
+      const result = await execute({
+        request: {
+          bankCode: intent.bankCode,
+          accountNo: intent.accountNo,
+          amount: intent.amount,
+          memo: intent.memo,
+          transferPin: pendingPin.value,
+        },
+        idempotencyKey: intent.idempotencyKey,
+      })
+      transferResult.value = {
+        transactionId: result.transactionId,
+        status: result.status,
+        idempotencyKey: intent.idempotencyKey,
       }
-      transferResult.value = result
-      const detail = createTransferDetail(result.transactionId, result.status)
-      setMockTransferDetail(detail)
-      setTransferDetail(detail)
+      setTransferDetail(createTransferDetail(result))
+      pendingPin.value = ''
       if (result.status === 'HELD') {
         processingStatus.value = 'held'
         return
       }
+      balance.value = result.balanceAfter
       processingStatus.value = 'success'
     } catch (error) {
+      const apiError = await getTransferApiError(
+        error,
+        '송금 처리 결과를 확인할 수 없습니다. 다시 송금하지 말고 홈에서 거래 내역을 확인해 주세요.',
+      )
+      const failureAction = getTransferFailureAction(apiError)
+      if (failureAction === 'check-status') {
+        processingStatus.value = 'unknown'
+        return
+      }
+      pendingPin.value = ''
+      requestStarted.value = false
       processingStatus.value = 'error'
-      processingError.value =
-        error instanceof Error ? error.message : '송금을 완료하지 못했습니다.'
+      processingError.value = apiError.message
+      processingFailureAction.value = failureAction
     }
   }
 
-  async function confirmMockStatus() {
-    if (!transferIntent.value) return
-    processingStatus.value = 'pending'
-    transferResult.value = await confirmMockTransferStatus(
-      transferIntent.value.idempotencyKey,
-    )
-    const detail = createTransferDetail(
-      transferResult.value.transactionId,
-      'COMPLETED',
-    )
-    setMockTransferDetail(detail)
-    setTransferDetail(detail)
-    processingStatus.value = 'success'
+  async function beginTransfer(pin: string, execute: TransferExecutor) {
+    if (!transferIntent.value || requestStarted.value) return
+    requestStarted.value = true
+    pendingPin.value = pin
+    await executeTransfer(execute)
   }
 
-  function restartAfterFailure(idempotencyKey = crypto.randomUUID()) {
-    transferIntent.value = null
-    createTransferIntent(idempotencyKey)
+  async function confirmTransferStatus(execute: TransferExecutor) {
+    if (processingStatus.value !== 'unknown') return
+    await executeTransfer(execute)
   }
 
   function appendAccountDigit(value: string) {
@@ -215,11 +282,11 @@ export const useTransferStore = defineStore('transfer', () => {
 
   function appendAmountDigit(value: string) {
     const next = Number(`${amount.value || ''}${value}`)
-    amount.value = Math.min(next, balance.value)
+    amount.value = next
   }
 
   function addAmount(value: number) {
-    amount.value = Math.min(amount.value + value, balance.value)
+    amount.value += value
   }
 
   function removeAmountDigit() {
@@ -227,19 +294,22 @@ export const useTransferStore = defineStore('transfer', () => {
   }
 
   function reset() {
+    clearStoredTransferDetail()
     recipient.value = null
     accountNumber.value = ''
     bank.value = ''
     amount.value = 0
     memo.value = ''
-    balance.value = initialBalance
+    balance.value = null
     bankCandidates.value = []
     processingStatus.value = 'idle'
     processingError.value = ''
+    processingFailureAction.value = null
     transferIntent.value = null
     transferResult.value = null
     transferDetail.value = null
     requestStarted.value = false
+    pendingPin.value = ''
   }
 
   return {
@@ -252,21 +322,24 @@ export const useTransferStore = defineStore('transfer', () => {
     bankCandidates,
     processingStatus,
     processingError,
+    processingFailureAction,
     transferIntent,
     transferResult,
     transferDetail,
     requestStarted,
     remainingBalance,
+    isAmountOverBalance,
     canTransfer,
+    setBalance,
     setTransferDetail,
+    restoreTransferDetail,
     selectRecipient,
     selectManualRecipient,
     setBankCandidates,
     setVerifiedRecipient,
     createTransferIntent,
-    beginMockTransfer,
-    confirmMockStatus,
-    restartAfterFailure,
+    beginTransfer,
+    confirmTransferStatus,
     appendAccountDigit,
     removeAccountDigit,
     appendAmountDigit,

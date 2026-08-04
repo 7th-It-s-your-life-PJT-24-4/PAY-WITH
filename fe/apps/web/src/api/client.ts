@@ -40,10 +40,12 @@ async function request<TResponse>(
   method: RequestMethod,
   schema: ZodSchema<TResponse>,
   body?: unknown,
+  headers?: HeadersInit,
 ) {
   const response = await httpClient(`${API_BASE_URL}${path}`, {
     method,
     json: body,
+    headers,
     retry: path.startsWith('/auth/') ? 0 : undefined,
   })
 
@@ -58,7 +60,8 @@ export const apiClient = {
     path: string,
     schema: ZodSchema<TResponse>,
     body: unknown,
-  ) => request(path, 'post', schema, body),
+    headers?: HeadersInit,
+  ) => request(path, 'post', schema, body, headers),
   put: <TResponse>(path: string, schema: ZodSchema<TResponse>, body: unknown) =>
     request(path, 'put', schema, body),
   delete: <TResponse>(path: string, schema: ZodSchema<TResponse>) =>

@@ -30,15 +30,15 @@ const variantClass = computed(
   () =>
     ({
       primary:
-        'border-action bg-action text-on-action hover:bg-action-active active:bg-action-active',
+        'border-action bg-action text-on-action hover:border-action-active hover:bg-action-active active:border-action-active active:bg-action-active disabled:hover:border-action disabled:hover:bg-action',
       secondary:
         'border-disabled bg-disabled text-body hover:border-border-strong',
       'outline-primary':
-        'border-primary-500 bg-surface-card text-primary-500 hover:bg-primary-900',
+        'border-primary-500 bg-surface-card text-primary-500 hover:border-primary-500 hover:bg-primary-500 hover:text-on-action active:border-action-active active:bg-action-active active:text-on-action disabled:hover:border-primary-500 disabled:hover:bg-surface-card disabled:hover:text-primary-500',
       danger:
         'border-error bg-error text-on-semantic hover:brightness-95 active:brightness-90',
       'outline-danger':
-        'border-error bg-surface-card text-error hover:bg-error/10',
+        'border-error bg-surface-card text-error hover:bg-error hover:text-on-semantic hover:brightness-95 active:bg-error active:text-on-semantic active:brightness-90 disabled:hover:bg-surface-card disabled:hover:text-error disabled:hover:brightness-100',
       text: 'border-transparent bg-transparent text-primary-300 hover:bg-primary-900',
       'guard-cta':
         'border-transparent bg-primary-500 text-white hover:enabled:bg-primary-400 active:enabled:bg-primary-300 disabled:bg-gray-700',

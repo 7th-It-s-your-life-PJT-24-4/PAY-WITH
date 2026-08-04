@@ -12,6 +12,7 @@ public class UserResponse {
     private final String phone;
     private final String name;
     private final Role role;
+    private final Integer avatarId;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -20,6 +21,7 @@ public class UserResponse {
         this.phone = user.getPhone();
         this.name = user.getName();
         this.role = user.getRole();
+        this.avatarId = user.getAvatarId();
         this.createdAt = user.getCreatedAt();
         this.updatedAt = user.getUpdatedAt();
     }

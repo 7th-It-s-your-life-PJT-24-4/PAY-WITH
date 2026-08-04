@@ -80,7 +80,7 @@ function getGuardTextStyle(value: string) {
   <!-- Ward Variant Navigation -->
   <nav
     v-if="variant === 'ward'"
-    class="relative mx-auto flex w-full max-w-[390px] items-end justify-center overflow-x-clip pb-[env(safe-area-inset-bottom)] filter drop-shadow-[0_-8px_20px_rgba(8,13,18,0.12)]"
+    class="relative mx-auto flex w-full max-w-[390px] items-end justify-center overflow-visible pb-[env(safe-area-inset-bottom)]"
     :aria-label="ariaLabel"
   >
     <!-- 중앙 홈 원형 버튼 -->
@@ -132,7 +132,7 @@ function getGuardTextStyle(value: string) {
         @click="emit('navigate', leftItem.value)"
       >
         <svg
-          class="absolute inset-0 -ml-[16px] h-[calc(100%+20px)] w-[calc(100%+16px)] pointer-events-none"
+          class="absolute inset-0 -ml-[16px] h-[calc(100%+20px)] w-[calc(100%+16px)] pointer-events-none drop-shadow-[0_-8px_20px_rgba(8,13,18,0.12)]"
           viewBox="0 0 200 100"
           preserveAspectRatio="none"
           aria-hidden="true"
@@ -177,7 +177,7 @@ function getGuardTextStyle(value: string) {
         @click="emit('navigate', rightItem.value)"
       >
         <svg
-          class="absolute inset-0 -mr-[16px] h-[calc(100%+20px)] w-[calc(100%+16px)] pointer-events-none"
+          class="absolute inset-0 -mr-[16px] h-[calc(100%+20px)] w-[calc(100%+16px)] pointer-events-none drop-shadow-[0_-8px_20px_rgba(8,13,18,0.12)]"
           viewBox="0 0 200 100"
           preserveAspectRatio="none"
           aria-hidden="true"

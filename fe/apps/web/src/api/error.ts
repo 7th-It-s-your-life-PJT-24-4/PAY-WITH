@@ -6,6 +6,13 @@ const apiErrorBodySchema = z.object({
   message: z.string().min(1),
 })
 
+export function getApiErrorCode(error: unknown): string | null {
+  if (!(error instanceof HTTPError)) return null
+
+  const result = apiErrorBodySchema.safeParse(error.data)
+  return result.success ? (result.data.code ?? null) : null
+}
+
 export async function getApiErrorMessage(
   error: unknown,
   fallback: string,

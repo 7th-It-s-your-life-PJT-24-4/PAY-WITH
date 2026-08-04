@@ -1,5 +1,6 @@
 import { apiClient } from '@/api/client'
 import {
+  createUserRequestSchema,
   deleteUserResponseSchema,
   userResponseSchema,
   usersResponseSchema,
@@ -19,7 +20,8 @@ export async function getUser(id: number): Promise<User> {
 }
 
 export async function createUser(body: CreateUserRequest): Promise<User> {
-  const response = await apiClient.post('/users', userResponseSchema, body)
+  const request = createUserRequestSchema.parse(body)
+  const response = await apiClient.post('/users', userResponseSchema, request)
   return response.data
 }
 

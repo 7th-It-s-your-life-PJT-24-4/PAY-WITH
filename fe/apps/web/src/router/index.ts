@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+import { getUserIdFromAccessToken, tokenStorage } from '@/api/token-storage'
+import { refreshAccessToken } from '@/api/token-refresh'
+import { getUser } from '@/api/users'
 import SignInPage from '@/pages/auth/sign-in/page.vue'
-import KakaoCallbackPage from '@/pages/auth/kakao/callback/page.vue'
 import SignUpPage from '@/pages/auth/sign-up/page.vue'
 import SignUpDetailsPage from '@/pages/auth/sign-up/details/page.vue'
 import SignUpTermsPage from '@/pages/auth/sign-up/terms/page.vue'
@@ -22,6 +24,7 @@ import GuardSafeAccountConfirmPage from '@/pages/guard/safe-account/confirm/page
 import GuardSafeAccountPage from '@/pages/guard/safe-account/page.vue'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete/page.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
+import WardApprovalRequestDetailPage from '@/pages/ward/approval-requests/[approvalId]/page.vue'
 import { requireCompletedPairing } from '@/pages/ward/pairing/-utils/pairing-route-guard'
 import WardChargeAccountAddPage from '@/pages/ward/charge/account/add/page.vue'
 import WardChargeAccountCompletePage from '@/pages/ward/charge/account/complete/page.vue'
@@ -32,6 +35,7 @@ import WardPage from '@/pages/ward/page.vue'
 import WardTransactionDetailPage from '@/pages/ward/history/[transactionId]/page.vue'
 import WardTransactionHistoryPage from '@/pages/ward/history/page.vue'
 import WardPaymentCompletePage from '@/pages/ward/payment/complete/[transactionId]/page.vue'
+import WardPaymentFailedPage from '@/pages/ward/payment/failed/[paymentId]/page.vue'
 import WardPaymentHeldPage from '@/pages/ward/payment/held/[transactionId]/page.vue'
 import WardPaymentPage from '@/pages/ward/payment/page.vue'
 import WardPaymentQrPage from '@/pages/ward/payment/qr/[paymentId]/page.vue'
@@ -43,8 +47,11 @@ import {
 import WardTransferAccountPage from '@/pages/ward/transfer/account/page.vue'
 import WardTransferAmountPage from '@/pages/ward/transfer/amount/page.vue'
 import WardTransferBankPage from '@/pages/ward/transfer/bank/page.vue'
+import WardTransferCanceledPage from '@/pages/ward/transfer/[transactionId]/canceled/page.vue'
 import WardTransferCompletePage from '@/pages/ward/transfer/[transactionId]/complete/page.vue'
 import WardTransferConfirmPage from '@/pages/ward/transfer/confirm/page.vue'
+import WardTransferExpiredPage from '@/pages/ward/transfer/[transactionId]/expired/page.vue'
+import WardTransferFailedPage from '@/pages/ward/transfer/[transactionId]/failed/page.vue'
 import WardTransferHeldPage from '@/pages/ward/transfer/[transactionId]/held/page.vue'
 import WardTransferPage from '@/pages/ward/transfer/page.vue'
 import WardTransferPasswordPage from '@/pages/ward/transfer/password/page.vue'
@@ -57,7 +64,10 @@ import {
   requireNewChargeAccount,
 } from '@/pages/ward/charge/-utils/charge-route-guard'
 import {
+  requireCanceledTransfer,
   requireCompletedTransfer,
+  requireExpiredTransfer,
+  requireFailedTransfer,
   requireHeldTransfer,
   requirePendingTransfer,
   requireProcessingTransfer,
@@ -67,6 +77,7 @@ import {
   requireTransferIntent,
   requireTransferRecipient,
 } from '@/pages/ward/transfer/-utils/transfer-route-guard'
+import { getRoleHomePath } from '@/router/auth-navigation'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -75,11 +86,6 @@ const router = createRouter({
       path: '/auth/sign-in',
       name: 'auth-sign-in',
       component: SignInPage,
-    },
-    {
-      path: '/auth/kakao/callback',
-      name: 'auth-kakao-callback',
-      component: KakaoCallbackPage,
     },
     {
       path: '/auth/sign-up',
@@ -220,7 +226,11 @@ const router = createRouter({
           path: '',
           name: 'ward-home',
           component: WardPage,
-          meta: { title: 'PayWith', activeNavigation: 'home' },
+          meta: {
+            title: 'PayWith',
+            activeNavigation: 'home',
+            showBack: false,
+          },
         },
         {
           path: 'pairing',
@@ -229,6 +239,17 @@ const router = createRouter({
           meta: {
             title: '인증 코드 입력',
             activeNavigation: 'payment',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
+        },
+        {
+          path: 'approval-requests/:approvalId',
+          name: 'ward-approval-request-detail',
+          component: WardApprovalRequestDetailPage,
+          meta: {
+            title: '승인 대기 송금',
+            activeNavigation: 'home',
             showBottomNavigation: false,
             backRouteName: 'ward-home',
           },
@@ -329,6 +350,17 @@ const router = createRouter({
           beforeEnter: requireCompletedPayment,
           meta: {
             title: '결제 완료',
+            activeNavigation: 'payment',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
+        },
+        {
+          path: 'payment/failed/:paymentId',
+          name: 'ward-payment-failed',
+          component: WardPaymentFailedPage,
+          meta: {
+            title: '결제 실패',
             activeNavigation: 'payment',
             showBottomNavigation: false,
             backRouteName: 'ward-home',
@@ -463,13 +495,81 @@ const router = createRouter({
             showBottomNavigation: false,
           },
         },
+        {
+          path: 'transfer/:transactionId/expired',
+          name: 'ward-transfer-expired',
+          component: WardTransferExpiredPage,
+          beforeEnter: requireExpiredTransfer,
+          meta: {
+            title: '송금 만료',
+            activeNavigation: 'transfer',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'transfer/:transactionId/failed',
+          name: 'ward-transfer-failed',
+          component: WardTransferFailedPage,
+          beforeEnter: requireFailedTransfer,
+          meta: {
+            title: '송금 실패',
+            activeNavigation: 'transfer',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'transfer/:transactionId/canceled',
+          name: 'ward-transfer-canceled',
+          component: WardTransferCanceledPage,
+          beforeEnter: requireCanceledTransfer,
+          meta: {
+            title: '송금 취소',
+            activeNavigation: 'transfer',
+            showBottomNavigation: false,
+          },
+        },
       ],
     },
     {
       path: '/',
-      redirect: '/ward',
+      redirect: '/auth/sign-in',
     },
   ],
+})
+
+async function getAuthenticatedUserId() {
+  const accessToken = tokenStorage.getAccessToken()
+  const userId = accessToken ? getUserIdFromAccessToken(accessToken) : null
+  if (userId) return userId
+
+  if (!tokenStorage.getRefreshToken()) return null
+
+  try {
+    const refreshedAccessToken = await refreshAccessToken()
+    return getUserIdFromAccessToken(refreshedAccessToken)
+  } catch {
+    return null
+  }
+}
+
+router.beforeEach(async (to) => {
+  const isAuthRoute = to.path.startsWith('/auth')
+  const userId = await getAuthenticatedUserId()
+
+  if (!userId) {
+    tokenStorage.clearTokens()
+    return isAuthRoute ? true : { name: 'auth-sign-in' }
+  }
+
+  if (!isAuthRoute) return true
+
+  try {
+    const user = await getUser(userId)
+    return getRoleHomePath(user.role)
+  } catch {
+    tokenStorage.clearTokens()
+    return to.name === 'auth-sign-in' ? true : { name: 'auth-sign-in' }
+  }
 })
 
 export default router

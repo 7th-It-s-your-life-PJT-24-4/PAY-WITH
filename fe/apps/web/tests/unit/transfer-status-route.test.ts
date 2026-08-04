@@ -29,15 +29,17 @@ describe('resolveTransferStatusRoute', () => {
     })
   })
 
-  it.each(['CANCELED', 'EXPIRED', 'FAILED'] as const)(
-    '%s 상태는 임시 정책에 따라 홈으로 연결한다',
-    (status) => {
-      expect(
-        resolveTransferStatusRoute(status, 74, 'ward-transfer-held'),
-      ).toEqual({
-        name: 'ward-home',
-        replace: true,
-      })
-    },
-  )
+  it.each([
+    ['CANCELED', 'ward-transfer-canceled'],
+    ['EXPIRED', 'ward-transfer-expired'],
+    ['FAILED', 'ward-transfer-failed'],
+  ] as const)('%s 상태를 결과 화면으로 연결한다', (status, routeName) => {
+    expect(
+      resolveTransferStatusRoute(status, 74, 'ward-transfer-held'),
+    ).toEqual({
+      name: routeName,
+      params: { transactionId: 74 },
+      replace: true,
+    })
+  })
 })
