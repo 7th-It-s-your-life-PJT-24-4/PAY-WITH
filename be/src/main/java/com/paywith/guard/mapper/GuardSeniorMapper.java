@@ -1,6 +1,8 @@
 package com.paywith.guard.mapper;
 
 import com.paywith.guard.domain.GuardSeniorRelation;
+import com.paywith.guard.domain.WardSummary;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,5 +16,8 @@ public interface GuardSeniorMapper {
     int upsertActiveRelation(@Param("guardId") Long guardId, @Param("wardId") Long wardId);
 
     GuardSeniorRelation findRelation(@Param("guardId") Long guardId, @Param("wardId") Long wardId);
+
+    /** 보호자 홈 상단 탭용. 연동일 순으로 반환해 "생략 시 첫 번째 피보호자"를 안정적으로 정한다. */
+    List<WardSummary> findActiveWards(@Param("guardId") Long guardId);
 
 }

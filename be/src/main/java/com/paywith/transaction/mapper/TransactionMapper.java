@@ -2,6 +2,7 @@ package com.paywith.transaction.mapper;
 
 import com.paywith.charge.dto.ChargeDetailResponse;
 import com.paywith.charge.dto.ChargeHistoryItem;
+import com.paywith.guard.dto.RecentTransactionResponse;
 import com.paywith.transaction.domain.Transaction;
 import com.paywith.transfer.dto.TransferExecutionContext;
 import org.apache.ibatis.annotations.Mapper;
@@ -38,5 +39,10 @@ public interface TransactionMapper {
             @Param("guardId") Long guardId
     );
 
+    // 보호자 홈 화면용 최근 거래 목록(종결 상태만, 최신순)
+    List<RecentTransactionResponse> findRecentByWardId(
+            @Param("wardId") Long wardId,
+            @Param("limit") int limit
+    );
 
 }

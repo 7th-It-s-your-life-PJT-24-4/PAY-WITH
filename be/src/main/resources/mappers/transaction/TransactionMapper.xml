@@ -110,4 +110,52 @@
         WHERE t.transaction_id = #{transactionId}
     </select>
 
+    <!-- 보호자 홈 미리보기용. 진행 중(REQUESTED/HELD/APPROVED/PROCESSING)은 제외하고 종결된
+         건만 최신순으로 보여준다. 상대방 표시는 거래 종류에 따라 수취인/가맹점/출금은행 중
+         하나만 채워진다. -->
+    <resultMap id="RecentTransactionResultMap" type="com.paywith.guard.dto.RecentTransactionResponse">
+        <id     property="transactionId"    column="transaction_id" />
+        <result property="type"             column="type" />
+        <result property="status"           column="status" />
+        <result property="counterpartyName" column="counterparty_name" />
+        <result property="amount"           column="amount" />
+        <result property="riskLevel"        column="risk_level" />
+        <result property="riskReason"       column="risk_reason" />
+        <result property="createdAt"        column="created_at" />
+    </resultMap>
+
+    <select id="findRecentByWardId" resultMap="RecentTransactionResultMap">
+        SELECT
+        t.transaction_id,
+        CASE t.type WHEN 'TRANSFER_OUT' THEN 'TRANSFER' ELSE t.type END AS type,
+        t.status,
+        CASE t.type
+        WHEN 'TRANSFER_OUT' THEN r.holder_name
+        WHEN 'PAYMENT'      THEN m.name
+        WHEN 'CHARGE'       THEN b.bank_name
+        END AS counterparty_name,
+        t.amount,
+        re.risk_level,
+        (
+        SELECT rr.description
+        FROM risk_evaluation_details red
+        JOIN risk_rules rr ON rr.rule_id = red.rule_id
+        WHERE red.evaluation_id = re.evaluation_id
+        ORDER BY red.score DESC
+        LIMIT 1
+        ) AS risk_reason,
+        t.created_at
+        FROM transactions t
+        JOIN wallets w                  ON w.wallet_id = t.wallet_id
+        LEFT JOIN recipients r          ON r.recipient_id = t.recipient_id
+        LEFT JOIN merchants m           ON m.merchant_id = t.merchant_id
+        LEFT JOIN linked_accounts la    ON la.account_id = t.account_id
+        LEFT JOIN banks b               ON b.bank_code = la.bank_code
+        LEFT JOIN risk_evaluations re   ON re.transaction_id = t.transaction_id
+        WHERE w.user_id = #{wardId}
+        AND t.status IN ('COMPLETED', 'REJECTED', 'CANCELED')
+        ORDER BY t.created_at DESC
+        LIMIT #{limit}
+    </select>
+
 </mapper>
