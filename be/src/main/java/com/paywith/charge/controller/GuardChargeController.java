@@ -13,6 +13,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import springfox.documentation.annotations.ApiIgnore;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
+
 @Api(tags = "보호자 충전")
 @RestController
 @RequestMapping("api/guard/wards/{wardId}/charges")
@@ -31,7 +33,7 @@ public class GuardChargeController {
             @ApiIgnore @AuthenticationPrincipal Long guardId,
             @ApiParam(value = "피보호자 ID", required = true, example = "1")
             @PathVariable Long wardId,
-            @RequestBody ChargeRequest request
+            @Valid @RequestBody ChargeRequest request
     ){
         ChargeResponse response = chargeService.chargeByGuard(guardId, wardId, request);
         return ApiResponse.success(response);
