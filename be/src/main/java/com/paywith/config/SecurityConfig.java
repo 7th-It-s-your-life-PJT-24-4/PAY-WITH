@@ -49,6 +49,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .antMatchers(HttpMethod.POST, "/api/users").permitAll()
             // 가맹점 스캐너는 로그인 계정이 없는 제3 액터라 목록 조회를 개방한다
             .antMatchers(HttpMethod.GET, "/api/merchants").permitAll()
+            // 결제 실행도 스캐너가 호출한다 — 60초 1회용 QR 토큰이 사실상 자격증명 역할을 한다
+            .antMatchers(HttpMethod.POST, "/api/payments/execute").permitAll()
             .antMatchers(HttpMethod.GET, "/api/users/**").authenticated()
             .anyRequest().authenticated()
             .and()

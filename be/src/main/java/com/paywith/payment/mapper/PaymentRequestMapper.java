@@ -25,7 +25,30 @@ public interface PaymentRequestMapper {
     /** merchants·transactions LEFT JOIN 포함 상세 조회 (폴링 응답용) */
     PaymentRequest findById(@Param("paymentId") Long paymentId);
 
+    /** merchants·transactions LEFT JOIN 포함 상세 조회 (완료·실패 건의 멱등 응답 조립용) */
     PaymentRequest findByToken(@Param("qrToken") String qrToken);
+
+    /**
+     * 결제 실행 진입 시 행잠금 조회(FOR UPDATE). 이 잠금 아래에서 상태·만료·소유자를 최종
+     * 확인한 뒤 전이한다. 잠금 순서 규약: payment_requests를 wallets보다 먼저 잠근다.
+     */
+    PaymentRequest findByTokenForUpdate(@Param("qrToken") String qrToken);
+
+    /**
+     * 조건부 전이 PENDING→PROCESSING + 스캔 시점의 가맹점·금액 확정.
+     * 반환값 0이면 만료·취소 등으로 상태가 선점된 것이므로 재조회로 판단한다.
+     */
+    int markProcessing(
+        @Param("paymentId") Long paymentId,
+        @Param("merchantId") Long merchantId,
+        @Param("amount") Long amount
+    );
+
+    /** 조건부 전이 PROCESSING→COMPLETED + 원장 거래 연결(transaction_id UNIQUE) */
+    int completePayment(@Param("paymentId") Long paymentId, @Param("transactionId") Long transactionId);
+
+    /** 조건부 전이 PROCESSING→FAILED + 실패 사유 기록 (예: INSUFFICIENT_BALANCE) */
+    int failPayment(@Param("paymentId") Long paymentId, @Param("failureCode") String failureCode);
 
     /**
      * lazy 만료 전이: PENDING이고 expires_at이 경과한 경우에만 EXPIRED로 갱신.
