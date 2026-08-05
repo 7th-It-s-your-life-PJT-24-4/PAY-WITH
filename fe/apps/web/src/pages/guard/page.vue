@@ -206,6 +206,7 @@ async function startPairing() {
           router.push({
             name: 'guard-transaction-detail',
             params: { transactionId: firstDangerTransactionId },
+            query: { wardId: selectedWard?.wardId },
           })
         "
       />
@@ -213,7 +214,13 @@ async function startPairing() {
       <GuardTransactionList
         class="mt-md"
         :transactions="recentGuardTransactions"
-        @more="router.push({ name: 'guard-history' })"
+        :ward-id="selectedWard?.wardId"
+        @more="
+          router.push({
+            name: 'guard-history',
+            query: { wardId: selectedWard?.wardId },
+          })
+        "
       />
     </div>
 

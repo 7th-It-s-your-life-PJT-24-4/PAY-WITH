@@ -1,10 +1,11 @@
 import { PhCrown, PhDress, PhWallet } from '@phosphor-icons/vue'
 import type { Component } from 'vue'
 
-import type { GuardTransaction } from '@/mocks/guard-home.mock'
+export type GuardTransactionCategory = 'charge' | 'transfer' | 'payment'
+export type GuardTransactionRisk = 'safe' | 'warning' | 'danger'
 
 export const guardTransactionCategoryIcons: Record<
-  GuardTransaction['category'],
+  GuardTransactionCategory,
   Component
 > = {
   charge: PhWallet,
@@ -13,7 +14,7 @@ export const guardTransactionCategoryIcons: Record<
 }
 
 export const guardTransactionStatusLabels: Record<
-  GuardTransaction['status'],
+  GuardTransactionRisk,
   string
 > = {
   safe: '안전',
@@ -22,7 +23,7 @@ export const guardTransactionStatusLabels: Record<
 }
 
 export const guardTransactionStatusClasses: Record<
-  GuardTransaction['status'],
+  GuardTransactionRisk,
   string
 > = {
   safe: 'bg-[#d5ffd8] text-success',

@@ -7,8 +7,9 @@ import {
   guardTransactionStatusLabels,
 } from '@/pages/guard/-utils/guard-transaction-ui'
 
-defineProps<{
+const props = defineProps<{
   transactions: GuardTransaction[]
+  wardId?: number | null
 }>()
 
 const emit = defineEmits<{
@@ -16,6 +17,14 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+
+function openDetail(transactionId: string) {
+  router.push({
+    name: 'guard-transaction-detail',
+    params: { transactionId },
+    query: props.wardId ? { wardId: props.wardId } : undefined,
+  })
+}
 </script>
 
 <template>
@@ -63,12 +72,7 @@ const router = useRouter()
           class="flex h-[60px] w-full items-center bg-white px-sm text-left"
           type="button"
           :aria-label="`${transaction.date} 거래 상세 보기`"
-          @click="
-            router.push({
-              name: 'guard-transaction-detail',
-              params: { transactionId: transaction.id },
-            })
-          "
+          @click="openDetail(transaction.id)"
         >
           <span
             class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"

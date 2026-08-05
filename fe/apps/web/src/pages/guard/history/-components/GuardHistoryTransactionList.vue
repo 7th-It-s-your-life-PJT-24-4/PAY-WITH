@@ -1,17 +1,37 @@
 <script setup lang="ts">
-import type { GuardTransaction } from '@/mocks/guard-home.mock'
 import { useRouter } from 'vue-router'
+
 import {
   guardTransactionCategoryIcons,
   guardTransactionStatusClasses,
   guardTransactionStatusLabels,
+  type GuardTransactionCategory,
+  type GuardTransactionRisk,
 } from '@/pages/guard/-utils/guard-transaction-ui'
 
-defineProps<{
-  transactions: GuardTransaction[]
+export interface GuardHistoryTransactionView {
+  id: number
+  date: string
+  amount: string
+  description: string
+  category: GuardTransactionCategory
+  status: GuardTransactionRisk
+}
+
+const props = defineProps<{
+  wardId: number
+  transactions: GuardHistoryTransactionView[]
 }>()
 
 const router = useRouter()
+
+function openDetail(transactionId: number) {
+  router.push({
+    name: 'guard-transaction-detail',
+    params: { transactionId },
+    query: { wardId: props.wardId },
+  })
+}
 </script>
 
 <template>
@@ -31,13 +51,8 @@ const router = useRouter()
       <button
         class="flex h-[60px] w-full items-center bg-white px-sm text-left"
         type="button"
-        :aria-label="`${transaction.date} 거래 상세 보기`"
-        @click="
-          router.push({
-            name: 'guard-transaction-detail',
-            params: { transactionId: transaction.id },
-          })
-        "
+        :aria-label="`${transaction.date} ${transaction.description} 거래 상세 보기`"
+        @click="openDetail(transaction.id)"
       >
         <span
           class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"

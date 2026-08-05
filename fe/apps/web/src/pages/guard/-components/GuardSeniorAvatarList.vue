@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { PhPlus } from '@phosphor-icons/vue'
 
-import type { GuardSeniorAvatar } from '@/mocks/guard-home.mock'
+interface GuardSeniorAvatar {
+  id: string
+  name: string
+  imageUrl?: string
+}
 
 defineProps<{
   seniors: GuardSeniorAvatar[]
