@@ -37,7 +37,14 @@ const router = useRouter()
       </button>
     </div>
 
-    <div class="mt-lg">
+    <p
+      v-if="transactions.length === 0"
+      class="py-8 text-center text-md font-medium leading-[1.2] tracking-[-0.28px] text-gray-700"
+    >
+      최근 거래 내역이 없어요.
+    </p>
+
+    <div v-else class="mt-lg">
       <template
         v-for="(transaction, index) in transactions"
         :key="transaction.id"

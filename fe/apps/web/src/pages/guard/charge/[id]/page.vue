@@ -1,30 +1,33 @@
 <script setup lang="ts">
+import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import backIconUrl from '@/assets/icons/charge-detail-back.svg'
-import { getMockGuardChargeHistory } from '@/mocks/guard-charge-history.mock'
+import { guardChargeDetailOptions } from '@/lib/query/guard/charge'
 
 const route = useRoute()
 const router = useRouter()
 
-const chargeHistory = computed(() =>
-  getMockGuardChargeHistory(String(route.params.chargeId)),
-)
+const chargeId = Number(route.params.chargeId)
+const chargeDetailQuery = useQuery(guardChargeDetailOptions(chargeId))
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
 
 const detailRows = computed(() => {
-  const history = chargeHistory.value
-  if (!history) return []
+  const detail = chargeDetailQuery.data.value
+  if (!detail) return []
 
-  const createdAt = new Date(history.createdAt)
+  const createdAt = new Date(detail.createdAt)
   const dateTimeText = `${createdAt.getFullYear()}년 ${createdAt.getMonth() + 1}월 ${createdAt.getDate()}일 ${String(createdAt.getHours()).padStart(2, '0')}:${String(createdAt.getMinutes()).padStart(2, '0')}`
 
   return [
-    { label: '충전금액', value: `-${formatMoney(history.amount)}원` },
-    { label: '받는 분', value: history.wardName },
-    { label: '출금처', value: `${history.bankName} ${history.accountSuffix}` },
+    { label: '충전금액', value: `-${formatMoney(detail.amount)}원` },
+    { label: '받는 분', value: detail.wardName },
+    {
+      label: '출금처',
+      value: `${detail.account.bankName} ${detail.account.accountNo.slice(-4)}`,
+    },
     { label: '이체일시', value: dateTimeText },
   ]
 })
@@ -74,5 +77,18 @@ function goBack() {
         <dd class="text-right font-semibold text-black">{{ row.value }}</dd>
       </div>
     </section>
+    <p
+      v-else-if="chargeDetailQuery.isPending.value"
+      class="type-body-medium mt-[38px] px-mobile-gutter text-body-secondary"
+    >
+      충전 내역을 불러오는 중이에요.
+    </p>
+    <p
+      v-else
+      class="type-body-medium mt-[38px] px-mobile-gutter text-error"
+      role="alert"
+    >
+      충전 내역을 불러오지 못했어요.
+    </p>
   </main>
 </template>

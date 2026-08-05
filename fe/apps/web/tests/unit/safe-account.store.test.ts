@@ -17,7 +17,7 @@ describe('safe account store', () => {
     expect(store.accountNumber).toBe('1234')
 
     store.reset()
-    expect(store.bankName).toBe('국민은행')
-    expect(store.accountNumber).toBe('933')
+    expect(store.bankName).toBe('')
+    expect(store.accountNumber).toBe('')
   })
 })

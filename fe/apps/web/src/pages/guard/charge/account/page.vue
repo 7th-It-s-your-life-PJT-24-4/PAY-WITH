@@ -1,21 +1,26 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronLeft } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
+import { useQuery } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { banksOptions } from '@/lib/query/bank'
 import GuardBankIconTile from '@/pages/guard/charge/-components/GuardBankIconTile.vue'
 import GuardBankSelectBottomSheet from '@/pages/guard/charge/-components/GuardBankSelectBottomSheet.vue'
-import {
-  mockGuardChargeBanks,
-  type GuardChargeBank,
-} from '@/mocks/guard-charge.mock'
+import { getBankPresentation } from '@/pages/guard/charge/-utils/bank-presentation'
+import type { Bank } from '@/schemas/bank.schema'
 
 const router = useRouter()
 const isBankSheetOpen = ref(false)
-const selectedBank = ref<GuardChargeBank | null>(null)
+const banksQuery = useQuery(banksOptions())
+const selectedBank = ref<Bank | null>(null)
 const accountNumber = ref('')
 const accountPassword = ref('')
+const banks = computed(() => banksQuery.data.value ?? [])
+const selectedBankPresentation = computed(() =>
+  selectedBank.value ? getBankPresentation(selectedBank.value) : null,
+)
 
 const canConnect = computed(
   () =>
@@ -24,7 +29,7 @@ const canConnect = computed(
     accountPassword.value.length === 4,
 )
 
-function selectBank(bank: GuardChargeBank) {
+function selectBank(bank: Bank) {
   selectedBank.value = bank
   isBankSheetOpen.value = false
 }
@@ -76,17 +81,21 @@ function connectAccount() {
           @click="isBankSheetOpen = true"
         >
           <GuardBankIconTile
-            v-if="selectedBank"
+            v-if="selectedBank && selectedBankPresentation"
             class="mr-sm"
-            :icon-url="selectedBank.iconUrl"
-            :label="selectedBank.name"
-            :brand-class="selectedBank.brandClass"
-          />
+            :icon-url="selectedBankPresentation.iconUrl"
+            :label="selectedBank.bankName"
+            :brand-class="selectedBankPresentation.brandClass"
+          >
+            <span class="text-[13px] font-bold text-white">
+              {{ selectedBank.bankName.slice(0, 1) }}
+            </span>
+          </GuardBankIconTile>
           <span
             class="flex-1 text-[18px] font-semibold leading-[1.2] tracking-[-0.36px]"
             :class="selectedBank ? 'text-black' : 'text-gray-700'"
           >
-            {{ selectedBank?.name ?? '은행/증권사를 선택해주세요' }}
+            {{ selectedBank?.bankName ?? '은행/증권사를 선택해주세요' }}
           </span>
           <ChevronDown
             class="size-6 shrink-0 text-gray-600"
@@ -151,7 +160,7 @@ function connectAccount() {
 
     <GuardBankSelectBottomSheet
       v-model:open="isBankSheetOpen"
-      :banks="mockGuardChargeBanks"
+      :banks="banks"
       @select="selectBank"
     />
   </main>
