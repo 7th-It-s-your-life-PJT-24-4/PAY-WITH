@@ -1,6 +1,7 @@
 package com.paywith.transaction.service;
 
 import com.paywith.transaction.dto.GuardTransactionHistoryListResponse;
+import com.paywith.transaction.dto.TransactionDetailResponse;
 import com.paywith.transaction.dto.TransactionHistoryListResponse;
 
 public interface TransactionHistoryService {
@@ -21,5 +22,11 @@ public interface TransactionHistoryService {
             String riskLevel,
             Integer page,
             Integer size
+    );
+
+    TransactionDetailResponse findWardTransactionDetail(
+            Long guardId,
+            Long wardId,
+            Long transactionId
     );
 }

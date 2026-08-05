@@ -93,6 +93,16 @@ public interface TransactionMapper {
             @Param("riskLevel") String riskLevel
     );
 
+    TransactionDetailResponse findWardTransactionDetail(
+            @Param("guardId") Long guardId,
+            @Param("wardId") Long wardId,
+            @Param("transactionId") Long transactionId
+    );
+
+    List<RiskReasonDetailResponse> findRiskReasons(@Param("transactionId") Long transactionId);
+
+    String findLlmSummary(@Param("transactionId") Long transactionId);
+
     // 보호자 홈 화면용 최근 거래 목록(종결 상태만, 최신순)
     List<RecentTransactionResponse> findRecentByWardId(
             @Param("wardId") Long wardId,

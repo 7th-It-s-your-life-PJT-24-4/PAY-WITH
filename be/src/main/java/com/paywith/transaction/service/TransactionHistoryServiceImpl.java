@@ -4,6 +4,9 @@ import com.paywith.exception.BusinessException;
 import com.paywith.guard.service.GuardService;
 import com.paywith.transaction.dto.GuardTransactionHistoryItem;
 import com.paywith.transaction.dto.GuardTransactionHistoryListResponse;
+import com.paywith.transaction.dto.RiskAnalysisResponse;
+import com.paywith.transaction.dto.RiskReasonDetailResponse;
+import com.paywith.transaction.dto.TransactionDetailResponse;
 import com.paywith.transaction.dto.TransactionHistoryItem;
 import com.paywith.transaction.dto.TransactionHistoryListResponse;
 import com.paywith.transaction.mapper.TransactionMapper;
@@ -110,6 +113,32 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
 
         // 7. 응답
         return new GuardTransactionHistoryListResponse(items, resolvedPage, resolvedSize,totalElements);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TransactionDetailResponse findWardTransactionDetail(Long guardId, Long wardId, Long transactionId) {
+        if (!guardService.verifyGuardOfWard(guardId, wardId)) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "LINK_001", "연동된 피보호자를 찾을 수 없습니다.");
+        }
+
+        TransactionDetailResponse detail =
+                transactionMapper.findWardTransactionDetail(guardId, wardId, transactionId);
+        if (detail == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "TRANSACTION_002", "거래 내역을 찾을 수 없습니다.");
+        }
+
+        if (detail.getRiskScore() != null) {
+            List<RiskReasonDetailResponse> reasons = transactionMapper.findRiskReasons(transactionId);
+            String summary = transactionMapper.findLlmSummary(transactionId);
+            detail.setRiskAnalysis(new RiskAnalysisResponse(
+                    detail.getRiskScore(), summary, reasons, detail.getAnalyzedAt()
+            ));
+        }
+
+        detail.setRiskScore(null);
+        detail.setAnalyzedAt(null);
+        return detail;
     }
 
 }

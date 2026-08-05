@@ -7,7 +7,7 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@ApiModel(description = "위험 분석 결과. 안전한 거래이거나 평가 대상이 아니면 이 객체 자체가 null")
+@ApiModel(description = "위험 분석 결과. 평가 대상이 아닌 거래면 이 객체 자체가 null")
 @Getter
 public class RiskAnalysisResponse {
 

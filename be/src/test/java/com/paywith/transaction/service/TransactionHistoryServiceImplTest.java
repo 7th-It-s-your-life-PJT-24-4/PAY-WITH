@@ -15,12 +15,15 @@ import com.paywith.exception.BusinessException;
 import com.paywith.guard.service.GuardService;
 import com.paywith.transaction.dto.GuardTransactionHistoryItem;
 import com.paywith.transaction.dto.GuardTransactionHistoryListResponse;
+import com.paywith.transaction.dto.RiskReasonDetailResponse;
+import com.paywith.transaction.dto.TransactionDetailResponse;
 import com.paywith.transaction.dto.TransactionHistoryItem;
 import com.paywith.transaction.dto.TransactionHistoryListResponse;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.wallet.dto.WalletBalanceResponse;
 import com.paywith.wallet.service.WalletService;
 import java.util.List;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -318,5 +321,79 @@ class TransactionHistoryServiceImplTest {
 
         assertThat(response.getTotalPages()).isEqualTo(3);
         assertThat(response.isHasNext()).isFalse();
+    }
+
+    // ===== findWardTransactionDetail =====
+
+    @Test
+    void 거래상세도_담당_피보호자가_아니면_예외를_던진다() {
+        given(guardService.verifyGuardOfWard(guardId, wardId)).willReturn(false);
+
+        assertThatThrownBy(() ->
+                transactionHistoryService.findWardTransactionDetail(guardId, wardId, 141L))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("code", "LINK_001");
+
+        verify(transactionMapper, never()).findWardTransactionDetail(any(), any(), any());
+    }
+
+    @Test
+    void 거래상세가_없으면_예외를_던진다() {
+        given(transactionMapper.findWardTransactionDetail(guardId, wardId, 141L))
+                .willReturn(null);
+
+        assertThatThrownBy(() ->
+                transactionHistoryService.findWardTransactionDetail(guardId, wardId, 141L))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("code", "TRANSACTION_002");
+    }
+
+    @Test
+    void 거래상세의_위험점수와_근거를_위험분석_객체로_조립한다() {
+        LocalDateTime analyzedAt = LocalDateTime.of(2026, 7, 29, 10, 18);
+        TransactionDetailResponse detail = TransactionDetailResponse.builder()
+                .transactionId(141L)
+                .riskLevel("DANGER")
+                .riskScore(87)
+                .analyzedAt(analyzedAt)
+                .build();
+        RiskReasonDetailResponse reason = RiskReasonDetailResponse.builder()
+                .ruleCode("HIGH_AMOUNT")
+                .description("평소보다 큰 금액의 거래에요.")
+                .score(30)
+                .build();
+        given(transactionMapper.findWardTransactionDetail(guardId, wardId, 141L))
+                .willReturn(detail);
+        given(transactionMapper.findRiskReasons(141L)).willReturn(List.of(reason));
+        given(transactionMapper.findLlmSummary(141L)).willReturn("평소와 다른 패턴이에요.");
+
+        TransactionDetailResponse response =
+                transactionHistoryService.findWardTransactionDetail(guardId, wardId, 141L);
+
+        assertThat(response.getRiskScore()).isNull();
+        assertThat(response.getAnalyzedAt()).isNull();
+        assertThat(response.getRiskAnalysis().getRiskScore()).isEqualTo(87);
+        assertThat(response.getRiskAnalysis().getSummary()).isEqualTo("평소와 다른 패턴이에요.");
+        assertThat(response.getRiskAnalysis().getReasons()).containsExactly(reason);
+        assertThat(response.getRiskAnalysis().getAnalyzedAt()).isEqualTo(analyzedAt);
+    }
+
+    @Test
+    void 위험평가가_없는_거래상세는_위험분석을_조회하지_않는다() {
+        TransactionDetailResponse detail = TransactionDetailResponse.builder()
+                .transactionId(142L)
+                .riskScore(null)
+                .build();
+        given(transactionMapper.findWardTransactionDetail(guardId, wardId, 142L))
+                .willReturn(detail);
+
+        TransactionDetailResponse response =
+                transactionHistoryService.findWardTransactionDetail(guardId, wardId, 142L);
+
+        assertThat(response.getRiskAnalysis()).isNull();
+        verify(transactionMapper, never()).findRiskReasons(any());
+        verify(transactionMapper, never()).findLlmSummary(any());
     }
 }
