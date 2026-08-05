@@ -1,6 +1,7 @@
 package com.paywith.approval.controller;
 
 import com.paywith.approval.dto.ApprovalDecisionResponse;
+import com.paywith.approval.dto.ApprovalDecisionResultResponse;
 import com.paywith.approval.dto.ApprovalRequestDetailResponse;
 import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import com.paywith.approval.service.ApprovalRequestService;
@@ -43,6 +44,23 @@ public class ApprovalRequestController {
     }
 
     @ApiOperation(
+        value = "승인/거절 처리 목록",
+        notes = "로그인한 보호자가 직접 승인하거나 거절한 이상거래를 처리 시각 최신순으로 반환한다. "
+            + "status 는 APPROVED 또는 REJECTED만 허용하며 wardId 로 담당 피보호자를 필터링할 수 있다.")
+    @GetMapping("/history")
+    public ApiResponse<List<ApprovalRequestSummaryResponse>> findDecisionHistory(
+        @ApiIgnore @AuthenticationPrincipal Long guardId,
+        @ApiParam(value = "처리 상태", required = true, example = "APPROVED",
+            allowableValues = "APPROVED,REJECTED")
+        @RequestParam String status,
+        @ApiParam(value = "피보호자 ID. 생략하면 담당 피보호자 전체", example = "42")
+        @RequestParam(required = false) Long wardId
+    ) {
+        return ApiResponse.success(
+            approvalRequestService.findDecisionHistory(guardId, wardId, status));
+    }
+
+    @ApiOperation(
         value = "승인 대기 건 상세",
         notes = "보류 사유(발동한 FDS 룰)를 함께 반환한다. 목록과 같이 승인 대기 건만 조회되므로, "
             + "이미 처리했거나 만료된 건과 담당하지 않는 시니어의 건은 404. "
@@ -54,6 +72,20 @@ public class ApprovalRequestController {
         @PathVariable Long approvalId
     ) {
         return ApiResponse.success(approvalRequestService.findDetail(approvalId, guardId));
+    }
+
+    @ApiOperation(
+        value = "승인/거절 처리 결과 상세",
+        notes = "로그인한 보호자가 직접 처리한 승인 또는 거절 건의 이상거래 상세와 처리 결과를 반환한다. "
+            + "대기·만료 건, 담당하지 않는 시니어의 건, 다른 보호자가 처리한 건은 404.")
+    @GetMapping("/{approvalId}/result")
+    public ApiResponse<ApprovalDecisionResultResponse> findDecisionResult(
+        @ApiIgnore @AuthenticationPrincipal Long guardId,
+        @ApiParam(value = "승인요청 ID", required = true, example = "1")
+        @PathVariable Long approvalId
+    ) {
+        return ApiResponse.success(
+            approvalRequestService.findDecisionResult(approvalId, guardId));
     }
 
     @ApiOperation(

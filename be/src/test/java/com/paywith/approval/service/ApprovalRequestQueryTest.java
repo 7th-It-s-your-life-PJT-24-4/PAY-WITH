@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 
 import com.paywith.approval.domain.ApprovalRequestView;
 import com.paywith.approval.dto.ApprovalRequestDetailResponse;
+import com.paywith.approval.dto.ApprovalDecisionResultResponse;
 import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import com.paywith.approval.dto.ApprovalRuleHitResponse;
 import com.paywith.approval.mapper.ApprovalRequestMapper;
@@ -63,6 +64,7 @@ class ApprovalRequestQueryTest {
         view.setTotalScore(64);
         view.setRequestedAt(LocalDateTime.now());
         view.setExpiredAt(LocalDateTime.now().plusMinutes(30));
+        view.setStatus("PENDING");
         return view;
     }
 
@@ -114,6 +116,35 @@ class ApprovalRequestQueryTest {
     }
 
     @Test
+    void findDecisionHistory_mapsApprovedListAndNormalizesStatus() {
+        ApprovalRequestView processed = view();
+        processed.setStatus("APPROVED");
+        processed.setRespondedAt(LocalDateTime.now());
+        given(approvalRequestMapper.findDecisionHistoryByGuardId(
+            GUARD_ID, WARD_ID, "APPROVED")).willReturn(List.of(processed));
+
+        List<ApprovalRequestSummaryResponse> result =
+            service.findDecisionHistory(GUARD_ID, WARD_ID, " approved ");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getStatus()).isEqualTo("APPROVED");
+        assertThat(result.get(0).getRespondedAt()).isEqualTo(processed.getRespondedAt());
+        then(approvalRequestMapper).should()
+            .findDecisionHistoryByGuardId(GUARD_ID, WARD_ID, "APPROVED");
+    }
+
+    @Test
+    void findDecisionHistory_rejectsPendingOrExpiredStatus() {
+        assertThatThrownBy(() -> service.findDecisionHistory(GUARD_ID, null, "PENDING"))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+            .hasFieldOrPropertyWithValue("code", "REQUEST_001");
+
+        then(approvalRequestMapper).should(never())
+            .findDecisionHistoryByGuardId(anyLong(), anyLong(), org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
     void findDetail_includesRuleHits() {
         given(approvalRequestMapper.findByIdAndGuardId(APPROVAL_ID, GUARD_ID)).willReturn(view());
         given(approvalRequestMapper.findRuleHits(TRANSACTION_ID)).willReturn(List.of(
@@ -136,6 +167,76 @@ class ApprovalRequestQueryTest {
         given(approvalRequestMapper.findByIdAndGuardId(APPROVAL_ID, GUARD_ID)).willReturn(null);
 
         assertThatThrownBy(() -> service.findDetail(APPROVAL_ID, GUARD_ID))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
+        then(approvalRequestMapper).should(never()).findRuleHits(anyLong());
+    }
+
+    @Test
+    void findDecisionResult_rebuildsApprovedDetailAndCompletedTransfer() {
+        ApprovalRequestView processed = view();
+        processed.setStatus("APPROVED");
+        processed.setRespondedAt(LocalDateTime.now());
+        processed.setTransactionStatus("COMPLETED");
+        processed.setCompletedAt(LocalDateTime.now().plusSeconds(2));
+        processed.setBalanceAfter(1_000_000L);
+        given(approvalRequestMapper.findDecisionResultByIdAndGuardId(APPROVAL_ID, GUARD_ID))
+            .willReturn(processed);
+        given(approvalRequestMapper.findRuleHits(TRANSACTION_ID))
+            .willReturn(List.of(ruleHit("HIGH_AMOUNT_L2", "평소보다 큰 금액")));
+
+        ApprovalDecisionResultResponse result =
+            service.findDecisionResult(APPROVAL_ID, GUARD_ID);
+
+        assertThat(result.getDetail().getApprovalId()).isEqualTo(APPROVAL_ID);
+        assertThat(result.getDetail().getRuleHits()).hasSize(1);
+        assertThat(result.getDecision().getStatus()).isEqualTo("APPROVED");
+        assertThat(result.getDecision().getTransfer().getStatus()).isEqualTo("COMPLETED");
+        assertThat(result.getDecision().getTransfer().getCompletedAt())
+            .isEqualTo(processed.getCompletedAt());
+        assertThat(result.getDecision().getTransfer().getBalanceAfter()).isEqualTo(1_000_000L);
+    }
+
+    @Test
+    void findDecisionResult_returnsRejectedDecisionWithoutTransfer() {
+        ApprovalRequestView processed = view();
+        processed.setStatus("REJECTED");
+        processed.setRespondedAt(LocalDateTime.now());
+        processed.setTransactionStatus("REJECTED");
+        given(approvalRequestMapper.findDecisionResultByIdAndGuardId(APPROVAL_ID, GUARD_ID))
+            .willReturn(processed);
+        given(approvalRequestMapper.findRuleHits(TRANSACTION_ID)).willReturn(List.of());
+
+        ApprovalDecisionResultResponse result =
+            service.findDecisionResult(APPROVAL_ID, GUARD_ID);
+
+        assertThat(result.getDecision().getStatus()).isEqualTo("REJECTED");
+        assertThat(result.getDecision().getTransfer()).isNull();
+    }
+
+    @Test
+    void findDecisionResult_rebuildsFailedTransferWithoutTransientFailureMessage() {
+        ApprovalRequestView processed = view();
+        processed.setStatus("APPROVED");
+        processed.setRespondedAt(LocalDateTime.now());
+        processed.setTransactionStatus("FAILED");
+        given(approvalRequestMapper.findDecisionResultByIdAndGuardId(APPROVAL_ID, GUARD_ID))
+            .willReturn(processed);
+        given(approvalRequestMapper.findRuleHits(TRANSACTION_ID)).willReturn(List.of());
+
+        ApprovalDecisionResultResponse result =
+            service.findDecisionResult(APPROVAL_ID, GUARD_ID);
+
+        assertThat(result.getDecision().getTransfer().getStatus()).isEqualTo("FAILED");
+        assertThat(result.getDecision().getTransfer().getFailureReason()).isNull();
+    }
+
+    @Test
+    void findDecisionResult_failsWhenRequestWasNotProcessedByGuard() {
+        given(approvalRequestMapper.findDecisionResultByIdAndGuardId(APPROVAL_ID, GUARD_ID))
+            .willReturn(null);
+
+        assertThatThrownBy(() -> service.findDecisionResult(APPROVAL_ID, GUARD_ID))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
         then(approvalRequestMapper).should(never()).findRuleHits(anyLong());

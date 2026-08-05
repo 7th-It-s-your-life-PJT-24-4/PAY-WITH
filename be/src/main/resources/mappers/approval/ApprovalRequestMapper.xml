@@ -15,6 +15,8 @@
     <result property="transactionId" column="transaction_id" />
     <result property="requestedAt"   column="requested_at" />
     <result property="expiredAt"     column="expired_at" />
+    <result property="status"        column="approval_status" />
+    <result property="respondedAt"   column="responded_at" />
     <result property="wardId"        column="ward_id" />
     <result property="wardName"      column="ward_name" />
     <result property="type"          column="type" />
@@ -25,6 +27,9 @@
     <result property="accountNo"     column="account_no" />
     <result property="riskLevel"     column="risk_level" />
     <result property="totalScore"    column="total_score" />
+    <result property="transactionStatus" column="transaction_status" />
+    <result property="completedAt"       column="completed_at" />
+    <result property="balanceAfter"      column="balance_after" />
   </resultMap>
 
   <!-- 승인 화면에 필요한 값을 한 번에 모은다. 수취인·평가는 없을 수 있어 LEFT JOIN. -->
@@ -33,6 +38,8 @@
     ar.transaction_id,
     ar.requested_at,
     ar.expired_at,
+    ar.status         AS approval_status,
+    ar.responded_at,
     senior.user_id    AS ward_id,
     senior.name       AS ward_name,
     t.type,
@@ -42,7 +49,10 @@
     b.bank_name,
     r.account_no,
     re.risk_level,
-    re.total_score
+    re.total_score,
+    t.status          AS transaction_status,
+    t.completed_at,
+    t.balance_after
   </sql>
 
   <sql id="viewJoins">
@@ -83,6 +93,20 @@
     ORDER BY ar.expired_at ASC
   </select>
 
+  <!-- 처리 목록은 응답한 보호자 본인의 기록만 반환한다. 현재 담당 관계가 해제된 시니어의
+       과거 기록은 viewJoins 의 ACTIVE 조인에서 제외된다. -->
+  <select id="findDecisionHistoryByGuardId" resultMap="ApprovalRequestViewResultMap">
+    SELECT <include refid="viewColumns" />
+    <include refid="viewJoins" />
+    WHERE gs.guard_id = #{guardId}
+      AND ar.responded_by = #{guardId}
+      AND ar.status = #{status}
+    <if test="wardId != null">
+      AND senior.user_id = #{wardId}
+    </if>
+    ORDER BY ar.responded_at DESC
+  </select>
+
   <!-- 홈 화면용. 대기 조건(PENDING + 미만료)은 보호자 목록과 같은 의미로 맞춘다.
        결제 승인 경로가 아직 없어 송금만 나오지만, 생기더라도 홈 화면 계약이 조용히 바뀌지 않도록
        type 을 조건에 명시한다. 결제까지 보여줄 때 이 조건을 넓히면 된다. -->
@@ -116,6 +140,15 @@
       AND gs.guard_id = #{guardId}
       AND ar.status = 'PENDING'
       AND ar.expired_at &gt; NOW()
+  </select>
+
+  <select id="findDecisionResultByIdAndGuardId" resultMap="ApprovalRequestViewResultMap">
+    SELECT <include refid="viewColumns" />
+    <include refid="viewJoins" />
+    WHERE ar.approval_id = #{approvalId}
+      AND gs.guard_id = #{guardId}
+      AND ar.responded_by = #{guardId}
+      AND ar.status IN ('APPROVED', 'REJECTED')
   </select>
 
   <!-- 승인/거절 전용 내부 조회. 화면용 컬럼이 필요 없어 담당 확인 경로만 조인한다. -->

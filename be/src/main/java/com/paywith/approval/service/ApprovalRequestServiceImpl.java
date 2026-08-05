@@ -3,6 +3,7 @@ package com.paywith.approval.service;
 import com.paywith.approval.domain.ApprovalRequest;
 import com.paywith.approval.domain.ApprovalRequestView;
 import com.paywith.approval.dto.ApprovalDecisionResponse;
+import com.paywith.approval.dto.ApprovalDecisionResultResponse;
 import com.paywith.approval.dto.ApprovalRequestDetailResponse;
 import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import com.paywith.approval.mapper.ApprovalRequestMapper;
@@ -10,6 +11,8 @@ import com.paywith.approval.mapper.TransactionApprovalMapper;
 import com.paywith.exception.BusinessException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -18,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ApprovalRequestServiceImpl implements ApprovalRequestService {
+
+    private static final Set<String> DECISION_STATUSES = Set.of("APPROVED", "REJECTED");
 
     private final ApprovalRequestMapper approvalRequestMapper;
     private final TransactionApprovalMapper transactionApprovalMapper;
@@ -52,12 +57,36 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<ApprovalRequestSummaryResponse> findDecisionHistory(
+        Long guardId, Long wardId, String status) {
+        String normalizedStatus = normalizeDecisionStatus(status);
+        return approvalRequestMapper
+            .findDecisionHistoryByGuardId(guardId, wardId, normalizedStatus)
+            .stream()
+            .map(ApprovalRequestSummaryResponse::new)
+            .collect(Collectors.toList());
+    }
+
+    @Override
     public ApprovalRequestDetailResponse findDetail(Long approvalId, Long guardId) {
         ApprovalRequestView view = approvalRequestMapper.findByIdAndGuardId(approvalId, guardId);
         if (view == null) {
             throw notFound();
         }
         return new ApprovalRequestDetailResponse(
+            view, approvalRequestMapper.findRuleHits(view.getTransactionId()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApprovalDecisionResultResponse findDecisionResult(Long approvalId, Long guardId) {
+        ApprovalRequestView view =
+            approvalRequestMapper.findDecisionResultByIdAndGuardId(approvalId, guardId);
+        if (view == null) {
+            throw notFound();
+        }
+        return new ApprovalDecisionResultResponse(
             view, approvalRequestMapper.findRuleHits(view.getTransactionId()));
     }
 
@@ -103,5 +132,16 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
     /** 담당이 아닌 보호자에게 존재 여부를 알려주지 않기 위해 권한 부족도 404 로 처리한다. */
     private BusinessException notFound() {
         return new BusinessException(HttpStatus.NOT_FOUND, "승인요청을 찾을 수 없습니다.");
+    }
+
+    private String normalizeDecisionStatus(String status) {
+        String normalized = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
+        if (!DECISION_STATUSES.contains(normalized)) {
+            throw new BusinessException(
+                HttpStatus.BAD_REQUEST,
+                "REQUEST_001",
+                "처리 상태는 APPROVED 또는 REJECTED만 조회할 수 있습니다.");
+        }
+        return normalized;
     }
 }

@@ -7,13 +7,14 @@
 --
 -- 모든 행이 실제 규칙(expired_at = requested_at + fds.approval.expire-minutes(3시간))을 따른다.
 --
--- 승인요청 5건:
+-- 승인요청 6건:
 --   9102 대기(요청 8분 전   → 만료 172분 후) A2  → 목록 1순위(만료 임박 순 정렬 확인)
 --   9101 대기(요청 3분 전   → 만료 177분 후) A1  → 목록 2순위, 상세 200, 승인/거절 성공
 --   9103 대기(요청 195분 전 → 만료 15분 지남) A1  → 목록 제외, 상세 404, 승인 409
 --                                                (만료 스캔이 곧 EXPIRED 로 바꾼다. 아래 주의 참고)
---   9104 APPROVED (요청 2시간 전)             A1  → 목록 제외, 상세 404, 승인 409
+--   9104 APPROVED (요청 2시간 전)             A1  → 승인 이력 조회/상세 확인용
 --   9105 대기(요청 6분 전   → 만료 174분 후) B1  → 보호자 A 에게는 404 (담당 아님)
+--   9106 REJECTED (요청 90분 전, 5분 뒤 응답) A2  → 거절 이력 조회/상세 확인용
 --
 -- 주의: 만료 스캔(fds.approval.expire-scan-ms, 기본 60초)이 돌면 9103 은 status 가 PENDING →
 --       EXPIRED 로, 대상 거래는 HELD → CANCELED 로 바뀐다. 걸러지는 결과는 같지만 근거가
@@ -75,7 +76,8 @@ INSERT INTO transactions
     (9102, 9103, 9102, 'TRANSFER_OUT',  850000, '급하게 보내달래',      'HELD',     53, NOW() - INTERVAL 8 MINUTE),
     (9103, 9102, 9103, 'TRANSFER_OUT', 1200000, NULL,                   'HELD',     51, NOW() - INTERVAL 45 MINUTE),
     (9104, 9102, 9101, 'TRANSFER_OUT',  600000, '손자 학원비',          'APPROVED', 50, NOW() - INTERVAL 2 HOUR),
-    (9105, 9105, 9104, 'TRANSFER_OUT', 1800000, '대출 상환',            'HELD',     58, NOW() - INTERVAL 6 MINUTE)
+    (9105, 9105, 9104, 'TRANSFER_OUT', 1800000, '대출 상환',            'HELD',     58, NOW() - INTERVAL 6 MINUTE),
+    (9106, 9103, 9102, 'TRANSFER_OUT',  700000, '급한 송금 요청',       'REJECTED', 55, NOW() - INTERVAL 90 MINUTE)
     ON DUPLICATE KEY UPDATE status = VALUES(status), risk_score = VALUES(risk_score), memo = VALUES(memo);
 
 -- ⑥ 위험도 평가 (거래당 1행, 임계값은 판정 시점 스냅샷) ----------------
@@ -85,7 +87,8 @@ INSERT INTO risk_evaluations
     (9102, 9102, 53, 25, 50, 'DANGER', 'RULE'),
     (9103, 9103, 51, 25, 50, 'DANGER', 'RULE'),
     (9104, 9104, 50, 25, 50, 'DANGER', 'RULE'),
-    (9105, 9105, 58, 25, 50, 'DANGER', 'RULE')
+    (9105, 9105, 58, 25, 50, 'DANGER', 'RULE'),
+    (9106, 9106, 55, 25, 50, 'DANGER', 'RULE')
     ON DUPLICATE KEY UPDATE total_score = VALUES(total_score), risk_level = VALUES(risk_level);
 
 -- ⑦ 발동한 룰 내역 (상세 응답의 ruleHits, 점수 큰 순 정렬 확인용) ------
@@ -101,7 +104,9 @@ INSERT INTO risk_evaluation_details (detail_id, evaluation_id, rule_id, score) V
     -- 9104: 이미 승인된 건
     (9111, 9104, 4, 18), (9112, 9104, 6, 15), (9113, 9104, 7, 14),
     -- 9105: 다른 보호자 담당 (권한 격리 확인용)
-    (9114, 9105, 3, 25), (9115, 9105, 4, 18), (9116, 9105, 6, 15)
+    (9114, 9105, 3, 25), (9115, 9105, 4, 18), (9116, 9105, 6, 15),
+    -- 9106: 거절 이력 조회용
+    (9117, 9106, 3, 25), (9118, 9106, 6, 15)
     ON DUPLICATE KEY UPDATE score = VALUES(score);
 
 -- ⑧ 승인요청 (보류 송금당 1행) -----------------------------------------
@@ -119,7 +124,10 @@ INSERT INTO approval_requests
     (9104, 9104, 'APPROVED', 9101, NOW() - INTERVAL 2 HOUR,    NOW() - INTERVAL 110 MINUTE,
                                                                      NOW() - INTERVAL 2 HOUR   + INTERVAL 180 MINUTE),
     -- 보호자 B 담당 시니어의 건 — 만료 174분 후
-    (9105, 9105, 'PENDING',  NULL, NOW() - INTERVAL 6 MINUTE,  NULL, NOW() - INTERVAL 6 MINUTE  + INTERVAL 180 MINUTE)
+    (9105, 9105, 'PENDING',  NULL, NOW() - INTERVAL 6 MINUTE,  NULL, NOW() - INTERVAL 6 MINUTE  + INTERVAL 180 MINUTE),
+    -- 보호자 A가 거절한 건 (요청 90분 전, 5분 뒤 응답)
+    (9106, 9106, 'REJECTED', 9101, NOW() - INTERVAL 90 MINUTE, NOW() - INTERVAL 85 MINUTE,
+                                                                     NOW() - INTERVAL 90 MINUTE + INTERVAL 180 MINUTE)
     ON DUPLICATE KEY UPDATE status = VALUES(status), responded_by = VALUES(responded_by),
         requested_at = VALUES(requested_at), responded_at = VALUES(responded_at),
         expired_at = VALUES(expired_at);
