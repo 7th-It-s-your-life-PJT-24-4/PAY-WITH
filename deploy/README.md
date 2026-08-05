@@ -38,10 +38,39 @@ docker compose -f docker-compose.ec2.yml up --build -d
 
 접속 확인은 `http://<EC2 공인 IP>/healthz`로 한다. 프런트 SPA 라우트는 Nginx의 `try_files` fallback으로 `/index.html`을 반환하며, `/api/*`는 내부 `app:8080` 컨테이너로 전달된다.
 
+## Swagger UI
+
+`/swagger-ui`, `/v2/api-docs`, `/swagger-resources`, `/webjars`는 `/api/` 밖이라 기본 프록시로는 닿지 않는다. Nginx에 정규식 `location`을 따로 두어 앱으로 넘긴다.
+
+`http://<EC2 공인 IP>/swagger-ui/index.html`로 연다. springfox 3이라 2.x의 `/swagger-ui.html`은 없다. Authorize 창에는 토큰만이 아니라 `Bearer eyJ...` 형태로 접두어까지 넣어야 한다(`SwaggerConfig` 참고).
+
+앱 컨테이너의 8080은 `127.0.0.1`에만 바인딩되어 있으므로, Nginx를 거치지 않고 직접 보려면 SSH 터널을 쓴다.
+
+```bash
+ssh -i <key>.pem -N -L 8080:localhost:8080 ubuntu@<EC2 공인 IP>
+# → http://localhost:8080/swagger-ui/index.html
+```
+
+### 닫아야 할 시점
+
+지금은 실사용자 데이터가 없고 SMS·오픈뱅킹·사기계좌가 모두 목이라 공개해 두었다. 다음 중 하나라도 생기면 접근을 제한한다.
+
+- 실제 SMS 프로바이더 연동 — `/api/auth/phone/code`가 `permitAll`이라 발송 비용이 샌다
+- 실사용자 데이터 유입
+
+제한은 `fe/apps/web/nginx/default.conf`의 swagger `location`에 Basic Auth를 붙이는 방식이 간단하다.
+
+```nginx
+auth_basic "PayWith API Docs";
+auth_basic_user_file /etc/nginx/.htpasswd;
+```
+
+계정 파일은 EC2에서 `htpasswd -c deploy/htpasswd <아이디>`로 만들고, compose의 `web`에 `./htpasswd:/etc/nginx/.htpasswd:ro`로 마운트한다(자격증명이라 이미지에 굽지 않는다). 호스트에 파일이 없는 상태로 띄우면 Docker가 같은 이름의 디렉터리를 만들어 인증이 깨지므로 순서를 지켜야 한다.
+
 ## EC2 보안 그룹
 
 - 인바운드: TCP 80만 임시로 허용
-- Redis(6379), Spring 앱(8080)은 호스트에 노출하지 않는다.
+- Redis(6379)는 호스트에 노출하지 않는다. Spring 앱(8080)은 `127.0.0.1`에만 바인딩하므로 외부에서 직접 닿지 않는다.
 - SSH(22)는 본인 IP로만 제한한다.
 - RDS는 퍼블릭 액세스를 끄고, 인바운드 3306을 EC2 보안 그룹에서만 허용한다.
 
