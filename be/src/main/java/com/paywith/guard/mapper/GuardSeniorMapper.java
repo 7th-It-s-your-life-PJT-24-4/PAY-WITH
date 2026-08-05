@@ -12,6 +12,8 @@ public interface GuardSeniorMapper {
     boolean existsActiveRelation(@Param("guardId") Long guardId,
                                  @Param("seniorId") Long seniorId);
 
+    boolean existsActiveRelationByWardId(@Param("wardId") Long wardId);
+
     /** 신규 페어링이면 INSERT, 기존(REJECTED/REVOKED 등) 관계면 ACTIVE로 재연동한다. */
     int upsertActiveRelation(@Param("guardId") Long guardId, @Param("wardId") Long wardId);
 
