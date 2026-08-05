@@ -4,7 +4,6 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @ApiModel(description = "위험 분석 결과. 안전한 거래이거나 평가 대상이 아니면 이 객체 자체가 null")
@@ -18,18 +17,13 @@ public class RiskAnalysisResponse {
             + "완료된 거래 중 사후 재검토 대상이었던 경우에만 존재", example = "평소보다 큰 금액이...")
     private final String summary;
 
-    @ApiModelProperty(value = "상세 위험 판단 근거")
-    private final List<RiskReasonDetailResponse> reasons;
+    @ApiModelProperty(value = "위험 판단 사유 코드 배열(risk_rules.rule_code). "
+            + "한국어 문구 매핑은 프론트 책임", example = "[\"REPEATED\", \"NEW_RECIPIENT\"]")
+    private final List<String> reasons;
 
-    @ApiModelProperty(value = "위험 분석 시각")
-    private final LocalDateTime analyzedAt;
-
-    public RiskAnalysisResponse(
-            int riskScore, String summary, List<RiskReasonDetailResponse> reasons, LocalDateTime analyzedAt
-    ) {
+    public RiskAnalysisResponse(int riskScore, String summary, List<String> reasons) {
         this.riskScore = riskScore;
         this.summary = summary;
         this.reasons = reasons;
-        this.analyzedAt = analyzedAt;
     }
 }

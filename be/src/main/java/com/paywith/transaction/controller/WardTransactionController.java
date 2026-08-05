@@ -1,6 +1,7 @@
 package com.paywith.transaction.controller;
 
 import com.paywith.common.ApiResponse;
+import com.paywith.transaction.dto.TransactionDetailResponse;
 import com.paywith.transaction.dto.TransactionHistoryListResponse;
 import com.paywith.transaction.service.TransactionHistoryService;
 import io.swagger.annotations.Api;
@@ -8,10 +9,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import springfox.documentation.annotations.ApiIgnore;
 
 @Api(tags = "피보호자 거래내역")
@@ -41,6 +39,21 @@ public class WardTransactionController {
     ) {
         return ApiResponse.success(
                 transactionHistoryService.findMyTransactions(userId, category, keyword, page, size)
+        );
+    }
+
+    @ApiOperation(
+            value = "피보호자 거래내역 상세 조회",
+            notes = "로그인한 피보호자 본인의 거래 상세를 조회한다. "
+                    + "다른 사람의 거래거나 없는 id면 404 TRANSACTION_003.")
+    @GetMapping("/{id}")
+    public ApiResponse<TransactionDetailResponse> findMyTransactionDetail(
+            @ApiIgnore @AuthenticationPrincipal Long userId,
+            @ApiParam(value = "조회할 거래 번호", required = true, example = "138")
+            @PathVariable Long id
+    ) {
+        return ApiResponse.success(
+                transactionHistoryService.findMyTransactionDetail(userId, id)
         );
     }
 }

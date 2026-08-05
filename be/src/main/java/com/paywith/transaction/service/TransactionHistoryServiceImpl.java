@@ -2,10 +2,7 @@ package com.paywith.transaction.service;
 
 import com.paywith.exception.BusinessException;
 import com.paywith.guard.service.GuardService;
-import com.paywith.transaction.dto.GuardTransactionHistoryItem;
-import com.paywith.transaction.dto.GuardTransactionHistoryListResponse;
-import com.paywith.transaction.dto.TransactionHistoryItem;
-import com.paywith.transaction.dto.TransactionHistoryListResponse;
+import com.paywith.transaction.dto.*;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.wallet.service.WalletService;
 import lombok.RequiredArgsConstructor;
@@ -110,6 +107,63 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
 
         // 7. 응답
         return new GuardTransactionHistoryListResponse(items, resolvedPage, resolvedSize,totalElements);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TransactionDetailResponse findMyTransactionDetail(Long userId, Long transactionId) {
+        // 1. 조회
+        TransactionDetailResponse detail = transactionMapper.findMyTransactionDetail(transactionId, userId);
+        if (detail == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "TRANSACTION_003", "거래 내역을 찾을 수 없습니다.");
+        }
+
+        // 2. riskAnalysis 조립 후 필드 정리
+        detail.setRiskAnalysis(
+                buildRiskAnalysis(transactionId, detail.getType(), detail.getRiskLevel(), detail.getRiskScore())
+        );
+        detail.setRiskScore(null);
+
+        return detail;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GuardTransactionDetailResponse findWardTransactionDetail(Long guardId, Long wardId, Long transactionId) {
+        // 1. 보호자-피보호자 연동 확인
+        if(!guardService.verifyGuardOfWard(guardId,wardId)){
+            throw new BusinessException(HttpStatus.NOT_FOUND, "LINK_001", "연동된 피보호자를 찾을 수 없습니다.");
+        }
+
+        // 2. 조회
+        GuardTransactionDetailResponse detail = transactionMapper.findWardTransactionDetail(transactionId, wardId);
+        if (detail == null){
+            throw new BusinessException(HttpStatus.NOT_FOUND, "TRANSACTION_003", "거래 내역을 찾을 수 없습니다.");
+        }
+
+        // 3. riskAnalysis 조립 후 필드 정리
+        detail.setRiskAnalysis(
+                buildRiskAnalysis(transactionId, detail.getType(), detail.getRiskLevel(), detail.getRiskScore())
+        );
+        detail.setRiskScore(null);
+
+        return  detail;
+    }
+
+     // riskAnalysis 조립. 현재 점수제 FDS는 송금(TRANSFER)에만 붙어있다.
+     // TODO: 결제 FDS가 점수제로 개편되면 PAYMENT 분기 추가 (payment_risk_evaluations 등 신규 테이블 조회)
+
+    private RiskAnalysisResponse buildRiskAnalysis(Long transactionId, String type, String riskLevel, Integer riskScore) {
+        if (!"TRANSFER".equals(type)) {
+            return null; // CHARGE/PAYMENT는 아직 점수제 FDS 없음
+        }
+        if (riskLevel == null || "SAFE".equals(riskLevel) || riskScore == null) {
+            return null; // 평가 대상 아니었거나, 안전 거래
+        }
+
+        List<String> reasons = transactionMapper.findRiskReasons(transactionId);
+        String summary = transactionMapper.findLlmSummary(transactionId);
+        return new RiskAnalysisResponse(riskScore, summary, reasons);
     }
 
 }

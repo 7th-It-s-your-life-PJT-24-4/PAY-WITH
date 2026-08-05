@@ -268,4 +268,90 @@
         LIMIT #{limit}
     </select>
 
+    <select id="findMyTransactionDetail" resultType="com.paywith.transaction.dto.TransactionDetailResponse">
+        SELECT
+        t.transaction_id AS transactionId,
+        CASE WHEN t.type = 'TRANSFER_OUT' THEN 'TRANSFER' ELSE t.type END AS type,
+        CASE WHEN t.type = 'CHARGE' THEN 'IN' ELSE 'OUT' END AS direction,
+        t.status AS status,
+        re.risk_level AS riskLevel,
+        CASE t.type
+        WHEN 'CHARGE' THEN COALESCE(ib.name, b.bank_name)
+        WHEN 'PAYMENT' THEN m.name
+        WHEN 'TRANSFER_OUT' THEN r.holder_name
+        END AS counterpartyName,
+        CASE t.type
+        WHEN 'CHARGE' THEN b.bank_name
+        WHEN 'TRANSFER_OUT' THEN rb.bank_name
+        END AS bankName,
+        CASE WHEN t.type = 'TRANSFER_OUT' THEN r.account_no END AS accountNo,
+        t.amount AS amount,
+        t.memo AS memo,
+        COALESCE(t.completed_at, t.created_at) AS occurredAt,
+        t.balance_after AS balanceAfter,
+        re.total_score AS riskScore
+        FROM transactions t
+        JOIN wallets w ON w.wallet_id = t.wallet_id
+        LEFT JOIN recipients r ON r.recipient_id = t.recipient_id
+        LEFT JOIN banks rb ON rb.bank_code = r.bank_code
+        LEFT JOIN merchants m ON m.merchant_id = t.merchant_id
+        LEFT JOIN linked_accounts la ON la.account_id = t.account_id
+        LEFT JOIN banks b ON b.bank_code = la.bank_code
+        LEFT JOIN users ib ON ib.user_id = t.initiated_by
+        LEFT JOIN risk_evaluations re ON re.transaction_id = t.transaction_id
+        WHERE t.transaction_id = #{transactionId}
+        AND w.user_id = #{wardId}
+    </select>
+
+    <select id="findWardTransactionDetail"
+            resultType="com.paywith.transaction.dto.GuardTransactionDetailResponse">
+        SELECT
+        t.transaction_id AS transactionId,
+        CASE WHEN t.type = 'TRANSFER_OUT' THEN 'TRANSFER' ELSE t.type END AS type,
+        CASE WHEN t.type = 'CHARGE' THEN 'IN' ELSE 'OUT' END AS direction,
+        t.status AS status,
+        re.risk_level AS riskLevel,
+        CASE t.type
+        WHEN 'CHARGE' THEN COALESCE(ib.name, b.bank_name)
+        WHEN 'PAYMENT' THEN m.name
+        WHEN 'TRANSFER_OUT' THEN r.holder_name
+        END AS counterpartyName,
+        CASE t.type
+        WHEN 'CHARGE' THEN b.bank_name
+        WHEN 'TRANSFER_OUT' THEN rb.bank_name
+        END AS bankName,
+        CASE WHEN t.type = 'TRANSFER_OUT' THEN r.account_no END AS accountNo,
+        t.amount AS amount,
+        t.memo AS memo,
+        COALESCE(t.completed_at, t.created_at) AS occurredAt,
+        t.balance_after AS balanceAfter,
+        re.total_score AS riskScore
+        FROM transactions t
+        JOIN wallets w ON w.wallet_id = t.wallet_id
+        LEFT JOIN recipients r ON r.recipient_id = t.recipient_id
+        LEFT JOIN banks rb ON rb.bank_code = r.bank_code
+        LEFT JOIN merchants m ON m.merchant_id = t.merchant_id
+        LEFT JOIN linked_accounts la ON la.account_id = t.account_id
+        LEFT JOIN banks b ON b.bank_code = la.bank_code
+        LEFT JOIN users ib ON ib.user_id = t.initiated_by
+        LEFT JOIN risk_evaluations re ON re.transaction_id = t.transaction_id
+        WHERE t.transaction_id = #{transactionId}
+        AND w.user_id = #{wardId}
+    </select>
+
+    <select id="findRiskReasons" resultType="java.lang.String">
+        SELECT rr.rule_code
+        FROM risk_evaluation_details red
+        JOIN risk_rules rr ON rr.rule_id = red.rule_id
+        JOIN risk_evaluations re ON re.evaluation_id = red.evaluation_id
+        WHERE re.transaction_id = #{transactionId}
+        ORDER BY red.score DESC
+    </select>
+
+    <select id="findLlmSummary" resultType="java.lang.String">
+        SELECT reason
+        FROM llm_risk_reviews
+        WHERE transaction_id = #{transactionId}
+    </select>
+
 </mapper>
