@@ -28,6 +28,9 @@ import GuardTransactionDecisionCompletePage from '@/pages/guard/history/[id]/dec
 import GuardHistoryPage from '@/pages/guard/history/page.vue'
 import GuardLayout from '@/pages/guard/layout.vue'
 import GuardMyPage from '@/pages/guard/my/page.vue'
+import GuardMyProfileEditPage from '@/pages/guard/my/profile/edit.vue'
+import GuardMyProfilePage from '@/pages/guard/my/profile/page.vue'
+import GuardMySeniorsPage from '@/pages/guard/my/seniors/page.vue'
 import GuardPage from '@/pages/guard/page.vue'
 import GuardPairingCodePage from '@/pages/guard/pairing/code.vue'
 import GuardSafeAccountConfirmPage from '@/pages/guard/safe-account/confirm/page.vue'
@@ -220,6 +223,24 @@ const router = createRouter({
           name: 'guard-my',
           component: GuardMyPage,
           meta: { activeNavigation: 'my' },
+        },
+        {
+          path: 'my/profile',
+          name: 'guard-my-profile',
+          component: GuardMyProfilePage,
+          meta: { activeNavigation: 'my', showBottomNavigation: false },
+        },
+        {
+          path: 'my/profile/edit',
+          name: 'guard-my-profile-edit',
+          component: GuardMyProfileEditPage,
+          meta: { activeNavigation: 'my', showBottomNavigation: false },
+        },
+        {
+          path: 'my/seniors',
+          name: 'guard-my-seniors',
+          component: GuardMySeniorsPage,
+          meta: { activeNavigation: 'my', showBottomNavigation: false },
         },
       ],
     },

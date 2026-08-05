@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { issueGuardianPairingCode, pairWardWithGuardian } from '@/api/pairing'
+import {
+  issueGuardianPairingCode,
+  pairWardWithGuardian,
+  unpairGuardianWard,
+} from '@/api/pairing'
 import { apiClient } from '@/api/client'
 
 vi.mock('@/api/client', () => ({
   apiClient: {
+    delete: vi.fn(),
     post: vi.fn(),
   },
 }))
@@ -63,5 +68,19 @@ describe('pairing API', () => {
       pairWardWithGuardian({ pairingCode: '12' }),
     ).rejects.toBeDefined()
     expect(apiClient.post).not.toHaveBeenCalled()
+  })
+
+  it('보호자가 시니어 연결을 해제한다', async () => {
+    vi.mocked(apiClient.delete).mockResolvedValue({
+      success: true,
+      data: null,
+      message: null,
+    })
+
+    await expect(unpairGuardianWard(12)).resolves.toBeUndefined()
+    expect(apiClient.delete).toHaveBeenCalledWith(
+      '/guard/pairing/12',
+      expect.anything(),
+    )
   })
 })

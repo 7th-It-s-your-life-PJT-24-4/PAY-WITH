@@ -9,6 +9,7 @@ export const pairingErrorCodeSchema = z.enum([
   'PAIRING_002',
   'PAIRING_003',
   'PAIRING_004',
+  'PAIRING_005',
 ])
 
 export const guardianPairingCodeSchema = z.object({
@@ -35,6 +36,7 @@ export const guardianPairingCodeResponseSchema = apiResponseSchema(
   guardianPairingCodeSchema,
 )
 export const wardPairingResponseSchema = apiResponseSchema(wardPairingSchema)
+export const unpairWardResponseSchema = apiResponseSchema(z.null())
 
 export type PairingStatus = z.infer<typeof pairingStatusSchema>
 export type PairingErrorCode = z.infer<typeof pairingErrorCodeSchema>

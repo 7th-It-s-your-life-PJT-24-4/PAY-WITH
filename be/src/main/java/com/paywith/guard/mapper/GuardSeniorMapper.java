@@ -19,6 +19,8 @@ public interface GuardSeniorMapper {
 
     GuardSeniorRelation findRelation(@Param("guardId") Long guardId, @Param("wardId") Long wardId);
 
+    int revokeActiveRelation(@Param("guardId") Long guardId, @Param("wardId") Long wardId);
+
     /** 보호자 홈 상단 탭용. 연동일 순으로 반환해 "생략 시 첫 번째 피보호자"를 안정적으로 정한다. */
     List<WardSummary> findActiveWards(@Param("guardId") Long guardId);
 
