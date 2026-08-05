@@ -70,6 +70,29 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
 -- (폐지)   BL_RAPID_NEW_RECIPIENT — DIVISION_TRANSFER 와 판정 소스가 겹쳐 이중 계산이 되므로 제거.
 -- (미도입) UNREGISTERED_ACCOUNT — SAFE_ACCOUNT_CHECK 와 판정 소스 중복
 
+-- 2-2) 결제 FDS 룰 (PR#4) — 배점은 송금과 같은 스케일(주의 25 / 위험 50), 임계값·목록은
+--      properties(fds.payment.*)로 외부화. 송금 판정 서비스는 평가기 빈이 없는 rule_code 를
+--      건너뛰므로 PAY_* 행 추가는 송금 판정에 영향이 없다(결제 서비스도 대칭으로 무해).
+--      SPLIT 40 은 분할(40+L1=50 차단)이 일괄 구매(L3+GIFT=45 알림)보다 불리하도록 정한 값,
+--      RISKY 25 는 단독 발동이 정확히 주의 문턱이 되도록 정한 값 — 임의 조정 금지(설계서 §4-2).
+INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
+                                                                      ('PAY_SPLIT_PAYMENT',    '상품권 의심 결제의 단기간 반복(고액 FDS 회피 분할 의심)',      40, TRUE),
+                                                                      ('PAY_HIGH_AMOUNT_L3',   '고액 결제 3구간(L3 기준액 이상)',                              35, TRUE),
+                                                                      ('PAY_RISKY_CATEGORY',   '위험 업종 결제(귀금속·전자제품 등 현금 교환 용이 물품)',       25, TRUE),
+                                                                      ('PAY_PENDING_APPROVAL', '승인 대기 송금이 있는 상태의 결제',                            20, TRUE),
+                                                                      ('PAY_HIGH_AMOUNT_L2',   '고액 결제 2구간(L2~L3)',                                       18, TRUE),
+                                                                      ('PAY_NIGHT_DEEP',       '심야 결제(자정~새벽)',                                         14, TRUE),
+                                                                      ('PAY_HIGH_AMOUNT_L1',   '고액 결제 1구간(L1~L2)',                                       10, TRUE),
+                                                                      ('PAY_GIFT_CARD_AMOUNT', '상품권 취급 업종에서 단위 배수 금액 결제(상품권 의심)',        10, TRUE),
+                                                                      ('PAY_NIGHT_LATE',       '야간 결제(밤~자정)',                                            6, TRUE)
+    ON DUPLICATE KEY UPDATE description = VALUES(description), score = VALUES(score), is_active = VALUES(is_active);
+
+-- 2-2-1) 결제 단축평가 — 송금 BL_* 와 같은 위상(score 0, 발동 즉시 DANGER, details 에 근거 기록).
+--        결제 DANGER 는 승인 보류가 아니라 즉시 거절(BLOCKED)로 처리된다.
+INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
+                                                                      ('PAY_IMPOSSIBLE_TRAVEL', '직전 결제 대비 물리적으로 불가능한 이동 속도', 0, TRUE)
+    ON DUPLICATE KEY UPDATE description = VALUES(description), score = VALUES(score), is_active = VALUES(is_active);
+
 -- 3) 결제 이상 규칙 카탈로그 (IMPOSSIBLE_TRAVEL만 즉시 차단)  [변경 없음]
 INSERT INTO payment_anomaly_rules (rule_code, description, default_action, is_active) VALUES
                                                                                           ('HIGH_AMOUNT_PAYMENT',  '평소 대비 고액 결제',       'NOTIFY', TRUE),

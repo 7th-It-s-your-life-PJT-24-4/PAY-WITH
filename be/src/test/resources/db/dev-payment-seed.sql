@@ -34,3 +34,20 @@ INSERT INTO wallets (wallet_id, user_id, balance, status) VALUES
 INSERT INTO merchants (merchant_id, name, category_code, region, latitude, longitude) VALUES
     (9001, '결제테스트 좌표미등록상점', 'MART', '서울 종로구', NULL, NULL)
     ON DUPLICATE KEY UPDATE name = VALUES(name), latitude = NULL, longitude = NULL;
+
+-- FDS 카테고리·이동 속도 룰 검증용 가맹점 (PR#4a, 룰별 최소 1케이스 — 설계서 §7-1-b):
+--   9002 금은방(JEWELRY)      PAY_RISKY_CATEGORY 단독(9만→CAUTION)·조합(50만→25+35=60 DANGER)
+--   9003 전자상가(ELECTRONICS) risky 목록 복수 코드 파싱 확인
+--   9004 부산식당(RESTAURANT)  서울 결제 후 수분 내 결제 시 속도>300km/h → PAY_IMPOSSIBLE_TRAVEL.
+--                              중립 카테고리(어느 목록에도 없음)라 속도 룰만 격리 검증
+--   9005 무분류(NULL, 좌표 O)  category_code NULL 이면 카테고리 룰 3종 스킵 확인
+-- 상품권 취급 업종(PAY_GIFT_CARD_AMOUNT/SPLIT) 검증은 공용 시드의 4(CVS)·1(MART)을 그대로 사용.
+-- 카테고리 코드 문자열은 properties(fds.payment.*-categories) 목록과 정확히 일치해야 한다
+-- (카탈로그 부재로 오타 시 조용히 미발동) — 시드·properties 를 같은 커밋에서 관리.
+INSERT INTO merchants (merchant_id, name, category_code, region, latitude, longitude) VALUES
+    (9002, '결제테스트 금은방',     'JEWELRY',     '서울 종로구',   37.5700000, 126.9850000),
+    (9003, '결제테스트 전자상가',   'ELECTRONICS', '서울 중구',     37.5670000, 126.9930000),
+    (9004, '결제테스트 부산식당',   'RESTAURANT',  '부산 해운대구', 35.1587000, 129.1604000),
+    (9005, '결제테스트 무분류상점', NULL,          '서울 종로구',   37.5750000, 126.9800000)
+    ON DUPLICATE KEY UPDATE name = VALUES(name), category_code = VALUES(category_code),
+    region = VALUES(region), latitude = VALUES(latitude), longitude = VALUES(longitude);
