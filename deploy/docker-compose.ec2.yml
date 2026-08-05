@@ -1,5 +1,8 @@
 services:
   web:
+    # CI 는 GHCR 에 올린 이미지를 WEB_IMAGE 로 넘겨 그대로 띄우고(--no-build), 수동 배포는
+    # build 로 직접 만든다. 셸 환경변수가 .env 보다 우선하므로 CI 가 넘긴 값이 이긴다.
+    image: ${WEB_IMAGE:-pay-with-web:local}
     build:
       context: ../fe
       args:
@@ -23,6 +26,7 @@ services:
       - '443:443'
 
   app:
+    image: ${APP_IMAGE:-pay-with-api:local}
     build:
       context: ../be
     restart: unless-stopped
