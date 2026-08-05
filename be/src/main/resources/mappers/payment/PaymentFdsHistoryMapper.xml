@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.paywith.payment.fds.mapper.PaymentFdsHistoryMapper">
+  <resultMap id="LastCompletedPaymentResultMap" type="com.paywith.payment.fds.domain.LastCompletedPayment">
+    <result property="latitude" column="latitude" />
+    <result property="longitude" column="longitude" />
+    <result property="completedAt" column="completed_at" />
+  </resultMap>
+
+  <!-- 이동 속도 단축평가 기준점: 최신 1건 고정. 좌표 없는 행이 걸리면 스킵하는 게 맞으므로
+       좌표 조건으로 거르지 않는다 — 거르면 더 오래된 행이 기준점이 되어 판정이 왜곡된다. -->
+  <select id="findLastCompletedPayment" resultMap="LastCompletedPaymentResultMap">
+    SELECT latitude, longitude, completed_at
+    FROM transactions
+    WHERE wallet_id = #{walletId}
+      AND type = 'PAYMENT'
+      AND status = 'COMPLETED'
+      AND completed_at &gt;= #{since}
+    ORDER BY completed_at DESC, transaction_id DESC
+    LIMIT 1
+  </select>
+
+  <!-- 분할 결제 룰: 과거 행에도 현재 건과 같은 상품권 의심 조건(목록·배수)을 적용한다.
+       결제는 평가 시점에 자기 거래 행이 없어 자기 제외가 필요 없다. -->
+  <select id="countGiftCardSuspectPayments" resultType="int">
+    SELECT COUNT(*)
+    FROM transactions t
+    JOIN merchants m ON m.merchant_id = t.merchant_id
+    WHERE t.wallet_id = #{walletId}
+      AND t.type = 'PAYMENT'
+      AND t.status = 'COMPLETED'
+      AND t.completed_at &gt;= #{since}
+      AND m.category_code IN
+      <foreach collection="categories" item="category" open="(" separator="," close=")">
+        #{category}
+      </foreach>
+      AND MOD(t.amount, #{amountUnit}) = 0
+  </select>
+</mapper>
