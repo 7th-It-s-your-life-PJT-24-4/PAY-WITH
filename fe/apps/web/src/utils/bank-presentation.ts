@@ -13,7 +13,7 @@ import wooriBankIconUrl from '@pay-with/ui/svg/banks/woori-bank.svg'
 
 import type { Bank } from '@/schemas/bank.schema'
 
-interface BankPresentation {
+export interface BankPresentation {
   iconUrl?: string
   brandClass: string
 }

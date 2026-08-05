@@ -2,8 +2,8 @@
 import { BottomSheet } from '@pay-with/ui'
 
 import GuardBankIconTile from '@/pages/guard/charge/-components/GuardBankIconTile.vue'
-import { getBankPresentation } from '@/pages/guard/charge/-utils/bank-presentation'
 import type { Bank } from '@/schemas/bank.schema'
+import { getBankPresentation } from '@/utils/bank-presentation'
 
 defineProps<{
   banks: Bank[]
