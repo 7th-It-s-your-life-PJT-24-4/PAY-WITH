@@ -2,6 +2,7 @@ import { apiClient } from '@/api/client'
 import {
   createUserRequestSchema,
   deleteUserResponseSchema,
+  updateUserRequestSchema,
   userResponseSchema,
   usersResponseSchema,
   type CreateUserRequest,
@@ -29,7 +30,12 @@ export async function updateUser(
   id: number,
   body: UpdateUserRequest,
 ): Promise<User> {
-  const response = await apiClient.put(`/users/${id}`, userResponseSchema, body)
+  const request = updateUserRequestSchema.parse(body)
+  const response = await apiClient.put(
+    `/users/${id}`,
+    userResponseSchema,
+    request,
+  )
   return response.data
 }
 

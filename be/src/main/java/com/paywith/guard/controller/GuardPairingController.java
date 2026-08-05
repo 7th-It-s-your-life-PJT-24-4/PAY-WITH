@@ -6,6 +6,8 @@ import com.paywith.guard.service.GuardService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,5 +31,14 @@ public class GuardPairingController {
     @PostMapping
     public ApiResponse<GuardPairingCodeResponse> issueCode(@ApiIgnore @AuthenticationPrincipal Long guardId) {
         return ApiResponse.success(guardService.issuePairingCode(guardId));
+    }
+
+    @DeleteMapping("/{wardId}")
+    public ApiResponse<Void> unpairWard(
+        @AuthenticationPrincipal Long guardId,
+        @PathVariable Long wardId
+    ) {
+        guardService.unpairWard(guardId, wardId);
+        return ApiResponse.success(null);
     }
 }

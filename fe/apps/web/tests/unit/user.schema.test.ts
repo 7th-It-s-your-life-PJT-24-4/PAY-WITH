@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   createUserRequestSchema,
+  updateUserRequestSchema,
   usersResponseSchema,
 } from '@/schemas/user.schema'
 
@@ -43,5 +44,14 @@ describe('usersSchema', () => {
       phone: '01012345678',
       verificationToken: 'verification-token',
     })
+  })
+
+  it('validates editable profile fields', () => {
+    expect(
+      updateUserRequestSchema.parse({ name: '김보호', avatarId: 4 }),
+    ).toEqual({ name: '김보호', avatarId: 4 })
+    expect(() =>
+      updateUserRequestSchema.parse({ name: '김보호', avatarId: 7 }),
+    ).toThrow()
   })
 })

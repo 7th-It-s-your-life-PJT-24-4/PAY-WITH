@@ -241,4 +241,33 @@ class GuardServiceImplTest {
             then(redisTemplate).should().delete("pairing:attempts:" + WARD_ID);
         }
     }
+
+    @Nested
+    @DisplayName("unpairWard")
+    class UnpairWard {
+
+        @Test
+        @DisplayName("보호자가 ACTIVE 관계를 해제한다")
+        void success() {
+            given(userMapper.findById(GUARD_ID)).willReturn(user(Role.GUARD));
+            given(guardSeniorMapper.revokeActiveRelation(GUARD_ID, WARD_ID)).willReturn(1);
+
+            service.unpairWard(GUARD_ID, WARD_ID);
+
+            then(guardSeniorMapper).should().revokeActiveRelation(GUARD_ID, WARD_ID);
+        }
+
+        @Test
+        @DisplayName("ACTIVE 관계가 없으면 PAIRING_005 예외를 던진다")
+        void relationNotFound() {
+            given(userMapper.findById(GUARD_ID)).willReturn(user(Role.GUARD));
+            given(guardSeniorMapper.revokeActiveRelation(GUARD_ID, WARD_ID)).willReturn(0);
+
+            assertThatThrownBy(() -> service.unpairWard(GUARD_ID, WARD_ID))
+                .isInstanceOfSatisfying(BusinessException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                    assertThat(exception.getCode()).isEqualTo("PAIRING_005");
+                });
+        }
+    }
 }

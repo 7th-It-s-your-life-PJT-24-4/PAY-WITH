@@ -11,4 +11,7 @@ public interface GuardService {
 
     /** 피보호자가 코드를 검증해 보호자와 ACTIVE로 연동한다. 코드는 1회용으로 즉시 소비된다. */
     WardPairingResponse pairWithCode(Long wardId, String pairingCode);
+
+    /** 보호자가 본인과 연결된 피보호자 관계를 해제한다. */
+    void unpairWard(Long guardId, Long wardId);
 }
