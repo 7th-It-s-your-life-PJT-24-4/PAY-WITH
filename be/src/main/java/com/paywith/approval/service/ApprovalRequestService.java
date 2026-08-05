@@ -2,6 +2,7 @@ package com.paywith.approval.service;
 
 import com.paywith.approval.domain.ApprovalRequest;
 import com.paywith.approval.dto.ApprovalDecisionResponse;
+import com.paywith.approval.dto.ApprovalHistoryResultResponse;
 import com.paywith.approval.dto.ApprovalRequestDetailResponse;
 import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import java.util.List;
@@ -21,8 +22,15 @@ public interface ApprovalRequestService {
      */
     List<ApprovalRequestSummaryResponse> findPending(Long guardId, Long wardId);
 
+    /** 보호자 담당 범위의 승인·거절·피보호자 취소·자동 만료 이상거래 목록. */
+    List<ApprovalRequestSummaryResponse> findHistory(
+        Long guardId, Long wardId, String status);
+
     /** 승인 판단에 필요한 상세. 담당하지 않는 시니어의 건이면 404. */
     ApprovalRequestDetailResponse findDetail(Long approvalId, Long guardId);
+
+    /** 종결된 승인요청의 상세와 처리 결과. */
+    ApprovalHistoryResultResponse findHistoryResult(Long approvalId, Long guardId);
 
     /**
      * 보류된 송금을 승인한다.

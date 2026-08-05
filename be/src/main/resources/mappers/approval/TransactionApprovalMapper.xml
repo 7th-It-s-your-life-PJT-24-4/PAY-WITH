@@ -30,4 +30,13 @@
       AND ar.expired_at &lt;= NOW()
       AND t.status = 'HELD'
   </update>
+
+  <!-- 피보호자 취소의 2단계. 승인요청 조건부 갱신이 성공한 뒤 HELD 거래만 종결한다.
+       두 갱신은 서비스 트랜잭션에 묶여 있어 이 갱신이 실패하면 승인요청도 롤백된다. -->
+  <update id="cancelHeldByWard">
+    UPDATE transactions
+    SET status = 'CANCELED'
+    WHERE transaction_id = #{transactionId}
+      AND status = 'HELD'
+  </update>
 </mapper>

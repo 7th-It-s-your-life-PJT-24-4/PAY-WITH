@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
 import com.paywith.approval.domain.ApprovalRequestView;
+import com.paywith.approval.dto.ApprovalHistoryResultResponse;
 import com.paywith.approval.dto.ApprovalRequestDetailResponse;
 import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import com.paywith.approval.dto.ApprovalRuleHitResponse;
@@ -63,6 +64,7 @@ class ApprovalRequestQueryTest {
         view.setTotalScore(64);
         view.setRequestedAt(LocalDateTime.now());
         view.setExpiredAt(LocalDateTime.now().plusMinutes(30));
+        view.setStatus("PENDING");
         return view;
     }
 
@@ -114,6 +116,51 @@ class ApprovalRequestQueryTest {
     }
 
     @Test
+    void findHistory_mapsApprovedListAndNormalizesStatus() {
+        ApprovalRequestView processed = view();
+        processed.setStatus("APPROVED");
+        processed.setRespondedAt(LocalDateTime.now());
+        given(approvalRequestMapper.findHistoryByGuardId(
+            GUARD_ID, WARD_ID, "APPROVED")).willReturn(List.of(processed));
+
+        List<ApprovalRequestSummaryResponse> result =
+            service.findHistory(GUARD_ID, WARD_ID, " approved ");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getStatus()).isEqualTo("APPROVED");
+        assertThat(result.get(0).getRespondedAt()).isEqualTo(processed.getRespondedAt());
+        then(approvalRequestMapper).should()
+            .findHistoryByGuardId(GUARD_ID, WARD_ID, "APPROVED");
+    }
+
+    @Test
+    void findHistory_acceptsCanceledAndExpiredStatus() {
+        given(approvalRequestMapper.findHistoryByGuardId(GUARD_ID, null, "CANCELED"))
+            .willReturn(List.of());
+        given(approvalRequestMapper.findHistoryByGuardId(GUARD_ID, WARD_ID, "EXPIRED"))
+            .willReturn(List.of());
+
+        assertThat(service.findHistory(GUARD_ID, null, "CANCELED")).isEmpty();
+        assertThat(service.findHistory(GUARD_ID, WARD_ID, " expired ")).isEmpty();
+
+        then(approvalRequestMapper).should()
+            .findHistoryByGuardId(GUARD_ID, null, "CANCELED");
+        then(approvalRequestMapper).should()
+            .findHistoryByGuardId(GUARD_ID, WARD_ID, "EXPIRED");
+    }
+
+    @Test
+    void findHistory_rejectsPendingStatus() {
+        assertThatThrownBy(() -> service.findHistory(GUARD_ID, null, "PENDING"))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+            .hasFieldOrPropertyWithValue("code", "REQUEST_001");
+
+        then(approvalRequestMapper).should(never())
+            .findHistoryByGuardId(anyLong(), anyLong(), org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
     void findDetail_includesRuleHits() {
         given(approvalRequestMapper.findByIdAndGuardId(APPROVAL_ID, GUARD_ID)).willReturn(view());
         given(approvalRequestMapper.findRuleHits(TRANSACTION_ID)).willReturn(List.of(
@@ -136,6 +183,96 @@ class ApprovalRequestQueryTest {
         given(approvalRequestMapper.findByIdAndGuardId(APPROVAL_ID, GUARD_ID)).willReturn(null);
 
         assertThatThrownBy(() -> service.findDetail(APPROVAL_ID, GUARD_ID))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
+        then(approvalRequestMapper).should(never()).findRuleHits(anyLong());
+    }
+
+    @Test
+    void findHistoryResult_rebuildsApprovedDetailAndCompletedTransfer() {
+        ApprovalRequestView processed = view();
+        processed.setStatus("APPROVED");
+        processed.setRespondedAt(LocalDateTime.now());
+        processed.setTransactionStatus("COMPLETED");
+        processed.setCompletedAt(LocalDateTime.now().plusSeconds(2));
+        processed.setBalanceAfter(1_000_000L);
+        given(approvalRequestMapper.findHistoryResultByIdAndGuardId(APPROVAL_ID, GUARD_ID))
+            .willReturn(processed);
+        given(approvalRequestMapper.findRuleHits(TRANSACTION_ID))
+            .willReturn(List.of(ruleHit("HIGH_AMOUNT_L2", "평소보다 큰 금액")));
+
+        ApprovalHistoryResultResponse result =
+            service.findHistoryResult(APPROVAL_ID, GUARD_ID);
+
+        assertThat(result.getDetail().getApprovalId()).isEqualTo(APPROVAL_ID);
+        assertThat(result.getDetail().getRuleHits()).hasSize(1);
+        assertThat(result.getDecision().getStatus()).isEqualTo("APPROVED");
+        assertThat(result.getDecision().getTransfer().getStatus()).isEqualTo("COMPLETED");
+        assertThat(result.getDecision().getTransfer().getCompletedAt())
+            .isEqualTo(processed.getCompletedAt());
+        assertThat(result.getDecision().getTransfer().getBalanceAfter()).isEqualTo(1_000_000L);
+    }
+
+    @Test
+    void findHistoryResult_returnsRejectedDecisionWithoutTransfer() {
+        ApprovalRequestView processed = view();
+        processed.setStatus("REJECTED");
+        processed.setRespondedAt(LocalDateTime.now());
+        processed.setTransactionStatus("REJECTED");
+        given(approvalRequestMapper.findHistoryResultByIdAndGuardId(APPROVAL_ID, GUARD_ID))
+            .willReturn(processed);
+        given(approvalRequestMapper.findRuleHits(TRANSACTION_ID)).willReturn(List.of());
+
+        ApprovalHistoryResultResponse result =
+            service.findHistoryResult(APPROVAL_ID, GUARD_ID);
+
+        assertThat(result.getDecision().getStatus()).isEqualTo("REJECTED");
+        assertThat(result.getDecision().getTransfer()).isNull();
+    }
+
+    @Test
+    void findHistoryResult_returnsCanceledAndExpiredDecisionWithoutTransfer() {
+        for (String status : List.of("CANCELED", "EXPIRED")) {
+            ApprovalRequestView processed = view();
+            processed.setStatus(status);
+            processed.setRespondedAt(LocalDateTime.now());
+            processed.setTransactionStatus("CANCELED");
+            given(approvalRequestMapper.findHistoryResultByIdAndGuardId(APPROVAL_ID, GUARD_ID))
+                .willReturn(processed);
+            given(approvalRequestMapper.findRuleHits(TRANSACTION_ID)).willReturn(List.of());
+
+            ApprovalHistoryResultResponse result =
+                service.findHistoryResult(APPROVAL_ID, GUARD_ID);
+
+            assertThat(result.getDecision().getStatus()).isEqualTo(status);
+            assertThat(result.getDecision().getRespondedAt()).isEqualTo(processed.getRespondedAt());
+            assertThat(result.getDecision().getTransfer()).isNull();
+        }
+    }
+
+    @Test
+    void findHistoryResult_rebuildsFailedTransferWithoutTransientFailureMessage() {
+        ApprovalRequestView processed = view();
+        processed.setStatus("APPROVED");
+        processed.setRespondedAt(LocalDateTime.now());
+        processed.setTransactionStatus("FAILED");
+        given(approvalRequestMapper.findHistoryResultByIdAndGuardId(APPROVAL_ID, GUARD_ID))
+            .willReturn(processed);
+        given(approvalRequestMapper.findRuleHits(TRANSACTION_ID)).willReturn(List.of());
+
+        ApprovalHistoryResultResponse result =
+            service.findHistoryResult(APPROVAL_ID, GUARD_ID);
+
+        assertThat(result.getDecision().getTransfer().getStatus()).isEqualTo("FAILED");
+        assertThat(result.getDecision().getTransfer().getFailureReason()).isNull();
+    }
+
+    @Test
+    void findHistoryResult_failsWhenRequestIsNotVisibleToGuard() {
+        given(approvalRequestMapper.findHistoryResultByIdAndGuardId(APPROVAL_ID, GUARD_ID))
+            .willReturn(null);
+
+        assertThatThrownBy(() -> service.findHistoryResult(APPROVAL_ID, GUARD_ID))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
         then(approvalRequestMapper).should(never()).findRuleHits(anyLong());

@@ -1,9 +1,12 @@
 package com.paywith.approval.service;
 
 import com.paywith.approval.domain.ApprovalRequestView;
+import com.paywith.approval.dto.WardApprovalCancelResponse;
 import com.paywith.approval.dto.WardApprovalDetailResponse;
 import com.paywith.approval.mapper.ApprovalRequestMapper;
+import com.paywith.approval.mapper.TransactionApprovalMapper;
 import com.paywith.exception.BusinessException;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class WardApprovalRequestServiceImpl implements WardApprovalRequestService {
 
     private final ApprovalRequestMapper approvalRequestMapper;
+    private final TransactionApprovalMapper transactionApprovalMapper;
 
     /**
      * 본인 건인지의 판정을 쿼리에 맡긴다. 조회 결과가 null 인 경우는 (1) 없는 ID, (2) 남의 건,
@@ -31,5 +35,27 @@ public class WardApprovalRequestServiceImpl implements WardApprovalRequestServic
             throw new BusinessException(HttpStatus.NOT_FOUND, "승인요청을 찾을 수 없습니다.");
         }
         return new WardApprovalDetailResponse(view);
+    }
+
+    @Override
+    @Transactional
+    public WardApprovalCancelResponse cancel(Long approvalId, Long wardId) {
+        Long transactionId =
+            approvalRequestMapper.findTransactionIdByIdAndWardId(approvalId, wardId);
+        if (transactionId == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "승인요청을 찾을 수 없습니다.");
+        }
+
+        LocalDateTime canceledAt = LocalDateTime.now();
+        if (approvalRequestMapper.cancelByWard(approvalId, wardId, canceledAt) == 0) {
+            throw new BusinessException(
+                HttpStatus.CONFLICT, "이미 처리되었거나 만료된 승인요청입니다.");
+        }
+        if (transactionApprovalMapper.cancelHeldByWard(transactionId) == 0) {
+            throw new BusinessException(
+                HttpStatus.CONFLICT, "취소할 수 없는 상태의 거래입니다.");
+        }
+
+        return new WardApprovalCancelResponse(approvalId, transactionId, canceledAt);
     }
 }

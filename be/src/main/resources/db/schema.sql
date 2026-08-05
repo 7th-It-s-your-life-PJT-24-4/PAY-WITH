@@ -264,8 +264,8 @@ CREATE TABLE risk_evaluation_details (
 CREATE TABLE approval_requests (
                                    approval_id    BIGINT   NOT NULL AUTO_INCREMENT,
                                    transaction_id BIGINT   NOT NULL,
-                                   status         ENUM('PENDING','APPROVED','REJECTED','EXPIRED') NOT NULL DEFAULT 'PENDING'
-                 COMMENT 'PENDING=승인대기 / APPROVED=승인 / REJECTED=거절 / EXPIRED=승인시간 초과(대상 거래는 CANCELED)',
+                                   status         ENUM('PENDING','APPROVED','REJECTED','CANCELED','EXPIRED') NOT NULL DEFAULT 'PENDING'
+                 COMMENT 'PENDING=승인대기 / APPROVED=보호자 승인 / REJECTED=보호자 거절 / CANCELED=피보호자 직접 취소 / EXPIRED=승인시간 초과(대상 거래는 CANCELED)',
                                    responded_by   BIGINT   NULL,
                                    requested_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                    responded_at   DATETIME NULL,
