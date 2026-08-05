@@ -1,5 +1,27 @@
 import { expect, test, type Page } from './fixtures'
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/ward/home', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          userName: '김시니어',
+          wallet: {
+            walletId: 9207,
+            balance: 100_000,
+            updatedAt: '2026-08-04T10:00:00',
+          },
+          pendingApprovalCount: 0,
+          pendingApprovals: [],
+        },
+        message: null,
+      },
+    })
+  })
+})
+
 async function mockChargeApi(
   page: Page,
   options: { insufficientBalance?: boolean } = {},
