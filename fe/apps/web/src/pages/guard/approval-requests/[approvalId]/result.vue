@@ -25,13 +25,24 @@ const transferFailureReason = computed(() => {
 })
 
 function goToList() {
-  router.replace({ name: 'guard-approval-requests' })
+  router.replace({
+    name: 'guard-approval-requests',
+    query: snapshot.value
+      ? {
+          wardId: snapshot.value.detail.wardId,
+          status: state.value,
+        }
+      : undefined,
+  })
 }
 </script>
 
 <template>
-  <main class="min-h-screen bg-white pb-10">
-    <GuardApprovalHeader @back="goToList" />
+  <main class="min-h-screen bg-white pb-32">
+    <GuardApprovalHeader
+      back-label="이상 거래 목록으로 돌아가기"
+      @back="goToList"
+    />
 
     <GuardApprovalDetailContent
       v-if="snapshot"
@@ -56,5 +67,18 @@ function goToList() {
         @click="goToList"
       />
     </section>
+
+    <div
+      v-if="snapshot"
+      class="fixed inset-x-0 bottom-[calc(20px+env(safe-area-inset-bottom))] z-30 mx-auto w-full max-w-[390px] px-mobile-gutter"
+    >
+      <Button
+        class="w-full"
+        label="이상 거래 목록으로"
+        :variant="state === 'approved' ? 'guard-cta' : 'danger'"
+        size="guard-cta"
+        @click="goToList"
+      />
+    </div>
   </main>
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ChevronRight, LockKeyhole, X } from '@lucide/vue'
+import { ChevronRight, X } from '@lucide/vue'
+import lockIconUrl from '@pay-with/ui/svg/lock.svg'
 
 defineProps<{
   count: number
@@ -17,12 +18,12 @@ const emit = defineEmits<{
     class="flex items-center gap-md bg-white py-lg"
     aria-labelledby="guard-risk-transaction-title"
   >
-    <span
-      class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-900 text-primary-500"
+    <img
+      class="size-10 shrink-0"
+      :src="lockIconUrl"
+      alt=""
       aria-hidden="true"
-    >
-      <LockKeyhole class="size-6" :stroke-width="2.5" />
-    </span>
+    />
 
     <div class="min-w-0 flex-1">
       <p

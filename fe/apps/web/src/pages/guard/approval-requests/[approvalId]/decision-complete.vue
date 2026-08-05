@@ -4,6 +4,7 @@ import { Button } from '@pay-with/ui'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import GuardApprovalHeader from '@/pages/guard/approval-requests/-components/GuardApprovalHeader.vue'
 import { getApprovalDecisionSnapshot } from '@/pages/guard/approval-requests/-utils/approval-decision-snapshot'
 
 const route = useRoute()
@@ -19,9 +20,21 @@ const isApproved = computed(
   () => snapshot.value?.decision.status === 'APPROVED',
 )
 
+function goToList() {
+  router.replace({
+    name: 'guard-approval-requests',
+    query: snapshot.value
+      ? {
+          wardId: snapshot.value.detail.wardId,
+          status: isApproved.value ? 'approved' : 'rejected',
+        }
+      : undefined,
+  })
+}
+
 function confirm() {
   if (!approvalId.value || !snapshot.value) {
-    router.replace({ name: 'guard-approval-requests' })
+    goToList()
     return
   }
   router.replace({
@@ -32,12 +45,16 @@ function confirm() {
 </script>
 
 <template>
-  <main
-    class="flex min-h-screen flex-col bg-white px-mobile-gutter pb-[calc(20px+env(safe-area-inset-bottom))]"
-  >
+  <main class="flex min-h-screen flex-col bg-white">
+    <GuardApprovalHeader
+      title=""
+      back-label="이상 거래 목록으로 돌아가기"
+      @back="goToList"
+    />
+
     <section
       v-if="snapshot"
-      class="flex flex-1 flex-col items-center justify-center pb-[92px] text-center"
+      class="flex flex-1 flex-col items-center pt-[100px] text-center"
       aria-labelledby="approval-decision-complete-title"
     >
       <span
@@ -50,7 +67,7 @@ function confirm() {
       </span>
       <h1
         id="approval-decision-complete-title"
-        class="mt-lg text-[28px] font-bold leading-[1.2] tracking-[-0.56px] text-black"
+        class="mt-lg text-[28px] font-semibold leading-[1.2] tracking-[-0.56px] text-black"
       >
         이상 거래를<br />
         {{ isApproved ? '승인했어요' : '거절했어요' }}
@@ -59,18 +76,20 @@ function confirm() {
 
     <section
       v-else
-      class="flex flex-1 items-center justify-center text-center text-[16px] font-medium text-gray-700"
+      class="flex flex-1 items-center justify-center px-mobile-gutter text-center text-[16px] font-medium text-gray-700"
       role="alert"
     >
       처리 결과를 확인할 수 없어요.
     </section>
 
-    <Button
-      class="w-full"
-      label="확인"
-      :variant="isApproved || !snapshot ? 'guard-cta' : 'danger'"
-      size="guard-cta"
-      @click="confirm"
-    />
+    <div class="px-mobile-gutter pb-[calc(20px+env(safe-area-inset-bottom))]">
+      <Button
+        class="w-full"
+        label="확인"
+        :variant="isApproved || !snapshot ? 'guard-cta' : 'danger'"
+        size="guard-cta"
+        @click="confirm"
+      />
+    </div>
   </main>
 </template>

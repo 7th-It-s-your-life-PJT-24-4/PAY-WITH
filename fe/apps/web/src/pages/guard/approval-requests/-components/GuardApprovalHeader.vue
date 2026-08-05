@@ -5,8 +5,9 @@ import headerSpacerIconUrl from '@/assets/icons/transaction-detail-header-spacer
 withDefaults(
   defineProps<{
     title?: string
+    backLabel?: string
   }>(),
-  { title: '거래 상세' },
+  { title: '거래 상세', backLabel: '뒤로 가기' },
 )
 
 defineEmits<{
@@ -19,7 +20,7 @@ defineEmits<{
     <button
       class="flex size-11 items-center justify-center"
       type="button"
-      :aria-label="`${title}에서 돌아가기`"
+      :aria-label="backLabel"
       @click="$emit('back')"
     >
       <span class="flex size-6 items-center justify-center">
@@ -32,10 +33,12 @@ defineEmits<{
       </span>
     </button>
     <h1
+      v-if="title"
       class="text-center text-[20px] font-semibold leading-[1.2] tracking-[-0.4px] text-black"
     >
       {{ title }}
     </h1>
+    <span v-else aria-hidden="true" />
     <img class="size-11" :src="headerSpacerIconUrl" alt="" aria-hidden="true" />
   </header>
 </template>

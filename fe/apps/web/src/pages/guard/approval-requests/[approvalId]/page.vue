@@ -54,7 +54,12 @@ const approvalNotFound = computed(
 )
 
 function goToList() {
-  router.replace({ name: 'guard-approval-requests' })
+  router.replace({
+    name: 'guard-approval-requests',
+    query: approvalQuery.data.value
+      ? { wardId: approvalQuery.data.value.wardId }
+      : undefined,
+  })
 }
 
 function openDecisionConfirm(decision: TransactionDecision) {
@@ -95,7 +100,11 @@ async function confirmDecision() {
 
 <template>
   <main class="min-h-screen bg-white pb-32">
-    <GuardApprovalHeader @back="goToList" />
+    <GuardApprovalHeader
+      title="이상 거래 상세"
+      back-label="이상 거래 목록으로 돌아가기"
+      @back="goToList"
+    />
 
     <section
       v-if="approvalId === null"
@@ -172,14 +181,14 @@ async function confirmDecision() {
       >
         <Button
           class="w-full"
-          label="승인"
+          label="승인하기"
           variant="guard-cta"
           size="guard-cta"
           @click="openDecisionConfirm('approved')"
         />
         <Button
           class="w-full"
-          label="거절"
+          label="거절하기"
           variant="outline-primary"
           size="guard-cta"
           @click="openDecisionConfirm('rejected')"

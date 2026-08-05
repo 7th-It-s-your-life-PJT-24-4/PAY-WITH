@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Sparkles } from '@lucide/vue'
 import { Progress } from '@pay-with/ui'
 import { computed } from 'vue'
 
@@ -129,9 +130,10 @@ const riskScore = computed(() => props.detail.totalScore ?? 0)
       />
 
       <h3
-        class="mt-xl text-[16px] font-semibold leading-[1.2] tracking-[-0.32px] text-black"
+        class="mt-xl flex items-center gap-xxs text-[16px] font-semibold leading-[1.2] tracking-[-0.32px] text-black"
       >
-        AI 분석 결과
+        <Sparkles class="size-5" :stroke-width="2" aria-hidden="true" />
+        AI 요약
       </h3>
       <ul
         v-if="detail.ruleHits.length"

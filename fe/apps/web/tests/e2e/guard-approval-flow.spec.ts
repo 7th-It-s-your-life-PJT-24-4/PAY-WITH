@@ -78,6 +78,9 @@ test('홈의 거래 확인하기에서 선택한 시니어의 이상 거래 목�
   )
 
   await page.goto('/guard')
+  await expect(
+    page.locator('[aria-labelledby="guard-risk-transaction-title"] img'),
+  ).toHaveAttribute('src', /data:image\/svg\+xml.*%2300B1D2/)
   await page.getByRole('button', { name: '거래 확인하기' }).click()
 
   await expect(page).toHaveURL(/\/guard\/approval-requests\?wardId=12$/)
@@ -121,7 +124,7 @@ test('보호자가 목록에서 이상 거래를 승인하고 결과 상세를 �
   await expect(
     page.getByRole('heading', { name: '이상 거래가 발생했어요' }),
   ).toBeVisible()
-  await page.getByRole('button', { name: '승인', exact: true }).click()
+  await page.getByRole('button', { name: '승인하기', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
   await dialog.getByRole('button', { name: '승인', exact: true }).click()
@@ -135,6 +138,16 @@ test('보호자가 목록에서 이상 거래를 승인하고 결과 상세를 �
   await expect(
     page.getByRole('heading', { name: '승인된 이상 거래에요' }),
   ).toBeVisible()
+  await page
+    .getByRole('button', { name: '이상 거래 목록으로', exact: true })
+    .click()
+  await expect(page).toHaveURL(
+    /\/guard\/approval-requests\?wardId=12&status=approved$/,
+  )
+  await expect(page.getByRole('button', { name: '승인' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
 })
 
 test('보호자가 이상 거래를 거절하고 거절 상태 상세를 확인한다', async ({
@@ -157,7 +170,7 @@ test('보호자가 이상 거래를 거절하고 거절 상태 상세를 확인�
   )
 
   await page.goto('/guard/approval-requests/3')
-  await page.getByRole('button', { name: '거절', exact: true }).click()
+  await page.getByRole('button', { name: '거절하기', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
   await dialog.getByRole('button', { name: '거절', exact: true }).click()
@@ -169,4 +182,14 @@ test('보호자가 이상 거래를 거절하고 거절 상태 상세를 확인�
   await expect(
     page.getByRole('heading', { name: '거절된 이상 거래에요' }),
   ).toBeVisible()
+  await page
+    .getByRole('button', { name: '이상 거래 목록으로', exact: true })
+    .click()
+  await expect(page).toHaveURL(
+    /\/guard\/approval-requests\?wardId=12&status=rejected$/,
+  )
+  await expect(page.getByRole('button', { name: '거절' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
 })
