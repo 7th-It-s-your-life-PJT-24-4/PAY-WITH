@@ -5,6 +5,7 @@ import { apiResponseSchema } from '@/schemas/api-response.schema'
 const guardWardSchema = z.object({
   wardId: z.number().int().positive(),
   name: z.string().min(1),
+  avatarId: z.number().int().min(1).max(6),
   hasPending: z.boolean(),
 })
 

@@ -7,6 +7,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
+  charge: []
   addSafeAccount: []
 }>()
 </script>
@@ -28,6 +29,7 @@ const emit = defineEmits<{
         label="충전하기"
         variant="secondary"
         size="small"
+        @click="emit('charge')"
       />
       <Button
         class="w-full !min-h-[42px] !rounded-medium !border-[0.5px] !border-[#c9ced4] !bg-white !px-sm !py-[6px] !text-[14px] !font-bold !leading-[21px] !tracking-[-0.2px] !text-[#494d54]"

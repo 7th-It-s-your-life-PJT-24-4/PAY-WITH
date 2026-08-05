@@ -9,4 +9,5 @@ public class WardSummary {
 
     private Long wardId;
     private String name;
+    private Integer avatarId;
 }

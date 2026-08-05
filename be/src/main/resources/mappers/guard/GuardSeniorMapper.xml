@@ -49,10 +49,11 @@
     <resultMap id="WardSummaryResultMap" type="com.paywith.guard.domain.WardSummary">
         <id     property="wardId" column="ward_id" />
         <result property="name"   column="name" />
+        <result property="avatarId" column="avatar_id" />
     </resultMap>
 
     <select id="findActiveWards" resultMap="WardSummaryResultMap">
-        SELECT u.user_id AS ward_id, u.name
+        SELECT u.user_id AS ward_id, u.name, u.avatar_id
         FROM guard_senior gs
         JOIN users u ON u.user_id = gs.senior_id
         WHERE gs.guard_id = #{guardId}

@@ -9,7 +9,9 @@ import { useGuardStore } from '@/stores/guard.store'
 const router = useRouter()
 const guardStore = useGuardStore()
 
-const seniorName = computed(() => guardStore.activeSenior?.name ?? '시니어')
+const seniorName = computed(
+  () => guardStore.lastChargeResult?.wardName ?? '시니어',
+)
 const amountText = computed(() =>
   new Intl.NumberFormat('ko-KR').format(
     guardStore.chargeAmount > 0 ? guardStore.chargeAmount : 1,
