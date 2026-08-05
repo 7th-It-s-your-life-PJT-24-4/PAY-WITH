@@ -3,7 +3,7 @@ services:
     image: mysql:8.4
     container_name: pay-with-mysql
     environment:
-      MYSQL_DATABASE: pay_with
+      MYSQL_DATABASE: paywith
       MYSQL_USER: paywith
       MYSQL_PASSWORD: paywith
       MYSQL_ROOT_PASSWORD: root
@@ -44,7 +44,7 @@ services:
       # mysql 과 같은 시간대여야 한다. 앱은 LocalDateTime.now() 로 expired_at 을 만들고
       # 조회는 MySQL NOW() 와 비교하므로, 어긋나면 승인요청이 생성 즉시 만료로 취급된다.
       TZ: Asia/Seoul
-      DB_URL: jdbc:mysql://mysql:3306/pay_with?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      DB_URL: jdbc:mysql://mysql:3306/paywith?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
       DB_USERNAME: paywith
       DB_PASSWORD: paywith
       JWT_SECRET: local-development-secret-key-change-this-value-please-123456

@@ -1,5 +1,6 @@
-CREATE DATABASE IF NOT EXISTS pay_with;
-USE pay_with;
+-- 대상 DB 는 접속하는 쪽이 정한다. 로컬은 docker-compose 의 MYSQL_DATABASE, RDS 는 콘솔에서
+-- 만든 DB 에 붙는다. 여기서 USE 를 하면 명령줄로 지정한 DB 를 덮어써, 이름이 하나만 어긋나도
+-- 엉뚱한 스키마에 테이블이 생긴다. data.sql 도 같은 방식으로 접속된 DB 를 그대로 쓴다.
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
