@@ -9,8 +9,8 @@ import GuardAssetCard from '@/pages/guard/-components/GuardAssetCard.vue'
 import GuardRiskTransactionAlert from '@/pages/guard/-components/GuardRiskTransactionAlert.vue'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
 import GuardTransactionList from '@/pages/guard/-components/GuardTransactionList.vue'
+import { useGuardWardQuery } from '@/pages/guard/-composables/useGuardWardQuery'
 import { usePairingStore } from '@/stores/pairing.store'
-import { useGuardStore } from '@/stores/guard.store'
 import type { GuardRecentTransaction } from '@/schemas/guard-home.schema'
 import type {
   GuardSeniorAvatar,
@@ -19,10 +19,9 @@ import type {
 
 const router = useRouter()
 const pairingStore = usePairingStore()
-const guardStore = useGuardStore()
+const { selectedWardId, selectWard } = useGuardWardQuery()
 const isPairingConfirmOpen = ref(false)
 const isRiskTransactionAlertVisible = ref(true)
-const selectedWardId = ref<number | null>(null)
 
 const {
   data: guardHome,
@@ -62,7 +61,7 @@ watch(activeSeniorId, () => {
 watch(
   () => selectedWard.value?.wardId,
   (wardId) => {
-    if (wardId) guardStore.selectWard(wardId)
+    if (wardId) selectWard(wardId)
   },
   { immediate: true },
 )
@@ -111,7 +110,7 @@ function toGuardTransaction(
 function selectSenior(wardId: string) {
   const parsedWardId = Number(wardId)
   if (!Number.isSafeInteger(parsedWardId) || parsedWardId <= 0) return
-  selectedWardId.value = parsedWardId
+  selectWard(parsedWardId)
 }
 
 function goToCharge() {

@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router'
 import { guardHomeOptions } from '@/lib/query/guard/home'
 import { guardTransactionHistoryOptions } from '@/lib/query/guard/transactions'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
+import { useGuardWardQuery } from '@/pages/guard/-composables/useGuardWardQuery'
 import GuardHistoryTransactionList, {
   type GuardHistoryTransactionView,
 } from '@/pages/guard/history/-components/GuardHistoryTransactionList.vue'
@@ -14,7 +15,6 @@ import type {
   GuardTransactionHistoryItem,
   TransactionRiskLevel,
 } from '@/schemas/guard-transaction.schema'
-import { useGuardStore } from '@/stores/guard.store'
 import { usePairingStore } from '@/stores/pairing.store'
 
 type HistoryFilter = 'ALL' | TransactionRiskLevel
@@ -27,10 +27,9 @@ const filters: Array<{ label: string; value: HistoryFilter }> = [
 ]
 
 const router = useRouter()
-const guardStore = useGuardStore()
 const pairingStore = usePairingStore()
+const { selectedWardId, selectWard } = useGuardWardQuery()
 const activeFilter = ref<HistoryFilter>('ALL')
-const selectedWardId = ref<number | null>(guardStore.activeWardId)
 const isPairingConfirmOpen = ref(false)
 const selectedRiskLevel = computed<TransactionRiskLevel | null>(() =>
   activeFilter.value === 'ALL' ? null : activeFilter.value,
@@ -66,8 +65,7 @@ watch(
   () => selectedWard.value?.wardId,
   (wardId) => {
     if (!wardId) return
-    selectedWardId.value = wardId
-    guardStore.selectWard(wardId)
+    selectWard(wardId)
   },
   { immediate: true },
 )
@@ -117,7 +115,7 @@ function toTransactionView(
 function selectSenior(wardId: string) {
   const parsedWardId = Number(wardId)
   if (!Number.isSafeInteger(parsedWardId) || parsedWardId <= 0) return
-  selectedWardId.value = parsedWardId
+  selectWard(parsedWardId)
 }
 
 async function startPairing() {
