@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Eye, EyeOff, LockKeyhole, Phone } from '@lucide/vue'
+import { Clock3, Eye, EyeOff, LockKeyhole, Phone } from '@lucide/vue'
 import { computed, ref, useId } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -7,6 +7,7 @@ import { getApiErrorMessage } from '@/api/error'
 import { getUserIdFromAccessToken } from '@/api/token-storage'
 import { getUser } from '@/api/users'
 import { useLoginMutation } from '@/composables/useLoginMutation'
+import { getRoleHomePath, getSafePostLoginPath } from '@/router/auth-navigation'
 
 const phoneNumber = ref('')
 const password = ref('')
@@ -20,6 +21,7 @@ const formError = ref(
     ? '가입이 완료됐어요. 전화번호와 비밀번호로 로그인해 주세요.'
     : '',
 )
+const sessionExpired = computed(() => route.query.reason === 'session-expired')
 const phoneInputId = useId()
 const passwordInputId = useId()
 const passwordInputType = computed(() =>
@@ -40,7 +42,10 @@ async function submitLogin() {
     }
 
     const user = await getUser(userId)
-    await router.replace(user.role === 'GUARD' ? '/guard' : '/ward')
+    await router.replace(
+      getSafePostLoginPath(route.query.redirect, user.role) ??
+        getRoleHomePath(user.role),
+    )
   } catch (error) {
     formError.value = await getApiErrorMessage(
       error,
@@ -105,6 +110,32 @@ async function submitLogin() {
       </header>
 
       <form class="flex w-full flex-col gap-5" @submit.prevent="submitLogin">
+        <aside
+          v-if="sessionExpired"
+          class="flex w-full items-start gap-3 rounded-xl border border-primary-500/20 bg-primary-500/10 px-4 py-3.5 text-left"
+          role="status"
+          aria-labelledby="session-expired-title"
+        >
+          <span
+            class="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-primary-500 shadow-[0_1px_3px_rgba(8,13,18,0.08)]"
+            aria-hidden="true"
+          >
+            <Clock3 class="size-5" :stroke-width="2" />
+          </span>
+          <span class="min-w-0 pt-0.5">
+            <strong
+              id="session-expired-title"
+              class="block text-sm font-semibold leading-5 tracking-[-0.28px] text-[#171c1e]"
+            >
+              로그인 시간이 만료되었어요
+            </strong>
+            <span
+              class="mt-0.5 block text-xs font-medium leading-[18px] tracking-[-0.24px] text-[#5c6770]"
+            >
+              안전한 이용을 위해 다시 로그인해 주세요.
+            </span>
+          </span>
+        </aside>
         <div class="flex flex-col gap-1">
           <label
             :for="phoneInputId"
