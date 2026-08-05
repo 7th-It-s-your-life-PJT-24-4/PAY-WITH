@@ -157,11 +157,15 @@ test('만료된 access token을 자동 갱신하고 홈을 유지한다', async 
 
 test('refresh token도 만료되면 로그인 화면으로 이동한다', async ({ page }) => {
   await page.addInitScript(() => {
+    if (localStorage.getItem('auth-expiry-test-seeded')) return
+
+    localStorage.setItem('auth-expiry-test-seeded', 'true')
     localStorage.setItem(
       'accessToken',
       'header.eyJzdWIiOiIxIiwiZXhwIjoxfQ.signature',
     )
     localStorage.setItem('refreshToken', 'expired-refresh-token')
+    sessionStorage.setItem('pay-with:ward-payment', '{"paymentId":1}')
   })
   await page.route('**/api/auth/refresh', async (route) => {
     await route.fulfill({
@@ -186,6 +190,11 @@ test('refresh token도 만료되면 로그인 화면으로 이동한다', async 
   ).toBeVisible()
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem('accessToken')))
+    .toBeNull()
+  await expect
+    .poll(() =>
+      page.evaluate(() => sessionStorage.getItem('pay-with:ward-payment')),
+    )
     .toBeNull()
 })
 

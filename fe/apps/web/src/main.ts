@@ -23,18 +23,20 @@ const queryClient = new QueryClient({
   },
 })
 
-configureSessionExpiredHandler(async () => {
+configureSessionExpiredHandler(() => {
   queryClient.clear()
   const currentPath = router.currentRoute.value.fullPath
   const redirect = currentPath.startsWith('/auth') ? undefined : currentPath
-
-  await router.replace({
+  const signInLocation = router.resolve({
     name: 'auth-sign-in',
     query: {
       reason: 'session-expired',
       ...(redirect ? { redirect } : {}),
     },
   })
+
+  // 새 로그인 세션에 이전 사용자의 Pinia 메모리가 남지 않도록 앱을 다시 시작한다.
+  globalThis.location.replace(signInLocation.href)
 })
 startAccessTokenRefreshScheduler()
 
