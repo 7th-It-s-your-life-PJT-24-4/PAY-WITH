@@ -540,9 +540,9 @@ test('추천 은행이 없어도 전체 은행 목록을 표시한다', async ({
     .getByRole('button')
   await expect(bankButtons).toHaveCount(4)
   await expect(bankButtons.nth(0)).toContainText('KB국민은행')
-  await expect(bankButtons.nth(1)).toContainText('우리은행')
-  await expect(bankButtons.nth(2)).toContainText('하나은행')
-  await expect(bankButtons.nth(3)).toContainText('신한은행')
+  await expect(bankButtons.nth(1)).toContainText('신한은행')
+  await expect(bankButtons.nth(2)).toContainText('우리은행')
+  await expect(bankButtons.nth(3)).toContainText('하나은행')
   await expect(page.getByRole('button', { name: '다음으로' })).toBeDisabled()
 })
 
