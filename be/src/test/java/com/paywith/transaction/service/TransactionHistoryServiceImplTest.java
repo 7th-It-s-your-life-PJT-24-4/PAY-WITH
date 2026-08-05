@@ -13,8 +13,10 @@ import static org.mockito.Mockito.verify;
 
 import com.paywith.exception.BusinessException;
 import com.paywith.guard.service.GuardService;
+import com.paywith.transaction.dto.GuardTransactionDetailResponse;
 import com.paywith.transaction.dto.GuardTransactionHistoryItem;
 import com.paywith.transaction.dto.GuardTransactionHistoryListResponse;
+import com.paywith.transaction.dto.TransactionDetailResponse;
 import com.paywith.transaction.dto.TransactionHistoryItem;
 import com.paywith.transaction.dto.TransactionHistoryListResponse;
 import com.paywith.transaction.mapper.TransactionMapper;
@@ -47,6 +49,7 @@ class TransactionHistoryServiceImplTest {
     private final Long userId = 1L;
     private final Long guardId = 2L;
     private final Long wardId = 1L;
+    private final Long transactionId = 500L;
 
     @BeforeEach
     void setUp() {
@@ -318,5 +321,188 @@ class TransactionHistoryServiceImplTest {
 
         assertThat(response.getTotalPages()).isEqualTo(3);
         assertThat(response.isHasNext()).isFalse();
+    }
+
+    // ===== findMyTransactionDetail =====
+
+    @Test
+    void 본인_거래상세_조회시_거래가_없으면_예외를_던진다() {
+        given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(null);
+
+        assertThatThrownBy(() -> transactionHistoryService.findMyTransactionDetail(userId, transactionId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("거래 내역을 찾을 수 없습니다.");
+
+        verify(transactionMapper, never()).findRiskReasons(any());
+        verify(transactionMapper, never()).findLlmSummary(any());
+    }
+
+    @Test
+    void 본인_거래상세가_TRANSFER가_아니면_riskAnalysis는_null이고_위험사유는_조회하지_않는다() {
+        TransactionDetailResponse detail = TransactionDetailResponse.builder()
+                .transactionId(transactionId)
+                .type("PAYMENT")
+                .riskLevel("CAUTION")
+                .riskScore(50)
+                .build();
+        given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(detail);
+
+        TransactionDetailResponse response = transactionHistoryService.findMyTransactionDetail(userId, transactionId);
+
+        assertThat(response.getRiskAnalysis()).isNull();
+        verify(transactionMapper, never()).findRiskReasons(any());
+        verify(transactionMapper, never()).findLlmSummary(any());
+    }
+
+    @Test
+    void 본인_거래상세가_TRANSFER이고_SAFE면_riskAnalysis는_null이다() {
+        TransactionDetailResponse detail = TransactionDetailResponse.builder()
+                .transactionId(transactionId)
+                .type("TRANSFER")
+                .riskLevel("SAFE")
+                .riskScore(10)
+                .build();
+        given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(detail);
+
+        TransactionDetailResponse response = transactionHistoryService.findMyTransactionDetail(userId, transactionId);
+
+        assertThat(response.getRiskAnalysis()).isNull();
+        verify(transactionMapper, never()).findRiskReasons(any());
+    }
+
+    @Test
+    void 본인_거래상세가_TRANSFER이고_riskScore가_없으면_riskAnalysis는_null이다() {
+        TransactionDetailResponse detail = TransactionDetailResponse.builder()
+                .transactionId(transactionId)
+                .type("TRANSFER")
+                .riskLevel("CAUTION")
+                .riskScore(null)
+                .build();
+        given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(detail);
+
+        TransactionDetailResponse response = transactionHistoryService.findMyTransactionDetail(userId, transactionId);
+
+        assertThat(response.getRiskAnalysis()).isNull();
+        verify(transactionMapper, never()).findRiskReasons(any());
+    }
+
+    @Test
+    void 본인_거래상세가_TRANSFER이고_CAUTION_DANGER면_riskAnalysis를_조립한다() {
+        TransactionDetailResponse detail = TransactionDetailResponse.builder()
+                .transactionId(transactionId)
+                .type("TRANSFER")
+                .riskLevel("DANGER")
+                .riskScore(85)
+                .build();
+        given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(detail);
+        given(transactionMapper.findRiskReasons(transactionId)).willReturn(List.of("REPEATED", "NEW_RECIPIENT"));
+        given(transactionMapper.findLlmSummary(transactionId)).willReturn("평소보다 큰 금액");
+
+        TransactionDetailResponse response = transactionHistoryService.findMyTransactionDetail(userId, transactionId);
+
+        assertThat(response.getRiskAnalysis()).isNotNull();
+        assertThat(response.getRiskAnalysis().getRiskScore()).isEqualTo(85);
+        assertThat(response.getRiskAnalysis().getSummary()).isEqualTo("평소보다 큰 금액");
+        assertThat(response.getRiskAnalysis().getReasons()).containsExactly("REPEATED", "NEW_RECIPIENT");
+    }
+
+    @Test
+    void 본인_거래상세_응답의_riskScore_평면값은_항상_비워진다() {
+        TransactionDetailResponse transferDetail = TransactionDetailResponse.builder()
+                .transactionId(transactionId)
+                .type("TRANSFER")
+                .riskLevel("DANGER")
+                .riskScore(85)
+                .build();
+        given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(transferDetail);
+        given(transactionMapper.findRiskReasons(transactionId)).willReturn(List.of());
+        given(transactionMapper.findLlmSummary(transactionId)).willReturn(null);
+
+        TransactionDetailResponse response = transactionHistoryService.findMyTransactionDetail(userId, transactionId);
+
+        assertThat(response.getRiskScore()).isNull();
+    }
+
+    // ===== findWardTransactionDetail =====
+
+    @Test
+    void 담당_피보호자가_아니면_거래상세_조회시_예외를_던지고_매퍼를_호출하지_않는다() {
+        given(guardService.verifyGuardOfWard(guardId, wardId)).willReturn(false);
+
+        assertThatThrownBy(() -> transactionHistoryService.findWardTransactionDetail(guardId, wardId, transactionId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("연동된 피보호자를 찾을 수 없습니다.");
+
+        verify(transactionMapper, never()).findWardTransactionDetail(any(), any());
+    }
+
+    @Test
+    void 피보호자_거래상세_조회시_거래가_없으면_예외를_던진다() {
+        given(transactionMapper.findWardTransactionDetail(transactionId, wardId)).willReturn(null);
+
+        assertThatThrownBy(() -> transactionHistoryService.findWardTransactionDetail(guardId, wardId, transactionId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("거래 내역을 찾을 수 없습니다.");
+
+        verify(transactionMapper, never()).findRiskReasons(any());
+        verify(transactionMapper, never()).findLlmSummary(any());
+    }
+
+    @Test
+    void 피보호자_거래상세가_TRANSFER가_아니면_riskAnalysis는_null이다() {
+        GuardTransactionDetailResponse detail = GuardTransactionDetailResponse.builder()
+                .transactionId(transactionId)
+                .type("CHARGE")
+                .riskLevel("CAUTION")
+                .riskScore(50)
+                .build();
+        given(transactionMapper.findWardTransactionDetail(transactionId, wardId)).willReturn(detail);
+
+        GuardTransactionDetailResponse response =
+                transactionHistoryService.findWardTransactionDetail(guardId, wardId, transactionId);
+
+        assertThat(response.getRiskAnalysis()).isNull();
+        verify(transactionMapper, never()).findRiskReasons(any());
+    }
+
+    @Test
+    void 피보호자_거래상세가_TRANSFER이고_CAUTION_DANGER면_riskAnalysis를_조립한다() {
+        GuardTransactionDetailResponse detail = GuardTransactionDetailResponse.builder()
+                .transactionId(transactionId)
+                .type("TRANSFER")
+                .riskLevel("CAUTION")
+                .riskScore(60)
+                .build();
+        given(transactionMapper.findWardTransactionDetail(transactionId, wardId)).willReturn(detail);
+        given(transactionMapper.findRiskReasons(transactionId)).willReturn(List.of("HIGH_AMOUNT"));
+        given(transactionMapper.findLlmSummary(transactionId)).willReturn(null);
+
+        GuardTransactionDetailResponse response =
+                transactionHistoryService.findWardTransactionDetail(guardId, wardId, transactionId);
+
+        assertThat(response.getRiskAnalysis()).isNotNull();
+        assertThat(response.getRiskAnalysis().getRiskScore()).isEqualTo(60);
+        assertThat(response.getRiskAnalysis().getReasons()).containsExactly("HIGH_AMOUNT");
+    }
+
+    @Test
+    void 피보호자_거래상세_응답의_riskScore_평면값도_항상_비워진다() {
+        GuardTransactionDetailResponse detail = GuardTransactionDetailResponse.builder()
+                .transactionId(transactionId)
+                .type("TRANSFER")
+                .riskLevel("DANGER")
+                .riskScore(90)
+                .build();
+        given(transactionMapper.findWardTransactionDetail(transactionId, wardId)).willReturn(detail);
+        given(transactionMapper.findRiskReasons(transactionId)).willReturn(List.of());
+        given(transactionMapper.findLlmSummary(transactionId)).willReturn(null);
+
+        GuardTransactionDetailResponse response =
+                transactionHistoryService.findWardTransactionDetail(guardId, wardId, transactionId);
+
+        assertThat(response.getRiskScore()).isNull();
     }
 }

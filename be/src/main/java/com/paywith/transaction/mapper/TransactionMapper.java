@@ -4,8 +4,8 @@ import com.paywith.charge.dto.ChargeDetailResponse;
 import com.paywith.charge.dto.ChargeHistoryItem;
 import com.paywith.guard.dto.RecentTransactionResponse;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transaction.dto.GuardTransactionDetailResponse;
 import com.paywith.transaction.dto.GuardTransactionHistoryItem;
-import com.paywith.transaction.dto.RiskReasonDetailResponse;
 import com.paywith.transaction.dto.TransactionDetailResponse;
 import com.paywith.transaction.dto.TransactionHistoryItem;
 import com.paywith.transfer.dto.TransferExecutionContext;
@@ -63,17 +63,23 @@ public interface TransactionMapper {
             @Param("keyword") String keyword
     );
 
-//    // 피보호자 본인 거래 상세
-//    TransactionDetailResponse findMyTransactionDetail(
-//            @Param("transactionId") Long transactionId,
-//            @Param("wardId") Long wardId
-//    );
-//
-//    // 위험 판단 사유 목록
-//    List<RiskReasonDetailResponse> findRiskReasons(@Param("transactionId") Long transactionId);
-//
-//    // LLM 사후 재검토 요약
-//    String findLlmSummary(@Param("transactionId") Long transactionId);
+    // 피보호자 본인 거래 상세
+    TransactionDetailResponse findMyTransactionDetail(
+            @Param("transactionId") Long transactionId,
+            @Param("wardId") Long wardId
+    );
+
+    // 보호자용 피보호자 거래 상세
+    GuardTransactionDetailResponse findWardTransactionDetail(
+            @Param("transactionId") Long transactionId,
+            @Param("wardId") Long wardId
+    );
+
+    // 위험 판단 사유 목록
+    List<String> findRiskReasons(@Param("transactionId") Long transactionId);
+
+    // LLM 사후 재검토 요약
+    String findLlmSummary(@Param("transactionId") Long transactionId);
 
     // 보호자가 피보호자의 거래 내역 조회
     List<GuardTransactionHistoryItem> findWardTransactions(

@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@ApiModel(description = "거래내역 상세")
+@ApiModel(description = "피보호자 거래내역 상세 (보호자용)")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TransactionDetailResponse {
+public class GuardTransactionDetailResponse {
 
     private Long transactionId;
     private String type;
@@ -26,12 +26,10 @@ public class TransactionDetailResponse {
     private String accountNo;
     private Long amount;
     private String memo;
-    private LocalDateTime occurredAt;
     private Long balanceAfter;
 
-    // Mapper 조회 시점엔 riskScore로 채워졌다가,
-    // Service가 riskAnalysis 객체로 재조립하면서 이 필드는 버려짐
     private Integer riskScore;
 
     private RiskAnalysisResponse riskAnalysis;
+    private LocalDateTime occurredAt;
 }
