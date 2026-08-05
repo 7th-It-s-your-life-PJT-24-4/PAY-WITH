@@ -48,9 +48,6 @@ const pendingApproval = computed(
   () => selectedWard.value?.pendingApproval ?? null,
 )
 const dangerTransactionCount = computed(() => (pendingApproval.value ? 1 : 0))
-const firstDangerTransactionId = computed(() =>
-  pendingApproval.value ? String(pendingApproval.value.transactionId) : null,
-)
 const formattedBalance = computed(() =>
   new Intl.NumberFormat('ko-KR').format(selectedWard.value?.balance ?? 0),
 )
@@ -197,15 +194,15 @@ async function startPairing() {
         v-if="
           isRiskTransactionAlertVisible &&
           dangerTransactionCount > 0 &&
-          firstDangerTransactionId
+          pendingApproval
         "
         :count="dangerTransactionCount"
         :senior-name="selectedWard?.name ?? ''"
         @close="isRiskTransactionAlertVisible = false"
         @confirm="
           router.push({
-            name: 'guard-transaction-detail',
-            params: { transactionId: firstDangerTransactionId },
+            name: 'guard-approval-requests',
+            query: { wardId: selectedWard?.wardId },
           })
         "
       />
