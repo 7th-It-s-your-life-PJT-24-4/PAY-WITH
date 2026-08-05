@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   approvalDecisionResponseSchema,
+  approvalHistoryResultResponseSchema,
   approvalRequestDetailResponseSchema,
+  approvalRequestListResponseSchema,
 } from '@/schemas/approval.schema'
 
 const detail = {
@@ -56,4 +58,46 @@ describe('approval response schemas', () => {
     expect(result.data.status).toBe('APPROVED')
     expect(result.data.transfer?.status).toBe('FAILED')
   })
+
+  it.each(['CANCELED', 'EXPIRED'] as const)(
+    '%s 이력 목록과 종결 상세를 파싱한다',
+    (status) => {
+      const summaryResult = approvalRequestListResponseSchema.parse({
+        success: true,
+        data: [
+          {
+            approvalId: 3,
+            wardId: 12,
+            wardName: '김시니어',
+            amount: 35000,
+            holderName: '박수취',
+            bankName: '신한은행',
+            riskLevel: 'DANGER',
+            requestedAt: '2026-08-05T09:10:00',
+            expiredAt: '2026-08-05T12:10:00',
+            status,
+            respondedAt: '2026-08-05T12:10:00',
+          },
+        ],
+        message: null,
+      })
+      const detailResult = approvalHistoryResultResponseSchema.parse({
+        success: true,
+        data: {
+          detail,
+          decision: {
+            approvalId: 3,
+            transactionId: 41,
+            status,
+            respondedAt: '2026-08-05T12:10:00',
+            transfer: null,
+          },
+        },
+        message: null,
+      })
+
+      expect(summaryResult.data[0]?.status).toBe(status)
+      expect(detailResult.data.decision.status).toBe(status)
+    },
+  )
 })

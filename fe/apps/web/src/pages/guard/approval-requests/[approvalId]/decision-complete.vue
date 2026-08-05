@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Check, X } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
+import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { guardApprovalResultOptions } from '@/lib/query/guard/approval'
 import GuardApprovalHeader from '@/pages/guard/approval-requests/-components/GuardApprovalHeader.vue'
-import { getApprovalDecisionSnapshot } from '@/pages/guard/approval-requests/-utils/approval-decision-snapshot'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,19 +14,17 @@ const approvalId = computed(() => {
   const value = Number(route.params.approvalId)
   return Number.isSafeInteger(value) && value > 0 ? value : null
 })
-const snapshot = computed(() =>
-  approvalId.value ? getApprovalDecisionSnapshot(approvalId.value) : null,
-)
+const resultQuery = useQuery(guardApprovalResultOptions(approvalId))
 const isApproved = computed(
-  () => snapshot.value?.decision.status === 'APPROVED',
+  () => resultQuery.data.value?.decision.status === 'APPROVED',
 )
 
 function goToList() {
   router.replace({
     name: 'guard-approval-requests',
-    query: snapshot.value
+    query: resultQuery.data.value
       ? {
-          wardId: snapshot.value.detail.wardId,
+          wardId: resultQuery.data.value.detail.wardId,
           status: isApproved.value ? 'approved' : 'rejected',
         }
       : undefined,
@@ -33,7 +32,7 @@ function goToList() {
 }
 
 function confirm() {
-  if (!approvalId.value || !snapshot.value) {
+  if (!approvalId.value || !resultQuery.data.value) {
     goToList()
     return
   }
@@ -53,7 +52,7 @@ function confirm() {
     />
 
     <section
-      v-if="snapshot"
+      v-if="resultQuery.data.value"
       class="flex flex-1 flex-col items-center pt-[100px] text-center"
       aria-labelledby="approval-decision-complete-title"
     >
@@ -75,6 +74,14 @@ function confirm() {
     </section>
 
     <section
+      v-else-if="resultQuery.isPending.value"
+      class="flex flex-1 items-center justify-center px-mobile-gutter text-center text-[16px] font-medium text-gray-500"
+      aria-busy="true"
+    >
+      처리 결과를 불러오는 중이에요.
+    </section>
+
+    <section
       v-else
       class="flex flex-1 items-center justify-center px-mobile-gutter text-center text-[16px] font-medium text-gray-700"
       role="alert"
@@ -86,7 +93,9 @@ function confirm() {
       <Button
         class="w-full"
         label="확인"
-        :variant="isApproved || !snapshot ? 'guard-cta' : 'danger'"
+        :variant="
+          isApproved || !resultQuery.data.value ? 'guard-cta' : 'danger'
+        "
         size="guard-cta"
         @click="confirm"
       />

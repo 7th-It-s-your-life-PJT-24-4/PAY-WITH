@@ -4,15 +4,22 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { guardApprovalListOptions } from '@/lib/query/guard/approval'
+import {
+  guardApprovalHistoryOptions,
+  guardApprovalListOptions,
+} from '@/lib/query/guard/approval'
 import GuardApprovalHeader from '@/pages/guard/approval-requests/-components/GuardApprovalHeader.vue'
-import { getApprovalDecisionSnapshots } from '@/pages/guard/approval-requests/-utils/approval-decision-snapshot'
 import {
   formatApprovalDate,
   formatApprovalListAmount,
 } from '@/pages/guard/approval-requests/-utils/approval-format'
+import type {
+  ApprovalHistoryStatus,
+  ApprovalRequestSummary,
+} from '@/schemas/approval.schema'
 
-type ApprovalFilter = 'pending' | 'approved' | 'rejected'
+type ApprovalFilter =
+  'pending' | 'approved' | 'rejected' | 'canceled' | 'expired'
 type ApprovalListItem = {
   approvalId: number
   wardId: number
@@ -27,7 +34,26 @@ const filters: Array<{ label: string; value: ApprovalFilter }> = [
   { label: '대기', value: 'pending' },
   { label: '승인', value: 'approved' },
   { label: '거절', value: 'rejected' },
+  { label: '취소', value: 'canceled' },
+  { label: '만료', value: 'expired' },
 ]
+
+const historyStatusByFilter: Partial<
+  Record<ApprovalFilter, ApprovalHistoryStatus>
+> = {
+  approved: 'APPROVED',
+  rejected: 'REJECTED',
+  canceled: 'CANCELED',
+  expired: 'EXPIRED',
+}
+
+const emptyMessageByFilter: Record<ApprovalFilter, string> = {
+  pending: '확인할 이상 거래가 없어요.',
+  approved: '승인한 이상 거래가 없어요.',
+  rejected: '거절한 이상 거래가 없어요.',
+  canceled: '취소한 이상 거래가 없어요.',
+  expired: '만료된 이상 거래가 없어요.',
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -35,50 +61,72 @@ const wardId = computed(() => {
   const value = Number(route.query.wardId)
   return Number.isSafeInteger(value) && value > 0 ? value : null
 })
-const initialFilter =
-  route.query.status === 'approved' || route.query.status === 'rejected'
-    ? route.query.status
-    : 'pending'
+const initialFilter = filters.some(({ value }) => value === route.query.status)
+  ? (route.query.status as ApprovalFilter)
+  : 'pending'
 const activeFilter = ref<ApprovalFilter>(initialFilter)
-const approvalQuery = useQuery(guardApprovalListOptions(wardId))
-const processedSnapshots = getApprovalDecisionSnapshots()
+const activeHistoryStatus = computed(
+  () => historyStatusByFilter[activeFilter.value] ?? null,
+)
+const pendingQuery = useQuery(
+  guardApprovalListOptions(
+    wardId,
+    computed(() => activeFilter.value === 'pending'),
+  ),
+)
+const historyQuery = useQuery(
+  guardApprovalHistoryOptions(
+    activeHistoryStatus,
+    wardId,
+    computed(() => activeFilter.value !== 'pending'),
+  ),
+)
 
-const pendingItems = computed<ApprovalListItem[]>(() =>
-  (approvalQuery.data.value ?? []).map((approval) => ({
+function toListItem(approval: ApprovalRequestSummary): ApprovalListItem {
+  return {
     approvalId: approval.approvalId,
     wardId: approval.wardId,
     wardName: approval.wardName,
     amount: approval.amount,
     holderName: approval.holderName,
     requestedAt: approval.requestedAt,
-    status: 'pending',
-  })),
-)
-const processedItems = computed<ApprovalListItem[]>(() =>
-  processedSnapshots
-    .filter(
-      ({ detail }) => wardId.value === null || detail.wardId === wardId.value,
-    )
-    .map(({ detail, decision }) => ({
-      approvalId: detail.approvalId,
-      wardId: detail.wardId,
-      wardName: detail.wardName,
-      amount: detail.amount,
-      holderName: detail.holderName,
-      requestedAt: detail.requestedAt,
-      status:
-        decision.status === 'APPROVED'
-          ? ('approved' as const)
-          : ('rejected' as const),
-    })),
-)
-const approvals = computed(() =>
+    status: approval.status.toLowerCase() as ApprovalFilter,
+  }
+}
+
+const approvals = computed<ApprovalListItem[]>(() =>
   activeFilter.value === 'pending'
-    ? pendingItems.value
-    : processedItems.value.filter(
-        ({ status }) => status === activeFilter.value,
-      ),
+    ? (pendingQuery.data.value ?? []).map(toListItem)
+    : (historyQuery.data.value ?? []).map(toListItem),
 )
+const isLoading = computed(() =>
+  activeFilter.value === 'pending'
+    ? pendingQuery.isPending.value
+    : historyQuery.isPending.value,
+)
+const isError = computed(() =>
+  activeFilter.value === 'pending'
+    ? pendingQuery.isError.value
+    : historyQuery.isError.value,
+)
+
+function selectFilter(filter: ApprovalFilter) {
+  activeFilter.value = filter
+  router.replace({
+    query: {
+      ...route.query,
+      status: filter === 'pending' ? undefined : filter,
+    },
+  })
+}
+
+function refetchActiveList() {
+  if (activeFilter.value === 'pending') {
+    pendingQuery.refetch()
+    return
+  }
+  historyQuery.refetch()
+}
 
 function isFirstOfDate(index: number) {
   const current = approvals.value[index]
@@ -98,7 +146,10 @@ function openApproval(approval: ApprovalListItem) {
         ? 'guard-approval-request-detail'
         : 'guard-approval-request-result',
     params: { approvalId: approval.approvalId },
-    query: { wardId: wardId.value ?? undefined },
+    query: {
+      wardId: wardId.value ?? undefined,
+      status: approval.status === 'pending' ? undefined : approval.status,
+    },
   })
 }
 </script>
@@ -125,14 +176,14 @@ function openApproval(approval: ApprovalListItem) {
         "
         type="button"
         :aria-pressed="activeFilter === filter.value"
-        @click="activeFilter = filter.value"
+        @click="selectFilter(filter.value)"
       >
         {{ filter.label }}
       </button>
     </nav>
 
     <section
-      v-if="activeFilter === 'pending' && approvalQuery.isPending.value"
+      v-if="isLoading"
       class="flex min-h-[500px] items-center justify-center px-mobile-gutter text-center text-[16px] font-medium text-gray-500"
       aria-busy="true"
     >
@@ -140,7 +191,7 @@ function openApproval(approval: ApprovalListItem) {
     </section>
 
     <section
-      v-else-if="activeFilter === 'pending' && approvalQuery.isError.value"
+      v-else-if="isError"
       class="flex min-h-[500px] flex-col items-center justify-center px-mobile-gutter text-center"
       role="alert"
     >
@@ -150,7 +201,7 @@ function openApproval(approval: ApprovalListItem) {
       <button
         class="mt-md min-h-11 px-md text-[16px] font-semibold text-primary-500"
         type="button"
-        @click="approvalQuery.refetch()"
+        @click="refetchActiveList"
       >
         다시 시도
       </button>
@@ -161,13 +212,7 @@ function openApproval(approval: ApprovalListItem) {
       class="flex min-h-[500px] items-center justify-center px-mobile-gutter text-center"
     >
       <p class="text-[16px] font-medium text-gray-700">
-        {{
-          activeFilter === 'pending'
-            ? '확인할 이상 거래가 없어요.'
-            : activeFilter === 'approved'
-              ? '승인한 이상 거래가 없어요.'
-              : '거절한 이상 거래가 없어요.'
-        }}
+        {{ emptyMessageByFilter[activeFilter] }}
       </p>
     </section>
 

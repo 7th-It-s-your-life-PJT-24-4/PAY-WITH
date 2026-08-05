@@ -3,6 +3,16 @@ import { z } from 'zod'
 import { apiResponseSchema } from '@/schemas/api-response.schema'
 
 export const approvalRiskLevelSchema = z.enum(['SAFE', 'CAUTION', 'DANGER'])
+export const approvalHistoryStatusSchema = z.enum([
+  'APPROVED',
+  'REJECTED',
+  'CANCELED',
+  'EXPIRED',
+])
+export const approvalRequestStatusSchema = z.enum([
+  'PENDING',
+  ...approvalHistoryStatusSchema.options,
+])
 
 export const approvalRequestSummarySchema = z.object({
   approvalId: z.number().int().positive(),
@@ -14,6 +24,8 @@ export const approvalRequestSummarySchema = z.object({
   riskLevel: approvalRiskLevelSchema.nullable(),
   requestedAt: z.string().min(1),
   expiredAt: z.string().min(1),
+  status: approvalRequestStatusSchema,
+  respondedAt: z.string().min(1).nullable(),
 })
 
 export const approvalRuleHitSchema = z.object({
@@ -47,7 +59,7 @@ export const approvalTransferResultSchema = z.object({
 export const approvalDecisionSchema = z.object({
   approvalId: z.number().int().positive(),
   transactionId: z.number().int().positive(),
-  status: z.enum(['APPROVED', 'REJECTED']),
+  status: approvalHistoryStatusSchema,
   respondedAt: z.string().min(1),
   transfer: approvalTransferResultSchema.nullable(),
 })
@@ -62,16 +74,18 @@ export const approvalDecisionResponseSchema = apiResponseSchema(
   approvalDecisionSchema,
 )
 
-export const approvalDecisionSnapshotSchema = z.object({
+export const approvalHistoryResultSchema = z.object({
   detail: approvalRequestDetailSchema,
   decision: approvalDecisionSchema,
 })
+export const approvalHistoryResultResponseSchema = apiResponseSchema(
+  approvalHistoryResultSchema,
+)
 
 export type ApprovalRequestSummary = z.infer<
   typeof approvalRequestSummarySchema
 >
 export type ApprovalRequestDetail = z.infer<typeof approvalRequestDetailSchema>
 export type ApprovalDecision = z.infer<typeof approvalDecisionSchema>
-export type ApprovalDecisionSnapshot = z.infer<
-  typeof approvalDecisionSnapshotSchema
->
+export type ApprovalHistoryStatus = z.infer<typeof approvalHistoryStatusSchema>
+export type ApprovalHistoryResult = z.infer<typeof approvalHistoryResultSchema>
