@@ -113,7 +113,7 @@ async function proceed() {
 
     <section
       v-else-if="banks.length"
-      class="grid grid-cols-2 gap-md"
+      class="grid h-[calc(21rem+var(--spacing-md)+var(--spacing-md))] grid-cols-2 content-start gap-md"
       aria-label="은행 목록"
     >
       <button
@@ -163,29 +163,29 @@ async function proceed() {
 
     <nav
       v-if="banks.length"
-      class="flex items-center justify-center gap-md"
+      class="flex w-full items-center justify-between gap-md"
       aria-label="은행 목록 페이지"
     >
       <button
-        class="flex size-10 items-center justify-center rounded-full text-body-secondary disabled:opacity-30"
+        class="flex size-12 items-center justify-center rounded-full border-2 border-primary-500 bg-surface-card text-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
         type="button"
         aria-label="이전 은행 목록"
         :disabled="currentPage === 1"
         @click="currentPage -= 1"
       >
-        <ChevronLeft class="size-6" aria-hidden="true" />
+        <ChevronLeft class="size-xl" aria-hidden="true" />
       </button>
       <p class="type-h2 min-w-12 text-center" aria-live="polite">
         {{ currentPage }}/{{ pageCount }}
       </p>
       <button
-        class="flex size-10 items-center justify-center rounded-full text-body-secondary disabled:opacity-30"
+        class="flex size-12 items-center justify-center rounded-full border-2 border-primary-500 bg-surface-card text-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
         type="button"
         aria-label="다음 은행 목록"
         :disabled="currentPage === pageCount"
         @click="currentPage += 1"
       >
-        <ChevronRight class="size-6" aria-hidden="true" />
+        <ChevronRight class="size-xl" aria-hidden="true" />
       </button>
     </nav>
 

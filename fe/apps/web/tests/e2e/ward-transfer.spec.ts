@@ -474,6 +474,10 @@ test('전체 은행 목록을 한 페이지에 최대 6개씩 표시한다', asy
   await expect(page.getByText('1/2', { exact: true })).toBeVisible()
   await expect(bankList.getByRole('button').nth(0)).toContainText('우리은행')
   await expect(bankList.getByRole('button').nth(1)).toContainText('하나은행')
+  const pagination = page.getByRole('navigation', {
+    name: '은행 목록 페이지',
+  })
+  const paginationBefore = await pagination.boundingBox()
 
   await page.getByRole('button', { name: '다음 은행 목록' }).click()
 
@@ -483,6 +487,8 @@ test('전체 은행 목록을 한 페이지에 최대 6개씩 표시한다', asy
   await expect(bankList.getByRole('button').nth(1)).toContainText(
     '한국씨티은행',
   )
+  const paginationAfter = await pagination.boundingBox()
+  expect(paginationAfter?.y).toBeCloseTo(paginationBefore?.y ?? 0, 1)
 
   await page.getByRole('button', { name: '이전 은행 목록' }).click()
   await expect(bankList.getByRole('button')).toHaveCount(6)
