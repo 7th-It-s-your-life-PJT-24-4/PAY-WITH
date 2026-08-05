@@ -10,6 +10,7 @@ import GuardRiskTransactionAlert from '@/pages/guard/-components/GuardRiskTransa
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
 import GuardTransactionList from '@/pages/guard/-components/GuardTransactionList.vue'
 import { usePairingStore } from '@/stores/pairing.store'
+import { useGuardStore } from '@/stores/guard.store'
 import type { GuardRecentTransaction } from '@/schemas/guard-home.schema'
 import type {
   GuardSeniorAvatar,
@@ -18,6 +19,7 @@ import type {
 
 const router = useRouter()
 const pairingStore = usePairingStore()
+const guardStore = useGuardStore()
 const isPairingConfirmOpen = ref(false)
 const isRiskTransactionAlertVisible = ref(true)
 const selectedWardId = ref<number | null>(null)
@@ -30,9 +32,10 @@ const {
 
 const selectedWard = computed(() => guardHome.value?.selectedWard ?? null)
 const seniors = computed<GuardSeniorAvatar[]>(() =>
-  (guardHome.value?.wards ?? []).map(({ wardId, name }) => ({
+  (guardHome.value?.wards ?? []).map(({ wardId, name, avatarId }) => ({
     id: String(wardId),
     name,
+    imageUrl: `/images/avatar/avatar${avatarId}.png`,
   })),
 )
 const activeSeniorId = computed(() =>
@@ -55,6 +58,14 @@ const formattedBalance = computed(() =>
 watch(activeSeniorId, () => {
   isRiskTransactionAlertVisible.value = true
 })
+
+watch(
+  () => selectedWard.value?.wardId,
+  (wardId) => {
+    if (wardId) guardStore.selectWard(wardId)
+  },
+  { immediate: true },
+)
 
 function toGuardTransaction(
   transaction: GuardRecentTransaction,
@@ -101,6 +112,14 @@ function selectSenior(wardId: string) {
   const parsedWardId = Number(wardId)
   if (!Number.isSafeInteger(parsedWardId) || parsedWardId <= 0) return
   selectedWardId.value = parsedWardId
+}
+
+function goToCharge() {
+  if (!selectedWard.value) return
+
+  router.push({
+    name: 'guard-charge-be',
+  })
 }
 
 async function startPairing() {
@@ -170,6 +189,7 @@ async function startPairing() {
         class="mt-md"
         :senior-name="selectedWard?.name ?? ''"
         :balance="formattedBalance"
+        @charge="goToCharge"
         @add-safe-account="router.push({ name: 'guard-safe-account' })"
       />
 

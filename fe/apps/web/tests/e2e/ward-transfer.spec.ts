@@ -1,5 +1,92 @@
 import { expect, test, type Page } from './fixtures'
 
+const baseStoredTransferDetail = {
+  holderName: '박지연',
+  bankCode: '088',
+  bankName: '신한은행',
+  accountNo: '110-234-567890',
+  amount: 30_000,
+  memo: null,
+  requestedAt: '2026-07-24T15:00:00+09:00',
+  expiredAt: null,
+  respondedAt: null,
+  completedAt: null,
+  balanceAfter: null,
+  riskAnalysis: null,
+  failureCode: null,
+  failureMessage: null,
+}
+
+const storedTransferDetails = [
+  {
+    ...baseStoredTransferDetail,
+    transactionId: 73,
+    status: 'COMPLETED',
+    holderName: '김민수',
+    bankCode: '004',
+    bankName: '국민은행',
+    accountNo: '432102-01-234567',
+    amount: 50_000,
+    requestedAt: '2026-07-24T14:30:00+09:00',
+    expiredAt: '2026-07-24T14:40:00+09:00',
+    respondedAt: '2026-07-24T14:32:00+09:00',
+    completedAt: '2026-07-24T14:32:01+09:00',
+    balanceAfter: 1_200_000,
+    riskAnalysis: { riskScore: 0, reasons: [] },
+  },
+  {
+    ...baseStoredTransferDetail,
+    transactionId: 74,
+    status: 'HELD',
+    holderName: '김민수',
+    bankCode: '004',
+    bankName: '국민은행',
+    accountNo: '432102-01-234567',
+    amount: 50_000,
+    requestedAt: '2026-07-24T14:30:00+09:00',
+    expiredAt: '2026-07-24T14:40:00+09:00',
+  },
+  {
+    ...baseStoredTransferDetail,
+    transactionId: 75,
+    status: 'REJECTED',
+    holderName: '이지혜',
+    bankCode: '004',
+    bankName: 'KB국민은행',
+    accountNo: '123123890123',
+    amount: 500_000,
+    requestedAt: '2026-07-24T14:30:00+09:00',
+    expiredAt: '2026-07-24T14:40:00+09:00',
+    respondedAt: '2026-07-24T14:36:00+09:00',
+  },
+  {
+    ...baseStoredTransferDetail,
+    transactionId: 76,
+    status: 'HELD',
+    expiredAt: '2026-07-24T15:10:00+09:00',
+  },
+  {
+    ...baseStoredTransferDetail,
+    transactionId: 77,
+    status: 'EXPIRED',
+    expiredAt: '2026-07-24T15:10:00+09:00',
+  },
+  {
+    ...baseStoredTransferDetail,
+    transactionId: 78,
+    status: 'FAILED',
+    respondedAt: '2026-07-24T15:01:00+09:00',
+    failureCode: 'INSUFFICIENT_BALANCE',
+    failureMessage: '송금 가능한 잔액이 부족합니다.',
+  },
+  {
+    ...baseStoredTransferDetail,
+    transactionId: 79,
+    status: 'CANCELED',
+    respondedAt: '2026-07-24T15:01:00+09:00',
+  },
+]
+
 async function submitTransferWithPin(page: Page, pin: string) {
   await page.goto('/ward/transfer')
   await page
@@ -14,6 +101,15 @@ async function submitTransferWithPin(page: Page, pin: string) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript((details) => {
+    for (const detail of details) {
+      sessionStorage.setItem(
+        `pay-with:ward-transfer:${detail.transactionId}`,
+        JSON.stringify(detail),
+      )
+    }
+  }, storedTransferDetails)
+
   await page.route('**/api/ward/home', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
@@ -523,24 +619,17 @@ test('보호자 전화 확인 후 연결된 번호로 전화를 건다', async (
   await expect(dialog).toBeHidden()
 })
 
-test('승인 대기 거래를 취소하고 취소 결과를 확인한다', async ({ page }) => {
+test('승인 대기 거래에서 준비 중인 취소 기능을 노출하지 않는다', async ({
+  page,
+}) => {
   await page.goto('/ward/transfer/76/held')
   await expect(
     page.getByRole('heading', { name: '이상 거래 알림' }),
   ).toBeVisible()
   await expect(page.getByText('30,000원')).toBeVisible()
-
-  await page.getByRole('button', { name: '거래 취소하기' }).click()
-  const dialog = page.getByRole('dialog', {
-    name: '대기 중인 거래를 취소할까요?',
-  })
-  await expect(dialog).toBeVisible()
-  await dialog.getByRole('button', { name: '거래 취소하기' }).click()
-
-  await expect(page).toHaveURL(/\/ward\/transfer\/76\/canceled$/)
-  await expect(page.getByRole('heading', { name: '송금 취소' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '거래 취소하기' })).toBeHidden()
   await expect(
-    page.getByRole('button', { name: '송금 다시하기' }),
+    page.getByRole('button', { name: '홈에서 기다리기' }),
   ).toBeVisible()
 })
 

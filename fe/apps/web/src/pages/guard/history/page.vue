@@ -10,7 +10,6 @@ import {
 } from '@/mocks/guard-home.mock'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
 import GuardHistoryTransactionList from '@/pages/guard/history/-components/GuardHistoryTransactionList.vue'
-import { useGuardStore } from '@/stores/guard.store'
 import { usePairingStore } from '@/stores/pairing.store'
 
 type HistoryFilter = 'all' | GuardTransaction['status']
@@ -23,9 +22,9 @@ const filters: Array<{ label: string; value: HistoryFilter }> = [
 ]
 
 const router = useRouter()
-const guardStore = useGuardStore()
 const pairingStore = usePairingStore()
 const activeFilter = ref<HistoryFilter>('all')
+const activeSeniorId = ref(mockGuardSeniors[0]?.id ?? '')
 const isPairingConfirmOpen = ref(false)
 
 const filteredTransactions = computed(() => {
@@ -42,6 +41,11 @@ async function startPairing() {
   isPairingConfirmOpen.value = false
   router.push({ name: 'guard-pairing-code' })
 }
+
+function selectSenior(seniorId: string) {
+  if (!mockGuardSeniors.some(({ id }) => id === seniorId)) return
+  activeSeniorId.value = seniorId
+}
 </script>
 
 <template>
@@ -49,9 +53,9 @@ async function startPairing() {
     <div class="px-mobile-gutter pt-md">
       <GuardSeniorAvatarList
         :seniors="mockGuardSeniors"
-        :active-senior-id="guardStore.activeSeniorId"
+        :active-senior-id="activeSeniorId"
         @add="isPairingConfirmOpen = true"
-        @select="guardStore.selectSenior"
+        @select="selectSenior"
       />
 
       <div class="mt-md flex gap-xs" aria-label="거래 위험도 필터">

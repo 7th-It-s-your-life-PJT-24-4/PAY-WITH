@@ -13,6 +13,10 @@ export function getApiErrorCode(error: unknown): string | null {
   return result.success ? (result.data.code ?? null) : null
 }
 
+export function isUnauthorizedApiError(error: unknown): boolean {
+  return error instanceof HTTPError && error.response.status === 401
+}
+
 export async function getApiErrorMessage(
   error: unknown,
   fallback: string,

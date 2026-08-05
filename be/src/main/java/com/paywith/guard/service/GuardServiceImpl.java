@@ -123,6 +123,20 @@ public class GuardServiceImpl implements GuardService {
         );
     }
 
+    @Override
+    @Transactional
+    public void unpairWard(Long guardId, Long wardId) {
+        requireRole(guardId, Role.GUARD);
+
+        if (guardSeniorMapper.revokeActiveRelation(guardId, wardId) == 0) {
+            throw new BusinessException(
+                HttpStatus.NOT_FOUND,
+                "PAIRING_005",
+                "연결된 시니어를 찾을 수 없습니다."
+            );
+        }
+    }
+
     private void requireRole(Long userId, Role expected) {
         User user = userMapper.findById(userId);
         if (user == null || user.getRole() != expected) {

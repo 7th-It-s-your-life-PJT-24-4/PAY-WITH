@@ -14,6 +14,14 @@
         )
     </select>
 
+    <select id="existsActivePairing" resultType="boolean">
+        SELECT EXISTS (
+        SELECT 1 FROM guard_senior
+        WHERE senior_id = #{wardId}
+        AND status = 'ACTIVE'
+        )
+    </select>
+
     <insert id="upsertActiveRelation">
         INSERT INTO guard_senior (guard_id, senior_id, status, connected_at)
         VALUES (#{guardId}, #{wardId}, 'ACTIVE', NOW())
@@ -38,13 +46,23 @@
         AND senior_id = #{wardId}
     </select>
 
+    <update id="revokeActiveRelation">
+        UPDATE guard_senior
+        SET status = 'REVOKED',
+            revoked_at = NOW()
+        WHERE guard_id = #{guardId}
+        AND senior_id = #{wardId}
+        AND status = 'ACTIVE'
+    </update>
+
     <resultMap id="WardSummaryResultMap" type="com.paywith.guard.domain.WardSummary">
         <id     property="wardId" column="ward_id" />
         <result property="name"   column="name" />
+        <result property="avatarId" column="avatar_id" />
     </resultMap>
 
     <select id="findActiveWards" resultMap="WardSummaryResultMap">
-        SELECT u.user_id AS ward_id, u.name
+        SELECT u.user_id AS ward_id, u.name, u.avatar_id
         FROM guard_senior gs
         JOIN users u ON u.user_id = gs.senior_id
         WHERE gs.guard_id = #{guardId}

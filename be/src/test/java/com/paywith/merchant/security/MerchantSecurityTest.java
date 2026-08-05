@@ -29,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -43,6 +44,9 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 @ExtendWith(SpringExtension.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = {MerchantSecurityTest.TestConfig.class, SecurityConfig.class})
+// SecurityConfig 가 CORS 허용 origin 을 설정값으로 읽는다. AppConfig 를 띄우지 않는
+// 슬라이스 테스트라 여기서 직접 준다.
+@TestPropertySource(properties = "cors.allowed-origins=http://localhost:5173,http://127.0.0.1:5173")
 class MerchantSecurityTest {
 
     @Autowired

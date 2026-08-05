@@ -1,11 +1,30 @@
 <script setup lang="ts">
 import { ChevronLeft } from '@lucide/vue'
 import { PinKeypad } from '@pay-with/ui'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { z } from 'zod'
 
+import { createGuardCharge } from '@/api/guard-charges'
+import { getApiErrorMessage } from '@/api/error'
+import { guardChargeKeys } from '@/lib/query/guard/charge'
+import { useGuardStore } from '@/stores/guard.store'
+
 const router = useRouter()
+const guardStore = useGuardStore()
+const queryClient = useQueryClient()
+const chargeMutation = useMutation({
+  mutationFn: ({
+    wardId,
+    accountId,
+    amount,
+  }: {
+    wardId: number
+    accountId: number
+    amount: number
+  }) => createGuardCharge(wardId, { accountId, amount }),
+})
 const formRef = ref<{ requestSubmit: () => void } | null>(null)
 const pin = ref('')
 const errorMessage = ref('')
@@ -17,7 +36,7 @@ const passwordSchema = z.object({
 const pinDigits = computed(() => pin.value.length)
 const keypadOrder = ['1', '0', '4', '3', '2', '8', '5', '9', '7', '6']
 
-function submitPassword() {
+async function submitPassword() {
   const result = passwordSchema.safeParse({ pin: pin.value })
   if (!result.success) {
     errorMessage.value =
@@ -25,8 +44,31 @@ function submitPassword() {
     return
   }
 
-  errorMessage.value = ''
-  router.replace({ name: 'guard-charge-complete' })
+  if (
+    guardStore.activeWardId === null ||
+    guardStore.selectedChargeAccountId === null ||
+    !guardStore.canSubmitCharge
+  ) {
+    errorMessage.value = '충전 정보를 다시 확인해주세요.'
+    return
+  }
+
+  try {
+    const result = await chargeMutation.mutateAsync({
+      wardId: guardStore.activeWardId,
+      accountId: guardStore.selectedChargeAccountId,
+      amount: guardStore.chargeAmount,
+    })
+    guardStore.saveChargeResult(result)
+    await queryClient.invalidateQueries({ queryKey: guardChargeKeys.all })
+    errorMessage.value = ''
+    await router.replace({ name: 'guard-charge-complete' })
+  } catch (error) {
+    errorMessage.value = await getApiErrorMessage(
+      error,
+      '충전을 완료하지 못했습니다. 다시 시도해주세요.',
+    )
+  }
 }
 
 function handleKeypadChange(length: number) {
@@ -82,6 +124,7 @@ watch(pinDigits, (length) => {
         :key-order="keypadOrder"
         :randomize="false"
         :randomize-on-input="false"
+        :disabled="chargeMutation.isPending.value"
         :error="errorMessage"
         @change="handleKeypadChange"
         @complete="handleKeypadComplete"

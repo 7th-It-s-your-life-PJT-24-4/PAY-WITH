@@ -7,8 +7,20 @@ services:
     restart: unless-stopped
     depends_on:
       - app
+    volumes:
+      # certbot 은 호스트에 설치해 두고, 발급물만 컨테이너에 읽기 전용으로 넘긴다.
+      # certbot 이 챌린지 파일을 쓰는 곳. Nginx 가 /.well-known/acme-challenge/ 로 서빙한다.
+      - /var/www/certbot:/var/www/certbot:ro
+      # 인증서. 실제 파일은 archive 에 있고 live 는 심볼릭 링크라 상위 디렉터리째 마운트해야 한다.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      # 설정을 이미지에 굽지 않고 마운트한다. HTTPS 전환처럼 conf 만 고칠 때 프런트 재빌드
+      # (pnpm install + vite build) 없이 nginx -s reload 로 끝낸다.
+      - ../fe/apps/web/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
+      # 80 은 443 으로 리다이렉트하지만 계속 열어 둔다. Let's Encrypt 갱신 검증이
+      # 평문 HTTP 로 들어오기 때문이다.
       - '80:80'
+      - '443:443'
 
   app:
     build:
@@ -32,8 +44,12 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: '6379'
       PAIRING_INVITE_BASE_URL: ${PAIRING_INVITE_BASE_URL}
-    expose:
-      - '8080'
+    # 외부 트래픽은 Nginx 를 거치므로 8080 을 공개할 이유가 없다. 다만 Nginx 를 건너뛰고
+    # 앱만 직접 확인해야 할 때가 있어(프록시 문제 격리, 디버깅) 루프백에 묶어 둔다.
+    # SSH 터널로만 닿는다: ssh -N -L 8080:localhost:8080.
+    # 0.0.0.0 에 열면 보안 그룹만이 유일한 방어선이 된다.
+    ports:
+      - '127.0.0.1:8080:8080'
 
   redis:
     image: redis:7-alpine

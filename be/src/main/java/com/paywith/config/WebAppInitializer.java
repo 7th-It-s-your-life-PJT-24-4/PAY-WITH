@@ -20,4 +20,7 @@ public class WebAppInitializer extends AbstractAnnotationConfigDispatcherServlet
     protected String[] getServletMappings() {
         return new String[] {"/"};
     }
+
+    // ForwardedHeaderFilter 는 SecurityWebInitializer 에서 등록한다. 보안 필터 체인보다 먼저
+    // 돌아야 하는데, 여기에 두면 두 initializer 의 실행 순서에 좌우되어 보장되지 않는다.
 }

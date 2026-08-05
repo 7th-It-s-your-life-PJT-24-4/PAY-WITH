@@ -143,7 +143,7 @@ public class PhoneVerificationService {
         phone = PhoneNumberNormalizer.normalize(phone);
         String savedPhone = token == null ? null : redisTemplate.opsForValue().get(tokenKey(token));
         if (savedPhone == null || !savedPhone.equals(phone)) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "PHONE_004", "휴대폰 인증이 필요합니다.");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "AUTH_003", "인증이 만료되었거나 유효하지 않습니다. 처음부터 다시 시도해주세요.");
         }
     }
 

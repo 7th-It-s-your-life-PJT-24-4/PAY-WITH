@@ -38,6 +38,7 @@ export const createUserRequestSchema = z.object({
 
 export const updateUserRequestSchema = z.object({
   name: z.string().min(1),
+  avatarId: z.number().int().min(1).max(6).optional(),
 })
 
 export type User = z.infer<typeof userSchema>

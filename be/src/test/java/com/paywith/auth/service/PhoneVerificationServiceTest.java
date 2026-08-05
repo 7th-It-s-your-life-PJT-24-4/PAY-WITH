@@ -291,33 +291,33 @@ class PhoneVerificationServiceTest {
         }
 
         @Test
-        @DisplayName("토큰이 존재하지 않으면(만료 포함) PHONE_004 예외를 던진다")
+        @DisplayName("토큰이 존재하지 않으면(만료 포함) AUTH_003 예외를 던진다")
         void requireValidToken_missing() {
             given(valueOperations.get("phone:verify:token:" + TOKEN)).willReturn(null);
 
             assertThatThrownBy(() -> service.requireValidToken(TOKEN, PHONE))
                 .isInstanceOfSatisfying(BusinessException.class, exception -> {
                     assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
-                    assertThat(exception.getCode()).isEqualTo("PHONE_004");
+                    assertThat(exception.getCode()).isEqualTo("AUTH_003");
                 });
         }
 
         @Test
-        @DisplayName("토큰이 다른 전화번호로 발급된 것이면 PHONE_004 예외를 던진다")
+        @DisplayName("토큰이 다른 전화번호로 발급된 것이면 AUTH_003 예외를 던진다")
         void requireValidToken_phoneMismatch() {
             given(valueOperations.get("phone:verify:token:" + TOKEN)).willReturn("01099998888");
 
             assertThatThrownBy(() -> service.requireValidToken(TOKEN, PHONE))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
-                    assertThat(exception.getCode()).isEqualTo("PHONE_004"));
+                    assertThat(exception.getCode()).isEqualTo("AUTH_003"));
         }
 
         @Test
-        @DisplayName("토큰 없이 요청하면 PHONE_004 예외를 던진다")
+        @DisplayName("토큰 없이 요청하면 AUTH_003 예외를 던진다")
         void requireValidToken_nullToken() {
             assertThatThrownBy(() -> service.requireValidToken(null, PHONE))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
-                    assertThat(exception.getCode()).isEqualTo("PHONE_004"));
+                    assertThat(exception.getCode()).isEqualTo("AUTH_003"));
 
             then(valueOperations).should(never()).get(anyString());
         }

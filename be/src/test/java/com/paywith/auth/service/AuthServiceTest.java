@@ -2,19 +2,24 @@ package com.paywith.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 
+import static org.mockito.BDDMockito.willThrow;
+
 import com.paywith.auth.dto.LoginRequest;
+import com.paywith.auth.dto.PasswordResetRequest;
 import com.paywith.auth.dto.RefreshTokenRequest;
 import com.paywith.auth.dto.TokenResponse;
 import com.paywith.exception.BusinessException;
 import com.paywith.security.JwtTokenProvider;
 import com.paywith.user.domain.Role;
 import com.paywith.user.domain.User;
+import com.paywith.user.domain.UserStatus;
 import com.paywith.user.mapper.UserMapper;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,13 +52,15 @@ class AuthServiceTest {
     private RedisTemplate<String, String> redisTemplate;
     @Mock
     private ValueOperations<String, String> valueOperations;
+    @Mock
+    private PhoneVerificationService phoneVerificationService;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        authService = new AuthService(userMapper, jwtTokenProvider, passwordEncoder, redisTemplate);
+        authService = new AuthService(userMapper, jwtTokenProvider, passwordEncoder, redisTemplate, phoneVerificationService);
     }
 
     private User user() {
@@ -137,6 +144,20 @@ class AuthServiceTest {
                     assertThat(exception.getMessage()).isEqualTo("전화번호 또는 비밀번호가 올바르지 않습니다.");
                 });
         }
+
+        @Test
+        @DisplayName("탈퇴한 사용자는 로그인할 수 없다")
+        void withdrawnUser() {
+            User user = user();
+            user.setStatus(UserStatus.WITHDRAWN);
+            given(userMapper.findByPhone(PHONE)).willReturn(user);
+
+            assertThatThrownBy(() -> authService.login(loginRequest()))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED));
+
+            then(passwordEncoder).should(never()).matches(anyString(), anyString());
+        }
     }
 
     @Nested
@@ -209,6 +230,102 @@ class AuthServiceTest {
                     assertThat(exception.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
                     assertThat(exception.getMessage()).isEqualTo("사용자를 찾을 수 없습니다.");
                 });
+        }
+
+        @Test
+        @DisplayName("탈퇴한 사용자의 리프레시 토큰은 재발급하지 않는다")
+        void withdrawnUser() {
+            User user = user();
+            user.setStatus(UserStatus.WITHDRAWN);
+            given(jwtTokenProvider.validateToken("old-refresh")).willReturn(true);
+            given(jwtTokenProvider.getUserId("old-refresh")).willReturn(USER_ID);
+            given(valueOperations.get("refresh:" + USER_ID)).willReturn("old-refresh");
+            given(userMapper.findById(USER_ID)).willReturn(user);
+
+            assertThatThrownBy(() -> authService.refresh(request("old-refresh")))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED));
+
+            then(jwtTokenProvider).should(never()).createAccessToken(USER_ID, PHONE);
+        }
+    }
+
+    @Nested
+    @DisplayName("resetPassword")
+    class ResetPassword {
+
+        private PasswordResetRequest request(String phone, String token, String newPassword) {
+            PasswordResetRequest request = new PasswordResetRequest();
+            request.setPhone(phone);
+            request.setVerificationToken(token);
+            request.setNewPassword(newPassword);
+            return request;
+        }
+
+        @Test
+        @DisplayName("정상 요청이면 비밀번호를 변경하고 refresh token/인증 토큰을 무효화한다")
+        void success() {
+            given(userMapper.findByPhone(PHONE)).willReturn(user());
+            given(passwordEncoder.encode("newpass123!")).willReturn("encoded-new-password");
+
+            authService.resetPassword(request(PHONE, "verify-token", "newpass123!"));
+
+            then(phoneVerificationService).should().requireValidToken("verify-token", PHONE);
+            then(userMapper).should().updatePassword(USER_ID, "encoded-new-password");
+            then(redisTemplate).should().delete("refresh:" + USER_ID);
+            then(phoneVerificationService).should().invalidateToken("verify-token", PHONE);
+        }
+
+        @Test
+        @DisplayName("전화번호 형식이 올바르지 않으면 PHONE_001 예외를 던진다")
+        void invalidPhoneFormat() {
+            assertThatThrownBy(() -> authService.resetPassword(request("abc", "verify-token", "newpass123!")))
+                .isInstanceOfSatisfying(BusinessException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("PHONE_001");
+                });
+
+            then(phoneVerificationService).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("새 비밀번호가 8자 미만이면 PASSWORD_001 예외를 던진다")
+        void newPasswordTooShort() {
+            assertThatThrownBy(() -> authService.resetPassword(request(PHONE, "verify-token", "short1")))
+                .isInstanceOfSatisfying(BusinessException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(exception.getCode()).isEqualTo("PASSWORD_001");
+                });
+
+            then(phoneVerificationService).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("인증 토큰이 유효하지 않으면 AUTH_003 예외를 그대로 전파하고 비밀번호를 변경하지 않는다")
+        void invalidVerificationToken() {
+            willThrow(new BusinessException(HttpStatus.BAD_REQUEST, "AUTH_003", "인증이 만료되었거나 유효하지 않습니다. 처음부터 다시 시도해주세요."))
+                .given(phoneVerificationService).requireValidToken("verify-token", PHONE);
+
+            assertThatThrownBy(() -> authService.resetPassword(request(PHONE, "verify-token", "newpass123!")))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                    assertThat(exception.getCode()).isEqualTo("AUTH_003"));
+
+            then(userMapper).should(never()).updatePassword(anyLong(), anyString());
+            then(redisTemplate).should(never()).delete(anyString());
+        }
+
+        @Test
+        @DisplayName("가입되지 않은 전화번호면 USER_002 예외를 던진다")
+        void userNotFound() {
+            given(userMapper.findByPhone(PHONE)).willReturn(null);
+
+            assertThatThrownBy(() -> authService.resetPassword(request(PHONE, "verify-token", "newpass123!")))
+                .isInstanceOfSatisfying(BusinessException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                    assertThat(exception.getCode()).isEqualTo("USER_002");
+                });
+
+            then(userMapper).should(never()).updatePassword(anyLong(), anyString());
         }
     }
 }

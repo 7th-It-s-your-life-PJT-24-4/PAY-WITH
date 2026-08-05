@@ -5,6 +5,13 @@
 
 <mapper namespace="com.paywith.recipient.mapper.BankMapper">
 
+    <select id="findAllActive" resultType="com.paywith.bank.dto.BankResponse">
+        SELECT bank_code AS bankCode, bank_name AS bankName
+        FROM banks
+        WHERE is_active = TRUE
+        ORDER BY bank_code ASC
+    </select>
+
     <select id="findBankName" resultType="String">
         SELECT bank_name FROM banks WHERE bank_code = #{bankCode}
     </select>

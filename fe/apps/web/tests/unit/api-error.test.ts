@@ -2,11 +2,15 @@ import { HTTPError } from 'ky'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
-import { getApiErrorCode, getApiErrorMessage } from '@/api/error'
+import {
+  getApiErrorCode,
+  getApiErrorMessage,
+  isUnauthorizedApiError,
+} from '@/api/error'
 
-function createHttpError(data: unknown) {
+function createHttpError(data: unknown, status = 422) {
   const request = new Request('http://localhost/api/ward/charges')
-  const response = new Response(null, { status: 422 })
+  const response = new Response(null, { status })
   const error = new HTTPError(response, request, {} as never)
   error.data = data
   return error
@@ -43,5 +47,11 @@ describe('getApiErrorMessage', () => {
 
     expect(getApiErrorCode(error)).toBe('PAIRING_004')
     expect(getApiErrorCode(new Error('내부 오류'))).toBeNull()
+  })
+
+  it('401 응답만 인증 거절로 판정한다', () => {
+    expect(isUnauthorizedApiError(createHttpError(null, 401))).toBe(true)
+    expect(isUnauthorizedApiError(createHttpError(null, 500))).toBe(false)
+    expect(isUnauthorizedApiError(new TypeError('Failed to fetch'))).toBe(false)
   })
 })

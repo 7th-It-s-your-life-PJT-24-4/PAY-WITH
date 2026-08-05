@@ -1,16 +1,51 @@
 <script setup lang="ts">
 import { ChevronLeft } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
+import { useMutation } from '@tanstack/vue-query'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { registerGuardSafeAccount } from '@/api/guard-safe-accounts'
+import { getApiErrorMessage } from '@/api/error'
+import { useGuardStore } from '@/stores/guard.store'
 import { useSafeAccountStore } from '@/stores/safe-account.store'
 
 const router = useRouter()
+const guardStore = useGuardStore()
 const safeAccountStore = useSafeAccountStore()
+const errorMessage = ref('')
+const registerMutation = useMutation({
+  mutationFn: ({
+    wardId,
+    bankCode,
+    accountNo,
+  }: {
+    wardId: number
+    bankCode: string
+    accountNo: string
+  }) => registerGuardSafeAccount(wardId, { bankCode, accountNo }),
+})
 
-function completeSafeAccount() {
-  safeAccountStore.reset()
-  router.replace({ name: 'guard-home' })
+async function completeSafeAccount() {
+  if (guardStore.activeWardId === null) {
+    errorMessage.value = '연결할 시니어를 다시 선택해주세요.'
+    return
+  }
+
+  try {
+    await registerMutation.mutateAsync({
+      wardId: guardStore.activeWardId,
+      bankCode: safeAccountStore.bankCode,
+      accountNo: safeAccountStore.accountNumber,
+    })
+    safeAccountStore.reset()
+    await router.replace({ name: 'guard-home' })
+  } catch (error) {
+    errorMessage.value = await getApiErrorMessage(
+      error,
+      '안전계좌를 등록하지 못했습니다.',
+    )
+  }
 }
 </script>
 
@@ -43,23 +78,33 @@ function completeSafeAccount() {
         id="safe-account-confirm-title"
         class="text-[32px] font-bold leading-[1.4] tracking-[-0.64px] text-black"
       >
-        <span class="text-primary-500">{{
-          safeAccountStore.recipientName
-        }}</span
-        >님을<br />
+        입력한 계좌를<br />
         안전계좌에<br />
         추가할까요?
       </h2>
     </section>
+
+    <p
+      v-if="errorMessage"
+      class="type-body-medium px-mobile-gutter text-center text-error"
+      role="alert"
+    >
+      {{ errorMessage }}
+    </p>
 
     <div
       class="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[390px] bg-white px-mobile-gutter pb-[calc(20px+env(safe-area-inset-bottom))] pt-sm"
     >
       <Button
         class="w-full"
-        label="안전계좌 추가하기"
+        :label="
+          registerMutation.isPending.value
+            ? '등록 중입니다'
+            : '안전계좌 추가하기'
+        "
         variant="guard-cta"
         size="guard-cta"
+        :disabled="registerMutation.isPending.value"
         @click="completeSafeAccount"
       />
     </div>
