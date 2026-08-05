@@ -17,6 +17,30 @@ let refreshPromise: Promise<string> | null = null
 let refreshTimer: ReturnType<typeof globalThis.setTimeout> | null = null
 let schedulerStarted = false
 const refreshLeewayMs = 60_000
+const refreshRetryDelayMs = 30_000
+
+type HttpErrorLike = {
+  response?: {
+    status?: number
+  }
+}
+
+export function isRefreshTokenRejected(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  return (error as HttpErrorLike).response?.status === 401
+}
+
+function handleScheduledRefreshFailure(error: unknown): void {
+  if (isRefreshTokenRejected(error)) {
+    expireAuthenticationSession()
+    return
+  }
+
+  // 네트워크·서버 장애를 토큰 만료로 오인하지 않고 잠시 뒤 재시도한다.
+  refreshTimer = globalThis.setTimeout(() => {
+    void refreshAccessToken().catch(handleScheduledRefreshFailure)
+  }, refreshRetryDelayMs)
+}
 
 async function requestNewAccessToken(refreshToken: string): Promise<string> {
   // 인증 훅이 걸린 apiClient 대신 순수 ky 인스턴스를 써서 재귀 호출을 막는다.
@@ -43,7 +67,7 @@ export function scheduleAccessTokenRefresh(): void {
 
   const delay = Math.max(0, expiresAt - Date.now() - refreshLeewayMs)
   refreshTimer = globalThis.setTimeout(() => {
-    void refreshAccessToken().catch(() => expireAuthenticationSession())
+    void refreshAccessToken().catch(handleScheduledRefreshFailure)
   }, delay)
 }
 

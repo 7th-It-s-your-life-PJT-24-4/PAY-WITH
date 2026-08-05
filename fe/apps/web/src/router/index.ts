@@ -5,10 +5,12 @@ import {
   markSessionActive,
 } from '@/api/auth-session'
 import {
+  isRefreshTokenRejected,
   refreshAccessToken,
   scheduleAccessTokenRefresh,
 } from '@/api/token-refresh'
 import {
+  getAccessTokenExpiresAt,
   getUserIdFromAccessToken,
   isAccessTokenExpiring,
   tokenStorage,
@@ -551,37 +553,60 @@ const router = createRouter({
 async function getAuthenticatedUserId() {
   const accessToken = tokenStorage.getAccessToken()
   const userId = accessToken ? getUserIdFromAccessToken(accessToken) : null
-  if (accessToken && userId && !isAccessTokenExpiring(accessToken)) {
+  const accessTokenExpiresAt = accessToken
+    ? getAccessTokenExpiresAt(accessToken)
+    : null
+  const hasUsableAccessToken =
+    userId !== null &&
+    accessTokenExpiresAt !== null &&
+    accessTokenExpiresAt > Date.now()
+
+  if (
+    accessToken &&
+    hasUsableAccessToken &&
+    (!isAccessTokenExpiring(accessToken) || !tokenStorage.getRefreshToken())
+  ) {
     scheduleAccessTokenRefresh()
-    return userId
+    return { userId, sessionExpired: false }
   }
 
-  if (!tokenStorage.getRefreshToken()) return null
+  if (!tokenStorage.getRefreshToken()) {
+    return {
+      userId: null,
+      sessionExpired:
+        accessTokenExpiresAt !== null && accessTokenExpiresAt <= Date.now(),
+    }
+  }
 
   try {
     const refreshedAccessToken = await refreshAccessToken()
     markSessionActive()
-    return getUserIdFromAccessToken(refreshedAccessToken)
-  } catch {
-    clearAuthenticationSession()
-    return null
+    return {
+      userId: getUserIdFromAccessToken(refreshedAccessToken),
+      sessionExpired: false,
+    }
+  } catch (error) {
+    const sessionExpired = isRefreshTokenRejected(error)
+    return {
+      // 일시 장애라면 서버가 최종 인증을 판단하도록 현재 화면 접근은 유지한다.
+      // 실제 만료(401)일 때만 인증 사용자 정보를 폐기한다.
+      userId: sessionExpired ? null : userId,
+      sessionExpired,
+    }
   }
 }
 
 router.beforeEach(async (to) => {
   const isAuthRoute = to.path.startsWith('/auth')
-  const hadStoredSession = Boolean(
-    tokenStorage.getAccessToken() || tokenStorage.getRefreshToken(),
-  )
-  const userId = await getAuthenticatedUserId()
+  const { userId, sessionExpired } = await getAuthenticatedUserId()
 
   if (!userId) {
-    clearAuthenticationSession()
+    if (sessionExpired) clearAuthenticationSession()
     if (isAuthRoute) return true
 
     return {
       name: 'auth-sign-in',
-      query: hadStoredSession
+      query: sessionExpired
         ? { reason: 'session-expired', redirect: to.fullPath }
         : undefined,
     }

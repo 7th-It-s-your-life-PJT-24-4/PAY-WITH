@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { refreshAccessToken } from '@/api/token-refresh'
+import { isRefreshTokenRejected, refreshAccessToken } from '@/api/token-refresh'
 import { tokenStorage } from '@/api/token-storage'
 
 const { post } = vi.hoisted(() => ({ post: vi.fn() }))
@@ -51,5 +51,11 @@ describe('refreshAccessToken', () => {
     })
 
     await expect(refreshAccessToken()).rejects.toThrow('refresh failed')
+  })
+
+  it('401 응답만 refresh token 거절로 판정한다', () => {
+    expect(isRefreshTokenRejected({ response: { status: 401 } })).toBeTruthy()
+    expect(isRefreshTokenRejected({ response: { status: 500 } })).toBeFalsy()
+    expect(isRefreshTokenRejected(new TypeError('Failed to fetch'))).toBeFalsy()
   })
 })

@@ -196,6 +196,37 @@ test('refresh token도 만료되면 로그인 화면으로 이동한다', async 
     .toBeNull()
 })
 
+test('refresh 서버 오류에서는 현재 화면과 세션을 유지한다', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'accessToken',
+      'header.eyJzdWIiOiIxIiwiZXhwIjoxfQ.signature',
+    )
+    localStorage.setItem('refreshToken', 'temporarily-unavailable-token')
+  })
+  await page.route('**/api/auth/refresh', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      json: {
+        success: false,
+        data: null,
+        code: null,
+        message: '서버 오류가 발생했습니다.',
+      },
+    })
+  })
+
+  await page.goto('/ward')
+
+  await expect(page).toHaveURL(/\/ward$/)
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('refreshToken')))
+    .toBe('temporarily-unavailable-token')
+})
+
 test('홈의 승인 대기 송금을 approvalId로 상세 조회한다', async ({ page }) => {
   await page.goto('/ward')
 
