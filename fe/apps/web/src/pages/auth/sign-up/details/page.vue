@@ -1,29 +1,7 @@
 <script setup lang="ts">
-import {
-  Camera,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  Plus,
-} from '@lucide/vue'
-import { AppHeader, Button, Input } from '@pay-with/ui'
+import { AppHeader, Button } from '@pay-with/ui'
 import { useMutation } from '@tanstack/vue-query'
-import {
-  CheckboxIndicator,
-  CheckboxRoot,
-  SelectContent,
-  SelectItem,
-  SelectItemIndicator,
-  SelectItemText,
-  SelectPortal,
-  SelectRoot,
-  SelectTrigger,
-  SelectValue,
-  SelectViewport,
-} from 'reka-ui'
-import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 
@@ -37,18 +15,21 @@ import {
   phoneCodeRequestSchema,
   phoneVerifyRequestSchema,
 } from '@/schemas/auth.schema'
-import { signUpTerms, type SignUpTermId } from '@/constants/sign-up-terms'
 import { useCreateUserMutation } from '@/composables/useCreateUserMutation'
 import { useLoginMutation } from '@/composables/useLoginMutation'
+import SignUpAvatarPickerModal from '@/pages/auth/sign-up/details/-components/SignUpAvatarPickerModal.vue'
+import SignUpBasicInfoSection from '@/pages/auth/sign-up/details/-components/SignUpBasicInfoSection.vue'
+import SignUpPasswordSection from '@/pages/auth/sign-up/details/-components/SignUpPasswordSection.vue'
+import SignUpPhoneVerificationSection from '@/pages/auth/sign-up/details/-components/SignUpPhoneVerificationSection.vue'
+import SignUpProfileSection from '@/pages/auth/sign-up/details/-components/SignUpProfileSection.vue'
+import SignUpTermsSection from '@/pages/auth/sign-up/details/-components/SignUpTermsSection.vue'
 import { usePairingStore } from '@/stores/pairing.store'
 import { useSignUpStore } from '@/stores/sign-up.store'
 
 const router = useRouter()
 const signUpStore = useSignUpStore()
 const pairingStore = usePairingStore()
-const isPasswordVisible = ref(false)
 const isAvatarModalOpen = ref(false)
-const pendingAvatarId = ref<number | null>(null)
 const formError = ref('')
 const phoneRequestError = ref('')
 const phoneVerificationCode = ref('')
@@ -60,7 +41,6 @@ let phoneCodeTimer: ReturnType<typeof globalThis.setInterval> | undefined
 let signUpDraftTimer: ReturnType<typeof globalThis.setTimeout> | undefined
 let shouldPersistSignUpDraft = true
 const SIGN_UP_DRAFT_SAVE_DELAY = 300
-const paymentPasswordInputIds = Array.from({ length: 6 }, () => useId())
 const sendPhoneCodeMutation = useMutation({ mutationFn: sendPhoneCode })
 const verifyPhoneCodeMutation = useMutation({ mutationFn: verifyPhoneCode })
 const createUserMutation = useCreateUserMutation()
@@ -158,10 +138,6 @@ watch(
   scheduleSignUpDraftSave,
 )
 
-const requiredTermsAgreed = computed(
-  () => serviceTerms.value && privacyTerms.value && identifierTerms.value,
-)
-const allTermsAgreed = computed(() => requiredTermsAgreed.value)
 const isReadyToSubmit = computed(() => {
   const result = signUpDetailsSchema.safeParse({
     fullName: fullName.value,
@@ -203,6 +179,10 @@ function formatBirthDate(value: string) {
 
 function updateBirthDate(value: string) {
   birthDate.value = formatBirthDate(value)
+}
+
+function updateGender(value: '남' | '여' | undefined) {
+  if (value) gender.value = value
 }
 
 function updatePhoneVerificationCode(value: string) {
@@ -258,86 +238,6 @@ function updatePhoneNumber(value: string) {
     clearPhoneCodeTimer()
   }
   phoneNumber.value = formatPhoneNumber(value)
-}
-
-function inputValueFromEvent(event: unknown) {
-  if (typeof event !== 'object' || event === null) return ''
-
-  const target = Reflect.get(event, 'target')
-  if (typeof target !== 'object' || target === null) return ''
-
-  const value = Reflect.get(target, 'value')
-  return typeof value === 'string' ? value : ''
-}
-
-function updatePhoneNumberFromEvent(event: unknown) {
-  updatePhoneNumber(inputValueFromEvent(event))
-}
-
-function updateBirthDateFromEvent(event: unknown) {
-  updateBirthDate(inputValueFromEvent(event))
-}
-
-function toggleAllTerms(value: boolean | 'indeterminate') {
-  const isChecked = value === true
-
-  serviceTerms.value = isChecked
-  privacyTerms.value = isChecked
-  identifierTerms.value = isChecked
-}
-
-function isTermAgreed(term: SignUpTermId) {
-  return {
-    serviceTerms: serviceTerms.value,
-    privacyTerms: privacyTerms.value,
-    identifierTerms: identifierTerms.value,
-  }[term]
-}
-
-function setTermAgreement(
-  term: SignUpTermId,
-  value: boolean | 'indeterminate',
-) {
-  const isChecked = value === true
-
-  if (term === 'serviceTerms') serviceTerms.value = isChecked
-  if (term === 'privacyTerms') privacyTerms.value = isChecked
-  if (term === 'identifierTerms') identifierTerms.value = isChecked
-}
-
-function updatePaymentPassword(index: number, value: string) {
-  const digit = value.replace(/\D/g, '').slice(-1)
-  const nextValue = paymentPassword.value.split('')
-
-  nextValue[index] = digit
-  paymentPassword.value = nextValue.join('').slice(0, 6)
-
-  if (digit && index < 5) {
-    globalThis.document
-      .getElementById(paymentPasswordInputIds[index + 1])
-      ?.focus()
-  }
-}
-
-function updatePaymentPasswordFromEvent(index: number, event: unknown) {
-  updatePaymentPassword(index, inputValueFromEvent(event))
-}
-
-function handlePaymentPasswordKeydown(
-  index: number,
-  event: globalThis.KeyboardEvent,
-) {
-  if (event.key !== 'Backspace' || index === 0) return
-
-  event.preventDefault()
-  if (paymentDigit(index)) updatePaymentPassword(index, '')
-  globalThis.document
-    .getElementById(paymentPasswordInputIds[index - 1])
-    ?.focus()
-}
-
-function paymentDigit(index: number) {
-  return paymentPassword.value[index] ?? ''
 }
 
 async function requestPhoneCode() {
@@ -497,13 +397,7 @@ async function submitSignUp() {
 }
 
 function openAvatarModal() {
-  pendingAvatarId.value = avatarId.value ?? null
   isAvatarModalOpen.value = true
-}
-
-function confirmAvatar() {
-  avatarId.value = pendingAvatarId.value
-  isAvatarModalOpen.value = false
 }
 </script>
 
@@ -528,387 +422,55 @@ function confirmAvatar() {
           </p>
         </section>
 
-        <section>
-          <p class="type-h4 text-body">프로필 이미지</p>
-          <p class="type-body mt-xs text-body-muted">
-            나를 표현할 아바타를 선택해 주세요
-          </p>
-          <div class="flex flex-col items-center pb-md pt-xl">
-            <button
-              class="relative flex size-[128px] items-center justify-center rounded-full border-2 border-dashed border-border-strong bg-disabled outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-              type="button"
-              aria-label="프로필 아바타 선택하기"
-              @click="openAvatarModal"
-            >
-              <img
-                v-if="avatarId"
-                :src="`/images/avatar/avatar${avatarId}.png`"
-                alt="선택한 프로필 아바타"
-                class="size-full rounded-full object-cover"
-              />
-              <Camera
-                v-else
-                aria-hidden="true"
-                class="size-10 text-body-muted"
-              />
-              <span
-                aria-hidden="true"
-                class="absolute bottom-0 right-0 flex size-[40px] items-center justify-center rounded-full border-4 border-surface bg-primary-500 text-on-action shadow-card"
-              >
-                <Plus class="size-lg" :stroke-width="3" />
-              </span>
-            </button>
-            <Button
-              class="mt-md"
-              label="프로필 사진 선택하기"
-              pill
-              size="small"
-              variant="outline-primary"
-              type="button"
-              @click="openAvatarModal"
-            />
-          </div>
-        </section>
+        <SignUpProfileSection :avatar-id="avatarId" @select="openAvatarModal" />
 
-        <div class="flex flex-col gap-xl">
-          <Input
-            v-model="fullName"
-            :error="errors.fullName"
-            :maxlength="30"
-            autocomplete="name"
-            label="성함 (실명)"
-            placeholder="성함을 입력하세요"
-          />
+        <SignUpBasicInfoSection
+          :birth-date="birthDate"
+          :birth-date-error="errors.birthDate"
+          :full-name="fullName"
+          :full-name-error="errors.fullName"
+          :gender="gender"
+          :gender-error="errors.gender"
+          @update:birth-date="updateBirthDate"
+          @update:full-name="fullName = $event"
+          @update:gender="updateGender"
+        />
 
-          <section class="flex flex-col gap-sm">
-            <label class="type-h4 text-body" for="sign-up-birth-date"
-              >생년월일</label
-            >
-            <input
-              id="sign-up-birth-date"
-              :value="birthDate"
-              autocomplete="bday"
-              class="h-[52px] w-full rounded-medium border border-border-strong bg-surface-card px-md text-[16px] font-normal leading-[1.2] tracking-[-0.32px] text-body outline-none placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
-              inputmode="numeric"
-              maxlength="10"
-              pattern="\d{4}\.\d{2}\.\d{2}"
-              placeholder="YYYY.MM.DD"
-              type="text"
-              :aria-invalid="errors.birthDate ? 'true' : undefined"
-              :aria-describedby="
-                errors.birthDate ? 'sign-up-birth-date-error' : undefined
-              "
-              @input="updateBirthDateFromEvent($event)"
-            />
-            <p
-              v-if="errors.birthDate"
-              id="sign-up-birth-date-error"
-              class="type-caption text-error"
-            >
-              {{ errors.birthDate }}
-            </p>
-          </section>
+        <SignUpPhoneVerificationSection
+          :code-requested="phoneCodeRequested"
+          :code-timer-label="phoneCodeTimerLabel"
+          :is-sending="sendPhoneCodeMutation.isPending.value"
+          :is-verifying="verifyPhoneCodeMutation.isPending.value"
+          :phone-number="phoneNumber"
+          :phone-number-error="errors.phoneNumber"
+          :phone-request-error="phoneRequestError"
+          :verification-code="phoneVerificationCode"
+          :verification-message="phoneVerificationMessage"
+          :verification-token="verificationToken"
+          @confirm="confirmPhoneCode"
+          @request="requestPhoneCode"
+          @update:phone-number="updatePhoneNumber"
+          @update:verification-code="updatePhoneVerificationCode"
+        />
 
-          <section class="flex flex-col gap-sm">
-            <label id="sign-up-gender-label" class="type-h4 text-body"
-              >성별</label
-            >
-            <SelectRoot v-model="gender">
-              <SelectTrigger
-                aria-labelledby="sign-up-gender-label"
-                :aria-invalid="errors.gender ? 'true' : undefined"
-                class="group flex h-[52px] w-full items-center gap-sm rounded-medium border border-border-strong bg-surface-card px-md text-left text-[14px] font-medium leading-[1.2] tracking-[-0.28px] text-body outline-none transition-colors data-[placeholder]:text-body-muted data-[state=open]:border-primary-500 focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus/20"
-              >
-                <SelectValue
-                  class="min-w-0 flex-1"
-                  placeholder="성별을 선택해 주세요"
-                />
-                <ChevronDown
-                  class="size-xl shrink-0 text-body-muted transition-transform group-data-[state=open]:rotate-180"
-                  aria-hidden="true"
-                />
-              </SelectTrigger>
+        <SignUpPasswordSection
+          :login-password="loginPassword"
+          :login-password-error="errors.loginPassword"
+          :payment-password="paymentPassword"
+          :payment-password-error="errors.paymentPassword"
+          @update:login-password="loginPassword = $event"
+          @update:payment-password="paymentPassword = $event"
+        />
 
-              <SelectPortal>
-                <SelectContent
-                  class="z-50 w-[var(--reka-select-trigger-width)] overflow-hidden rounded-large border border-border bg-surface-card p-sm shadow-modal"
-                  position="popper"
-                  :side-offset="8"
-                  align="start"
-                >
-                  <SelectViewport class="flex flex-col gap-xs">
-                    <SelectItem
-                      class="group/item relative flex min-h-touch-target cursor-pointer select-none items-center rounded-medium px-md py-sm outline-none data-[highlighted]:bg-primary-900 data-[state=checked]:text-primary-500"
-                      value="남"
-                    >
-                      <SelectItemText class="flex-1 text-[14px] font-medium"
-                        >남성</SelectItemText
-                      >
-                      <SelectItemIndicator class="text-primary-500">
-                        <Check
-                          class="size-xl"
-                          :stroke-width="2.5"
-                          aria-hidden="true"
-                        />
-                      </SelectItemIndicator>
-                    </SelectItem>
-                    <SelectItem
-                      class="group/item relative flex min-h-touch-target cursor-pointer select-none items-center rounded-medium px-md py-sm outline-none data-[highlighted]:bg-primary-900 data-[state=checked]:text-primary-500"
-                      value="여"
-                    >
-                      <SelectItemText class="flex-1 text-[14px] font-medium"
-                        >여성</SelectItemText
-                      >
-                      <SelectItemIndicator class="text-primary-500">
-                        <Check
-                          class="size-xl"
-                          :stroke-width="2.5"
-                          aria-hidden="true"
-                        />
-                      </SelectItemIndicator>
-                    </SelectItem>
-                  </SelectViewport>
-                </SelectContent>
-              </SelectPortal>
-            </SelectRoot>
-            <p v-if="errors.gender" class="type-caption text-error">
-              {{ errors.gender }}
-            </p>
-          </section>
-
-          <section class="flex flex-col gap-sm">
-            <label class="type-h4 text-body" for="sign-up-phone"
-              >휴대폰 번호</label
-            >
-            <div class="flex gap-sm">
-              <input
-                id="sign-up-phone"
-                :value="phoneNumber"
-                autocomplete="tel"
-                class="h-[52px] min-w-0 flex-1 rounded-medium border border-border-strong bg-surface-card px-md text-[16px] font-normal leading-[1.2] tracking-[-0.32px] text-body outline-none placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
-                inputmode="tel"
-                maxlength="13"
-                pattern="01[016789]-?\d{3,4}-?\d{4}"
-                placeholder="010-0000-0000"
-                type="tel"
-                :aria-invalid="errors.phoneNumber ? 'true' : undefined"
-                :aria-describedby="
-                  errors.phoneNumber ? 'sign-up-phone-error' : undefined
-                "
-                @input="updatePhoneNumberFromEvent($event)"
-              />
-              <Button
-                :disabled="
-                  verificationToken !== null ||
-                  sendPhoneCodeMutation.isPending.value
-                "
-                :label="
-                  verificationToken
-                    ? '인증 완료'
-                    : sendPhoneCodeMutation.isPending.value
-                      ? '발송 중'
-                      : phoneCodeRequested
-                        ? '재요청'
-                        : '인증하기'
-                "
-                variant="secondary"
-                type="button"
-                @click="requestPhoneCode"
-              />
-            </div>
-            <p
-              v-if="errors.phoneNumber"
-              id="sign-up-phone-error"
-              class="type-caption text-error"
-            >
-              {{ errors.phoneNumber }}
-            </p>
-            <p
-              v-if="phoneRequestError"
-              class="type-caption text-error"
-              role="alert"
-            >
-              {{ phoneRequestError }}
-            </p>
-            <div
-              v-if="phoneCodeRequested || verificationToken"
-              class="flex flex-col gap-sm"
-            >
-              <div class="flex gap-sm">
-                <input
-                  :value="phoneVerificationCode"
-                  aria-label="휴대폰 인증번호"
-                  class="h-[52px] min-w-0 flex-1 rounded-medium border border-border-strong bg-surface-card px-md text-[16px] font-normal leading-[1.2] tracking-[-0.32px] text-body outline-none placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
-                  inputmode="numeric"
-                  maxlength="6"
-                  pattern="\d{6}"
-                  placeholder="인증번호 6자리"
-                  :disabled="verificationToken !== null"
-                  type="text"
-                  @input="
-                    updatePhoneVerificationCode(inputValueFromEvent($event))
-                  "
-                />
-                <Button
-                  v-if="verificationToken === null"
-                  :disabled="verifyPhoneCodeMutation.isPending.value"
-                  :label="
-                    verifyPhoneCodeMutation.isPending.value ? '확인 중' : '확인'
-                  "
-                  variant="secondary"
-                  type="button"
-                  @click="confirmPhoneCode"
-                />
-                <span
-                  v-else
-                  aria-hidden="true"
-                  class="h-[52px] w-[80px] shrink-0"
-                />
-              </div>
-              <p
-                v-if="verificationToken === null"
-                class="type-caption flex items-center justify-between text-body-muted"
-              >
-                <span>인증번호 유효시간</span>
-                <span class="font-semibold tabular-nums text-error">
-                  {{ phoneCodeTimerLabel }}
-                </span>
-              </p>
-              <p
-                class="type-caption"
-                :class="
-                  phoneVerificationMessage === '인증 완료했어요.'
-                    ? 'text-success'
-                    : 'text-body-muted'
-                "
-              >
-                {{ phoneVerificationMessage }}
-              </p>
-            </div>
-          </section>
-
-          <section class="flex flex-col gap-sm">
-            <label class="type-h4 text-body" for="sign-up-password"
-              >로그인 비밀번호</label
-            >
-            <div class="relative">
-              <input
-                id="sign-up-password"
-                v-model="loginPassword"
-                :type="isPasswordVisible ? 'text' : 'password'"
-                autocomplete="new-password"
-                class="h-[52px] w-full rounded-medium border border-border-strong bg-surface-card px-md pr-[52px] text-[16px] font-normal leading-[1.2] tracking-[-0.32px] text-body outline-none placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
-                placeholder="비밀번호를 입력하세요"
-                maxlength="64"
-                minlength="8"
-                :aria-invalid="errors.loginPassword ? 'true' : undefined"
-                :aria-describedby="
-                  errors.loginPassword ? 'sign-up-password-error' : undefined
-                "
-              />
-              <button
-                :aria-label="
-                  isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'
-                "
-                class="absolute right-md top-1/2 -translate-y-1/2 text-body-muted focus-visible:outline-2 focus-visible:outline-focus"
-                type="button"
-                @click="isPasswordVisible = !isPasswordVisible"
-              >
-                <EyeOff v-if="isPasswordVisible" class="size-xl" />
-                <Eye v-else class="size-xl" />
-              </button>
-            </div>
-            <p
-              id="sign-up-password-error"
-              class="type-caption"
-              :class="errors.loginPassword ? 'text-error' : 'text-body-muted'"
-            >
-              {{ errors.loginPassword ?? '숫자, 영문 포함 8자 이상' }}
-            </p>
-          </section>
-
-          <section class="flex flex-col gap-sm">
-            <label class="type-h4 text-body">결제 비밀번호 (6자리)</label>
-            <div class="grid grid-cols-6 gap-sm">
-              <input
-                v-for="(_, index) in paymentPasswordInputIds"
-                :id="paymentPasswordInputIds[index]"
-                :key="paymentPasswordInputIds[index]"
-                :value="paymentDigit(index)"
-                :aria-label="`결제 비밀번호 ${index + 1}번째 자리`"
-                class="type-h3 h-[52px] min-w-0 rounded-medium border border-border-strong bg-surface-card text-center text-body outline-none focus:border-focus focus:ring-2 focus:ring-focus/20"
-                inputmode="numeric"
-                maxlength="1"
-                pattern="\d"
-                type="password"
-                @input="updatePaymentPasswordFromEvent(index, $event)"
-                @keydown="handlePaymentPasswordKeydown(index, $event)"
-              />
-            </div>
-            <p
-              class="type-caption"
-              :class="errors.paymentPassword ? 'text-error' : 'text-body-muted'"
-            >
-              {{
-                errors.paymentPassword ??
-                '결제 시 사용할 숫자 6자리를 입력해주세요.'
-              }}
-            </p>
-          </section>
-        </div>
-
-        <section
-          class="rounded-large border border-border bg-surface-card p-xl shadow-card"
-        >
-          <label
-            class="flex cursor-pointer items-center gap-md border-b border-border pb-md"
-          >
-            <CheckboxRoot
-              :model-value="allTermsAgreed"
-              class="flex size-xl shrink-0 items-center justify-center rounded-small border border-border-strong bg-surface-card outline-none data-[state=checked]:border-primary-500 data-[state=checked]:bg-primary-500 focus-visible:ring-2 focus-visible:ring-focus"
-              @update:model-value="toggleAllTerms"
-            >
-              <CheckboxIndicator class="text-on-action">
-                <Check class="size-lg" :stroke-width="3" />
-              </CheckboxIndicator>
-            </CheckboxRoot>
-            <span class="type-body-medium text-body"
-              >약관에 모두 동의합니다</span
-            >
-          </label>
-
-          <div class="mt-md flex flex-col gap-md">
-            <div
-              v-for="(term, termId) in signUpTerms"
-              :key="termId"
-              class="flex items-center justify-between gap-md"
-            >
-              <span class="flex items-center gap-md">
-                <CheckboxRoot
-                  :model-value="isTermAgreed(termId)"
-                  class="flex size-lg shrink-0 items-center justify-center rounded-small border border-border-strong bg-surface-card outline-none data-[state=checked]:border-primary-500 data-[state=checked]:bg-primary-500 focus-visible:ring-2 focus-visible:ring-focus"
-                  :aria-label="term.label"
-                  @update:model-value="setTermAgreement(termId, $event)"
-                >
-                  <CheckboxIndicator class="text-on-action">
-                    <Check class="size-md" :stroke-width="3" />
-                  </CheckboxIndicator>
-                </CheckboxRoot>
-                <span class="type-body text-body-secondary">{{
-                  term.label
-                }}</span>
-              </span>
-              <RouterLink
-                :aria-label="`${term.title} 상세 보기`"
-                :to="`/auth/sign-up/terms/${termId}`"
-                class="flex size-touch-target shrink-0 items-center justify-center text-body-muted outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                @click="flushSignUpDraftSave"
-              >
-                <ChevronRight aria-hidden="true" class="size-md" />
-              </RouterLink>
-            </div>
-          </div>
-        </section>
+        <SignUpTermsSection
+          :identifier-terms="identifierTerms"
+          :privacy-terms="privacyTerms"
+          :service-terms="serviceTerms"
+          @before-navigate="flushSignUpDraftSave"
+          @update:identifier-terms="identifierTerms = $event"
+          @update:privacy-terms="privacyTerms = $event"
+          @update:service-terms="serviceTerms = $event"
+        />
         <p
           v-if="formError"
           class="type-caption -mt-lg text-center text-error"
@@ -936,48 +498,10 @@ function confirmAvatar() {
       </div>
     </form>
 
-    <div
-      v-if="isAvatarModalOpen"
-      class="fixed inset-0 z-50 flex items-end bg-black/40"
-      role="dialog"
-      aria-modal="true"
-      aria-label="프로필 아바타 선택"
-    >
-      <section
-        class="w-full rounded-t-large bg-surface px-mobile-gutter pb-[calc(24px+env(safe-area-inset-bottom))] pt-xl"
-      >
-        <h2 class="type-h3 text-body">프로필 아바타 선택</h2>
-        <div class="mt-lg grid grid-cols-3 gap-md">
-          <button
-            v-for="id in 6"
-            :key="id"
-            class="rounded-full p-1"
-            :class="pendingAvatarId === id ? 'ring-2 ring-primary-500' : ''"
-            type="button"
-            @click="pendingAvatarId = id"
-          >
-            <img
-              :src="`/images/avatar/avatar${id}.png`"
-              :alt="`아바타 ${id}`"
-              class="aspect-square w-full rounded-full object-cover"
-            />
-          </button>
-        </div>
-        <div class="mt-xl grid grid-cols-2 gap-sm">
-          <Button
-            label="취소"
-            variant="outline-primary"
-            type="button"
-            @click="isAvatarModalOpen = false"
-          />
-          <Button
-            label="확인"
-            type="button"
-            :disabled="pendingAvatarId === null"
-            @click="confirmAvatar"
-          />
-        </div>
-      </section>
-    </div>
+    <SignUpAvatarPickerModal
+      v-model="isAvatarModalOpen"
+      :avatar-id="avatarId"
+      @select="avatarId = $event"
+    />
   </main>
 </template>
