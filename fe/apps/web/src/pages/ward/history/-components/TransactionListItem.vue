@@ -10,53 +10,56 @@ import { computed } from 'vue'
 import {
   formatTransactionAmount,
   formatTransactionTime,
-  getTransactionRiskLabel,
-  getTransactionTypeLabel,
+  transactionRiskLabel,
 } from '@/pages/ward/history/-utils/transaction-format'
-import type { WardTransaction } from '@/types/transaction'
+import type { WardTransactionHistoryItem } from '@/schemas/transaction-history.schema'
 
 const props = defineProps<{
-  transaction: WardTransaction
+  transaction: WardTransactionHistoryItem
 }>()
 
 const icon = computed(() => {
   if (props.transaction.riskLevel === 'DANGER') return CircleAlert
   if (props.transaction.type === 'PAYMENT') return ShoppingBag
-  return props.transaction.direction === 'CREDIT'
+  return props.transaction.direction === 'IN'
     ? ArrowDownToLine
     : ArrowUpFromLine
 })
 
-const iconClass = computed(
-  () =>
-    ({
-      SAFE: 'bg-primary-900 text-primary-300',
-      CAUTION: 'bg-warning/10 text-warning',
-      DANGER: 'bg-error/10 text-error',
-    })[props.transaction.riskLevel],
+const iconClass = computed(() =>
+  props.transaction.riskLevel
+    ? {
+        SAFE: 'bg-primary-900 text-primary-300',
+        CAUTION: 'bg-warning/10 text-warning',
+        DANGER: 'bg-error/10 text-error',
+      }[props.transaction.riskLevel]
+    : 'bg-gray-100 text-body-muted',
 )
 
-const riskClass = computed(
-  () =>
-    ({
-      SAFE: 'bg-success/10 text-success',
-      CAUTION: 'bg-warning/10 text-warning',
-      DANGER: 'bg-error/10 text-error',
-    })[props.transaction.riskLevel],
+const riskClass = computed(() =>
+  props.transaction.riskLevel
+    ? {
+        SAFE: 'bg-success/10 text-success',
+        CAUTION: 'bg-warning/10 text-warning',
+        DANGER: 'bg-error/10 text-error',
+      }[props.transaction.riskLevel]
+    : '',
 )
+
+const typeLabel = computed(() => {
+  if (props.transaction.type === 'CHARGE') return '충전'
+  if (props.transaction.type === 'PAYMENT') return '결제'
+  return '송금'
+})
 </script>
 
 <template>
-  <RouterLink
-    :to="{
-      name: 'ward-transaction-detail',
-      params: { transactionId: transaction.transactionId },
-    }"
-    class="flex min-h-[96px] items-center gap-md rounded-large border bg-surface-card p-md shadow-card outline-none focus-visible:ring-2 focus-visible:ring-focus"
+  <article
+    class="flex min-h-[96px] items-center gap-md rounded-large border bg-surface-card p-md shadow-card"
     :class="
       transaction.riskLevel === 'DANGER' ? 'border-error/30' : 'border-border'
     "
-    :aria-label="`${transaction.title} ${formatTransactionAmount(transaction.amount, transaction.direction)} 상세 보기`"
+    :aria-label="`${transaction.title} ${formatTransactionAmount(transaction.amount, transaction.direction)}`"
   >
     <span
       class="flex size-14 shrink-0 items-center justify-center rounded-full"
@@ -81,7 +84,7 @@ const riskClass = computed(
           :class="
             transaction.riskLevel === 'DANGER'
               ? 'text-error'
-              : transaction.direction === 'CREDIT'
+              : transaction.direction === 'IN'
                 ? 'text-primary-300'
                 : 'text-body'
           "
@@ -98,17 +101,20 @@ const riskClass = computed(
             formatTransactionTime(transaction.occurredAt)
           }}</span>
           <span aria-hidden="true"> · </span>
-          {{ getTransactionTypeLabel(transaction.type, transaction.direction) }}
+          {{ typeLabel }}
         </span>
         <span
+          v-if="transaction.riskLevel"
           class="type-caption shrink-0 rounded-full px-sm py-xxs font-medium"
           :class="riskClass"
         >
           {{
-            getTransactionRiskLabel(transaction.riskLevel, transaction.status)
+            transaction.status === 'BLOCKED'
+              ? '거래 차단됨'
+              : transactionRiskLabel[transaction.riskLevel]
           }}
         </span>
       </span>
     </span>
-  </RouterLink>
+  </article>
 </template>

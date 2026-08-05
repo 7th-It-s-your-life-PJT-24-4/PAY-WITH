@@ -1,57 +1,46 @@
 <script setup lang="ts">
 import { Search } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { computed, ref, watch } from 'vue'
 
-import { mockWardTransactions } from '@/mocks/transaction.mock'
+import { wardTransactionHistoryOptions } from '@/lib/query/transaction-history'
 import TransactionListItem from '@/pages/ward/history/-components/TransactionListItem.vue'
 import { formatTransactionDate } from '@/pages/ward/history/-utils/transaction-format'
+import type { TransactionHistoryType } from '@/schemas/transaction-history.schema'
 
-type TransactionFilter = 'ALL' | 'CREDIT' | 'DEBIT' | 'PAYMENT'
+type TransactionFilter = 'ALL' | TransactionHistoryType
 
 const searchQuery = ref('')
 const activeFilter = ref<TransactionFilter>('ALL')
+const page = ref(0)
+const size = 20
 
 const filters: Array<{ label: string; value: TransactionFilter }> = [
   { label: '전체', value: 'ALL' },
-  { label: '받은 돈', value: 'CREDIT' },
-  { label: '보낸 돈', value: 'DEBIT' },
+  { label: '충전', value: 'CHARGE' },
+  { label: '송금', value: 'TRANSFER' },
   { label: '결제', value: 'PAYMENT' },
 ]
 
-const filteredTransactions = computed(() => {
-  const query = searchQuery.value.trim().replaceAll(',', '').toLowerCase()
+const queryParams = computed(() => ({
+  category: activeFilter.value,
+  keyword: searchQuery.value.trim().replaceAll(',', '') || undefined,
+  page: page.value,
+  size,
+}))
+const transactionQuery = useQuery(wardTransactionHistoryOptions(queryParams))
+const transactions = computed(
+  () => transactionQuery.data.value?.transactions ?? [],
+)
 
-  return mockWardTransactions.filter((transaction) => {
-    const matchesFilter =
-      activeFilter.value === 'ALL' ||
-      (activeFilter.value === 'PAYMENT' && transaction.type === 'PAYMENT') ||
-      (activeFilter.value !== 'PAYMENT' &&
-        transaction.type === 'TRANSFER' &&
-        transaction.direction === activeFilter.value)
-
-    if (!matchesFilter) return false
-    if (!query) return true
-
-    const searchableText = [
-      transaction.title,
-      transaction.amount.toString(),
-      transaction.memo,
-      transaction.methodLabel,
-      transaction.transfer?.bankName,
-      transaction.transfer?.accountNo,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
-
-    return searchableText.includes(query)
-  })
+watch([activeFilter, searchQuery], () => {
+  page.value = 0
 })
 
 const transactionGroups = computed(() => {
-  const groups = new Map<string, typeof mockWardTransactions>()
+  const groups = new Map<string, typeof transactions.value>()
 
-  for (const transaction of filteredTransactions.value) {
+  for (const transaction of transactions.value) {
     const date = transaction.occurredAt.slice(0, 10)
     const group = groups.get(date) ?? []
     group.push(transaction)
@@ -102,7 +91,32 @@ const transactionGroups = computed(() => {
       </div>
     </section>
 
-    <div v-if="transactionGroups.length" class="grid gap-section">
+    <section
+      v-if="transactionQuery.isPending.value"
+      class="flex min-h-64 items-center justify-center text-body-muted"
+      aria-live="polite"
+    >
+      거래 내역을 불러오는 중이에요.
+    </section>
+
+    <section
+      v-else-if="transactionQuery.isError.value"
+      class="flex min-h-64 flex-col items-center justify-center gap-md rounded-large border border-border bg-surface-card p-xl text-center shadow-card"
+      role="alert"
+    >
+      <p class="type-body-medium text-body-muted">
+        거래 내역을 불러오지 못했어요.
+      </p>
+      <button
+        type="button"
+        class="type-body-medium rounded-medium bg-primary-500 px-md py-sm text-on-action"
+        @click="transactionQuery.refetch()"
+      >
+        다시 시도
+      </button>
+    </section>
+
+    <div v-else-if="transactionGroups.length" class="grid gap-section">
       <section
         v-for="group in transactionGroups"
         :key="group.date"
@@ -122,6 +136,29 @@ const transactionGroups = computed(() => {
           />
         </div>
       </section>
+
+      <nav
+        class="flex items-center justify-center gap-md"
+        aria-label="거래 내역 페이지"
+      >
+        <button
+          type="button"
+          class="type-body-medium rounded-medium border border-border-strong px-md py-sm disabled:opacity-40"
+          :disabled="page === 0"
+          @click="page -= 1"
+        >
+          이전
+        </button>
+        <span class="type-caption text-body-muted">{{ page + 1 }}페이지</span>
+        <button
+          type="button"
+          class="type-body-medium rounded-medium border border-border-strong px-md py-sm disabled:opacity-40"
+          :disabled="!transactionQuery.data.value?.hasNext"
+          @click="page += 1"
+        >
+          다음
+        </button>
+      </nav>
     </div>
 
     <section
