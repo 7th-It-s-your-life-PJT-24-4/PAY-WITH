@@ -4,27 +4,61 @@ import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
 import {
   getApprovalRequestDetail,
+  getApprovalRequestHistory,
+  getApprovalRequestResult,
   getApprovalRequests,
 } from '@/api/approval-requests'
+import type { ApprovalHistoryStatus } from '@/schemas/approval.schema'
 
 export const guardApprovalKeys = {
   all: ['guard-approval-requests'] as const,
   lists: () => [...guardApprovalKeys.all, 'list'] as const,
-  list: (wardId: number | null) =>
-    [...guardApprovalKeys.lists(), wardId] as const,
+  pendingList: (wardId: number | null) =>
+    [...guardApprovalKeys.lists(), 'pending', wardId] as const,
+  historyList: (status: ApprovalHistoryStatus | null, wardId: number | null) =>
+    [...guardApprovalKeys.lists(), 'history', status, wardId] as const,
   details: () => [...guardApprovalKeys.all, 'detail'] as const,
   detail: (approvalId: number | null) =>
     [...guardApprovalKeys.details(), approvalId] as const,
+  results: () => [...guardApprovalKeys.all, 'result'] as const,
+  result: (approvalId: number | null) =>
+    [...guardApprovalKeys.results(), approvalId] as const,
 }
 
 export function guardApprovalListOptions(
   wardId: MaybeRefOrGetter<number | null> = null,
+  enabled: MaybeRefOrGetter<boolean> = true,
 ) {
   const resolvedWardId = computed(() => toValue(wardId))
 
   return queryOptions({
-    queryKey: computed(() => guardApprovalKeys.list(resolvedWardId.value)),
+    queryKey: computed(() =>
+      guardApprovalKeys.pendingList(resolvedWardId.value),
+    ),
     queryFn: () => getApprovalRequests(resolvedWardId.value ?? undefined),
+    enabled: computed(() => toValue(enabled)),
+    staleTime: 15_000,
+  })
+}
+
+export function guardApprovalHistoryOptions(
+  status: MaybeRefOrGetter<ApprovalHistoryStatus | null>,
+  wardId: MaybeRefOrGetter<number | null> = null,
+  enabled: MaybeRefOrGetter<boolean> = true,
+) {
+  const resolvedStatus = computed(() => toValue(status))
+  const resolvedWardId = computed(() => toValue(wardId))
+
+  return queryOptions({
+    queryKey: computed(() =>
+      guardApprovalKeys.historyList(resolvedStatus.value, resolvedWardId.value),
+    ),
+    queryFn: () =>
+      getApprovalRequestHistory(
+        resolvedStatus.value!,
+        resolvedWardId.value ?? undefined,
+      ),
+    enabled: computed(() => resolvedStatus.value !== null && toValue(enabled)),
     staleTime: 15_000,
   })
 }
@@ -46,6 +80,25 @@ export function guardApprovalDetailOptions(
     retry: (failureCount, error) =>
       error instanceof HTTPError &&
       (error.response.status === 404 || error.response.status === 409)
+        ? false
+        : failureCount < 1,
+  })
+}
+
+export function guardApprovalResultOptions(
+  approvalId: MaybeRefOrGetter<number | null>,
+) {
+  const resolvedApprovalId = computed(() => toValue(approvalId))
+
+  return queryOptions({
+    queryKey: computed(() =>
+      guardApprovalKeys.result(resolvedApprovalId.value),
+    ),
+    queryFn: () => getApprovalRequestResult(resolvedApprovalId.value!),
+    enabled: computed(() => resolvedApprovalId.value !== null),
+    staleTime: 15_000,
+    retry: (failureCount, error) =>
+      error instanceof HTTPError && error.response.status === 404
         ? false
         : failureCount < 1,
   })

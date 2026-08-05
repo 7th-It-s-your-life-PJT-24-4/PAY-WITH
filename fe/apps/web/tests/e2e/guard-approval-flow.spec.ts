@@ -10,6 +10,8 @@ const approval = {
   riskLevel: 'DANGER',
   requestedAt: '2026-08-05T09:10:00',
   expiredAt: '2026-08-05T09:40:00',
+  status: 'PENDING',
+  respondedAt: null,
 }
 
 const approvalDetail = {
@@ -33,6 +35,57 @@ async function mockApprovalApi(page: Page) {
       json: { success: true, data: approvalDetail, message: null },
     }),
   )
+  await page.route('**/api/approval-requests/history?*', (route) => {
+    const status = new URL(route.request().url()).searchParams.get('status')
+    const history =
+      status === 'CANCELED'
+        ? [
+            {
+              ...approval,
+              approvalId: 4,
+              status: 'CANCELED',
+              respondedAt: '2026-08-05T09:20:00',
+            },
+          ]
+        : status === 'EXPIRED'
+          ? [
+              {
+                ...approval,
+                approvalId: 5,
+                status: 'EXPIRED',
+                respondedAt: '2026-08-05T12:10:00',
+              },
+            ]
+          : []
+    return route.fulfill({
+      json: { success: true, data: history, message: null },
+    })
+  })
+  await page.route('**/api/approval-requests/*/result', (route) => {
+    const approvalId = Number(
+      new URL(route.request().url()).pathname.split('/').at(-2),
+    )
+    const status = approvalId === 4 ? 'CANCELED' : 'EXPIRED'
+    return route.fulfill({
+      json: {
+        success: true,
+        data: {
+          detail: { ...approvalDetail, approvalId },
+          decision: {
+            approvalId,
+            transactionId: approvalId + 40,
+            status,
+            respondedAt:
+              status === 'CANCELED'
+                ? '2026-08-05T09:20:00'
+                : '2026-08-05T12:10:00',
+            transfer: null,
+          },
+        },
+        message: null,
+      },
+    })
+  })
 }
 
 test.beforeEach(async ({ page }) => {
@@ -192,4 +245,31 @@ test('보호자가 이상 거래를 거절하고 거절 상태 상세를 확인�
     'aria-pressed',
     'true',
   )
+})
+
+test('피보호자 취소와 3시간 만료 이력을 카테고리별로 조회한다', async ({
+  page,
+}) => {
+  await page.goto('/guard/approval-requests?wardId=12&status=canceled')
+
+  await expect(page.getByRole('button', { name: '취소' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  await page.getByRole('button', { name: /이상 거래 상세 보기/ }).click()
+  await expect(
+    page.getByRole('heading', { name: '취소된 이상 거래에요' }),
+  ).toBeVisible()
+  await page
+    .getByRole('button', { name: '이상 거래 목록으로', exact: true })
+    .click()
+
+  await page.getByRole('button', { name: '만료' }).click()
+  await expect(page).toHaveURL(
+    /\/guard\/approval-requests\?wardId=12&status=expired$/,
+  )
+  await page.getByRole('button', { name: /이상 거래 상세 보기/ }).click()
+  await expect(
+    page.getByRole('heading', { name: '만료된 이상 거래에요' }),
+  ).toBeVisible()
 })
