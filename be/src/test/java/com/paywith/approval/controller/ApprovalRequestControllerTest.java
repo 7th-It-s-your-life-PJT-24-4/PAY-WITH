@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.paywith.approval.domain.ApprovalRequestView;
-import com.paywith.approval.dto.ApprovalDecisionResultResponse;
+import com.paywith.approval.dto.ApprovalHistoryResultResponse;
 import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import com.paywith.approval.service.ApprovalRequestService;
 import com.paywith.approval.service.ApprovalTransferFacade;
@@ -86,37 +86,37 @@ class ApprovalRequestControllerTest {
     }
 
     @Test
-    void findDecisionHistory_returnsFilteredListAndPassesPrincipal() throws Exception {
-        given(approvalRequestService.findDecisionHistory(GUARD_ID, WARD_ID, "REJECTED"))
-            .willReturn(List.of(new ApprovalRequestSummaryResponse(processedView("REJECTED"))));
+    void findHistory_returnsFilteredListAndPassesPrincipal() throws Exception {
+        given(approvalRequestService.findHistory(GUARD_ID, WARD_ID, "CANCELED"))
+            .willReturn(List.of(new ApprovalRequestSummaryResponse(processedView("CANCELED"))));
 
         mockMvc.perform(get("/api/approval-requests/history")
-                .param("status", "REJECTED")
+                .param("status", "CANCELED")
                 .param("wardId", String.valueOf(WARD_ID)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data[0].approvalId").value(APPROVAL_ID))
-            .andExpect(jsonPath("$.data[0].status").value("REJECTED"))
+            .andExpect(jsonPath("$.data[0].status").value("CANCELED"))
             .andExpect(jsonPath("$.data[0].respondedAt").isArray());
 
         then(approvalRequestService).should()
-            .findDecisionHistory(GUARD_ID, WARD_ID, "REJECTED");
+            .findHistory(GUARD_ID, WARD_ID, "CANCELED");
     }
 
     @Test
-    void findDecisionResult_returnsDatabaseBackedSnapshotShape() throws Exception {
-        ApprovalDecisionResultResponse response =
-            new ApprovalDecisionResultResponse(processedView("REJECTED"), List.of());
-        given(approvalRequestService.findDecisionResult(APPROVAL_ID, GUARD_ID))
+    void findHistoryResult_returnsDatabaseBackedSnapshotShape() throws Exception {
+        ApprovalHistoryResultResponse response =
+            new ApprovalHistoryResultResponse(processedView("EXPIRED"), List.of());
+        given(approvalRequestService.findHistoryResult(APPROVAL_ID, GUARD_ID))
             .willReturn(response);
 
         mockMvc.perform(get("/api/approval-requests/100/result"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.detail.approvalId").value(APPROVAL_ID))
             .andExpect(jsonPath("$.data.detail.wardId").value(WARD_ID))
-            .andExpect(jsonPath("$.data.decision.status").value("REJECTED"))
+            .andExpect(jsonPath("$.data.decision.status").value("EXPIRED"))
             .andExpect(jsonPath("$.data.decision.transfer").isEmpty());
 
-        then(approvalRequestService).should().findDecisionResult(APPROVAL_ID, GUARD_ID);
+        then(approvalRequestService).should().findHistoryResult(APPROVAL_ID, GUARD_ID);
     }
 }

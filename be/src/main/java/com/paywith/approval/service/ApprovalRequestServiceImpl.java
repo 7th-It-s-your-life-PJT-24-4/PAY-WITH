@@ -3,7 +3,7 @@ package com.paywith.approval.service;
 import com.paywith.approval.domain.ApprovalRequest;
 import com.paywith.approval.domain.ApprovalRequestView;
 import com.paywith.approval.dto.ApprovalDecisionResponse;
-import com.paywith.approval.dto.ApprovalDecisionResultResponse;
+import com.paywith.approval.dto.ApprovalHistoryResultResponse;
 import com.paywith.approval.dto.ApprovalRequestDetailResponse;
 import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import com.paywith.approval.mapper.ApprovalRequestMapper;
@@ -22,7 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ApprovalRequestServiceImpl implements ApprovalRequestService {
 
-    private static final Set<String> DECISION_STATUSES = Set.of("APPROVED", "REJECTED");
+    private static final Set<String> HISTORY_STATUSES =
+        Set.of("APPROVED", "REJECTED", "CANCELED", "EXPIRED");
 
     private final ApprovalRequestMapper approvalRequestMapper;
     private final TransactionApprovalMapper transactionApprovalMapper;
@@ -58,11 +59,11 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ApprovalRequestSummaryResponse> findDecisionHistory(
+    public List<ApprovalRequestSummaryResponse> findHistory(
         Long guardId, Long wardId, String status) {
-        String normalizedStatus = normalizeDecisionStatus(status);
+        String normalizedStatus = normalizeHistoryStatus(status);
         return approvalRequestMapper
-            .findDecisionHistoryByGuardId(guardId, wardId, normalizedStatus)
+            .findHistoryByGuardId(guardId, wardId, normalizedStatus)
             .stream()
             .map(ApprovalRequestSummaryResponse::new)
             .collect(Collectors.toList());
@@ -80,13 +81,13 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApprovalDecisionResultResponse findDecisionResult(Long approvalId, Long guardId) {
+    public ApprovalHistoryResultResponse findHistoryResult(Long approvalId, Long guardId) {
         ApprovalRequestView view =
-            approvalRequestMapper.findDecisionResultByIdAndGuardId(approvalId, guardId);
+            approvalRequestMapper.findHistoryResultByIdAndGuardId(approvalId, guardId);
         if (view == null) {
             throw notFound();
         }
-        return new ApprovalDecisionResultResponse(
+        return new ApprovalHistoryResultResponse(
             view, approvalRequestMapper.findRuleHits(view.getTransactionId()));
     }
 
@@ -134,13 +135,13 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
         return new BusinessException(HttpStatus.NOT_FOUND, "승인요청을 찾을 수 없습니다.");
     }
 
-    private String normalizeDecisionStatus(String status) {
+    private String normalizeHistoryStatus(String status) {
         String normalized = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
-        if (!DECISION_STATUSES.contains(normalized)) {
+        if (!HISTORY_STATUSES.contains(normalized)) {
             throw new BusinessException(
                 HttpStatus.BAD_REQUEST,
                 "REQUEST_001",
-                "처리 상태는 APPROVED 또는 REJECTED만 조회할 수 있습니다.");
+                "이력 상태는 APPROVED, REJECTED, CANCELED, EXPIRED만 조회할 수 있습니다.");
         }
         return normalized;
     }

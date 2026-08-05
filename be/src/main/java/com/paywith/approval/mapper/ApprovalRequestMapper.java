@@ -26,8 +26,8 @@ public interface ApprovalRequestMapper {
         @Param("guardId") Long guardId,
         @Param("wardId") Long wardId);
 
-    /** 로그인한 보호자가 직접 승인 또는 거절한 요청을 처리 시각 최신순으로 조회한다. */
-    List<ApprovalRequestView> findDecisionHistoryByGuardId(
+    /** 보호자 담당 범위의 승인·거절·피보호자 취소·자동 만료 이력을 최신순으로 조회한다. */
+    List<ApprovalRequestView> findHistoryByGuardId(
         @Param("guardId") Long guardId,
         @Param("wardId") Long wardId,
         @Param("status") String status);
@@ -51,8 +51,8 @@ public interface ApprovalRequestMapper {
         @Param("approvalId") Long approvalId,
         @Param("guardId") Long guardId);
 
-    /** 로그인한 보호자가 직접 처리한 승인/거절 결과 상세. 대기·만료 건은 조회하지 않는다. */
-    ApprovalRequestView findDecisionResultByIdAndGuardId(
+    /** 보호자 담당 범위에서 종결된 승인요청 결과 상세. */
+    ApprovalRequestView findHistoryResultByIdAndGuardId(
         @Param("approvalId") Long approvalId,
         @Param("guardId") Long guardId);
 
@@ -88,6 +88,11 @@ public interface ApprovalRequestMapper {
         @Param("approvalId") Long approvalId,
         @Param("guardId") Long guardId);
 
+    /** 피보호자 본인 취소에서 권한 확인과 대상 거래 ID 조회를 함께 수행한다. */
+    Long findTransactionIdByIdAndWardId(
+        @Param("approvalId") Long approvalId,
+        @Param("wardId") Long wardId);
+
     /**
      * 보류 사유. 점수가 큰 순으로 정렬해 보호자가 주된 근거부터 보게 한다.
      *
@@ -110,6 +115,12 @@ public interface ApprovalRequestMapper {
         @Param("guardId") Long guardId,
         @Param("status") String status,
         @Param("respondedAt") LocalDateTime respondedAt);
+
+    /** 피보호자 본인의 미만료 PENDING 요청만 CANCELED 로 바꾼다. */
+    int cancelByWard(
+        @Param("approvalId") Long approvalId,
+        @Param("wardId") Long wardId,
+        @Param("canceledAt") LocalDateTime canceledAt);
 
     /**
      * 응답 시한이 지난 승인 대기 건을 EXPIRED 로 종결한다.

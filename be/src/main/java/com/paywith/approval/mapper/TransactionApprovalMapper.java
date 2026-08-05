@@ -48,4 +48,7 @@ public interface TransactionApprovalMapper {
      * @return CANCELED 로 바꾼 거래 수
      */
     int cancelHeldForExpiredApprovals();
+
+    /** 피보호자가 직접 취소한 승인 대기 거래를 HELD 에서 CANCELED 로 종결한다. */
+    int cancelHeldByWard(@Param("transactionId") Long transactionId);
 }

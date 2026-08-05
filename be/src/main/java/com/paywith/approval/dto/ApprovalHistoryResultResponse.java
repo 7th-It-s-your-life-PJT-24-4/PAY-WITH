@@ -7,22 +7,22 @@ import java.util.List;
 import lombok.Getter;
 
 /**
- * 처리된 승인요청 상세.
+ * 종결된 승인요청 상세.
  *
- * <p>프런트가 승인 직전 상세와 처리 응답을 sessionStorage 에 합쳐 보관하지 않아도 되도록,
+ * <p>프런트가 처리 전 상세와 종결 결과를 sessionStorage 에 합쳐 보관하지 않아도 되도록,
  * DB에 남은 승인요청·거래 상태를 두 응답 객체로 다시 조립한다.
  */
-@ApiModel(description = "승인 또는 거절이 끝난 이상거래 상세")
+@ApiModel(description = "승인·거절·피보호자 취소·자동 만료가 끝난 이상거래 상세")
 @Getter
-public class ApprovalDecisionResultResponse {
+public class ApprovalHistoryResultResponse {
 
-    @ApiModelProperty(value = "처리 전 이상거래 상세")
+    @ApiModelProperty(value = "종결 전 이상거래 상세")
     private final ApprovalRequestDetailResponse detail;
 
-    @ApiModelProperty(value = "승인 또는 거절 처리 결과")
+    @ApiModelProperty(value = "종결 상태와 시각")
     private final ApprovalDecisionResponse decision;
 
-    public ApprovalDecisionResultResponse(
+    public ApprovalHistoryResultResponse(
         ApprovalRequestView view, List<ApprovalRuleHitResponse> ruleHits) {
         this.detail = new ApprovalRequestDetailResponse(view, ruleHits);
         this.decision = buildDecision(view);

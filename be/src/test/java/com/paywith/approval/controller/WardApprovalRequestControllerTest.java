@@ -3,10 +3,12 @@ package com.paywith.approval.controller;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.paywith.approval.domain.ApprovalRequestView;
+import com.paywith.approval.dto.WardApprovalCancelResponse;
 import com.paywith.approval.dto.WardApprovalDetailResponse;
 import com.paywith.approval.service.WardApprovalRequestService;
 import com.paywith.exception.BusinessException;
@@ -131,5 +133,22 @@ class WardApprovalRequestControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.message").value("승인요청을 찾을 수 없습니다."));
+    }
+
+    @Test
+    void cancel_returnsCanceledResultAndPassesAuthenticatedWard() throws Exception {
+        LocalDateTime canceledAt = LocalDateTime.of(2026, 8, 5, 10, 0);
+        given(wardApprovalRequestService.cancel(APPROVAL_ID, WARD_ID))
+            .willReturn(new WardApprovalCancelResponse(APPROVAL_ID, 500L, canceledAt));
+
+        mockMvc.perform(post("/api/ward/approval-requests/100/cancel"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.approvalId").value(APPROVAL_ID))
+            .andExpect(jsonPath("$.data.transactionId").value(500))
+            .andExpect(jsonPath("$.data.status").value("CANCELED"))
+            .andExpect(jsonPath("$.data.canceledAt").isArray());
+
+        then(wardApprovalRequestService).should().cancel(APPROVAL_ID, WARD_ID);
     }
 }

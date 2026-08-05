@@ -38,10 +38,11 @@ public class ApprovalRequestSummaryResponse {
     @ApiModelProperty(value = "승인 만료 시각. 대기 목록에서는 이 시각이 지나면 제외된다")
     private final LocalDateTime expiredAt;
 
-    @ApiModelProperty(value = "승인요청 상태", example = "APPROVED", allowableValues = "PENDING,APPROVED,REJECTED")
+    @ApiModelProperty(value = "승인요청 상태", example = "APPROVED",
+        allowableValues = "PENDING,APPROVED,REJECTED,CANCELED,EXPIRED")
     private final String status;
 
-    @ApiModelProperty(value = "보호자가 승인 또는 거절한 시각. 대기 건이면 null")
+    @ApiModelProperty(value = "보호자 응답·피보호자 취소·자동 만료 시각. 대기 건이면 null")
     private final LocalDateTime respondedAt;
 
     public ApprovalRequestSummaryResponse(ApprovalRequestView view) {
