@@ -2,9 +2,9 @@
 import { Button } from '@pay-with/ui'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
-import { getApiErrorMessage } from '@/api/error'
+import { getApiErrorCode, getApiErrorMessage } from '@/api/error'
 import { wardHomeOptions } from '@/lib/query/ward/home'
 import { wardWalletOptions } from '@/lib/query/ward/wallet'
 import WardBalanceCard from '@/pages/ward/-components/WardBalanceCard.vue'
@@ -14,15 +14,13 @@ import { usePairingStore } from '@/stores/pairing.store'
 import type { PendingApprovalItem } from '@/schemas/home.schema'
 
 const router = useRouter()
-const route = useRoute()
 const pairingStore = usePairingStore()
 const queryClient = useQueryClient()
 
-if (route.query.pairing === 'unpaired') pairingStore.reset()
-
 const isWalletLocked = false
-const homeQuery = useQuery(
-  wardHomeOptions(computed(() => pairingStore.isPaired)),
+const homeQuery = useQuery(wardHomeOptions())
+const requiresPairing = computed(
+  () => getApiErrorCode(homeQuery.error.value) === 'WARD_001',
 )
 const balance = computed(() =>
   homeQuery.data.value?.wallet.balance.toLocaleString('ko-KR'),
@@ -59,8 +57,21 @@ watch(
 )
 
 watch(
+  () => homeQuery.data.value,
+  (home) => {
+    if (home) pairingStore.markPaired()
+  },
+  { immediate: true },
+)
+
+watch(
   () => homeQuery.error.value,
   async (error) => {
+    if (getApiErrorCode(error) === 'WARD_001') {
+      pairingStore.reset()
+      homeErrorMessage.value = ''
+      return
+    }
     homeErrorMessage.value = error
       ? await getApiErrorMessage(error, '홈 정보를 불러오지 못했습니다.')
       : ''
@@ -70,19 +81,19 @@ watch(
 </script>
 
 <template>
-  <WardUnpairedHome
-    v-if="!pairingStore.isPaired"
-    @connect="router.push({ name: 'ward-pairing' })"
-  />
-
   <div
-    v-else-if="homeQuery.isPending.value"
+    v-if="homeQuery.isPending.value"
     class="flex flex-col gap-xl"
     aria-busy="true"
   >
     <div class="h-20 animate-pulse rounded-large bg-surface-card" />
     <div class="h-36 animate-pulse rounded-large bg-surface-card" />
   </div>
+
+  <WardUnpairedHome
+    v-else-if="requiresPairing"
+    @connect="router.push({ name: 'ward-pairing' })"
+  />
 
   <section
     v-else-if="homeQuery.isError.value"

@@ -3,6 +3,7 @@ import { HTTPError } from 'ky'
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
 import { getWardApprovalDetail, getWardHome } from '@/api/home'
+import { getApiErrorCode } from '@/api/error'
 
 export const wardHomeKeys = {
   all: ['ward-home'] as const,
@@ -15,6 +16,8 @@ export function wardHomeOptions(enabled: MaybeRefOrGetter<boolean> = true) {
     queryKey: wardHomeKeys.all,
     queryFn: getWardHome,
     enabled: computed(() => toValue(enabled)),
+    retry: (failureCount, error) =>
+      getApiErrorCode(error) === 'WARD_001' ? false : failureCount < 1,
   })
 }
 
