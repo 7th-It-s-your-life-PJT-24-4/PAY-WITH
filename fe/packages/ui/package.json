@@ -9,6 +9,7 @@
       "import": "./dist/index.js"
     },
     "./svg/kakao-logo.svg": "./src/svg/kakao-logo.svg",
+    "./svg/lock.svg": "./src/svg/lock.svg",
     "./svg/banks/*": "./src/svg/banks/*",
     "./theme.css": "./src/styles/theme.css"
   },
