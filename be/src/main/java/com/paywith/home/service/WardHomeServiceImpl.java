@@ -54,7 +54,7 @@ public class WardHomeServiceImpl implements WardHomeService {
             );
         }
 
-        if (!guardSeniorMapper.existsActiveRelationByWardId(userId)) {
+        if (!guardSeniorMapper.existsActivePairing(userId)) {
             throw new BusinessException(
                 HttpStatus.FORBIDDEN,
                 "WARD_001",

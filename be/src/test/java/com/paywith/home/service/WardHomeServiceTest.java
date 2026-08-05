@@ -52,7 +52,7 @@ class WardHomeServiceTest {
 
     @BeforeEach
     void setUp() {
-        lenient().when(guardSeniorMapper.existsActiveRelationByWardId(WARD_ID)).thenReturn(true);
+        lenient().when(guardSeniorMapper.existsActivePairing(WARD_ID)).thenReturn(true);
         service = new WardHomeServiceImpl(
             userMapper,
             walletService,
@@ -156,7 +156,7 @@ class WardHomeServiceTest {
     @Test
     void findMyHome_failsWithWard001WhenPairingIsIncomplete() {
         given(userMapper.findById(WARD_ID)).willReturn(user());
-        given(guardSeniorMapper.existsActiveRelationByWardId(WARD_ID)).willReturn(false);
+        given(guardSeniorMapper.existsActivePairing(WARD_ID)).willReturn(false);
 
         assertThatThrownBy(() -> service.findMyHome(WARD_ID))
             .isInstanceOfSatisfying(BusinessException.class, exception -> {
@@ -181,7 +181,7 @@ class WardHomeServiceTest {
                 assertThat(exception.getCode()).isEqualTo("AUTH_004");
             });
 
-        then(guardSeniorMapper).should(never()).existsActiveRelationByWardId(anyLong());
+        then(guardSeniorMapper).should(never()).existsActivePairing(anyLong());
         then(walletService).should(never()).findMyBalance(anyLong());
         then(approvalRequestMapper).should(never()).findPendingByWardId(anyLong());
     }

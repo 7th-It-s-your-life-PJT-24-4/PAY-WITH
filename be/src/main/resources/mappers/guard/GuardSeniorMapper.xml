@@ -14,7 +14,7 @@
         )
     </select>
 
-    <select id="existsActiveRelationByWardId" resultType="boolean">
+    <select id="existsActivePairing" resultType="boolean">
         SELECT EXISTS (
         SELECT 1 FROM guard_senior
         WHERE senior_id = #{wardId}
