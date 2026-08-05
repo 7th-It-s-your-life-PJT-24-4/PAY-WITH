@@ -58,7 +58,7 @@ async function request<TResponse>(
     method,
     json: body,
     headers,
-    retry: path.startsWith('/auth/') ? 0 : undefined,
+    ...(path.startsWith('/auth/') ? { retry: 0 } : {}),
   })
 
   const data: unknown = await response.json()
