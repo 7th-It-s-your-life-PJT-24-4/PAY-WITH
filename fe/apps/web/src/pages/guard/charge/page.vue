@@ -4,21 +4,19 @@ import { PhWallet } from '@phosphor-icons/vue'
 import { ConfirmModal } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
 import { guardChargeHistoriesOptions } from '@/lib/query/guard/charge'
 import { guardHomeOptions } from '@/lib/query/guard/home'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
-import { useGuardStore } from '@/stores/guard.store'
+import { useGuardWardQuery } from '@/pages/guard/-composables/useGuardWardQuery'
 import { usePairingStore } from '@/stores/pairing.store'
 
 const router = useRouter()
-const route = useRoute()
-const guardStore = useGuardStore()
 const pairingStore = usePairingStore()
+const { selectedWardId, selectWard } = useGuardWardQuery()
 const isPairingConfirmOpen = ref(false)
-const activeWardId = computed(() => guardStore.activeWardId)
-const guardHomeQuery = useQuery(guardHomeOptions(activeWardId))
+const guardHomeQuery = useQuery(guardHomeOptions(selectedWardId))
 const chargeHistoriesQuery = useQuery(guardChargeHistoriesOptions())
 
 const seniors = computed(() =>
@@ -31,11 +29,11 @@ const seniors = computed(() =>
   ),
 )
 const activeSeniorId = computed(() =>
-  guardStore.activeWardId === null ? '' : String(guardStore.activeWardId),
+  selectedWardId.value === null ? '' : String(selectedWardId.value),
 )
 const chargeHistories = computed(() =>
   (chargeHistoriesQuery.data.value ?? [])
-    .filter(({ wardId }) => wardId === guardStore.activeWardId)
+    .filter(({ wardId }) => wardId === selectedWardId.value)
     .map((history) => ({
       ...history,
       id: String(history.transactionId),
@@ -50,20 +48,9 @@ const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
 
 watch(
-  () => route.query.wardId,
-  (wardId) => {
-    const parsedWardId = Number(wardId)
-    if (Number.isSafeInteger(parsedWardId) && parsedWardId > 0)
-      guardStore.selectWard(parsedWardId)
-  },
-  { immediate: true },
-)
-
-watch(
   () => guardHomeQuery.data.value?.selectedWard?.wardId,
   (wardId) => {
-    if (guardStore.activeWardId === null && wardId)
-      guardStore.selectWard(wardId)
+    if (wardId) selectWard(wardId)
   },
   { immediate: true },
 )
@@ -71,7 +58,7 @@ watch(
 function selectSenior(wardId: string) {
   const parsedWardId = Number(wardId)
   if (!Number.isSafeInteger(parsedWardId) || parsedWardId <= 0) return
-  guardStore.selectWard(parsedWardId)
+  selectWard(parsedWardId)
 }
 
 async function startPairing() {

@@ -90,6 +90,7 @@ import {
   requireTransferRecipient,
 } from '@/pages/ward/transfer/-utils/transfer-route-guard'
 import { getRoleHomePath } from '@/router/auth-navigation'
+import { parseWardIdQuery } from '@/pages/guard/-composables/useGuardWardQuery'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -562,6 +563,26 @@ const router = createRouter({
       redirect: '/auth/sign-in',
     },
   ],
+})
+
+router.beforeEach((to, from) => {
+  if (!to.path.startsWith('/guard') || !from.path.startsWith('/guard')) {
+    return true
+  }
+  if (parseWardIdQuery(to.query.wardId) !== null) return true
+
+  const wardId = parseWardIdQuery(from.query.wardId)
+  if (wardId === null) return true
+
+  return {
+    path: to.path,
+    hash: to.hash,
+    replace: true,
+    query: {
+      ...to.query,
+      wardId: String(wardId),
+    },
+  }
 })
 
 async function resolveAuthentication() {
