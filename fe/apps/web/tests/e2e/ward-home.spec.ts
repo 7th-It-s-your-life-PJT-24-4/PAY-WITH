@@ -184,9 +184,7 @@ test('refresh token도 만료되면 로그인 화면으로 이동한다', async 
 
   await expect(page).toHaveURL(/\/auth\/sign-in\?reason=session-expired/)
   await expect(
-    page.getByText(
-      '로그인이 만료되었습니다. 안전한 이용을 위해 다시 로그인해 주세요.',
-    ),
+    page.getByRole('status', { name: '로그인 시간이 만료되었어요' }),
   ).toBeVisible()
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem('accessToken')))
