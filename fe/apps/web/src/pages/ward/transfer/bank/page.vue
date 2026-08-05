@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@pay-with/ui'
 import { useMutation, useQuery } from '@tanstack/vue-query'
+import { ChevronLeft, ChevronRight } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -19,9 +20,18 @@ const transferStore = useTransferStore()
 const banksQuery = useQuery(banksOptions())
 const recipientMutation = useMutation({ mutationFn: inquireTransferRecipient })
 const selectedBankCode = ref('')
+const currentPage = ref(1)
+const banksPerPage = 6
 const banks = computed(() =>
   prioritizeBanks(banksQuery.data.value ?? [], transferStore.recommendedBanks),
 )
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil(banks.value.length / banksPerPage)),
+)
+const visibleBanks = computed(() => {
+  const startIndex = (currentPage.value - 1) * banksPerPage
+  return banks.value.slice(startIndex, startIndex + banksPerPage)
+})
 const errorMessage = ref('')
 const canValidateAccount = computed(() =>
   isValidTransferAccountNumber(transferStore.accountNumber),
@@ -107,7 +117,7 @@ async function proceed() {
       aria-label="은행 목록"
     >
       <button
-        v-for="bank in banks"
+        v-for="bank in visibleBanks"
         :key="bank.bankCode"
         class="type-h4 flex h-28 flex-col items-center justify-center gap-sm rounded-large border bg-surface-card shadow-card"
         :class="
@@ -151,7 +161,33 @@ async function proceed() {
       </p>
     </section>
 
-    <p class="type-h2 text-center">1/2</p>
+    <nav
+      v-if="banks.length"
+      class="flex items-center justify-center gap-md"
+      aria-label="은행 목록 페이지"
+    >
+      <button
+        class="flex size-10 items-center justify-center rounded-full text-body-secondary disabled:opacity-30"
+        type="button"
+        aria-label="이전 은행 목록"
+        :disabled="currentPage === 1"
+        @click="currentPage -= 1"
+      >
+        <ChevronLeft class="size-6" aria-hidden="true" />
+      </button>
+      <p class="type-h2 min-w-12 text-center" aria-live="polite">
+        {{ currentPage }}/{{ pageCount }}
+      </p>
+      <button
+        class="flex size-10 items-center justify-center rounded-full text-body-secondary disabled:opacity-30"
+        type="button"
+        aria-label="다음 은행 목록"
+        :disabled="currentPage === pageCount"
+        @click="currentPage += 1"
+      >
+        <ChevronRight class="size-6" aria-hidden="true" />
+      </button>
+    </nav>
 
     <Button
       class="w-full"
