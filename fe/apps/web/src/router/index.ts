@@ -242,6 +242,12 @@ const router = createRouter({
           component: GuardMySeniorsPage,
           meta: { activeNavigation: 'my', showBottomNavigation: false },
         },
+        {
+          path: 'my/terms/:termId',
+          name: 'guard-my-terms',
+          component: SignUpTermsPage,
+          meta: { activeNavigation: 'my', showBottomNavigation: false },
+        },
       ],
     },
     {

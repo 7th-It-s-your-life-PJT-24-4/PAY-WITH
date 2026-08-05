@@ -91,6 +91,26 @@ test('마이페이지에서 로그아웃과 탈퇴 확인 팝업을 표시한다
     .toBeNull()
 })
 
+test('마이페이지에서 기존 이용약관과 개인정보 페이지로 이동한다', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 820 })
+  await page.goto('/guard/my')
+
+  await page.getByRole('button', { name: '이용약관' }).click()
+  await expect(page).toHaveURL(/\/guard\/my\/terms\/serviceTerms$/)
+  await expect(
+    page.getByRole('heading', { name: '서비스 이용약관' }),
+  ).toBeVisible()
+
+  await page.getByRole('button', { name: '뒤로 가기' }).click()
+  await page.getByRole('button', { name: '개인정보처리방침' }).click()
+  await expect(page).toHaveURL(/\/guard\/my\/terms\/privacyTerms$/)
+  await expect(
+    page.getByRole('heading', { name: '개인정보 수집 및 이용 동의' }),
+  ).toBeVisible()
+})
+
 test('내 정보에서 이름과 프로필을 수정한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 820 })
   await page.goto('/guard/my/profile')

@@ -22,15 +22,25 @@ const accessToken = tokenStorage.getAccessToken()
 const currentUserId = accessToken ? getUserIdFromAccessToken(accessToken) : null
 
 const menuItems = [
-  { label: '내 정보', routeName: 'guard-my-profile', enabled: true },
-  { label: '시니어 관리', routeName: 'guard-my-seniors', enabled: true },
-  { label: '이용약관', routeName: '', enabled: false },
-  { label: '개인정보처리방침', routeName: '', enabled: false },
+  { label: '내 정보', routeName: 'guard-my-profile' },
+  { label: '시니어 관리', routeName: 'guard-my-seniors' },
+  {
+    label: '이용약관',
+    routeName: 'guard-my-terms',
+    termId: 'serviceTerms',
+  },
+  {
+    label: '개인정보처리방침',
+    routeName: 'guard-my-terms',
+    termId: 'privacyTerms',
+  },
 ] as const
 
-function moveToMenu(routeName: string, enabled: boolean) {
-  if (!enabled || !routeName) return
-  void router.push({ name: routeName })
+function moveToMenu(routeName: string, termId?: string) {
+  void router.push({
+    name: routeName,
+    ...(termId ? { params: { termId } } : {}),
+  })
 }
 
 async function finishAuthenticationSession() {
@@ -71,10 +81,14 @@ async function withdraw() {
         <button
           v-for="item in menuItems"
           :key="item.label"
-          class="flex h-11 w-full items-center justify-between py-[10px] text-left text-[16px] font-medium leading-6 tracking-[-0.2px] text-[#232529] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus disabled:cursor-default"
+          class="flex h-11 w-full items-center justify-between py-[10px] text-left text-[16px] font-medium leading-6 tracking-[-0.2px] text-[#232529] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
           type="button"
-          :disabled="!item.enabled"
-          @click="moveToMenu(item.routeName, item.enabled)"
+          @click="
+            moveToMenu(
+              item.routeName,
+              'termId' in item ? item.termId : undefined,
+            )
+          "
         >
           <span>{{ item.label }}</span>
           <span class="flex size-11 items-center justify-center">
