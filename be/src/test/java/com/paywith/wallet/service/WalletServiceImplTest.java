@@ -75,8 +75,10 @@ class WalletServiceImplTest {
         given(userMapper.findById(USER_ID)).willReturn(user(Role.GUARD));
 
         assertThatThrownBy(() -> service.findMyBalance(USER_ID))
-            .isInstanceOf(BusinessException.class)
-            .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
+            .isInstanceOfSatisfying(BusinessException.class, exception -> {
+                assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+                assertThat(exception.getCode()).isEqualTo("AUTH_004");
+            });
 
         then(walletMapper).should(never()).findWalletByUserId(USER_ID);
     }
@@ -87,8 +89,10 @@ class WalletServiceImplTest {
         given(walletMapper.findWalletByUserId(USER_ID)).willReturn(null);
 
         assertThatThrownBy(() -> service.findMyBalance(USER_ID))
-            .isInstanceOf(BusinessException.class)
-            .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
+            .isInstanceOfSatisfying(BusinessException.class, exception -> {
+                assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                assertThat(exception.getCode()).isEqualTo("WALLET_001");
+            });
     }
 
     @Test
