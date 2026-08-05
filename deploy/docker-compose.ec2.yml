@@ -17,7 +17,10 @@ services:
       # (pnpm install + vite build) 없이 nginx -s reload 로 끝낸다.
       - ../fe/apps/web/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
+      # 80 은 443 으로 리다이렉트하지만 계속 열어 둔다. Let's Encrypt 갱신 검증이
+      # 평문 HTTP 로 들어오기 때문이다.
       - '80:80'
+      - '443:443'
 
   app:
     build:
