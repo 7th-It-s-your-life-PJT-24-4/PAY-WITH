@@ -32,7 +32,10 @@ const httpClient = ky.create({
           const accessToken = await refreshAccessToken()
           request.headers.set('Authorization', `Bearer ${accessToken}`)
         } catch (refreshError) {
-          if (isUnauthorizedApiError(refreshError)) {
+          if (
+            isUnauthorizedApiError(refreshError) ||
+            !tokenStorage.getRefreshToken()
+          ) {
             expireAuthenticationSession()
           }
           throw refreshError
