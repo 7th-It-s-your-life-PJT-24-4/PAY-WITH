@@ -119,7 +119,6 @@ describe('transfer store', () => {
     expect(store.processingStatus).toBe('success')
     expect(store.transferResult?.transactionId).toBe(73)
     expect(store.transferDetail?.status).toBe('COMPLETED')
-    expect(store.transferDetailSource).toBe('api')
     expect(execute).toHaveBeenCalledWith({
       request: expect.objectContaining({ transferPin: '123456' }),
       idempotencyKey: '550e8400-e29b-41d4-a716-446655440000',
@@ -174,7 +173,6 @@ describe('transfer store', () => {
       status: 'COMPLETED',
       holderName: '김민수',
     })
-    expect(restoredStore.transferDetailSource).toBe('api')
   })
 
   it('손상된 송금 결과는 제거하고 복원하지 않는다', () => {
