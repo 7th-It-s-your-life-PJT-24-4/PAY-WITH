@@ -18,5 +18,7 @@ public interface UserMapper {
 
     int update(User user);
 
+    int updatePassword(@Param("id") Long id, @Param("password") String password);
+
     int delete(@Param("id") Long id);
 }
