@@ -156,6 +156,7 @@ class WardHomeServiceTest {
     @Test
     void findMyHome_failsWithWard001WhenPairingIsIncomplete() {
         given(userMapper.findById(WARD_ID)).willReturn(user());
+        given(walletService.findMyBalance(WARD_ID)).willReturn(wallet());
         given(guardSeniorMapper.existsActivePairing(WARD_ID)).willReturn(false);
 
         assertThatThrownBy(() -> service.findMyHome(WARD_ID))
@@ -165,24 +166,28 @@ class WardHomeServiceTest {
                 assertThat(exception.getMessage()).isEqualTo("페어링 완료 후 이용할 수 있습니다.");
             });
 
-        then(walletService).should(never()).findMyBalance(anyLong());
+        then(walletService).should().findMyBalance(WARD_ID);
         then(approvalRequestMapper).should(never()).findPendingByWardId(anyLong());
     }
 
     @Test
-    void findMyHome_rejectsGuardBeforePairingAndWalletLookup() {
-        User guard = user();
-        guard.setRole(Role.GUARD);
-        given(userMapper.findById(WARD_ID)).willReturn(guard);
+    void findMyHome_propagatesRoleRejectionFromWalletService() {
+        given(userMapper.findById(WARD_ID)).willReturn(user());
+        given(walletService.findMyBalance(WARD_ID)).willThrow(
+            new BusinessException(
+                HttpStatus.FORBIDDEN,
+                "AUTH_004",
+                "피보호자만 접근할 수 있습니다."
+            )
+        );
 
         assertThatThrownBy(() -> service.findMyHome(WARD_ID))
             .isInstanceOfSatisfying(BusinessException.class, exception -> {
                 assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
                 assertThat(exception.getCode()).isEqualTo("AUTH_004");
-            });
+        });
 
         then(guardSeniorMapper).should(never()).existsActivePairing(anyLong());
-        then(walletService).should(never()).findMyBalance(anyLong());
         then(approvalRequestMapper).should(never()).findPendingByWardId(anyLong());
     }
 
