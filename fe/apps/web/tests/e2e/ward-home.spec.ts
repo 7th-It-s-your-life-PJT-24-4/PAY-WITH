@@ -174,7 +174,7 @@ test('refresh token도 만료되면 로그인 화면으로 이동한다', async 
       json: {
         success: false,
         data: null,
-        code: 'AUTH_002',
+        code: null,
         message: '리프레시 토큰이 유효하지 않습니다.',
       },
     })
@@ -225,6 +225,36 @@ test('refresh 서버 오류에서는 현재 화면과 세션을 유지한다', a
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem('refreshToken')))
     .toBe('temporarily-unavailable-token')
+})
+
+test('사용자 조회 서버 오류에서는 저장된 세션을 유지한다', async ({ page }) => {
+  const accessToken = createAccessToken(Math.floor(Date.now() / 1_000) + 900)
+  await page.addInitScript(
+    ({ accessToken }) => {
+      localStorage.setItem('accessToken', accessToken)
+      localStorage.setItem('refreshToken', 'valid-refresh-token')
+    },
+    { accessToken },
+  )
+  await page.route('**/api/users/1', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      json: {
+        success: false,
+        data: null,
+        code: null,
+        message: '서버 오류가 발생했습니다.',
+      },
+    })
+  })
+
+  await page.goto('/auth/sign-in')
+
+  await expect(page).toHaveURL(/\/auth\/sign-in$/)
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('accessToken')))
+    .toBe(accessToken)
 })
 
 test('홈의 승인 대기 송금을 approvalId로 상세 조회한다', async ({ page }) => {

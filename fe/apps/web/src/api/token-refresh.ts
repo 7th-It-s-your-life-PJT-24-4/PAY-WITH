@@ -4,8 +4,8 @@ import {
   expireAuthenticationSession,
   markSessionActive,
 } from '@/api/auth-session'
-import { tokenStorage } from '@/api/token-storage'
-import { getAccessTokenExpiresAt } from '@/api/token-storage'
+import { isUnauthorizedApiError } from '@/api/error'
+import { getAccessTokenExpiresAt, tokenStorage } from '@/api/token-storage'
 import {
   refreshTokenRequestSchema,
   tokenResponseSchema,
@@ -19,22 +19,13 @@ let schedulerStarted = false
 const refreshLeewayMs = 60_000
 const refreshRetryDelayMs = 30_000
 
-type HttpErrorLike = {
-  response?: {
-    status?: number
-  }
-}
-
-export function isRefreshTokenRejected(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) return false
-  return (error as HttpErrorLike).response?.status === 401
-}
-
 function handleScheduledRefreshFailure(error: unknown): void {
-  if (isRefreshTokenRejected(error)) {
+  if (isUnauthorizedApiError(error)) {
     expireAuthenticationSession()
     return
   }
+
+  if (!tokenStorage.getRefreshToken()) return
 
   // 네트워크·서버 장애를 토큰 만료로 오인하지 않고 잠시 뒤 재시도한다.
   refreshTimer = globalThis.setTimeout(() => {

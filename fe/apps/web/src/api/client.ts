@@ -1,6 +1,7 @@
 import ky, { HTTPError } from 'ky'
 import { expireAuthenticationSession } from '@/api/auth-session'
-import { isRefreshTokenRejected, refreshAccessToken } from '@/api/token-refresh'
+import { isUnauthorizedApiError } from '@/api/error'
+import { refreshAccessToken } from '@/api/token-refresh'
 import { tokenStorage } from '@/api/token-storage'
 import type { ZodType as ZodSchema } from 'zod'
 
@@ -31,7 +32,7 @@ const httpClient = ky.create({
           const accessToken = await refreshAccessToken()
           request.headers.set('Authorization', `Bearer ${accessToken}`)
         } catch (refreshError) {
-          if (isRefreshTokenRejected(refreshError)) {
+          if (isUnauthorizedApiError(refreshError)) {
             expireAuthenticationSession()
           }
           throw refreshError

@@ -1,11 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+import { clearAuthenticationSession } from '@/api/auth-session'
+import { isUnauthorizedApiError } from '@/api/error'
 import {
-  clearAuthenticationSession,
-  markSessionActive,
-} from '@/api/auth-session'
-import {
-  isRefreshTokenRejected,
   refreshAccessToken,
   scheduleAccessTokenRefresh,
 } from '@/api/token-refresh'
@@ -550,7 +547,7 @@ const router = createRouter({
   ],
 })
 
-async function getAuthenticatedUserId() {
+async function resolveAuthentication() {
   const accessToken = tokenStorage.getAccessToken()
   const userId = accessToken ? getUserIdFromAccessToken(accessToken) : null
   const accessTokenExpiresAt = accessToken
@@ -580,13 +577,12 @@ async function getAuthenticatedUserId() {
 
   try {
     const refreshedAccessToken = await refreshAccessToken()
-    markSessionActive()
     return {
       userId: getUserIdFromAccessToken(refreshedAccessToken),
       sessionExpired: false,
     }
   } catch (error) {
-    const sessionExpired = isRefreshTokenRejected(error)
+    const sessionExpired = isUnauthorizedApiError(error)
     return {
       // 일시 장애라면 서버가 최종 인증을 판단하도록 현재 화면 접근은 유지한다.
       // 실제 만료(401)일 때만 인증 사용자 정보를 폐기한다.
@@ -598,7 +594,7 @@ async function getAuthenticatedUserId() {
 
 router.beforeEach(async (to) => {
   const isAuthRoute = to.path.startsWith('/auth')
-  const { userId, sessionExpired } = await getAuthenticatedUserId()
+  const { userId, sessionExpired } = await resolveAuthentication()
 
   if (!userId) {
     if (sessionExpired) clearAuthenticationSession()
@@ -617,9 +613,14 @@ router.beforeEach(async (to) => {
   try {
     const user = await getUser(userId)
     return getRoleHomePath(user.role)
-  } catch {
+  } catch (error) {
+    if (!isUnauthorizedApiError(error)) return true
+
     clearAuthenticationSession()
-    return to.name === 'auth-sign-in' ? true : { name: 'auth-sign-in' }
+    return {
+      name: 'auth-sign-in',
+      query: { reason: 'session-expired' },
+    }
   }
 })
 
