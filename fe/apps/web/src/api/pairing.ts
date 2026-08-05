@@ -1,6 +1,7 @@
 import { apiClient } from '@/api/client'
 import {
   guardianPairingCodeResponseSchema,
+  unpairWardResponseSchema,
   wardPairingRequestSchema,
   wardPairingResponseSchema,
   type GuardianPairingCode,
@@ -29,4 +30,8 @@ export async function pairWardWithGuardian(
   )
 
   return response.data
+}
+
+export async function unpairGuardianWard(wardId: number): Promise<void> {
+  await apiClient.delete(`/guard/pairing/${wardId}`, unpairWardResponseSchema)
 }

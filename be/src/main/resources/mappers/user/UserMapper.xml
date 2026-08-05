@@ -45,18 +45,15 @@
 
   <update id="update" parameterType="com.paywith.user.domain.User">
     UPDATE users
-    SET name = #{name}
+    SET name = #{name},
+        avatar_id = #{avatarId}
     WHERE user_id = #{id}
   </update>
 
-  <update id="updatePassword">
+  <update id="delete">
     UPDATE users
-    SET password = #{password}
+    SET status = 'WITHDRAWN'
     WHERE user_id = #{id}
+    AND status != 'WITHDRAWN'
   </update>
-
-  <delete id="delete">
-    DELETE FROM users
-    WHERE user_id = #{id}
-  </delete>
 </mapper>

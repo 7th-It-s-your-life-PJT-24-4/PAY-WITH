@@ -12,7 +12,7 @@
 --
 -- 적용 (저장소 루트 기준, MySQL 기동 상태에서):
 --   docker compose -f be/docker-compose.yml exec -T mysql \
---     mysql --default-character-set=utf8mb4 -upaywith -ppaywith pay_with \
+--     mysql --default-character-set=utf8mb4 -upaywith -ppaywith paywith \
 --     < be/src/test/resources/db/dev-transfer-scenario-seed.sql
 --
 -- 로그인: POST /api/auth/login  {"phone": "010-9201-0001", "password": "123456"}

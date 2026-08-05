@@ -5,12 +5,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 
 import com.paywith.approval.domain.ApprovalRequestView;
 import com.paywith.approval.mapper.ApprovalRequestMapper;
 import com.paywith.exception.BusinessException;
+import com.paywith.guard.mapper.GuardSeniorMapper;
 import com.paywith.home.dto.WardHomeResponse;
+import com.paywith.user.domain.Role;
 import com.paywith.user.domain.User;
 import com.paywith.user.mapper.UserMapper;
 import com.paywith.wallet.domain.Wallet;
@@ -42,17 +45,27 @@ class WardHomeServiceTest {
     @Mock
     private ApprovalRequestMapper approvalRequestMapper;
 
+    @Mock
+    private GuardSeniorMapper guardSeniorMapper;
+
     private WardHomeService service;
 
     @BeforeEach
     void setUp() {
-        service = new WardHomeServiceImpl(userMapper, walletService, approvalRequestMapper);
+        lenient().when(guardSeniorMapper.existsActivePairing(WARD_ID)).thenReturn(true);
+        service = new WardHomeServiceImpl(
+            userMapper,
+            walletService,
+            approvalRequestMapper,
+            guardSeniorMapper
+        );
     }
 
     private User user() {
         User user = new User();
         user.setId(WARD_ID);
         user.setName("김시니어");
+        user.setRole(Role.WARD);
         return user;
     }
 
@@ -140,17 +153,41 @@ class WardHomeServiceTest {
         then(approvalRequestMapper).should(never()).findPendingByWardId(anyLong());
     }
 
-    // 역할 검증은 지갑 도메인에 남긴다. 홈이 규칙을 복제하지 않고 그대로 전파하는지 확인한다
+    @Test
+    void findMyHome_failsWithWard001WhenPairingIsIncomplete() {
+        given(userMapper.findById(WARD_ID)).willReturn(user());
+        given(walletService.findMyBalance(WARD_ID)).willReturn(wallet());
+        given(guardSeniorMapper.existsActivePairing(WARD_ID)).willReturn(false);
+
+        assertThatThrownBy(() -> service.findMyHome(WARD_ID))
+            .isInstanceOfSatisfying(BusinessException.class, exception -> {
+                assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+                assertThat(exception.getCode()).isEqualTo("WARD_001");
+                assertThat(exception.getMessage()).isEqualTo("페어링 완료 후 이용할 수 있습니다.");
+            });
+
+        then(walletService).should().findMyBalance(WARD_ID);
+        then(approvalRequestMapper).should(never()).findPendingByWardId(anyLong());
+    }
+
     @Test
     void findMyHome_propagatesRoleRejectionFromWalletService() {
         given(userMapper.findById(WARD_ID)).willReturn(user());
         given(walletService.findMyBalance(WARD_ID)).willThrow(
-            new BusinessException(HttpStatus.FORBIDDEN, "AUTH_004", "피보호자만 접근할 수 있습니다."));
+            new BusinessException(
+                HttpStatus.FORBIDDEN,
+                "AUTH_004",
+                "피보호자만 접근할 수 있습니다."
+            )
+        );
 
         assertThatThrownBy(() -> service.findMyHome(WARD_ID))
-            .isInstanceOf(BusinessException.class)
-            .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
+            .isInstanceOfSatisfying(BusinessException.class, exception -> {
+                assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+                assertThat(exception.getCode()).isEqualTo("AUTH_004");
+        });
 
+        then(guardSeniorMapper).should(never()).existsActivePairing(anyLong());
         then(approvalRequestMapper).should(never()).findPendingByWardId(anyLong());
     }
 

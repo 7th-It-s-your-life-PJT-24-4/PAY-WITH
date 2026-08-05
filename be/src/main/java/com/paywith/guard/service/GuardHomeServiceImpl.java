@@ -59,7 +59,12 @@ public class GuardHomeServiceImpl implements GuardHomeService {
             .collect(Collectors.toSet());
 
         List<WardTabResponse> wards = activeWards.stream()
-            .map(ward -> new WardTabResponse(ward.getWardId(), ward.getName(), pendingWardIds.contains(ward.getWardId())))
+            .map(ward -> new WardTabResponse(
+                ward.getWardId(),
+                ward.getName(),
+                ward.getAvatarId(),
+                pendingWardIds.contains(ward.getWardId())
+            ))
             .collect(Collectors.toList());
 
         WardSummary selected = resolveSelectedWard(activeWards, wardIdParam);

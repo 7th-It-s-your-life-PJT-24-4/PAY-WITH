@@ -116,6 +116,109 @@
         JOIN banks b       ON r.bank_code = b.bank_code
         WHERE t.transaction_id = #{transactionId}
     </select>
+    <select id="findMyTransactions" resultType="com.paywith.transaction.dto.TransactionHistoryItem">
+        SELECT
+        t.transaction_id AS transactionId,
+        CASE WHEN t.type = 'TRANSFER_OUT' THEN 'TRANSFER' ELSE t.type END AS type,
+        CASE WHEN t.type = 'CHARGE' THEN 'IN' ELSE 'OUT' END AS direction,
+        CASE t.type
+        WHEN 'CHARGE' THEN b.bank_name
+        WHEN 'PAYMENT' THEN m.name
+        WHEN 'TRANSFER_OUT' THEN r.holder_name
+        END AS title,
+        t.amount AS amount,
+        t.status AS status,
+        re.risk_level AS riskLevel,
+        t.created_at AS occurredAt
+        FROM transactions t
+        JOIN wallets w ON w.wallet_id = t.wallet_id
+        LEFT JOIN recipients r ON r.recipient_id = t.recipient_id
+        LEFT JOIN merchants m ON m.merchant_id = t.merchant_id
+        LEFT JOIN linked_accounts la ON la.account_id = t.account_id
+        LEFT JOIN banks b ON b.bank_code = la.bank_code
+        LEFT JOIN risk_evaluations re ON re.transaction_id = t.transaction_id
+        WHERE w.user_id = #{wardId}
+        <if test="type != null">
+            AND t.type = #{type}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (
+            COALESCE(r.holder_name, m.name, b.bank_name) LIKE CONCAT('%', #{keyword}, '%')
+            OR CAST(t.amount AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        ORDER BY t.created_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countMyTransactions" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM transactions t
+        JOIN wallets w ON w.wallet_id = t.wallet_id
+        LEFT JOIN recipients r ON r.recipient_id = t.recipient_id
+        LEFT JOIN merchants m ON m.merchant_id = t.merchant_id
+        LEFT JOIN linked_accounts la ON la.account_id = t.account_id
+        LEFT JOIN banks b ON b.bank_code = la.bank_code
+        WHERE w.user_id = #{wardId}
+        <if test="type != null">
+            AND t.type = #{type}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (
+            COALESCE(r.holder_name, m.name, b.bank_name) LIKE CONCAT('%', #{keyword}, '%')
+            OR CAST(t.amount AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+    </select>
+    <select id="findWardTransactions" resultType="com.paywith.transaction.dto.GuardTransactionHistoryItem">
+        SELECT
+        t.transaction_id AS transactionId,
+        CASE WHEN t.type = 'TRANSFER_OUT' THEN 'TRANSFER' ELSE t.type END AS type,
+        t.status AS status,
+        CASE t.type
+        WHEN 'CHARGE' THEN b.bank_name
+        WHEN 'PAYMENT' THEN m.name
+        WHEN 'TRANSFER_OUT' THEN r.holder_name
+        END AS counterpartyName,
+        t.amount AS amount,
+        re.risk_level AS riskLevel,
+        (
+        SELECT rr.description
+        FROM risk_evaluation_details red
+        JOIN risk_rules rr ON rr.rule_id = red.rule_id
+        WHERE red.evaluation_id = re.evaluation_id
+        ORDER BY red.score DESC
+        LIMIT 1
+        ) AS riskReason,
+        t.created_at AS createdAt
+        FROM transactions t
+        JOIN wallets w ON w.wallet_id = t.wallet_id
+        JOIN guard_senior gs ON gs.senior_id = w.user_id AND gs.status = 'ACTIVE'
+        LEFT JOIN recipients r ON r.recipient_id = t.recipient_id
+        LEFT JOIN merchants m ON m.merchant_id = t.merchant_id
+        LEFT JOIN linked_accounts la ON la.account_id = t.account_id
+        LEFT JOIN banks b ON b.bank_code = la.bank_code
+        LEFT JOIN risk_evaluations re ON re.transaction_id = t.transaction_id
+        WHERE gs.guard_id = #{guardId}
+        AND w.user_id = #{wardId}
+        <if test="type != null">AND t.type = #{type}</if>
+        <if test="riskLevel != null">AND re.risk_level = #{riskLevel}</if>
+        ORDER BY t.created_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countWardTransactions" resultType="int">
+        SELECT COUNT(*)
+        FROM transactions t
+        JOIN wallets w ON w.wallet_id = t.wallet_id
+        JOIN guard_senior gs ON gs.senior_id = w.user_id AND gs.status = 'ACTIVE'
+        LEFT JOIN risk_evaluations re ON re.transaction_id = t.transaction_id
+        WHERE gs.guard_id = #{guardId}
+        AND w.user_id = #{wardId}
+        <if test="type != null">AND t.type = #{type}</if>
+        <if test="riskLevel != null">AND re.risk_level = #{riskLevel}</if>
+    </select>
+
 
     <!-- 보호자 홈 미리보기용. 진행 중(REQUESTED/HELD/APPROVED/PROCESSING)은 제외하고 종결된
          건만 최신순으로 보여준다. 상대방 표시는 거래 종류에 따라 수취인/가맹점/출금은행 중

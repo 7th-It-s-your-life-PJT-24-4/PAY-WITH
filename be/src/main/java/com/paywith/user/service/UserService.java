@@ -85,6 +85,9 @@ public class UserService {
     public UserResponse update(Long id, UserUpdateRequest request) {
         User user = findUser(id);
         user.setName(request.getName());
+        if (request.getAvatarId() != null) {
+            user.setAvatarId(request.getAvatarId());
+        }
         userMapper.update(user);
         return new UserResponse(findUser(id));
     }

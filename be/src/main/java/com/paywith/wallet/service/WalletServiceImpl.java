@@ -35,12 +35,20 @@ public class WalletServiceImpl implements WalletService {
             throw new BusinessException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.");
         }
         if (user.getRole() != Role.WARD) {
-            throw new BusinessException(HttpStatus.FORBIDDEN, "지갑은 피보호자만 이용할 수 있습니다.");
+            throw new BusinessException(
+                HttpStatus.FORBIDDEN,
+                "AUTH_004",
+                "피보호자만 접근할 수 있습니다."
+            );
         }
 
         Wallet wallet = walletMapper.findWalletByUserId(userId);
         if (wallet == null) {
-            throw new BusinessException(HttpStatus.NOT_FOUND, "지갑을 찾을 수 없습니다.");
+            throw new BusinessException(
+                HttpStatus.NOT_FOUND,
+                "WALLET_001",
+                "지갑 정보를 찾을 수 없습니다."
+            );
         }
 
         return new WalletBalanceResponse(wallet);

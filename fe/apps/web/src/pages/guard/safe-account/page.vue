@@ -1,23 +1,28 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronLeft } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
+import { useQuery } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { banksOptions } from '@/lib/query/bank'
 import GuardBankSelectBottomSheet from '@/pages/guard/charge/-components/GuardBankSelectBottomSheet.vue'
-import {
-  mockGuardChargeBanks,
-  type GuardChargeBank,
-} from '@/mocks/guard-charge.mock'
+import type { Bank } from '@/schemas/bank.schema'
 import { useSafeAccountStore } from '@/stores/safe-account.store'
 
 const router = useRouter()
 const safeAccountStore = useSafeAccountStore()
 const isBankSheetOpen = ref(false)
-const canContinue = computed(() => safeAccountStore.accountNumber.length > 0)
+const banksQuery = useQuery(banksOptions())
+const banks = computed(() => banksQuery.data.value ?? [])
+const canContinue = computed(
+  () =>
+    /^\d{3}$/.test(safeAccountStore.bankCode) &&
+    /^\d+$/.test(safeAccountStore.accountNumber),
+)
 
-function selectBank(bank: GuardChargeBank) {
-  safeAccountStore.selectBank(bank.id === 'kb' ? '국민은행' : bank.name)
+function selectBank(bank: Bank) {
+  safeAccountStore.selectBank({ code: bank.bankCode, name: bank.bankName })
   isBankSheetOpen.value = false
 }
 
@@ -68,8 +73,9 @@ function continueToConfirmation() {
         >
           <span
             class="flex-1 text-[18px] font-semibold leading-[1.2] tracking-[-0.36px] text-black"
+            :class="{ 'text-gray-700': !safeAccountStore.bankName }"
           >
-            {{ safeAccountStore.bankName }}
+            {{ safeAccountStore.bankName || '은행/증권사를 선택해 주세요' }}
           </span>
           <ChevronDown
             class="size-6 shrink-0 text-gray-600"
@@ -113,7 +119,7 @@ function continueToConfirmation() {
 
     <GuardBankSelectBottomSheet
       v-model:open="isBankSheetOpen"
-      :banks="mockGuardChargeBanks"
+      :banks="banks"
       @select="selectBank"
     />
   </main>

@@ -5,6 +5,7 @@ Spring MVC 레거시 기반 백엔드 예제 프로젝트다.
 ## 로컬 실행
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
 

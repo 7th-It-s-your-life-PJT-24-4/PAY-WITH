@@ -2,30 +2,77 @@
 import { Landmark } from '@lucide/vue'
 import { PhWallet } from '@phosphor-icons/vue'
 import { ConfirmModal } from '@pay-with/ui'
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useQuery } from '@tanstack/vue-query'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-import { mockGuardChargeHistoriesBySeniorId } from '@/mocks/guard-charge-history.mock'
-import {
-  mockGuardSeniors,
-  type GuardSeniorAvatar,
-} from '@/mocks/guard-home.mock'
+import { guardChargeHistoriesOptions } from '@/lib/query/guard/charge'
+import { guardHomeOptions } from '@/lib/query/guard/home'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
 import { useGuardStore } from '@/stores/guard.store'
 import { usePairingStore } from '@/stores/pairing.store'
 
 const router = useRouter()
+const route = useRoute()
 const guardStore = useGuardStore()
 const pairingStore = usePairingStore()
 const isPairingConfirmOpen = ref(false)
+const activeWardId = computed(() => guardStore.activeWardId)
+const guardHomeQuery = useQuery(guardHomeOptions(activeWardId))
+const chargeHistoriesQuery = useQuery(guardChargeHistoriesOptions())
 
-const seniors = computed<GuardSeniorAvatar[]>(() => mockGuardSeniors)
-const chargeHistories = computed(
-  () => mockGuardChargeHistoriesBySeniorId[guardStore.activeSeniorId] ?? [],
+const seniors = computed(() =>
+  (guardHomeQuery.data.value?.wards ?? []).map(
+    ({ wardId, name, avatarId }) => ({
+      id: String(wardId),
+      name,
+      imageUrl: `/images/avatar/avatar${avatarId}.png`,
+    }),
+  ),
+)
+const activeSeniorId = computed(() =>
+  guardStore.activeWardId === null ? '' : String(guardStore.activeWardId),
+)
+const chargeHistories = computed(() =>
+  (chargeHistoriesQuery.data.value ?? [])
+    .filter(({ wardId }) => wardId === guardStore.activeWardId)
+    .map((history) => ({
+      ...history,
+      id: String(history.transactionId),
+      date: new Intl.DateTimeFormat('ko-KR', {
+        month: 'long',
+        day: 'numeric',
+      }).format(new Date(history.createdAt)),
+    })),
 )
 const hasChargeHistory = computed(() => chargeHistories.value.length > 0)
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
+
+watch(
+  () => route.query.wardId,
+  (wardId) => {
+    const parsedWardId = Number(wardId)
+    if (Number.isSafeInteger(parsedWardId) && parsedWardId > 0)
+      guardStore.selectWard(parsedWardId)
+  },
+  { immediate: true },
+)
+
+watch(
+  () => guardHomeQuery.data.value?.selectedWard?.wardId,
+  (wardId) => {
+    if (guardStore.activeWardId === null && wardId)
+      guardStore.selectWard(wardId)
+  },
+  { immediate: true },
+)
+
+function selectSenior(wardId: string) {
+  const parsedWardId = Number(wardId)
+  if (!Number.isSafeInteger(parsedWardId) || parsedWardId <= 0) return
+  guardStore.selectWard(parsedWardId)
+}
 
 async function startPairing() {
   const issued = await pairingStore.issueCode()
@@ -43,9 +90,9 @@ async function startPairing() {
     <div class="px-mobile-gutter pt-md">
       <GuardSeniorAvatarList
         :seniors="seniors"
-        :active-senior-id="guardStore.activeSeniorId"
+        :active-senior-id="activeSeniorId"
         @add="isPairingConfirmOpen = true"
-        @select="guardStore.selectSenior"
+        @select="selectSenior"
       />
 
       <section class="mt-lg" aria-labelledby="guard-charge-history-title">
@@ -96,7 +143,7 @@ async function startPairing() {
                 <p
                   class="mt-xxs truncate text-[12px] font-medium leading-[1.2] tracking-[-0.24px] text-gray-700"
                 >
-                  {{ history.bankName }} {{ history.accountSuffix }}
+                  {{ history.wardName }} 충전
                 </p>
               </div>
             </button>

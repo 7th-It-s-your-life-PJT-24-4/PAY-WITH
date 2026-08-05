@@ -19,6 +19,7 @@ import com.paywith.exception.BusinessException;
 import com.paywith.security.JwtTokenProvider;
 import com.paywith.user.domain.Role;
 import com.paywith.user.domain.User;
+import com.paywith.user.domain.UserStatus;
 import com.paywith.user.mapper.UserMapper;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
@@ -143,6 +144,20 @@ class AuthServiceTest {
                     assertThat(exception.getMessage()).isEqualTo("전화번호 또는 비밀번호가 올바르지 않습니다.");
                 });
         }
+
+        @Test
+        @DisplayName("탈퇴한 사용자는 로그인할 수 없다")
+        void withdrawnUser() {
+            User user = user();
+            user.setStatus(UserStatus.WITHDRAWN);
+            given(userMapper.findByPhone(PHONE)).willReturn(user);
+
+            assertThatThrownBy(() -> authService.login(loginRequest()))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED));
+
+            then(passwordEncoder).should(never()).matches(anyString(), anyString());
+        }
     }
 
     @Nested
@@ -215,6 +230,23 @@ class AuthServiceTest {
                     assertThat(exception.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
                     assertThat(exception.getMessage()).isEqualTo("사용자를 찾을 수 없습니다.");
                 });
+        }
+
+        @Test
+        @DisplayName("탈퇴한 사용자의 리프레시 토큰은 재발급하지 않는다")
+        void withdrawnUser() {
+            User user = user();
+            user.setStatus(UserStatus.WITHDRAWN);
+            given(jwtTokenProvider.validateToken("old-refresh")).willReturn(true);
+            given(jwtTokenProvider.getUserId("old-refresh")).willReturn(USER_ID);
+            given(valueOperations.get("refresh:" + USER_ID)).willReturn("old-refresh");
+            given(userMapper.findById(USER_ID)).willReturn(user);
+
+            assertThatThrownBy(() -> authService.refresh(request("old-refresh")))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED));
+
+            then(jwtTokenProvider).should(never()).createAccessToken(USER_ID, PHONE);
         }
     }
 

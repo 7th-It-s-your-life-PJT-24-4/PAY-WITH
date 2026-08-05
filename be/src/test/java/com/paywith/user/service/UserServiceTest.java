@@ -235,17 +235,21 @@ class UserServiceTest {
             User user = new User();
             user.setId(1L);
             user.setName("old-name");
+            user.setAvatarId(1);
             given(userMapper.findById(1L)).willReturn(user);
 
             UserUpdateRequest request = new UserUpdateRequest();
             request.setName("new-name");
+            request.setAvatarId(4);
 
             UserResponse response = userService.update(1L, request);
 
             ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
             then(userMapper).should().update(captor.capture());
             assertThat(captor.getValue().getName()).isEqualTo("new-name");
+            assertThat(captor.getValue().getAvatarId()).isEqualTo(4);
             assertThat(response.getName()).isEqualTo("new-name");
+            assertThat(response.getAvatarId()).isEqualTo(4);
         }
 
         @Test

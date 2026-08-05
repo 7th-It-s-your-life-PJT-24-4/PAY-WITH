@@ -17,6 +17,8 @@ export function guardHomeOptions(
   return queryOptions({
     queryKey: computed(() => guardHomeKeys.detail(resolvedWardId.value)),
     queryFn: () => getGuardHome(resolvedWardId.value ?? undefined),
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
   })
 }
 

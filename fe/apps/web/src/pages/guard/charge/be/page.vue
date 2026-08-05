@@ -1,27 +1,46 @@
 <script setup lang="ts">
 import { ChevronLeft, CircleAlert } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
-import { computed, ref } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { chargeAccountsOptions } from '@/lib/query/account'
 import GuardChargeAccountBottomSheet from '@/pages/guard/charge/-components/GuardChargeAccountBottomSheet.vue'
 import GuardChargeAccountSelectCard from '@/pages/guard/charge/-components/GuardChargeAccountSelectCard.vue'
 import { useGuardStore } from '@/stores/guard.store'
 
 const router = useRouter()
 const guardStore = useGuardStore()
+const accountsQuery = useQuery(chargeAccountsOptions())
 const amount = ref(0)
 const isAccountSheetOpen = ref(false)
 
 const amountText = computed(() =>
   amount.value > 0 ? new Intl.NumberFormat('ko-KR').format(amount.value) : '',
 )
-const canCharge = computed(() => amount.value > 0)
-const selectedAccount = computed(() => guardStore.selectedChargeAccount)
-const selectedAccountBalance = computed(() =>
-  selectedAccount.value
-    ? `${new Intl.NumberFormat('ko-KR').format(selectedAccount.value.balance)}원`
-    : '0원',
+const accounts = computed(() => accountsQuery.data.value ?? [])
+const selectedAccount = computed(() =>
+  accounts.value.find(
+    ({ accountId }) => accountId === guardStore.selectedChargeAccountId,
+  ),
+)
+const canCharge = computed(
+  () => amount.value > 0 && selectedAccount.value !== undefined,
+)
+
+watch(
+  accounts,
+  (value) => {
+    if (value.length === 0) return
+    if (
+      !value.some(
+        ({ accountId }) => accountId === guardStore.selectedChargeAccountId,
+      )
+    )
+      guardStore.selectChargeAccount(value[0].accountId)
+  },
+  { immediate: true },
 )
 
 function updateAmount(value: string) {
@@ -39,7 +58,7 @@ function submitCharge() {
   router.push({ name: 'guard-charge-password' })
 }
 
-function selectAccount(accountId: string) {
+function selectAccount(accountId: number) {
   guardStore.selectChargeAccount(accountId)
   isAccountSheetOpen.value = false
 }
@@ -83,10 +102,8 @@ function goAccountAdd() {
           v-if="selectedAccount"
           class="mt-sm"
           :bank-name="selectedAccount.bankName"
-          :account-suffix="selectedAccount.accountSuffix"
-          :balance="selectedAccountBalance"
-          :icon-url="selectedAccount.iconUrl"
-          :brand-class="selectedAccount.brandClass"
+          :account-suffix="selectedAccount.accountNo.slice(-4)"
+          balance="연동 계좌"
           @click="isAccountSheetOpen = true"
         />
 
@@ -174,7 +191,7 @@ function goAccountAdd() {
 
     <GuardChargeAccountBottomSheet
       v-model:open="isAccountSheetOpen"
-      :accounts="guardStore.chargeAccounts"
+      :accounts="accounts"
       :selected-account-id="guardStore.selectedChargeAccountId"
       @select="selectAccount"
       @add="goAccountAdd"
