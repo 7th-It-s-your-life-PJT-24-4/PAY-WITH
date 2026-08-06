@@ -236,6 +236,22 @@ class PaymentServiceTest {
         assertThat(response.getFailureMessage()).isEqualTo("결제 가능한 잔액이 부족합니다.");
     }
 
+    @Test
+    void getStatus_FAILED_FDS차단이면_failureCode를_그대로_노출() {
+        given(paymentRequestMapper.findUserRole(WARD_ID)).willReturn("WARD");
+        PaymentRequest request = pendingRequest(LocalDateTime.now().minusSeconds(10));
+        request.setStatus(PaymentRequestStatus.FAILED);
+        request.setFailureCode("FDS_BLOCKED");
+        given(paymentRequestMapper.findById(PAYMENT_ID)).willReturn(request);
+
+        PaymentStatusResponse response = paymentService.getStatus(WARD_ID, PAYMENT_ID);
+
+        assertThat(response.getStatus()).isEqualTo("FAILED");
+        assertThat(response.getFailureCode()).isEqualTo("FDS_BLOCKED");
+        // 피보호자 노출 문구는 FE 몫 — BE는 기존 일반 실패 문구를 유지한다
+        assertThat(response.getFailureMessage()).isEqualTo("결제에 실패했습니다.");
+    }
+
     // ---------- 취소 ----------
 
     @Test
