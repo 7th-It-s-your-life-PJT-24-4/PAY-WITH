@@ -8,6 +8,8 @@ import type { TransferRecipient } from '@/stores/transfer.store'
 const props = defineProps<{
   open: boolean
   recipient: TransferRecipient | null
+  pending?: boolean
+  errorMessage?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -32,8 +34,8 @@ function confirm() {
 <template>
   <Modal
     :open="open"
-    title="연락처 추가"
-    description="아래 계좌를 연락처에 추가할까요?"
+    title="안심계좌 추가"
+    description="아래 계좌를 안심계좌에 추가할까요?"
     size="large"
     @update:open="emit('update:open', $event)"
   >
@@ -50,19 +52,27 @@ function confirm() {
       <Input
         v-model="alias"
         class="mt-xl text-left"
-        label="연락처 별칭"
-        placeholder="연락처 별칭 입력(선택)"
+        label="안심계좌 별칭"
+        placeholder="안심계좌 별칭 입력(선택)"
         large
       />
+      <p
+        v-if="errorMessage"
+        class="type-body-small mt-sm text-error"
+        role="alert"
+      >
+        {{ errorMessage }}
+      </p>
     </div>
 
     <template #actions="{ close }">
       <div class="flex flex-col gap-md">
         <Button
           class="w-full"
-          label="추가하기"
+          :label="pending ? '추가 중' : '추가하기'"
           size="large"
           pill
+          :disabled="pending"
           @click="confirm"
         />
         <Button
@@ -71,6 +81,7 @@ function confirm() {
           variant="outline-primary"
           size="large"
           pill
+          :disabled="pending"
           @click="close"
         />
       </div>
