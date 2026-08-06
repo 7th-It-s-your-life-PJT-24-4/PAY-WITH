@@ -3,7 +3,10 @@ import { Button } from '@pay-with/ui'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { getMockWardTransaction } from '@/mocks/transaction.mock'
+import {
+  getMockWardTransaction,
+  mockWardTransactions,
+} from '@/mocks/transaction.mock'
 import TransactionBlockedCard from '@/pages/ward/history/-components/TransactionBlockedCard.vue'
 import TransactionRiskCard from '@/pages/ward/history/-components/TransactionRiskCard.vue'
 import TransactionSummaryCard from '@/pages/ward/history/-components/TransactionSummaryCard.vue'
@@ -11,8 +14,10 @@ import TransactionSummaryCard from '@/pages/ward/history/-components/Transaction
 const route = useRoute()
 const router = useRouter()
 
-const transaction = computed(() =>
-  getMockWardTransaction(Number(route.params.transactionId)),
+const transaction = computed(
+  () =>
+    getMockWardTransaction(Number(route.params.transactionId)) ??
+    mockWardTransactions[0],
 )
 
 function goToHistory() {

@@ -42,6 +42,7 @@ import GuardSafeAccountPage from '@/pages/guard/safe-account/page.vue'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete/page.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
 import WardApprovalRequestDetailPage from '@/pages/ward/approval-requests/[approvalId]/page.vue'
+import WardPendingTransactionsPage from '@/pages/ward/pending-transactions/page.vue'
 import { requireCompletedPairing } from '@/pages/ward/pairing/-utils/pairing-route-guard'
 import WardChargeAccountAddPage from '@/pages/ward/charge/account/add/page.vue'
 import WardChargeAccountCompletePage from '@/pages/ward/charge/account/complete/page.vue'
@@ -459,6 +460,13 @@ const router = createRouter({
             showBottomNavigation: false,
             backRouteName: 'ward-my',
             hideInnerHeader: true,
+          path: 'pending-transactions',
+          name: 'ward-pending-transactions',
+          component: WardPendingTransactionsPage,
+          meta: {
+            title: '승인 대기 거래',
+            activeNavigation: 'home',
+            backRouteName: 'ward-home',
           },
         },
         {

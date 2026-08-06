@@ -158,6 +158,31 @@ test.beforeEach(async ({ page }) => {
     })
   })
 
+  await page.route('**/api/ward/safe-accounts', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          safeAccounts: [
+            {
+              safeAccountId: 1,
+              recipientId: 1,
+              holderName: '김민수',
+              bankCode: '004',
+              bankName: '국민은행',
+              accountNo: '43210201234567',
+              accountAlias: '민수 형',
+              isVerified: true,
+              createdAt: '2026-08-01T12:00:00',
+            },
+          ],
+        },
+        message: null,
+      },
+    })
+  })
+
   await page.route('**/api/ward/transfers/recipient*', async (route) => {
     if (route.request().method() === 'GET') {
       const keyword = new URL(route.request().url()).searchParams.get('keyword')
@@ -383,23 +408,26 @@ test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ 
   await dialog.getByRole('button', { name: '추가하기' }).click()
 
   await expect(dialog).toBeHidden()
-  await expect(page.getByText('지연 이모')).toBeVisible()
   await expect(
     page.getByRole('button', { name: '박지연 연락처 추가' }),
   ).toBeHidden()
 })
 
-test('이름으로 송금 대상을 검색한다', async ({ page }) => {
+test('이름으로 안심계좌를 검색한다', async ({ page }) => {
   await page.goto('/ward/transfer')
 
-  await page.getByLabel('연락처 검색').fill('박지연')
+  await page.getByLabel('안심계좌 검색').fill('민수')
 
-  const contacts = page.locator('section[aria-labelledby="contacts-title"]')
-  await expect(contacts.getByText('박지연')).toBeVisible()
-  await expect(contacts.getByText('김민수')).toBeHidden()
+  const safeAccounts = page.locator(
+    'section[aria-labelledby="safe-accounts-title"]',
+  )
+  await expect(safeAccounts.getByText('민수 형')).toBeVisible()
+  await expect(
+    safeAccounts.getByText('등록된 안심계좌가 없습니다.'),
+  ).toBeHidden()
 })
 
-test('송금 대상이 없으면 최근 섹션을 숨기고 연락처 빈 상태를 표시한다', async ({
+test('송금 대상이 없으면 최근 섹션을 숨기고 안심계좌 빈 상태를 표시한다', async ({
   page,
 }) => {
   await page.unroute('**/api/ward/transfers/recipient*')
@@ -409,13 +437,20 @@ test('송금 대상이 없으면 최근 섹션을 숨기고 연락처 빈 상태
       json: { success: true, data: { recipients: [] }, message: null },
     })
   })
+  await page.unroute('**/api/ward/safe-accounts')
+  await page.route('**/api/ward/safe-accounts', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: { success: true, data: { safeAccounts: [] }, message: null },
+    })
+  })
 
   await page.goto('/ward/transfer')
 
   await expect(
     page.getByRole('heading', { name: '최근 보낸 사람' }),
   ).toBeHidden()
-  await expect(page.getByText('등록된 연락처가 없습니다.')).toBeVisible()
+  await expect(page.getByText('등록된 안심계좌가 없습니다.')).toBeVisible()
 })
 
 test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다', async ({ page }) => {

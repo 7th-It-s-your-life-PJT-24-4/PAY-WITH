@@ -2,13 +2,17 @@
 import { ChevronRight, Landmark, Plus } from '@lucide/vue'
 import { Button, Input } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { wardSafeAccountsOptions } from '@/lib/query/ward/safe-account'
 import { transferRecipientsOptions } from '@/lib/query/ward/transfer'
 import AddTransferContactModal from '@/pages/ward/transfer/-components/AddTransferContactModal.vue'
 import TransferRecipientCard from '@/pages/ward/transfer/-components/TransferRecipientCard.vue'
-import { toTransferRecipient } from '@/pages/ward/transfer/-utils/transfer-recipient'
+import {
+  toSafeAccountTransferRecipient,
+  toTransferRecipient,
+} from '@/pages/ward/transfer/-utils/transfer-recipient'
 import {
   useTransferStore,
   type TransferRecipient,
@@ -22,27 +26,31 @@ const pendingContact = ref<TransferRecipient | null>(null)
 const recentQuery = useQuery(
   transferRecipientsOptions({ sort: 'RECENT', size: 4 }),
 )
-const recipientListParams = computed(() => ({
-  keyword: search.value.trim() || undefined,
-  sort: 'NAME' as const,
-  size: 50,
-}))
-const recipientsQuery = useQuery(transferRecipientsOptions(recipientListParams))
+const safeAccountsQuery = useQuery(wardSafeAccountsOptions())
 const recentRecipients = computed(
   () => recentQuery.data.value?.map(toTransferRecipient) ?? [],
 )
-const contacts = ref<TransferRecipient[]>([])
-
-watch(
-  () => recipientsQuery.data.value,
-  (recipients) => {
-    if (recipients) contacts.value = recipients.map(toTransferRecipient)
-  },
-  { immediate: true },
+const allSafeAccounts = computed(
+  () => safeAccountsQuery.data.value?.map(toSafeAccountTransferRecipient) ?? [],
 )
+const safeAccounts = computed(() =>
+  allSafeAccounts.value.filter((recipient) => {
+    const keyword = search.value.trim()
+    if (!keyword) return true
+    return `${recipient.name}${recipient.holderName ?? ''}${recipient.accountNumber}`.includes(
+      keyword,
+    )
+  }),
+)
+const addedContacts = ref<TransferRecipient[]>([])
+
+const contactCandidates = computed(() => [
+  ...allSafeAccounts.value,
+  ...addedContacts.value,
+])
 
 function isContact(recipient: TransferRecipient) {
-  return contacts.value.some(
+  return contactCandidates.value.some(
     (contact) => contact.id === recipient.id && contact.isContact,
   )
 }
@@ -60,9 +68,9 @@ function addContact(alias: string) {
     name: alias || pendingContact.value.name,
     isContact: true,
   }
-  const index = contacts.value.findIndex(({ id }) => id === nextContact.id)
-  if (index === -1) contacts.value.push(nextContact)
-  else contacts.value[index] = nextContact
+  const index = addedContacts.value.findIndex(({ id }) => id === nextContact.id)
+  if (index === -1) addedContacts.value.push(nextContact)
+  else addedContacts.value[index] = nextContact
   contactModalOpen.value = false
   pendingContact.value = null
 }
@@ -144,7 +152,7 @@ function selectRecipient(recipient: TransferRecipient) {
 
     <Input
       v-model="search"
-      label="연락처 검색"
+      label="안심계좌 검색"
       placeholder="이름 또는 계좌번호 입력"
       large
     />
@@ -163,35 +171,35 @@ function selectRecipient(recipient: TransferRecipient) {
       </template>
     </Button>
 
-    <section aria-labelledby="contacts-title">
-      <h3 id="contacts-title" class="type-h4 mb-md">전체 연락처</h3>
+    <section aria-labelledby="safe-accounts-title">
+      <h3 id="safe-accounts-title" class="type-h4 mb-md">안심계좌</h3>
       <p
-        v-if="recipientsQuery.isPending.value"
+        v-if="safeAccountsQuery.isPending.value"
         class="type-body-medium text-body-muted"
         role="status"
       >
-        송금 대상을 불러오고 있습니다.
+        안심계좌를 불러오고 있습니다.
       </p>
       <div
-        v-else-if="recipientsQuery.isError.value"
+        v-else-if="safeAccountsQuery.isError.value"
         class="rounded-large bg-surface-card p-lg text-center shadow-card"
       >
         <p class="type-body-medium text-error" role="alert">
-          송금 대상을 불러오지 못했습니다.
+          안심계좌를 불러오지 못했습니다.
         </p>
         <Button
           class="mt-md"
           label="다시 시도"
           variant="outline-primary"
-          @click="recipientsQuery.refetch()"
+          @click="safeAccountsQuery.refetch()"
         />
       </div>
       <div
-        v-else-if="contacts.length"
+        v-else-if="safeAccounts.length"
         class="overflow-hidden rounded-large bg-surface-card shadow-card"
       >
         <TransferRecipientCard
-          v-for="recipient in contacts"
+          v-for="recipient in safeAccounts"
           :key="recipient.id"
           :recipient="recipient"
           @select="selectRecipient"
@@ -199,7 +207,9 @@ function selectRecipient(recipient: TransferRecipient) {
       </div>
       <p v-else class="type-body-medium text-center text-body-muted">
         {{
-          search.trim() ? '검색 결과가 없습니다.' : '등록된 연락처가 없습니다.'
+          search.trim()
+            ? '검색 결과가 없습니다.'
+            : '등록된 안심계좌가 없습니다.'
         }}
       </p>
     </section>
