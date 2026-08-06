@@ -460,6 +460,9 @@ const router = createRouter({
             showBottomNavigation: false,
             backRouteName: 'ward-my',
             hideInnerHeader: true,
+          },
+        },
+        {
           path: 'pending-transactions',
           name: 'ward-pending-transactions',
           component: WardPendingTransactionsPage,
