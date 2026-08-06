@@ -6,6 +6,7 @@ import {
   ShoppingBag,
 } from '@lucide/vue'
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import {
   formatTransactionAmount,
@@ -54,7 +55,11 @@ const typeLabel = computed(() => {
 </script>
 
 <template>
-  <article
+  <RouterLink
+    :to="{
+      name: 'ward-transaction-detail',
+      params: { transactionId: String(transaction.transactionId) },
+    }"
     class="flex min-h-[96px] items-center gap-md rounded-large border bg-surface-card p-md shadow-card"
     :class="
       transaction.riskLevel === 'DANGER' ? 'border-error/30' : 'border-border'
@@ -116,5 +121,5 @@ const typeLabel = computed(() => {
         </span>
       </span>
     </span>
-  </article>
+  </RouterLink>
 </template>
