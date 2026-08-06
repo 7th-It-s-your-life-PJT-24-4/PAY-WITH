@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { ChevronRight, Landmark, Plus } from '@lucide/vue'
 import { Button, Input } from '@pay-with/ui'
-import { useQuery } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { wardSafeAccountsOptions } from '@/lib/query/ward/safe-account'
-import { transferRecipientsOptions } from '@/lib/query/ward/transfer'
+import { getApiErrorMessage } from '@/api/error'
+import { registerWardSafeAccount } from '@/api/ward-safe-accounts'
+import {
+  wardSafeAccountKeys,
+  wardSafeAccountsOptions,
+} from '@/lib/query/ward/safe-account'
+import {
+  transferRecipientsOptions,
+  wardTransferKeys,
+} from '@/lib/query/ward/transfer'
 import AddTransferContactModal from '@/pages/ward/transfer/-components/AddTransferContactModal.vue'
 import TransferRecipientCard from '@/pages/ward/transfer/-components/TransferRecipientCard.vue'
 import {
@@ -19,14 +27,25 @@ import {
 } from '@/stores/transfer.store'
 
 const router = useRouter()
+const queryClient = useQueryClient()
 const transferStore = useTransferStore()
 const search = ref('')
 const contactModalOpen = ref(false)
 const pendingContact = ref<TransferRecipient | null>(null)
+const contactErrorMessage = ref<string | null>(null)
 const recentQuery = useQuery(
   transferRecipientsOptions({ sort: 'RECENT', size: 4 }),
 )
 const safeAccountsQuery = useQuery(wardSafeAccountsOptions())
+const registerSafeAccountMutation = useMutation({
+  mutationFn: registerWardSafeAccount,
+  onSuccess: async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: wardSafeAccountKeys.all }),
+      queryClient.invalidateQueries({ queryKey: wardTransferKeys.all }),
+    ])
+  },
+})
 const recentRecipients = computed(
   () => recentQuery.data.value?.map(toTransferRecipient) ?? [],
 )
@@ -42,37 +61,36 @@ const safeAccounts = computed(() =>
     )
   }),
 )
-const addedContacts = ref<TransferRecipient[]>([])
-
-const contactCandidates = computed(() => [
-  ...allSafeAccounts.value,
-  ...addedContacts.value,
-])
-
 function isContact(recipient: TransferRecipient) {
-  return contactCandidates.value.some(
+  return allSafeAccounts.value.some(
     (contact) => contact.id === recipient.id && contact.isContact,
   )
 }
 
 function openContactModal(recipient: TransferRecipient) {
   pendingContact.value = recipient
+  contactErrorMessage.value = null
   contactModalOpen.value = true
 }
 
-function addContact(alias: string) {
+async function addContact(alias: string) {
   if (!pendingContact.value || isContact(pendingContact.value)) return
 
-  const nextContact = {
-    ...pendingContact.value,
-    name: alias || pendingContact.value.name,
-    isContact: true,
+  contactErrorMessage.value = null
+
+  try {
+    await registerSafeAccountMutation.mutateAsync({
+      recipientId: pendingContact.value.id,
+      accountAlias: alias || undefined,
+    })
+    contactModalOpen.value = false
+    pendingContact.value = null
+  } catch (error) {
+    contactErrorMessage.value = await getApiErrorMessage(
+      error,
+      '안심계좌를 추가하지 못했습니다.',
+    )
   }
-  const index = addedContacts.value.findIndex(({ id }) => id === nextContact.id)
-  if (index === -1) addedContacts.value.push(nextContact)
-  else addedContacts.value[index] = nextContact
-  contactModalOpen.value = false
-  pendingContact.value = null
 }
 
 function selectRecipient(recipient: TransferRecipient) {
@@ -125,11 +143,11 @@ function selectRecipient(recipient: TransferRecipient) {
             v-if="!isContact(recipient)"
             class="type-h4 flex min-h-touch-target w-full items-center justify-center gap-xs rounded-full border-2 border-primary-500 bg-surface-card px-sm text-primary-500 outline-none focus-visible:ring-2 focus-visible:ring-focus"
             type="button"
-            :aria-label="`${recipient.name} 연락처 추가`"
+            :aria-label="`${recipient.name} 안심계좌 추가`"
             @click="openContactModal(recipient)"
           >
             <Plus class="size-lg" :stroke-width="2.5" aria-hidden="true" />
-            <span>연락처 추가</span>
+            <span>안심계좌 추가</span>
           </button>
           <span v-else class="min-h-touch-target" aria-hidden="true" />
         </div>
@@ -217,6 +235,8 @@ function selectRecipient(recipient: TransferRecipient) {
     <AddTransferContactModal
       v-model:open="contactModalOpen"
       :recipient="pendingContact"
+      :pending="registerSafeAccountMutation.isPending.value"
+      :error-message="contactErrorMessage"
       @confirm="addContact"
     />
   </div>

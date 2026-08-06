@@ -34,12 +34,12 @@ describe('AddTransferContactModal', () => {
     mountModal()
     await nextTick()
 
-    expect(document.body.textContent).toContain('연락처 추가')
+    expect(document.body.textContent).toContain('안심계좌 추가')
     expect(document.body.textContent).toContain('박지연')
     expect(document.body.textContent).toContain('신한은행 110-234-567890')
   })
 
-  it('입력한 별칭으로 연락처 추가를 요청한다', async () => {
+  it('입력한 별칭으로 안심계좌 추가를 요청한다', async () => {
     const wrapper = mountModal()
     await nextTick()
 

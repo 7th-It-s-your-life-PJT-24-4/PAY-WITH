@@ -16,8 +16,20 @@ export const wardSafeAccountSchema = z.object({
   createdAt: z.string().min(1),
 })
 
+export const registerWardSafeAccountRequestSchema = z.object({
+  recipientId: z.number().int().positive(),
+  accountAlias: z.string().trim().max(50).optional(),
+})
+
+export const wardSafeAccountResponseSchema = apiResponseSchema(
+  wardSafeAccountSchema,
+)
+
 export const wardSafeAccountListResponseSchema = apiResponseSchema(
   z.object({ safeAccounts: z.array(wardSafeAccountSchema) }),
 )
 
+export type RegisterWardSafeAccountRequest = z.infer<
+  typeof registerWardSafeAccountRequestSchema
+>
 export type WardSafeAccount = z.infer<typeof wardSafeAccountSchema>
