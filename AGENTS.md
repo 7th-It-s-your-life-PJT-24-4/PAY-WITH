@@ -162,8 +162,12 @@ pnpm test:e2e
 - Java 17, Spring Framework 5.3.x, Spring Security 5.8.x, MyBatis, WAR 패키징을 기준으로 한다.
 - 패키지는 도메인 단위로 나누고(`com.paywith.<domain>`), 각 도메인 안에서 `controller -> service -> mapper -> domain/dto` 흐름을 유지한다. `common`, `config`, `exception`, `security`는 도메인 공용 인프라라 도메인 패키지로 옮기지 않는다.
 - API 응답은 기존 `ApiResponse<T>` 패턴을 따른다.
-- DB 스키마와 seed 데이터는 `be/src/main/resources/db`를 확인한다.
-- Docker Compose 로컬 실행은 `be/docker-compose.yml`을 기준으로 한다.
+- DB 스키마와 seed 데이터는 `be/src/main/resources/db/migration`을 확인한다. Flyway가 앱 기동 시 적용한다.
+- 스키마를 바꿀 때는 새 마이그레이션 파일을 만든다. 파일명은 `V<YYYYMMDD>_<HHmm>__<요약>.sql`이며, 병렬 브랜치 간 버전 충돌을 피하려고 타임스탬프를 쓴다. 코드와 같은 PR에 넣어야 배포 시 함께 반영된다.
+- 이미 적용된 마이그레이션은 수정하지 않는다(`V1__baseline.sql` 포함). 고치면 Flyway가 checksum 불일치로 기동을 막는다.
+- seed 값은 새 파일 대신 `R__seed.sql`을 고친다. 단 이 파일은 추가·수정만 반영하므로, 룰 폐기는 versioned migration에서 `is_active = FALSE`로 처리한다.
+- RDS에 직접 DDL을 치지 않는다. Flyway는 실행 이력만 볼 뿐 실제 스키마를 검사하지 않아 손으로 바꾼 변경을 감지하지 못한다.
+- Docker Compose 로컬 실행은 `be/docker-compose.yml`을 기준으로 한다. `mysql`만 띄우면 DB가 비어 있고, 앱을 한 번 기동해야 테이블이 생긴다.
 
 ```bash
 cd be
