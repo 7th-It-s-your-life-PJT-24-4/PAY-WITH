@@ -1,9 +1,12 @@
 import { apiClient } from '@/api/client'
 import {
+  executedPaymentResponseSchema,
   paymentCancelResponseSchema,
   paymentQrSessionResponseSchema,
   paymentStatusResponseSchema,
   type CreateWardPaymentRequest,
+  type ExecutedPayment,
+  type ExecutePaymentRequest,
   type PaymentCancel,
   type PaymentQrSession,
   type PaymentStatus,
@@ -22,6 +25,15 @@ export function getWardPaymentStatus(
 ): Promise<PaymentStatus> {
   return apiClient
     .get(`/ward/payments/${paymentId}`, paymentStatusResponseSchema)
+    .then(({ data }) => data)
+}
+
+/** 가맹점 스캐너의 결제 실행 — 60초 1회용 qrToken 이 자격증명이라 인증 없이 호출한다 */
+export function executePayment(
+  request: ExecutePaymentRequest,
+): Promise<ExecutedPayment> {
+  return apiClient
+    .post('/payments/execute', executedPaymentResponseSchema, request)
     .then(({ data }) => data)
 }
 

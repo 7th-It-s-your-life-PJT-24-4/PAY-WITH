@@ -45,6 +45,21 @@ export const completedPaymentSchema = paymentStatusSchema.extend({
   remainingBalance: z.number().int().nonnegative(),
 })
 
+export const executePaymentRequestSchema = z.object({
+  qrToken: z.string().min(1),
+  merchantId: z.number().int().positive(),
+  amount: z.number().int().positive(),
+})
+
+/** 가맹점 스캐너의 결제 실행 결과 — 완료 건 재요청 시 같은 응답이 멱등 반환된다 */
+export const executedPaymentSchema = z.object({
+  transactionId: z.number().int().positive(),
+  status: z.string().min(1),
+  amount: z.number().int().positive(),
+  merchantName: z.string().min(1),
+  createdAt: z.string().datetime({ offset: true }),
+})
+
 export const paymentCancelSchema = z.object({
   paymentId: z.number().int().positive(),
   status: z.literal('CANCELED'),
@@ -58,6 +73,9 @@ export const paymentStatusResponseSchema =
   apiResponseSchema(paymentStatusSchema)
 export const paymentCancelResponseSchema =
   apiResponseSchema(paymentCancelSchema)
+export const executedPaymentResponseSchema = apiResponseSchema(
+  executedPaymentSchema,
+)
 
 export type CreateWardPaymentRequest = z.infer<
   typeof createWardPaymentRequestSchema
@@ -66,3 +84,5 @@ export type PaymentQrSession = z.infer<typeof paymentQrSessionSchema>
 export type PaymentStatus = z.infer<typeof paymentStatusSchema>
 export type CompletedPayment = z.infer<typeof completedPaymentSchema>
 export type PaymentCancel = z.infer<typeof paymentCancelSchema>
+export type ExecutePaymentRequest = z.infer<typeof executePaymentRequestSchema>
+export type ExecutedPayment = z.infer<typeof executedPaymentSchema>
