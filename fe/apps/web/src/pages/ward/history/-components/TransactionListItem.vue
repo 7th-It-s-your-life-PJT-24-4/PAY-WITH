@@ -19,7 +19,33 @@ const props = defineProps<{
   transaction: WardTransactionHistoryItem
 }>()
 
+type InterruptedStatus = 'BLOCKED' | 'REJECTED' | 'CANCELED' | 'FAILED'
+
+const interruptedStatusLabel: Record<InterruptedStatus, string> = {
+  BLOCKED: '거래 차단됨',
+  REJECTED: '거래 거절됨',
+  CANCELED: '거래 취소됨',
+  FAILED: '거래 실패',
+}
+
+const interruptedStatuses = new Set<string>([
+  'BLOCKED',
+  'REJECTED',
+  'CANCELED',
+  'FAILED',
+])
+
+const isInterruptedTransaction = computed(() =>
+  interruptedStatuses.has(props.transaction.status),
+)
+
+const statusBadgeLabel = computed(() => {
+  if (!isInterruptedTransaction.value) return null
+  return interruptedStatusLabel[props.transaction.status as InterruptedStatus]
+})
+
 const icon = computed(() => {
+  if (isInterruptedTransaction.value) return CircleAlert
   if (props.transaction.riskLevel === 'DANGER') return CircleAlert
   if (props.transaction.type === 'PAYMENT') return ShoppingBag
   return props.transaction.direction === 'IN'
@@ -28,13 +54,15 @@ const icon = computed(() => {
 })
 
 const iconClass = computed(() =>
-  props.transaction.riskLevel
-    ? {
-        SAFE: 'bg-primary-900 text-primary-300',
-        CAUTION: 'bg-warning/10 text-warning',
-        DANGER: 'bg-error/10 text-error',
-      }[props.transaction.riskLevel]
-    : 'bg-primary-900 text-body-muted',
+  isInterruptedTransaction.value
+    ? 'bg-gray-900 text-body-muted'
+    : props.transaction.riskLevel
+      ? {
+          SAFE: 'bg-primary-900 text-primary-300',
+          CAUTION: 'bg-warning/10 text-warning',
+          DANGER: 'bg-error/10 text-error',
+        }[props.transaction.riskLevel]
+      : 'bg-primary-900 text-body-muted',
 )
 
 const riskClass = computed(() =>
@@ -45,6 +73,12 @@ const riskClass = computed(() =>
         DANGER: 'bg-error/10 text-error',
       }[props.transaction.riskLevel]
     : '',
+)
+
+const badgeClass = computed(() =>
+  isInterruptedTransaction.value
+    ? 'bg-gray-900 text-body-secondary'
+    : riskClass.value,
 )
 
 const typeLabel = computed(() => {
@@ -62,7 +96,11 @@ const typeLabel = computed(() => {
     }"
     class="flex min-h-[96px] items-center gap-md rounded-large border bg-surface-card p-md shadow-card"
     :class="
-      transaction.riskLevel === 'DANGER' ? 'border-error/30' : 'border-border'
+      isInterruptedTransaction
+        ? 'border-gray-900'
+        : transaction.riskLevel === 'DANGER'
+          ? 'border-error/30'
+          : 'border-border'
     "
     :aria-label="`${transaction.title} ${formatTransactionAmount(transaction.amount, transaction.direction)}`"
   >
@@ -78,21 +116,29 @@ const typeLabel = computed(() => {
       <span class="flex items-start justify-between gap-sm">
         <strong
           class="type-h3 truncate"
-          :class="
-            transaction.riskLevel === 'DANGER' ? 'text-error' : 'text-body'
-          "
+          :class="[
+            isInterruptedTransaction
+              ? 'text-body-muted'
+              : transaction.riskLevel === 'DANGER'
+                ? 'text-error'
+                : 'text-body',
+            isInterruptedTransaction ? 'line-through decoration-2' : '',
+          ]"
         >
           {{ transaction.title }}
         </strong>
         <strong
           class="type-h3 shrink-0 font-number"
-          :class="
-            transaction.riskLevel === 'DANGER'
-              ? 'text-error'
-              : transaction.direction === 'IN'
-                ? 'text-primary-300'
-                : 'text-body'
-          "
+          :class="[
+            isInterruptedTransaction
+              ? 'text-body-muted'
+              : transaction.riskLevel === 'DANGER'
+                ? 'text-error'
+                : transaction.direction === 'IN'
+                  ? 'text-primary-300'
+                  : 'text-body',
+            isInterruptedTransaction ? 'line-through decoration-2' : '',
+          ]"
         >
           {{
             formatTransactionAmount(transaction.amount, transaction.direction)
@@ -109,14 +155,14 @@ const typeLabel = computed(() => {
           {{ typeLabel }}
         </span>
         <span
-          v-if="transaction.riskLevel"
+          v-if="statusBadgeLabel || transaction.riskLevel"
           class="type-caption shrink-0 rounded-full px-sm py-xxs font-medium"
-          :class="riskClass"
+          :class="badgeClass"
         >
           {{
-            transaction.status === 'BLOCKED'
-              ? '거래 차단됨'
-              : transactionRiskLabel[transaction.riskLevel]
+            statusBadgeLabel ??
+            (transaction.riskLevel &&
+              transactionRiskLabel[transaction.riskLevel])
           }}
         </span>
       </span>

@@ -93,6 +93,36 @@ test.beforeEach(async ({ page }) => {
         riskLevel: 'DANGER',
         occurredAt: '2026-07-27T12:00:00',
       },
+      {
+        transactionId: 105,
+        type: 'TRANSFER',
+        direction: 'OUT',
+        title: '김철수',
+        amount: 120_000,
+        status: 'REJECTED',
+        riskLevel: 'DANGER',
+        occurredAt: '2026-07-27T13:00:00',
+      },
+      {
+        transactionId: 106,
+        type: 'TRANSFER',
+        direction: 'OUT',
+        title: '박영희',
+        amount: 30_000,
+        status: 'CANCELED',
+        riskLevel: null,
+        occurredAt: '2026-07-27T14:00:00',
+      },
+      {
+        transactionId: 107,
+        type: 'PAYMENT',
+        direction: 'OUT',
+        title: '실패 상점',
+        amount: 9_000,
+        status: 'FAILED',
+        riskLevel: null,
+        occurredAt: '2026-07-27T15:00:00',
+      },
     ].filter(
       (transaction) =>
         (category === 'ALL' || transaction.type === category) &&
@@ -130,6 +160,19 @@ test('결제 내역을 서버 조건으로 검색한다', async ({ page }) => {
   await page.getByRole('searchbox', { name: '거래 내역 검색' }).fill('제주')
   await expect(page.getByText('CU 제주공항점', { exact: true })).toBeVisible()
   await expect(page.getByText('거래 차단됨', { exact: true })).toBeVisible()
+})
+
+test('이루어지지 않은 거래는 목록에서 상태 뱃지로 표시한다', async ({
+  page,
+}) => {
+  await expect(page.getByText('CU 제주공항점', { exact: true })).toBeVisible()
+  await expect(page.getByText('거래 차단됨', { exact: true })).toBeVisible()
+  await expect(page.getByText('김철수', { exact: true })).toBeVisible()
+  await expect(page.getByText('거래 거절됨', { exact: true })).toBeVisible()
+  await expect(page.getByText('박영희', { exact: true })).toBeVisible()
+  await expect(page.getByText('거래 취소됨', { exact: true })).toBeVisible()
+  await expect(page.getByText('실패 상점', { exact: true })).toBeVisible()
+  await expect(page.getByText('거래 실패', { exact: true })).toBeVisible()
 })
 
 test('차단된 위험 거래는 거절 카드로 표시한다', async ({ page }) => {
