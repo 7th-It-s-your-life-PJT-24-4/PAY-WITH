@@ -187,7 +187,12 @@ async function startPairing() {
         :senior-name="selectedWard?.name ?? ''"
         :balance="formattedBalance"
         @charge="goToCharge"
-        @add-safe-account="router.push({ name: 'guard-safe-account' })"
+        @open-safe-accounts="
+          router.push({
+            name: 'guard-safe-account',
+            query: { wardId: selectedWard?.wardId },
+          })
+        "
       />
 
       <GuardRiskTransactionAlert

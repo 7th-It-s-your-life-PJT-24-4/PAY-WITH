@@ -36,6 +36,7 @@ import GuardMySeniorsPage from '@/pages/guard/my/seniors/page.vue'
 import GuardPage from '@/pages/guard/page.vue'
 import GuardPairingCodePage from '@/pages/guard/pairing/code.vue'
 import GuardSafeAccountConfirmPage from '@/pages/guard/safe-account/confirm/page.vue'
+import GuardSafeAccountAddPage from '@/pages/guard/safe-account/add/page.vue'
 import GuardSafeAccountPage from '@/pages/guard/safe-account/page.vue'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete/page.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
@@ -225,6 +226,15 @@ const router = createRouter({
           path: 'safe-account/confirm',
           name: 'guard-safe-account-confirm',
           component: GuardSafeAccountConfirmPage,
+          meta: {
+            activeNavigation: 'home',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'safe-account/add',
+          name: 'guard-safe-account-add',
+          component: GuardSafeAccountAddPage,
           meta: {
             activeNavigation: 'home',
             showBottomNavigation: false,
