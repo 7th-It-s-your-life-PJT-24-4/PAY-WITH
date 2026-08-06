@@ -1,10 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiClient } from '@/api/client'
-import {
-  getGuardTransactionHistory,
-  getWardTransactionHistory,
-} from '@/api/transaction-history'
+import { getWardTransactionHistory } from '@/api/transaction-history'
 
 vi.mock('@/api/client', () => ({
   apiClient: { get: vi.fn() },
@@ -39,19 +36,6 @@ describe('transaction history API', () => {
 
     expect(apiClient.get).toHaveBeenCalledWith(
       '/ward/transactions?category=TRANSFER&keyword=%ED%99%8D%EA%B8%B8%EB%8F%99&page=1&size=20',
-      expect.anything(),
-    )
-  })
-
-  it('보호자 조회에 wardId와 위험도 조건을 전달한다', async () => {
-    await getGuardTransactionHistory(12, {
-      riskLevel: 'DANGER',
-      page: 0,
-      size: 20,
-    })
-
-    expect(apiClient.get).toHaveBeenCalledWith(
-      '/guard/wards/12/transactions?riskLevel=DANGER&page=0&size=20',
       expect.anything(),
     )
   })

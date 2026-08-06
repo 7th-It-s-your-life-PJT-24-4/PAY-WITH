@@ -1,72 +1,49 @@
 <script setup lang="ts">
-import { PhBank, PhPaperPlaneTilt, PhShoppingBag } from '@phosphor-icons/vue'
-
-import type { GuardTransactionHistoryItem } from '@/schemas/transaction-history.schema'
+import type { GuardTransaction } from '@/mocks/guard-home.mock'
+import { useRouter } from 'vue-router'
+import {
+  guardTransactionCategoryIcons,
+  guardTransactionStatusClasses,
+  guardTransactionStatusLabels,
+} from '@/pages/guard/-utils/guard-transaction-ui'
 
 defineProps<{
-  transactions: GuardTransactionHistoryItem[]
+  transactions: GuardTransaction[]
 }>()
 
-const typeIcons = {
-  CHARGE: PhBank,
-  TRANSFER: PhPaperPlaneTilt,
-  PAYMENT: PhShoppingBag,
-}
-
-const riskClasses = {
-  SAFE: 'bg-success/10 text-success',
-  CAUTION: 'bg-warning/10 text-warning',
-  DANGER: 'bg-error/10 text-error',
-}
-
-const riskLabels = {
-  SAFE: '안전',
-  CAUTION: '주의',
-  DANGER: '위험',
-}
-
-function formatDate(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value.slice(0, 10)
-  return new Intl.DateTimeFormat('ko-KR', {
-    month: 'long',
-    day: 'numeric',
-  }).format(date)
-}
-
-function formatAmount(transaction: GuardTransactionHistoryItem) {
-  const sign = transaction.type === 'CHARGE' ? '+' : '-'
-  return `${sign}${transaction.amount.toLocaleString('ko-KR')}원`
-}
+const router = useRouter()
 </script>
 
 <template>
   <section aria-label="거래 내역">
     <template
       v-for="(transaction, index) in transactions"
-      :key="transaction.transactionId"
+      :key="transaction.id"
     >
       <p
-        v-if="
-          index === 0 ||
-          formatDate(transactions[index - 1]?.createdAt ?? '') !==
-            formatDate(transaction.createdAt)
-        "
+        v-if="index === 0 || transactions[index - 1]?.date !== transaction.date"
         class="type-body-medium mb-xs text-gray-500"
         :class="index > 0 ? 'mt-md' : ''"
       >
-        {{ formatDate(transaction.createdAt) }}
+        {{ transaction.date }}
       </p>
 
-      <article
+      <button
         class="flex h-[60px] w-full items-center bg-white px-sm text-left"
-        :aria-label="`${formatDate(transaction.createdAt)} ${transaction.counterpartyName ?? '거래'} ${formatAmount(transaction)}`"
+        type="button"
+        :aria-label="`${transaction.date} 거래 상세 보기`"
+        @click="
+          router.push({
+            name: 'guard-transaction-detail',
+            params: { transactionId: transaction.id },
+          })
+        "
       >
         <span
           class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"
         >
           <component
-            :is="typeIcons[transaction.type]"
+            :is="guardTransactionCategoryIcons[transaction.category]"
             class="size-[18px]"
             weight="fill"
             aria-hidden="true"
@@ -76,22 +53,21 @@ function formatAmount(transaction: GuardTransactionHistoryItem) {
           <p
             class="text-[14px] font-semibold leading-[1.2] tracking-[-0.28px] text-black"
           >
-            {{ formatAmount(transaction) }}
+            {{ transaction.amount }}
           </p>
           <p
             class="mt-xxs truncate text-[12px] font-medium leading-[1.2] tracking-[-0.24px] text-gray-700"
           >
-            {{ transaction.counterpartyName ?? '거래 상대 정보 없음' }}
+            {{ transaction.description }}
           </p>
         </div>
         <span
-          v-if="transaction.riskLevel"
           class="rounded-small px-[6px] py-xxs text-[10px] font-bold leading-[1.2] tracking-[-0.2px]"
-          :class="riskClasses[transaction.riskLevel]"
+          :class="guardTransactionStatusClasses[transaction.status]"
         >
-          {{ riskLabels[transaction.riskLevel] }}
+          {{ guardTransactionStatusLabels[transaction.status] }}
         </span>
-      </article>
+      </button>
     </template>
   </section>
 </template>

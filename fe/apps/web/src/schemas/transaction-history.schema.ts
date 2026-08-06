@@ -22,17 +22,6 @@ export const wardTransactionHistoryItemSchema = z.object({
   occurredAt: z.string().min(1),
 })
 
-export const guardTransactionHistoryItemSchema = z.object({
-  transactionId: z.number().int().positive(),
-  type: transactionHistoryTypeSchema,
-  status: z.string().min(1),
-  counterpartyName: z.string().nullable(),
-  amount: z.number().int().nonnegative(),
-  riskLevel: transactionRiskLevelSchema.nullable(),
-  riskReason: z.string().nullable(),
-  createdAt: z.string().min(1),
-})
-
 function pagedTransactionHistorySchema<T extends z.ZodTypeAny>(itemSchema: T) {
   return z.object({
     transactions: z.array(itemSchema),
@@ -47,15 +36,8 @@ function pagedTransactionHistorySchema<T extends z.ZodTypeAny>(itemSchema: T) {
 export const wardTransactionHistorySchema = pagedTransactionHistorySchema(
   wardTransactionHistoryItemSchema,
 )
-export const guardTransactionHistorySchema = pagedTransactionHistorySchema(
-  guardTransactionHistoryItemSchema,
-)
-
 export const wardTransactionHistoryResponseSchema = apiResponseSchema(
   wardTransactionHistorySchema,
-)
-export const guardTransactionHistoryResponseSchema = apiResponseSchema(
-  guardTransactionHistorySchema,
 )
 
 export type TransactionHistoryType = z.infer<
@@ -65,12 +47,6 @@ export type TransactionRiskLevel = z.infer<typeof transactionRiskLevelSchema>
 export type WardTransactionHistoryItem = z.infer<
   typeof wardTransactionHistoryItemSchema
 >
-export type GuardTransactionHistoryItem = z.infer<
-  typeof guardTransactionHistoryItemSchema
->
 export type WardTransactionHistory = z.infer<
   typeof wardTransactionHistorySchema
->
-export type GuardTransactionHistory = z.infer<
-  typeof guardTransactionHistorySchema
 >
