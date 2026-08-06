@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.paywith.approval.domain.ApprovalRequestView;
-import com.paywith.approval.dto.ApprovalHistoryResultResponse;
 import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import com.paywith.approval.service.ApprovalRequestService;
 import com.paywith.approval.service.ApprovalTransferFacade;
@@ -81,7 +80,6 @@ class ApprovalRequestControllerTest {
         view.setRequestedAt(LocalDateTime.of(2026, 8, 5, 9, 0));
         view.setExpiredAt(LocalDateTime.of(2026, 8, 5, 12, 0));
         view.setRespondedAt(LocalDateTime.of(2026, 8, 5, 9, 10));
-        view.setTransactionStatus("REJECTED");
         return view;
     }
 
@@ -96,6 +94,7 @@ class ApprovalRequestControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data[0].approvalId").value(APPROVAL_ID))
+            .andExpect(jsonPath("$.data[0].transactionId").value(500L))
             .andExpect(jsonPath("$.data[0].status").value("CANCELED"))
             .andExpect(jsonPath("$.data[0].respondedAt").isArray());
 
@@ -103,20 +102,4 @@ class ApprovalRequestControllerTest {
             .findHistory(GUARD_ID, WARD_ID, "CANCELED");
     }
 
-    @Test
-    void findHistoryResult_returnsDatabaseBackedSnapshotShape() throws Exception {
-        ApprovalHistoryResultResponse response =
-            new ApprovalHistoryResultResponse(processedView("EXPIRED"), List.of());
-        given(approvalRequestService.findHistoryResult(APPROVAL_ID, GUARD_ID))
-            .willReturn(response);
-
-        mockMvc.perform(get("/api/approval-requests/100/result"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.detail.approvalId").value(APPROVAL_ID))
-            .andExpect(jsonPath("$.data.detail.wardId").value(WARD_ID))
-            .andExpect(jsonPath("$.data.decision.status").value("EXPIRED"))
-            .andExpect(jsonPath("$.data.decision.transfer").isEmpty());
-
-        then(approvalRequestService).should().findHistoryResult(APPROVAL_ID, GUARD_ID);
-    }
 }

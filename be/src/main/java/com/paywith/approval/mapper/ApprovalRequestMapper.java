@@ -51,11 +51,6 @@ public interface ApprovalRequestMapper {
         @Param("approvalId") Long approvalId,
         @Param("guardId") Long guardId);
 
-    /** 보호자 담당 범위에서 종결된 승인요청 결과 상세. */
-    ApprovalRequestView findHistoryResultByIdAndGuardId(
-        @Param("approvalId") Long approvalId,
-        @Param("guardId") Long guardId);
-
     /**
      * 피보호자 본인의 승인 대기 건 상세.
      *

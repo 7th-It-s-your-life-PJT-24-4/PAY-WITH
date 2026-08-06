@@ -5,41 +5,54 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import GuardApprovalHeader from '@/pages/guard/approval-requests/-components/GuardApprovalHeader.vue'
-import { getApprovalDecisionSnapshot } from '@/pages/guard/approval-requests/-utils/approval-decision-snapshot'
 
 const route = useRoute()
 const router = useRouter()
-const approvalId = computed(() => {
-  const value = Number(route.params.approvalId)
+const transactionId = computed(() => {
+  const value = Number(route.query.transactionId)
   return Number.isSafeInteger(value) && value > 0 ? value : null
 })
-const snapshot = computed(() =>
-  approvalId.value ? getApprovalDecisionSnapshot(approvalId.value) : null,
+const wardId = computed(() => {
+  const value = Number(route.query.wardId)
+  return Number.isSafeInteger(value) && value > 0 ? value : null
+})
+const decision = computed(() => {
+  if (route.query.decision === 'approved') return 'approved'
+  if (route.query.decision === 'rejected') return 'rejected'
+  return null
+})
+const hasResult = computed(
+  () =>
+    transactionId.value !== null &&
+    wardId.value !== null &&
+    decision.value !== null,
 )
-const isApproved = computed(
-  () => snapshot.value?.decision.status === 'APPROVED',
-)
+const isApproved = computed(() => decision.value === 'approved')
 
 function goToList() {
   router.replace({
     name: 'guard-approval-requests',
-    query: snapshot.value
-      ? {
-          wardId: snapshot.value.detail.wardId,
-          status: isApproved.value ? 'approved' : 'rejected',
-        }
-      : undefined,
+    query: {
+      wardId: wardId.value ?? undefined,
+      status: decision.value ?? undefined,
+    },
   })
 }
 
 function confirm() {
-  if (!approvalId.value || !snapshot.value) {
+  if (!hasResult.value) {
     goToList()
     return
   }
+
   router.replace({
-    name: 'guard-approval-request-result',
-    params: { approvalId: approvalId.value },
+    name: 'guard-transaction-detail',
+    params: { transactionId: transactionId.value! },
+    query: {
+      wardId: wardId.value!,
+      status: decision.value!,
+      source: 'approval',
+    },
   })
 }
 </script>
@@ -53,7 +66,7 @@ function confirm() {
     />
 
     <section
-      v-if="snapshot"
+      v-if="hasResult"
       class="flex flex-1 flex-col items-center pt-[100px] text-center"
       aria-labelledby="approval-decision-complete-title"
     >
@@ -86,7 +99,7 @@ function confirm() {
       <Button
         class="w-full"
         label="확인"
-        :variant="isApproved || !snapshot ? 'guard-cta' : 'danger'"
+        :variant="isApproved || !hasResult ? 'guard-cta' : 'danger'"
         size="guard-cta"
         @click="confirm"
       />

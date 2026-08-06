@@ -17,7 +17,6 @@ import {
 } from '@/lib/query/guard/approval'
 import GuardApprovalDetailContent from '@/pages/guard/approval-requests/-components/GuardApprovalDetailContent.vue'
 import GuardApprovalHeader from '@/pages/guard/approval-requests/-components/GuardApprovalHeader.vue'
-import { saveApprovalDecisionSnapshot } from '@/pages/guard/approval-requests/-utils/approval-decision-snapshot'
 
 type TransactionDecision = 'approved' | 'rejected'
 
@@ -78,7 +77,6 @@ async function confirmDecision() {
       id,
       decision: pendingDecision.value,
     })
-    saveApprovalDecisionSnapshot(detail, decision)
     isDecisionConfirmOpen.value = false
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: guardApprovalKeys.lists() }),
@@ -87,6 +85,11 @@ async function confirmDecision() {
     await router.replace({
       name: 'guard-approval-decision-complete',
       params: { approvalId: id },
+      query: {
+        wardId: detail.wardId,
+        transactionId: decision.transactionId,
+        decision: decision.status.toLowerCase(),
+      },
     })
   } catch (error) {
     isDecisionConfirmOpen.value = false

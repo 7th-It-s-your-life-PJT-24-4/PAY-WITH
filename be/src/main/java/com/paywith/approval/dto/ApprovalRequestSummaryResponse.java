@@ -14,6 +14,9 @@ public class ApprovalRequestSummaryResponse {
     @ApiModelProperty(value = "승인요청 ID", example = "1")
     private final Long approvalId;
 
+    @ApiModelProperty(value = "대상 거래 ID", example = "500")
+    private final Long transactionId;
+
     @ApiModelProperty(value = "송금을 요청한 피보호자 ID. 목록을 피보호자별로 묶거나 필터링할 때 쓴다", example = "42")
     private final Long wardId;
 
@@ -47,6 +50,7 @@ public class ApprovalRequestSummaryResponse {
 
     public ApprovalRequestSummaryResponse(ApprovalRequestView view) {
         this.approvalId = view.getApprovalId();
+        this.transactionId = view.getTransactionId();
         this.wardId = view.getWardId();
         this.wardName = view.getWardName();
         this.amount = view.getAmount();
