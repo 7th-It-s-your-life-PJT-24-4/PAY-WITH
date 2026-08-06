@@ -4,6 +4,7 @@ import {
   approvalRequestDetailResponseSchema,
   approvalRequestListResponseSchema,
   type ApprovalDecision,
+  type ApprovalHistoryStatus,
   type ApprovalRequestDetail,
   type ApprovalRequestSummary,
 } from '@/schemas/approval.schema'
@@ -25,6 +26,20 @@ export async function getApprovalRequestDetail(
   const response = await apiClient.get(
     `/approval-requests/${approvalId}`,
     approvalRequestDetailResponseSchema,
+  )
+  return response.data
+}
+
+export async function getApprovalRequestHistory(
+  status: ApprovalHistoryStatus,
+  wardId?: number,
+): Promise<ApprovalRequestSummary[]> {
+  const query = new URLSearchParams({ status })
+  if (wardId !== undefined) query.set('wardId', String(wardId))
+
+  const response = await apiClient.get(
+    `/approval-requests/history?${query.toString()}`,
+    approvalRequestListResponseSchema,
   )
   return response.data
 }

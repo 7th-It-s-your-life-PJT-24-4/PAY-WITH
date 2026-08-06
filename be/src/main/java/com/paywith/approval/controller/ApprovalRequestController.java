@@ -1,7 +1,6 @@
 package com.paywith.approval.controller;
 
 import com.paywith.approval.dto.ApprovalDecisionResponse;
-import com.paywith.approval.dto.ApprovalHistoryResultResponse;
 import com.paywith.approval.dto.ApprovalRequestDetailResponse;
 import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import com.paywith.approval.service.ApprovalRequestService;
@@ -72,20 +71,6 @@ public class ApprovalRequestController {
         @PathVariable Long approvalId
     ) {
         return ApiResponse.success(approvalRequestService.findDetail(approvalId, guardId));
-    }
-
-    @ApiOperation(
-        value = "종결된 승인요청 상세",
-        notes = "승인·거절·피보호자 취소·자동 만료 건의 이상거래 상세와 종결 결과를 반환한다. "
-            + "대기 건, 담당하지 않는 시니어의 건, 다른 보호자가 승인·거절한 건은 404.")
-    @GetMapping("/{approvalId}/result")
-    public ApiResponse<ApprovalHistoryResultResponse> findHistoryResult(
-        @ApiIgnore @AuthenticationPrincipal Long guardId,
-        @ApiParam(value = "승인요청 ID", required = true, example = "1")
-        @PathVariable Long approvalId
-    ) {
-        return ApiResponse.success(
-            approvalRequestService.findHistoryResult(approvalId, guardId));
     }
 
     @ApiOperation(

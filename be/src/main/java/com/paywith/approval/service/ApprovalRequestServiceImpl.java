@@ -3,7 +3,6 @@ package com.paywith.approval.service;
 import com.paywith.approval.domain.ApprovalRequest;
 import com.paywith.approval.domain.ApprovalRequestView;
 import com.paywith.approval.dto.ApprovalDecisionResponse;
-import com.paywith.approval.dto.ApprovalHistoryResultResponse;
 import com.paywith.approval.dto.ApprovalRequestDetailResponse;
 import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import com.paywith.approval.mapper.ApprovalRequestMapper;
@@ -76,18 +75,6 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
             throw notFound();
         }
         return new ApprovalRequestDetailResponse(
-            view, approvalRequestMapper.findRuleHits(view.getTransactionId()));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ApprovalHistoryResultResponse findHistoryResult(Long approvalId, Long guardId) {
-        ApprovalRequestView view =
-            approvalRequestMapper.findHistoryResultByIdAndGuardId(approvalId, guardId);
-        if (view == null) {
-            throw notFound();
-        }
-        return new ApprovalHistoryResultResponse(
             view, approvalRequestMapper.findRuleHits(view.getTransactionId()));
     }
 

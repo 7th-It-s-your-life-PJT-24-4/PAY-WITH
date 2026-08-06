@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   approveApprovalRequest,
   getApprovalRequestDetail,
+  getApprovalRequestHistory,
   getApprovalRequests,
   rejectApprovalRequest,
 } from '@/api/approval-requests'
@@ -82,6 +83,21 @@ describe('guard approval request API', () => {
       '/approval-requests/3/reject',
       expect.anything(),
       {},
+    )
+  })
+
+  it('선택한 시니어와 상태로 승인 이력을 조회한다', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      success: true,
+      data: [],
+      message: null,
+    })
+
+    await getApprovalRequestHistory('APPROVED', 12)
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/approval-requests/history?status=APPROVED&wardId=12',
+      expect.anything(),
     )
   })
 })

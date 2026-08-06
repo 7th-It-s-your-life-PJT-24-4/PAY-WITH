@@ -27,9 +27,6 @@
     <result property="accountNo"     column="account_no" />
     <result property="riskLevel"     column="risk_level" />
     <result property="totalScore"    column="total_score" />
-    <result property="transactionStatus" column="transaction_status" />
-    <result property="completedAt"       column="completed_at" />
-    <result property="balanceAfter"      column="balance_after" />
   </resultMap>
 
   <!-- 승인 화면에 필요한 값을 한 번에 모은다. 수취인·평가는 없을 수 있어 LEFT JOIN. -->
@@ -52,10 +49,7 @@
     b.bank_name,
     r.account_no,
     re.risk_level,
-    re.total_score,
-    t.status          AS transaction_status,
-    t.completed_at,
-    t.balance_after
+    re.total_score
   </sql>
 
   <sql id="viewJoins">
@@ -147,18 +141,6 @@
       AND gs.guard_id = #{guardId}
       AND ar.status = 'PENDING'
       AND ar.expired_at &gt; NOW()
-  </select>
-
-  <select id="findHistoryResultByIdAndGuardId" resultMap="ApprovalRequestViewResultMap">
-    SELECT <include refid="viewColumns" />
-    <include refid="viewJoins" />
-    WHERE ar.approval_id = #{approvalId}
-      AND gs.guard_id = #{guardId}
-      AND (
-        (ar.status IN ('APPROVED', 'REJECTED') AND ar.responded_by = #{guardId})
-        OR (ar.status = 'CANCELED' AND ar.responded_by = senior.user_id)
-        OR (ar.status = 'EXPIRED' AND ar.responded_by IS NULL)
-      )
   </select>
 
   <!-- 승인/거절 전용 내부 조회. 화면용 컬럼이 필요 없어 담당 확인 경로만 조인한다. -->
