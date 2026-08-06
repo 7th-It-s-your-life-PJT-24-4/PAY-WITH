@@ -22,4 +22,7 @@ public class ChargeRequest {
     @NotNull(message = "충전 금액은 필수입니다.")
     @Positive(message = "충전 금액은 0보다 커야 합니다.")
     private Long amount;
+
+    @ApiModelProperty(value = "충전 비밀번호 (보호자 대리충전 시 필수, 본인 충전 시 불필요)", example = "123456")
+    private String pin;
 }
