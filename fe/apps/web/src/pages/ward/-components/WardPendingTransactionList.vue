@@ -43,11 +43,15 @@ function getAccessibleLabel(transaction: PendingApprovalItem) {
 </script>
 
 <template>
-  <ul v-if="transactions.length" class="grid gap-md">
-    <li v-for="transaction in transactions" :key="transaction.approvalId">
+  <ul v-if="transactions.length" class="grid min-w-0 gap-md">
+    <li
+      v-for="transaction in transactions"
+      :key="transaction.approvalId"
+      class="min-w-0"
+    >
       <button
         type="button"
-        class="flex min-h-[96px] w-full items-center gap-md rounded-large border bg-surface-card p-md text-left shadow-card outline-none transition-colors hover:bg-primary-900/50 focus-visible:ring-2 focus-visible:ring-focus"
+        class="flex min-h-[96px] w-full min-w-0 items-center gap-md rounded-large border bg-surface-card p-md text-left shadow-card outline-none transition-colors hover:bg-primary-900/50 focus-visible:ring-2 focus-visible:ring-focus"
         :class="
           transaction.riskLevel === 'DANGER'
             ? 'border-error/30'
@@ -73,18 +77,22 @@ function getAccessibleLabel(transaction: PendingApprovalItem) {
           <ArrowUpFromLine v-else class="size-7" :stroke-width="2" />
         </span>
 
-        <span class="min-w-0 flex-1">
-          <span class="flex items-start justify-between gap-sm">
-            <strong class="type-h3 truncate text-body">
+        <span class="min-w-0 flex-1 overflow-hidden">
+          <span
+            class="flex min-w-0 flex-wrap items-start justify-between gap-x-sm gap-y-xxs"
+          >
+            <strong class="type-h3 min-w-0 flex-1 truncate text-body">
               {{ transaction.holderName }} 님에게
             </strong>
-            <strong class="type-h3 shrink-0 font-number text-body">
+            <strong class="type-h3 max-w-full font-number text-body">
               {{ formatAmount(transaction.amount) }}
             </strong>
           </span>
 
-          <span class="mt-xs flex items-center justify-between gap-sm">
-            <span class="type-caption min-w-0 truncate text-body-muted">
+          <span
+            class="mt-xs flex min-w-0 flex-wrap items-center justify-between gap-x-sm gap-y-xxs"
+          >
+            <span class="type-caption min-w-0 flex-1 truncate text-body-muted">
               <span class="font-number">{{
                 formatTime(transaction.requestedAt)
               }}</span>
@@ -94,7 +102,7 @@ function getAccessibleLabel(transaction: PendingApprovalItem) {
               {{ transaction.bankName }} {{ transaction.accountNo }}
             </span>
             <span
-              class="type-caption shrink-0 rounded-full px-sm py-xxs font-medium"
+              class="type-caption rounded-full px-sm py-xxs font-medium"
               :class="
                 transaction.riskLevel
                   ? riskClass[transaction.riskLevel]
