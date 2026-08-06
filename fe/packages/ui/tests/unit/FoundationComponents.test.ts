@@ -82,6 +82,26 @@ describe('AppHeader', () => {
     expect(wrapper.emitted('back')).toHaveLength(1)
     expect(wrapper.emitted('profile')).toHaveLength(1)
   })
+
+  it('supports primary header colors', () => {
+    const wrapper = mount(AppHeader, {
+      props: {
+        title: 'PayWith',
+        showBack: true,
+        showProfile: true,
+        variant: 'primary',
+      },
+    })
+
+    expect(wrapper.get('header').classes()).toContain('bg-primary-500')
+    expect(wrapper.get('h1').classes()).toContain('text-white')
+    expect(wrapper.get('[aria-label="뒤로 가기"]').classes()).toContain(
+      'text-white',
+    )
+    expect(wrapper.get('[aria-label="내 정보"]').classes()).toContain(
+      'text-white',
+    )
+  })
 })
 
 describe('BottomNavigation', () => {
