@@ -150,12 +150,10 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
         return  detail;
     }
 
-     // riskAnalysis 조립. 현재 점수제 FDS는 송금(TRANSFER)에만 붙어있다.
-     // TODO: 결제 FDS가 점수제로 개편되면 PAYMENT 분기 추가 (payment_risk_evaluations 등 신규 테이블 조회)
-
+    // riskAnalysis 조립
     private RiskAnalysisResponse buildRiskAnalysis(Long transactionId, String type, String riskLevel, Integer riskScore) {
-        if (!"TRANSFER".equals(type)) {
-            return null; // CHARGE/PAYMENT는 아직 점수제 FDS 없음
+        if (!"TRANSFER".equals(type) && !"PAYMENT".equals(type)) {
+            return null; // CHARGE 평가 대상이 아님
         }
         if (riskLevel == null || "SAFE".equals(riskLevel) || riskScore == null) {
             return null; // 평가 대상 아니었거나, 안전 거래

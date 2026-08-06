@@ -339,10 +339,10 @@ class TransactionHistoryServiceImplTest {
     }
 
     @Test
-    void 본인_거래상세가_TRANSFER가_아니면_riskAnalysis는_null이고_위험사유는_조회하지_않는다() {
+    void 본인_거래상세가_TRANSFER_PAYMENT가_아니면_riskAnalysis는_null이고_위험사유는_조회하지_않는다() {
         TransactionDetailResponse detail = TransactionDetailResponse.builder()
                 .transactionId(transactionId)
-                .type("PAYMENT")
+                .type("CHARGE")
                 .riskLevel("CAUTION")
                 .riskScore(50)
                 .build();
@@ -353,6 +353,26 @@ class TransactionHistoryServiceImplTest {
         assertThat(response.getRiskAnalysis()).isNull();
         verify(transactionMapper, never()).findRiskReasons(any());
         verify(transactionMapper, never()).findLlmSummary(any());
+    }
+
+    @Test
+    void 본인_거래상세가_PAYMENT이고_CAUTION_DANGER면_riskAnalysis를_조립한다() {
+        TransactionDetailResponse detail = TransactionDetailResponse.builder()
+                .transactionId(transactionId)
+                .type("PAYMENT")
+                .riskLevel("DANGER")
+                .riskScore(70)
+                .build();
+        given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(detail);
+        given(transactionMapper.findRiskReasons(transactionId)).willReturn(List.of("HIGH_AMOUNT"));
+        given(transactionMapper.findLlmSummary(transactionId)).willReturn("평소보다 큰 결제");
+
+        TransactionDetailResponse response = transactionHistoryService.findMyTransactionDetail(userId, transactionId);
+
+        assertThat(response.getRiskAnalysis()).isNotNull();
+        assertThat(response.getRiskAnalysis().getRiskScore()).isEqualTo(70);
+        assertThat(response.getRiskAnalysis().getSummary()).isEqualTo("평소보다 큰 결제");
+        assertThat(response.getRiskAnalysis().getReasons()).containsExactly("HIGH_AMOUNT");
     }
 
     @Test
