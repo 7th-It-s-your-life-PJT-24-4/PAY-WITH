@@ -32,6 +32,27 @@ jobs:
     defaults:
       run:
         working-directory: be
+    # 스키마는 앱이 기동하면서 Flyway 로 적용하므로, DB 가 없으면 마이그레이션 SQL 이 CI 에서
+    # 한 번도 실행되지 않는다. 그러면 깨진 마이그레이션이 초록불로 머지돼 배포 시점에 터지고,
+    # MySQL 은 DDL 트랜잭션이 없어 중간까지 적용된 채 실패로 기록되면 이후 기동이 계속 막힌다.
+    # RootContextSmokeTest 도 3306 이 없으면 스킵되므로 스프링 조립 검증까지 함께 꺼진다.
+    # 로컬·RDS 와 같은 8.4 를 쓴다. 계정·DB 이름은 application-local.properties 의 기본값과
+    # 맞춰 두어 별도 환경변수 없이 붙는다.
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: paywith
+          MYSQL_USER: paywith
+          MYSQL_PASSWORD: paywith
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -44,6 +65,27 @@ jobs:
       # war 만 만들고 -x test 로 넘기면 회귀를 못 잡는다. build 는 test 를 포함한다.
       - name: Build and test
         run: ./gradlew clean build
+      # 스모크 테스트는 3306 이 없으면 조용히 스킵한다. MySQL 서비스가 뜨지 않거나 접속 설정이
+      # 어긋나면 빌드는 그대로 초록불인 채 마이그레이션 검증만 사라진다 — 침묵이 성공처럼
+      # 보이는 상태다. 실제로 실행됐는지 명시적으로 확인한다.
+      - name: Verify migration smoke test actually ran
+        run: |
+          report=build/test-results/test/TEST-com.paywith.config.RootContextSmokeTest.xml
+          if [ ! -f "$report" ]; then
+            echo "::error::스모크 테스트 결과 파일이 없다. 테스트가 실행되지 않았다."
+            exit 1
+          fi
+          skipped=$(sed -n 's/.*skipped="\([0-9]*\)".*/\1/p' "$report" | head -1)
+          if [ "$skipped" != "0" ]; then
+            echo "::error::스모크 테스트가 스킵됐다(skipped=$skipped). MySQL 서비스 상태를 확인할 것."
+            exit 1
+          fi
+          echo "스모크 테스트 실행 확인 (skipped=0) — 마이그레이션이 빈 DB 에 실제로 적용됐다."
+      # 첫 실행에서 만들어진 스키마 위에 한 번 더 붙인다. 이미 적용된 DB 에서 migrate 가
+      # checksum validate 를 통과하고 중복 적용하지 않는지 보는 것으로, 배포 때마다 벌어지는
+      # 상황이다. 어느 쪽이 어긋나도 Flyway 가 예외를 던져 이 테스트가 실패한다.
+      - name: Verify migration re-run safety
+        run: ./gradlew test --tests 'com.paywith.config.RootContextSmokeTest' --rerun-tasks
       - name: Upload test report
         if: failure()
         uses: actions/upload-artifact@v4

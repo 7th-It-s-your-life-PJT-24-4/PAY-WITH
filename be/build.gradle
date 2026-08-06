@@ -30,6 +30,7 @@ ext {
     jjwtVersion = '0.11.5'
     mybatisVersion = '3.5.16'
     mybatisSpringVersion = '2.1.2'
+    flywayVersion = '10.20.1'
     springfoxVersion = '3.0.0'
     springDataRedisVersion = '2.7.18'
     lettuceVersion = '6.1.10.RELEASE'
@@ -53,6 +54,9 @@ dependencies {
     implementation "org.mybatis:mybatis-spring:${mybatisSpringVersion}"
     implementation 'com.mysql:mysql-connector-j:8.0.33'
     implementation 'com.zaxxer:HikariCP:5.1.0'
+    // Flyway 10 부터 DB 별 지원이 별도 모듈로 분리되어 flyway-mysql 이 함께 필요하다.
+    implementation "org.flywaydb:flyway-core:${flywayVersion}"
+    implementation "org.flywaydb:flyway-mysql:${flywayVersion}"
     implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
     runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
     runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"

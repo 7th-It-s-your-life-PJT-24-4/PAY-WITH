@@ -36,7 +36,7 @@ public interface ApprovalRequestService {
      * 보류된 송금을 승인한다.
      *
      * <p>approval_requests 와 transactions 의 상태를 같은 트랜잭션에서 함께 갱신한다
-     * (schema.sql 의 single writer 규칙).
+     * (V1__baseline.sql 의 single writer 규칙).
      */
     ApprovalDecisionResponse approve(Long approvalId, Long guardId);
 

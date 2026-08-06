@@ -1,5 +1,5 @@
 -- =====================================================================
--- 보호자 승인 파트 개발 전용 시드 — 공용 data.sql과 분리 관리
+-- 보호자 승인 파트 개발 전용 시드 — 공용 R__seed.sql과 분리 관리
 --
 -- 승인 API의 대기/상세/승인/거절/피보호자 취소/이력 조회 분기를 전부 밟게 구성한다.
 --   보호자 A(9101) 담당: 시니어 A1(9102), A2(9103)
@@ -89,7 +89,7 @@ INSERT INTO risk_evaluations
     ON DUPLICATE KEY UPDATE total_score = VALUES(total_score), risk_level = VALUES(risk_level);
 
 -- ⑦ 발동한 룰 내역 (상세 응답의 ruleHits, 점수 큰 순 정렬 확인용) ------
---    rule_id 는 data.sql 시드 기준: 3=SUSPICIOUS_MEMO(25) 4=HIGH_AMOUNT_L2(18)
+--    rule_id 는 R__seed.sql 시드 기준: 3=SUSPICIOUS_MEMO(25) 4=HIGH_AMOUNT_L2(18)
 --    6=NEW_RECIPIENT(15) 2=DIVISION_TRANSFER(28) 7=REPEATED(14) 8=NIGHT_TIME_DEEP(14)
 INSERT INTO risk_evaluation_details (detail_id, evaluation_id, rule_id, score) VALUES
     -- 9101: 메모 25 + 고액L2 18 + 신규수취인 15 = 58

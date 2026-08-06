@@ -1,31 +1,20 @@
--- 대상 DB 는 접속하는 쪽이 정한다. 로컬은 docker-compose 의 MYSQL_DATABASE, RDS 는 콘솔에서
--- 만든 DB 에 붙는다. 여기서 USE 를 하면 명령줄로 지정한 DB 를 덮어써, 이름이 하나만 어긋나도
--- 엉뚱한 스키마에 테이블이 생긴다. data.sql 도 같은 방식으로 접속된 DB 를 그대로 쓴다.
+-- =====================================================================
+-- V1 baseline — 2026-08-06 시점의 RDS 스키마와 동일한 상태를 재현한다.
+--
+-- 이 파일은 절대 수정하지 않는다. 이미 적용된 마이그레이션을 고치면 Flyway 가
+-- checksum 불일치로 기동을 막는다. 스키마를 바꿀 때는 새 V 파일을 만든다.
+--   예) V20260806_1430__approval_add_canceled.sql
+--
+-- 기존 RDS 는 테이블이 이미 있으므로 baselineOnMigrate 로 "적용됨" 기록만 남고
+-- 실행되지 않는다. 빈 DB(로컬 docker compose)에서만 실제로 실행된다.
+-- 그래서 앞부분에 있던 DROP TABLE 19줄을 제거했다 — baseline 이 실행되는 상황은
+-- 언제나 빈 DB 이고, 남겨두면 실수로 실행됐을 때 되돌릴 수 없다.
+--
+-- 대상 DB 는 접속하는 쪽이 정한다(로컬은 MYSQL_DATABASE, RDS 는 콘솔에서 만든 DB).
+-- 여기서 USE 를 하면 지정된 DB 를 덮어써 엉뚱한 스키마에 테이블이 생긴다.
+-- =====================================================================
 
 SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
-
-DROP TABLE IF EXISTS payment_requests;
-DROP TABLE IF EXISTS notifications;
-DROP TABLE IF EXISTS payment_anomaly_logs;
-DROP TABLE IF EXISTS merchant_visit_patterns;
-DROP TABLE IF EXISTS payment_anomaly_rules;
-DROP TABLE IF EXISTS payment_patterns;
-DROP TABLE IF EXISTS llm_risk_reviews;
-DROP TABLE IF EXISTS approval_requests;
-DROP TABLE IF EXISTS risk_evaluation_details;
-DROP TABLE IF EXISTS risk_evaluations;
-DROP TABLE IF EXISTS risk_rules;
-DROP TABLE IF EXISTS transactions;
-DROP TABLE IF EXISTS recipients;
-DROP TABLE IF EXISTS linked_accounts;
-DROP TABLE IF EXISTS merchants;
-DROP TABLE IF EXISTS banks;
-DROP TABLE IF EXISTS wallets;
-DROP TABLE IF EXISTS guard_senior;
-DROP TABLE IF EXISTS users;
-
-SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
 -- 1. 회원 · 페어링
