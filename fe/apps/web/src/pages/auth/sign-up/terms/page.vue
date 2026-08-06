@@ -15,13 +15,23 @@ const term = computed(() => {
 
   return signUpTerms[termId as SignUpTermId]
 })
+const hideInnerHeader = computed(() => route.meta.hideInnerHeader === true)
 </script>
 
 <template>
-  <main class="mx-auto min-h-screen w-full max-w-[390px] bg-surface">
-    <AppHeader title="약관 상세" show-back @back="router.back()" />
+  <main class="mx-auto w-full max-w-[390px] bg-surface">
+    <AppHeader
+      v-if="!hideInnerHeader"
+      title="약관 상세"
+      show-back
+      @back="router.back()"
+    />
 
-    <article v-if="term" class="px-mobile-gutter pb-section pt-section">
+    <article
+      v-if="term"
+      class="pb-section"
+      :class="hideInnerHeader ? 'pt-0' : 'px-mobile-gutter pt-section'"
+    >
       <p class="type-caption text-body-muted">시행일: {{ term.updatedAt }}</p>
       <h1 class="type-h2 mt-sm text-body">{{ term.title }}</h1>
 

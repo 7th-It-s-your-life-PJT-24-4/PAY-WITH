@@ -52,6 +52,7 @@ function handleNavigate(value: string) {
           show-profile
           variant="primary"
           @back="goBack"
+          @profile="router.push({ name: 'ward-my' })"
         />
       </div>
 
