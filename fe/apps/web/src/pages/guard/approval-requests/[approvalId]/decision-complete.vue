@@ -1,44 +1,58 @@
 <script setup lang="ts">
 import { Check, X } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
-import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { guardApprovalResultOptions } from '@/lib/query/guard/approval'
 import GuardApprovalHeader from '@/pages/guard/approval-requests/-components/GuardApprovalHeader.vue'
 
 const route = useRoute()
 const router = useRouter()
-const approvalId = computed(() => {
-  const value = Number(route.params.approvalId)
+const transactionId = computed(() => {
+  const value = Number(route.query.transactionId)
   return Number.isSafeInteger(value) && value > 0 ? value : null
 })
-const resultQuery = useQuery(guardApprovalResultOptions(approvalId))
-const isApproved = computed(
-  () => resultQuery.data.value?.decision.status === 'APPROVED',
+const wardId = computed(() => {
+  const value = Number(route.query.wardId)
+  return Number.isSafeInteger(value) && value > 0 ? value : null
+})
+const decision = computed(() => {
+  if (route.query.decision === 'approved') return 'approved'
+  if (route.query.decision === 'rejected') return 'rejected'
+  return null
+})
+const hasResult = computed(
+  () =>
+    transactionId.value !== null &&
+    wardId.value !== null &&
+    decision.value !== null,
 )
+const isApproved = computed(() => decision.value === 'approved')
 
 function goToList() {
   router.replace({
     name: 'guard-approval-requests',
-    query: resultQuery.data.value
-      ? {
-          wardId: resultQuery.data.value.detail.wardId,
-          status: isApproved.value ? 'approved' : 'rejected',
-        }
-      : undefined,
+    query: {
+      wardId: wardId.value ?? undefined,
+      status: decision.value ?? undefined,
+    },
   })
 }
 
 function confirm() {
-  if (!approvalId.value || !resultQuery.data.value) {
+  if (!hasResult.value) {
     goToList()
     return
   }
+
   router.replace({
-    name: 'guard-approval-request-result',
-    params: { approvalId: approvalId.value },
+    name: 'guard-transaction-detail',
+    params: { transactionId: transactionId.value! },
+    query: {
+      wardId: wardId.value!,
+      status: decision.value!,
+      source: 'approval',
+    },
   })
 }
 </script>
@@ -52,7 +66,7 @@ function confirm() {
     />
 
     <section
-      v-if="resultQuery.data.value"
+      v-if="hasResult"
       class="flex flex-1 flex-col items-center pt-[100px] text-center"
       aria-labelledby="approval-decision-complete-title"
     >
@@ -74,14 +88,6 @@ function confirm() {
     </section>
 
     <section
-      v-else-if="resultQuery.isPending.value"
-      class="flex flex-1 items-center justify-center px-mobile-gutter text-center text-[16px] font-medium text-gray-500"
-      aria-busy="true"
-    >
-      처리 결과를 불러오는 중이에요.
-    </section>
-
-    <section
       v-else
       class="flex flex-1 items-center justify-center px-mobile-gutter text-center text-[16px] font-medium text-gray-700"
       role="alert"
@@ -93,9 +99,7 @@ function confirm() {
       <Button
         class="w-full"
         label="확인"
-        :variant="
-          isApproved || !resultQuery.data.value ? 'guard-cta' : 'danger'
-        "
+        :variant="isApproved || !hasResult ? 'guard-cta' : 'danger'"
         size="guard-cta"
         @click="confirm"
       />

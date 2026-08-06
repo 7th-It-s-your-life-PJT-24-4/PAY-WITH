@@ -215,6 +215,7 @@ async function startPairing() {
       <GuardTransactionList
         class="mt-md"
         :transactions="recentGuardTransactions"
+        :ward-id="selectedWard?.wardId ?? null"
         @more="router.push({ name: 'guard-history' })"
       />
     </div>

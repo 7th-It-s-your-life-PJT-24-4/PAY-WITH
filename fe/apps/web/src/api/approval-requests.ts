@@ -1,11 +1,9 @@
 import { apiClient } from '@/api/client'
 import {
   approvalDecisionResponseSchema,
-  approvalHistoryResultResponseSchema,
   approvalRequestDetailResponseSchema,
   approvalRequestListResponseSchema,
   type ApprovalDecision,
-  type ApprovalHistoryResult,
   type ApprovalHistoryStatus,
   type ApprovalRequestDetail,
   type ApprovalRequestSummary,
@@ -42,16 +40,6 @@ export async function getApprovalRequestHistory(
   const response = await apiClient.get(
     `/approval-requests/history?${query.toString()}`,
     approvalRequestListResponseSchema,
-  )
-  return response.data
-}
-
-export async function getApprovalRequestResult(
-  approvalId: number,
-): Promise<ApprovalHistoryResult> {
-  const response = await apiClient.get(
-    `/approval-requests/${approvalId}/result`,
-    approvalHistoryResultResponseSchema,
   )
   return response.data
 }

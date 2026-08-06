@@ -5,7 +5,6 @@ import {
   guardApprovalHistoryOptions,
   guardApprovalKeys,
   guardApprovalListOptions,
-  guardApprovalResultOptions,
 } from '@/lib/query/guard/approval'
 
 describe('guard approval query options', () => {
@@ -19,11 +18,5 @@ describe('guard approval query options', () => {
     expect(
       toValue(guardApprovalHistoryOptions('EXPIRED', null).queryKey),
     ).toEqual(guardApprovalKeys.historyList('EXPIRED', null))
-  })
-
-  it('종결 상세는 승인요청 ID별 query key를 사용한다', () => {
-    expect(toValue(guardApprovalResultOptions(3).queryKey)).toEqual(
-      guardApprovalKeys.result(3),
-    )
   })
 })
