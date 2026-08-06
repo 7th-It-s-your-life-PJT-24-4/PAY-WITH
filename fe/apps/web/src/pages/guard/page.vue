@@ -2,13 +2,17 @@
 import { ConfirmModal } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { guardHomeOptions } from '@/lib/query/guard/home'
 import GuardAssetCard from '@/pages/guard/-components/GuardAssetCard.vue'
 import GuardRiskTransactionAlert from '@/pages/guard/-components/GuardRiskTransactionAlert.vue'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
 import GuardTransactionList from '@/pages/guard/-components/GuardTransactionList.vue'
+import {
+  parsePositiveRouteId,
+  withGuardWardId,
+} from '@/pages/guard/-utils/guard-route'
 import { usePairingStore } from '@/stores/pairing.store'
 import { useGuardStore } from '@/stores/guard.store'
 import type { GuardRecentTransaction } from '@/schemas/guard-home.schema'
@@ -17,12 +21,15 @@ import type {
   GuardTransaction,
 } from '@/mocks/guard-home.mock'
 
+const route = useRoute()
 const router = useRouter()
 const pairingStore = usePairingStore()
 const guardStore = useGuardStore()
 const isPairingConfirmOpen = ref(false)
 const isRiskTransactionAlertVisible = ref(true)
-const selectedWardId = ref<number | null>(null)
+const selectedWardId = computed(
+  () => parsePositiveRouteId(route.query.wardId) ?? guardStore.activeWardId,
+)
 
 const {
   data: guardHome,
@@ -59,7 +66,12 @@ watch(activeSeniorId, () => {
 watch(
   () => selectedWard.value?.wardId,
   (wardId) => {
-    if (wardId) guardStore.selectWard(wardId)
+    if (!wardId) return
+    guardStore.selectWard(wardId)
+    if (parsePositiveRouteId(route.query.wardId) !== wardId)
+      void router.replace({
+        query: withGuardWardId(route.query, wardId),
+      })
   },
   { immediate: true },
 )
@@ -108,7 +120,10 @@ function toGuardTransaction(
 function selectSenior(wardId: string) {
   const parsedWardId = Number(wardId)
   if (!Number.isSafeInteger(parsedWardId) || parsedWardId <= 0) return
-  selectedWardId.value = parsedWardId
+  guardStore.selectWard(parsedWardId)
+  void router.replace({
+    query: withGuardWardId(route.query, parsedWardId),
+  })
 }
 
 function goToCharge() {
@@ -116,6 +131,7 @@ function goToCharge() {
 
   router.push({
     name: 'guard-charge-be',
+    query: withGuardWardId({}, selectedWard.value.wardId),
   })
 }
 
@@ -124,7 +140,10 @@ async function startPairing() {
   if (!issued) return
 
   isPairingConfirmOpen.value = false
-  router.push({ name: 'guard-pairing-code' })
+  router.push({
+    name: 'guard-pairing-code',
+    query: withGuardWardId({}, selectedWardId.value),
+  })
 }
 </script>
 
@@ -216,7 +235,12 @@ async function startPairing() {
         class="mt-md"
         :transactions="recentGuardTransactions"
         :ward-id="selectedWard?.wardId ?? null"
-        @more="router.push({ name: 'guard-history' })"
+        @more="
+          router.push({
+            name: 'guard-history',
+            query: withGuardWardId({}, selectedWard?.wardId ?? null),
+          })
+        "
       />
     </div>
 

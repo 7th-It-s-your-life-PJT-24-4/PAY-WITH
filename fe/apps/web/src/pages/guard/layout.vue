@@ -1,13 +1,24 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import GuardBottomNavigation, {
   type GuardNavigationValue,
 } from '@/pages/guard/-components/GuardBottomNavigation.vue'
+import {
+  parsePositiveRouteId,
+  withGuardWardId,
+} from '@/pages/guard/-utils/guard-route'
+import { useGuardStore } from '@/stores/guard.store'
 
 const route = useRoute()
 const router = useRouter()
+const guardStore = useGuardStore()
+
+const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
+const activeWardId = computed(
+  () => routeWardId.value ?? guardStore.activeWardId,
+)
 
 const showBottomNavigation = computed(
   () => route.meta.showBottomNavigation !== false,
@@ -27,11 +38,21 @@ const activeNavigation = computed<GuardNavigationValue>(() => {
 })
 
 function handleNavigate(value: GuardNavigationValue) {
-  if (value === 'home') router.push({ name: 'guard-home' })
-  if (value === 'charge') router.push({ name: 'guard-charge' })
-  if (value === 'history') router.push({ name: 'guard-history' })
+  const query = withGuardWardId({}, activeWardId.value)
+
+  if (value === 'home') router.push({ name: 'guard-home', query })
+  if (value === 'charge') router.push({ name: 'guard-charge', query })
+  if (value === 'history') router.push({ name: 'guard-history', query })
   if (value === 'my') router.push({ name: 'guard-my' })
 }
+
+watch(
+  routeWardId,
+  (wardId) => {
+    if (wardId !== null) guardStore.selectWard(wardId)
+  },
+  { immediate: true },
+)
 </script>
 
 <template>

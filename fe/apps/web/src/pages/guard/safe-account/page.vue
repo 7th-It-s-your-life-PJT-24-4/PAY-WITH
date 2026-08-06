@@ -7,6 +7,10 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { guardSafeAccountsOptions } from '@/lib/query/guard/safe-account'
 import GuardBankIconTile from '@/pages/guard/charge/-components/GuardBankIconTile.vue'
+import {
+  parsePositiveRouteId,
+  withGuardWardId,
+} from '@/pages/guard/-utils/guard-route'
 import { useGuardStore } from '@/stores/guard.store'
 import { useSafeAccountStore } from '@/stores/safe-account.store'
 import { getBankPresentation } from '@/utils/bank-presentation'
@@ -15,10 +19,7 @@ const route = useRoute()
 const router = useRouter()
 const guardStore = useGuardStore()
 const safeAccountStore = useSafeAccountStore()
-const routeWardId = computed(() => {
-  const value = Number(route.query.wardId)
-  return Number.isSafeInteger(value) && value > 0 ? value : null
-})
+const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
 const wardId = computed(() => routeWardId.value ?? guardStore.activeWardId)
 const safeAccountsQuery = useQuery(guardSafeAccountsOptions(wardId))
 const safeAccounts = computed(() => safeAccountsQuery.data.value ?? [])
@@ -28,6 +29,13 @@ function goToAdd() {
   router.push({
     name: 'guard-safe-account-add',
     query: { wardId: wardId.value ?? undefined },
+  })
+}
+
+function goHome() {
+  router.push({
+    name: 'guard-home',
+    query: withGuardWardId({}, wardId.value),
   })
 }
 
@@ -46,7 +54,7 @@ function maskAccountNumber(accountNo: string) {
         class="flex size-11 items-center justify-center text-[#3b3e43]"
         type="button"
         aria-label="보호자 홈으로 돌아가기"
-        @click="router.push({ name: 'guard-home' })"
+        @click="goHome"
       >
         <ChevronLeft class="size-6" aria-hidden="true" />
       </button>
@@ -71,7 +79,7 @@ function maskAccountNumber(accountNo: string) {
         label="보호자 홈으로"
         variant="guard-cta"
         size="guard-cta"
-        @click="router.push({ name: 'guard-home' })"
+        @click="goHome"
       />
     </section>
 

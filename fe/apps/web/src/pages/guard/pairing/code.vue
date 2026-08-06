@@ -3,11 +3,16 @@ import { Button, Toast } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
 import { ChevronLeft, Copy, Link, Share2 } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { guardPairingStatusOptions } from '@/lib/query/guard/home'
+import {
+  parsePositiveRouteId,
+  withGuardWardId,
+} from '@/pages/guard/-utils/guard-route'
 import { usePairingStore } from '@/stores/pairing.store'
 
+const route = useRoute()
 const router = useRouter()
 const pairingStore = usePairingStore()
 const toastMessage = ref('')
@@ -116,6 +121,13 @@ async function sharePairingLink() {
   await copyLink()
 }
 
+function goHome() {
+  router.replace({
+    name: 'guard-home',
+    query: withGuardWardId({}, parsePositiveRouteId(route.query.wardId)),
+  })
+}
+
 onMounted(async () => {
   if (!pairingStore.code) {
     await issueCode()
@@ -137,7 +149,7 @@ onBeforeUnmount(() => {
         class="flex size-[44px] items-center justify-center text-[#3b3e43]"
         type="button"
         aria-label="뒤로 가기"
-        @click="router.push({ name: 'guard-home' })"
+        @click="goHome"
       >
         <ChevronLeft class="size-6" :stroke-width="1.8" aria-hidden="true" />
       </button>
@@ -258,11 +270,7 @@ onBeforeUnmount(() => {
         <p class="text-[16px] font-semibold text-primary-500">
           시니어와 연결되었어요.
         </p>
-        <Button
-          class="mt-md w-full"
-          label="홈으로 이동"
-          @click="router.replace({ name: 'guard-home' })"
-        />
+        <Button class="mt-md w-full" label="홈으로 이동" @click="goHome" />
       </section>
     </section>
 

@@ -83,7 +83,7 @@ test.beforeEach(async ({ page }) => {
 test('홈의 거래 확인하기에서 선택한 시니어의 이상 거래 목록으로 이동한다', async ({
   page,
 }) => {
-  await page.route('**/api/guard', (route) =>
+  await page.route(/\/api\/guard(?:\?.*)?$/, (route) =>
     route.fulfill({
       json: {
         success: true,

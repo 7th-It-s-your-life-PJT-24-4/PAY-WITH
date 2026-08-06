@@ -8,7 +8,7 @@
 - 각 라우트 세그먼트는 디렉터리로 표현하고, 진입 페이지는 `page.vue`를 사용한다. Vue 컴포넌트 파일명은 전역적으로 고유할 필요가 없으며, import 시 경로와 로컬 식별자로 구분한다.
 - 이 프로젝트는 Vue 3/Vite를 사용하므로 컴포넌트 파일 확장자는 `.tsx`가 아닌 `.vue`를 사용한다. 파일 기반 라우팅은 적용하지 않으므로 `apps/web/src/router/index.ts`에서 각 `page.vue`를 해당 URL에 명시적으로 연결한다.
 - 역할 화면에서만 사용하는 하위 컴포넌트는 해당 역할 폴더의 `-components`에 둔다.
-- 동적 세그먼트는 router의 파라미터명과 동일한 `[parameterName]` 디렉터리로 표현한다. 예를 들어 `:transactionId`는 `[transactionId]`를 사용한다.
+- 상세 화면의 동적 세그먼트는 숫자 전용 `:id(\\d+)`를 사용하고 디렉터리는 `[id]`로 표현한다. 단계형 플로우처럼 ID의 의미가 상태 복구에 필요한 경우에만 `:transactionId` 등 구체적인 이름을 유지한다.
 - 라우트 전용 하위 컴포넌트와 유틸리티는 해당 라우트 디렉터리의 `-components`, `-utils`에 둔다.
 
 ```text
@@ -23,8 +23,8 @@ apps/web/src/pages/
     ├── -components/
     └── charge/
         ├── page.vue            # /guard/charge
-        └── [chargeId]/
-            └── page.vue        # /guard/charge/:chargeId
+        └── [id]/
+            └── page.vue        # /guard/charge/:id(\d+)
 ```
 
 여러 단계로 구성된 라우트도 URL 계층을 그대로 디렉터리에 반영한다.

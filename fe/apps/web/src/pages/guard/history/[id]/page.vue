@@ -8,6 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 import backIconUrl from '@/assets/icons/transaction-detail-back.svg'
 import headerSpacerIconUrl from '@/assets/icons/transaction-detail-header-spacer.svg'
 import { guardTransactionDetailOptions } from '@/lib/query/guard/transaction'
+import { parsePositiveRouteId } from '@/pages/guard/-utils/guard-route'
 import {
   formatApprovalDateTime,
   formatApprovalMoney,
@@ -66,14 +67,8 @@ const riskReasonLabels: Record<string, string> = {
 const route = useRoute()
 const router = useRouter()
 const guardStore = useGuardStore()
-const transactionId = computed(() => {
-  const value = Number(route.params.transactionId)
-  return Number.isSafeInteger(value) && value > 0 ? value : null
-})
-const routeWardId = computed(() => {
-  const value = Number(route.query.wardId)
-  return Number.isSafeInteger(value) && value > 0 ? value : null
-})
+const transactionId = computed(() => parsePositiveRouteId(route.params.id))
+const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
 const wardId = computed(() => routeWardId.value ?? guardStore.activeWardId)
 const approvalStatus = computed<ApprovalResultStatus | null>(() => {
   const status = route.query.status

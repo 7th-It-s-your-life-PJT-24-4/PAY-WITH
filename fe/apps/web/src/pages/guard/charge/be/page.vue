@@ -8,6 +8,7 @@ import { useRouter } from 'vue-router'
 import { chargeAccountsOptions } from '@/lib/query/account'
 import GuardChargeAccountBottomSheet from '@/pages/guard/charge/-components/GuardChargeAccountBottomSheet.vue'
 import GuardChargeAccountSelectCard from '@/pages/guard/charge/-components/GuardChargeAccountSelectCard.vue'
+import { withGuardWardId } from '@/pages/guard/-utils/guard-route'
 import { useGuardStore } from '@/stores/guard.store'
 
 const router = useRouter()
@@ -34,7 +35,10 @@ watch(
   ([isSuccess, value]) => {
     if (!isSuccess) return
     if (value.length === 0) {
-      void router.replace({ name: 'guard-charge-account' })
+      void router.replace({
+        name: 'guard-charge-account',
+        query: withGuardWardId({}, guardStore.activeWardId),
+      })
       return
     }
     if (
@@ -59,7 +63,10 @@ function submitCharge() {
   if (!canCharge.value) return
 
   guardStore.setChargeAmount(amount.value)
-  router.push({ name: 'guard-charge-password' })
+  router.push({
+    name: 'guard-charge-password',
+    query: withGuardWardId({}, guardStore.activeWardId),
+  })
 }
 
 function selectAccount(accountId: number) {
@@ -69,7 +76,10 @@ function selectAccount(accountId: number) {
 
 function goAccountAdd() {
   isAccountSheetOpen.value = false
-  router.push({ name: 'guard-charge-account' })
+  router.push({
+    name: 'guard-charge-account',
+    query: withGuardWardId({}, guardStore.activeWardId),
+  })
 }
 </script>
 

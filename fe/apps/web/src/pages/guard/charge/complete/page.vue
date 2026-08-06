@@ -4,6 +4,7 @@ import { Button } from '@pay-with/ui'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { withGuardWardId } from '@/pages/guard/-utils/guard-route'
 import { useGuardStore } from '@/stores/guard.store'
 
 const router = useRouter()
@@ -64,7 +65,12 @@ const amountText = computed(() =>
         label="확인"
         variant="guard-cta"
         size="guard-cta"
-        @click="router.replace({ name: 'guard-charge' })"
+        @click="
+          router.replace({
+            name: 'guard-charge',
+            query: withGuardWardId({}, guardStore.activeWardId),
+          })
+        "
       />
     </div>
   </main>
