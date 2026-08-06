@@ -115,7 +115,11 @@ const counterpartyLabel = computed(() =>
     >
       <dt class="type-body-medium text-body-muted">거래 후 잔액</dt>
       <dd class="type-body-medium font-number font-bold text-primary-300">
-        {{ formatTransactionBalance(transaction.balanceAfter) }}
+        {{
+          transaction.balanceAfter == null
+            ? '-'
+            : formatTransactionBalance(transaction.balanceAfter)
+        }}
       </dd>
     </dl>
   </section>

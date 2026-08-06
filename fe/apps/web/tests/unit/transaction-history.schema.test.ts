@@ -121,4 +121,61 @@ describe('transaction history schemas', () => {
     expect(response.data.riskScore).toBeNull()
     expect(response.data.riskAnalysis?.reasons).toContain('NEW_RECIPIENT')
   })
+
+  it.each(['CANCELED', 'REJECTED', 'FAILED'] as const)(
+    '%s 상태 상세의 거래 후 잔액 null을 파싱한다',
+    (status) => {
+      const response = wardTransactionDetailResponseSchema.parse({
+        success: true,
+        data: {
+          transactionId: 105,
+          type: 'TRANSFER_OUT',
+          direction: 'OUT',
+          status,
+          riskLevel: '',
+          counterpartyName: '김철수',
+          bankName: '신한은행',
+          accountNo: '110123456789',
+          amount: -120_000,
+          memo: null,
+          occurredAt: '2026-08-05T09:30:00',
+          balanceAfter: null,
+          riskScore: null,
+          riskAnalysis: null,
+        },
+        message: null,
+      })
+
+      expect(response.data.type).toBe('TRANSFER')
+      expect(response.data.status).toBe(status)
+      expect(response.data.amount).toBe(120_000)
+      expect(response.data.balanceAfter).toBeNull()
+      expect(response.data.riskLevel).toBeNull()
+    },
+  )
+
+  it('거절 상태 오타 응답을 REJECTED로 정규화한다', () => {
+    const response = wardTransactionDetailResponseSchema.parse({
+      success: true,
+      data: {
+        transactionId: 106,
+        type: 'TRANSFER',
+        direction: 'OUT',
+        status: 'RJECTED',
+        riskLevel: null,
+        counterpartyName: '김철수',
+        bankName: '신한은행',
+        accountNo: '110123456789',
+        amount: 120_000,
+        memo: null,
+        occurredAt: '2026-08-05T09:30:00',
+        balanceAfter: null,
+        riskScore: null,
+        riskAnalysis: null,
+      },
+      message: null,
+    })
+
+    expect(response.data.status).toBe('REJECTED')
+  })
 })

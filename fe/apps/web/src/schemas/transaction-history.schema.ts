@@ -46,17 +46,20 @@ export const transactionRiskAnalysisSchema = z.object({
 
 export const wardTransactionDetailSchema = z.object({
   transactionId: z.number().int().positive(),
-  type: transactionHistoryTypeSchema,
+  type: z.preprocess(normalizeTransactionType, transactionHistoryTypeSchema),
   direction: transactionDirectionSchema,
-  status: transactionStatusSchema,
-  riskLevel: transactionRiskLevelSchema.nullable(),
+  status: z.preprocess(normalizeTransactionStatus, transactionStatusSchema),
+  riskLevel: z.preprocess(
+    normalizeNullableString,
+    transactionRiskLevelSchema.nullable(),
+  ),
   counterpartyName: z.string().nullable(),
   bankName: z.string().nullable(),
   accountNo: z.string().nullable(),
-  amount: z.number().int().nonnegative(),
+  amount: z.number().int().transform(Math.abs),
   memo: z.string().nullable(),
   occurredAt: z.string().min(1),
-  balanceAfter: z.number().int().nonnegative(),
+  balanceAfter: z.number().int().nonnegative().nullable(),
   riskScore: z.number().int().nullable(),
   riskAnalysis: transactionRiskAnalysisSchema.nullable(),
 })
@@ -78,6 +81,10 @@ function formatTransactionTitle(title: string | null) {
 
 function normalizeTransactionType(type: unknown) {
   return type === 'TRANSFER_OUT' ? 'TRANSFER' : type
+}
+
+function normalizeTransactionStatus(status: unknown) {
+  return status === 'RJECTED' ? 'REJECTED' : status
 }
 
 function normalizeNullableString(value: unknown) {

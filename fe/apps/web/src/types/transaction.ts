@@ -4,7 +4,18 @@ export type TransactionDirection = 'IN' | 'OUT' | 'CREDIT' | 'DEBIT'
 
 export type TransactionRiskLevel = 'SAFE' | 'CAUTION' | 'DANGER'
 
-export type TransactionStatus = 'COMPLETED' | 'BLOCKED'
+export type TransactionStatus =
+  | 'PENDING'
+  | 'REQUESTED'
+  | 'HELD'
+  | 'APPROVED'
+  | 'PROCESSING'
+  | 'REJECTED'
+  | 'COMPLETED'
+  | 'CANCELED'
+  | 'EXPIRED'
+  | 'BLOCKED'
+  | 'FAILED'
 
 export interface PaymentTransactionDetail {
   merchantName: string
@@ -22,7 +33,7 @@ export interface WardTransaction {
   direction: TransactionDirection
   title: string
   amount: number
-  balanceAfter: number
+  balanceAfter: number | null
   occurredAt: string
   methodLabel: string
   memo: string | null

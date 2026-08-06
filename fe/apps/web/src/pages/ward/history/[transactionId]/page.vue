@@ -15,6 +15,11 @@ const router = useRouter()
 const transactionId = computed(() => Number(route.params.transactionId))
 const transactionQuery = useQuery(wardTransactionDetailOptions(transactionId))
 const transaction = computed(() => transactionQuery.data.value)
+const shouldShowRejectedCard = computed(
+  () =>
+    transaction.value?.status === 'BLOCKED' ||
+    transaction.value?.status === 'REJECTED',
+)
 
 function goToHistory() {
   router.replace({ name: 'ward-transaction-history' })
@@ -47,7 +52,7 @@ function goToHistory() {
       v-if="transaction.direction !== 'IN' && transaction.riskLevel"
       :transaction="transaction"
     />
-    <TransactionBlockedCard v-if="transaction.status === 'BLOCKED'" />
+    <TransactionBlockedCard v-if="shouldShowRejectedCard" />
 
     <Button
       class="w-full"

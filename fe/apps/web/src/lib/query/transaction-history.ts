@@ -73,7 +73,7 @@ function toWardTransaction(
     occurredAt: detail.occurredAt,
     methodLabel: detail.bankName ?? getDefaultMethodLabel(detail.type),
     memo: detail.memo,
-    status: detail.status === 'BLOCKED' ? 'BLOCKED' : 'COMPLETED',
+    status: detail.status,
     riskLevel: detail.riskLevel,
     riskScore: riskAnalysis?.riskScore ?? 0,
     riskSummary:
