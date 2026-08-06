@@ -77,10 +77,6 @@ async function confirmDecision() {
       id,
       decision: pendingDecision.value,
     })
-    queryClient.setQueryData(guardApprovalKeys.result(id), {
-      detail,
-      decision,
-    })
     isDecisionConfirmOpen.value = false
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: guardApprovalKeys.lists() }),
@@ -89,6 +85,11 @@ async function confirmDecision() {
     await router.replace({
       name: 'guard-approval-decision-complete',
       params: { approvalId: id },
+      query: {
+        wardId: detail.wardId,
+        transactionId: decision.transactionId,
+        decision: decision.status.toLowerCase(),
+      },
     })
   } catch (error) {
     isDecisionConfirmOpen.value = false

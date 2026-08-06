@@ -20,15 +20,6 @@ import type {
 
 type ApprovalFilter =
   'pending' | 'approved' | 'rejected' | 'canceled' | 'expired'
-type ApprovalListItem = {
-  approvalId: number
-  wardId: number
-  wardName: string
-  amount: number
-  holderName: string | null
-  requestedAt: string
-  status: ApprovalFilter
-}
 
 const filters: Array<{ label: string; value: ApprovalFilter }> = [
   { label: '대기', value: 'pending' },
@@ -82,22 +73,10 @@ const historyQuery = useQuery(
   ),
 )
 
-function toListItem(approval: ApprovalRequestSummary): ApprovalListItem {
-  return {
-    approvalId: approval.approvalId,
-    wardId: approval.wardId,
-    wardName: approval.wardName,
-    amount: approval.amount,
-    holderName: approval.holderName,
-    requestedAt: approval.requestedAt,
-    status: approval.status.toLowerCase() as ApprovalFilter,
-  }
-}
-
-const approvals = computed<ApprovalListItem[]>(() =>
+const approvals = computed<ApprovalRequestSummary[]>(() =>
   activeFilter.value === 'pending'
-    ? (pendingQuery.data.value ?? []).map(toListItem)
-    : (historyQuery.data.value ?? []).map(toListItem),
+    ? (pendingQuery.data.value ?? [])
+    : (historyQuery.data.value ?? []),
 )
 const isLoading = computed(() =>
   activeFilter.value === 'pending'
@@ -128,27 +107,38 @@ function refetchActiveList() {
   historyQuery.refetch()
 }
 
+function displayDate(approval: ApprovalRequestSummary) {
+  return approval.respondedAt ?? approval.requestedAt
+}
+
 function isFirstOfDate(index: number) {
   const current = approvals.value[index]
   const previous = approvals.value[index - 1]
   return (
     current !== undefined &&
     (previous === undefined ||
-      formatApprovalDate(current.requestedAt) !==
-        formatApprovalDate(previous.requestedAt))
+      formatApprovalDate(displayDate(current)) !==
+        formatApprovalDate(displayDate(previous)))
   )
 }
 
-function openApproval(approval: ApprovalListItem) {
+function openApproval(approval: ApprovalRequestSummary) {
+  if (approval.status === 'PENDING') {
+    router.push({
+      name: 'guard-approval-request-detail',
+      params: { approvalId: approval.approvalId },
+      query: { wardId: approval.wardId },
+    })
+    return
+  }
+
   router.push({
-    name:
-      approval.status === 'pending'
-        ? 'guard-approval-request-detail'
-        : 'guard-approval-request-result',
-    params: { approvalId: approval.approvalId },
+    name: 'guard-transaction-detail',
+    params: { transactionId: approval.transactionId },
     query: {
-      wardId: wardId.value ?? undefined,
-      status: approval.status === 'pending' ? undefined : approval.status,
+      wardId: approval.wardId,
+      status: approval.status.toLowerCase(),
+      source: 'approval',
     },
   })
 }
@@ -164,11 +154,14 @@ function openApproval(approval: ApprovalListItem) {
       @back="router.replace({ name: 'guard-home' })"
     />
 
-    <nav class="mt-md flex gap-xs px-mobile-gutter" aria-label="이상 거래 상태">
+    <nav
+      class="mt-md flex gap-xs overflow-x-auto px-mobile-gutter"
+      aria-label="이상 거래 상태"
+    >
       <button
         v-for="filter in filters"
         :key="filter.value"
-        class="flex h-8 min-w-14 items-center justify-center rounded-[8px] border-[1.5px] border-primary-500 px-[15px] text-[14px] font-semibold leading-[1.6] tracking-[-0.28px] transition-colors"
+        class="flex h-8 min-w-14 shrink-0 items-center justify-center rounded-[8px] border-[1.5px] border-primary-500 px-[15px] text-[14px] font-semibold leading-[1.6] tracking-[-0.28px] transition-colors"
         :class="
           activeFilter === filter.value
             ? 'bg-primary-500 text-white'
@@ -226,7 +219,7 @@ function openApproval(approval: ApprovalListItem) {
           class="mb-xs text-[14px] font-medium leading-[1.2] tracking-[-0.28px] text-gray-500"
           :class="index > 0 ? 'mt-md' : ''"
         >
-          {{ formatApprovalDate(approval.requestedAt) }}
+          {{ formatApprovalDate(displayDate(approval)) }}
         </p>
 
         <button

@@ -25,10 +25,8 @@ import GuardChargeDetailPage from '@/pages/guard/charge/[id]/page.vue'
 import GuardChargePasswordPage from '@/pages/guard/charge/password/page.vue'
 import GuardApprovalDecisionCompletePage from '@/pages/guard/approval-requests/[approvalId]/decision-complete.vue'
 import GuardApprovalRequestDetailPage from '@/pages/guard/approval-requests/[approvalId]/page.vue'
-import GuardApprovalRequestResultPage from '@/pages/guard/approval-requests/[approvalId]/result.vue'
 import GuardApprovalRequestsPage from '@/pages/guard/approval-requests/page.vue'
-import GuardTransactionDetailPage from '@/pages/guard/history/[id]/page.vue'
-import GuardTransactionDecisionCompletePage from '@/pages/guard/history/[id]/decision-complete.vue'
+import GuardTransactionDetailPage from '@/pages/guard/history/[transactionId]/page.vue'
 import GuardHistoryPage from '@/pages/guard/history/page.vue'
 import GuardLayout from '@/pages/guard/layout.vue'
 import GuardMyPage from '@/pages/guard/my/page.vue'
@@ -206,15 +204,6 @@ const router = createRouter({
           },
         },
         {
-          path: 'approval-requests/:approvalId/result',
-          name: 'guard-approval-request-result',
-          component: GuardApprovalRequestResultPage,
-          meta: {
-            activeNavigation: 'home',
-            showBottomNavigation: false,
-          },
-        },
-        {
           path: 'approval-requests/:approvalId',
           name: 'guard-approval-request-detail',
           component: GuardApprovalRequestDetailPage,
@@ -238,15 +227,6 @@ const router = createRouter({
           component: GuardSafeAccountConfirmPage,
           meta: {
             activeNavigation: 'home',
-            showBottomNavigation: false,
-          },
-        },
-        {
-          path: 'history/:transactionId/decision-complete',
-          name: 'guard-transaction-decision-complete',
-          component: GuardTransactionDecisionCompletePage,
-          meta: {
-            activeNavigation: 'history',
             showBottomNavigation: false,
           },
         },

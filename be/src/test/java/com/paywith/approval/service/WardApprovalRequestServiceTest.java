@@ -2,17 +2,14 @@ package com.paywith.approval.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
 import com.paywith.approval.domain.ApprovalRequestView;
-import com.paywith.approval.dto.WardApprovalCancelResponse;
 import com.paywith.approval.dto.WardApprovalDetailResponse;
 import com.paywith.approval.mapper.ApprovalRequestMapper;
-import com.paywith.approval.mapper.TransactionApprovalMapper;
 import com.paywith.exception.BusinessException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,15 +32,11 @@ class WardApprovalRequestServiceTest {
     @Mock
     private ApprovalRequestMapper approvalRequestMapper;
 
-    @Mock
-    private TransactionApprovalMapper transactionApprovalMapper;
-
     private WardApprovalRequestService service;
 
     @BeforeEach
     void setUp() {
-        service = new WardApprovalRequestServiceImpl(
-            approvalRequestMapper, transactionApprovalMapper);
+        service = new WardApprovalRequestServiceImpl(approvalRequestMapper);
     }
 
     private ApprovalRequestView view() {
@@ -130,72 +123,5 @@ class WardApprovalRequestServiceTest {
         assertThatThrownBy(() -> service.findDetailByWard(APPROVAL_ID, 10L))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
-    }
-
-    @Test
-    void cancel_changesOwnedPendingRequestAndHeldTransaction() {
-        given(approvalRequestMapper.findTransactionIdByIdAndWardId(APPROVAL_ID, WARD_ID))
-            .willReturn(TRANSACTION_ID);
-        given(approvalRequestMapper.cancelByWard(
-            org.mockito.ArgumentMatchers.eq(APPROVAL_ID),
-            org.mockito.ArgumentMatchers.eq(WARD_ID),
-            any(LocalDateTime.class)))
-            .willReturn(1);
-        given(transactionApprovalMapper.cancelHeldByWard(TRANSACTION_ID)).willReturn(1);
-
-        WardApprovalCancelResponse result = service.cancel(APPROVAL_ID, WARD_ID);
-
-        assertThat(result.getApprovalId()).isEqualTo(APPROVAL_ID);
-        assertThat(result.getTransactionId()).isEqualTo(TRANSACTION_ID);
-        assertThat(result.getStatus()).isEqualTo("CANCELED");
-        assertThat(result.getCanceledAt()).isNotNull();
-        then(transactionApprovalMapper).should().cancelHeldByWard(TRANSACTION_ID);
-    }
-
-    @Test
-    void cancel_returnsNotFoundForMissingOrOtherWardsRequest() {
-        given(approvalRequestMapper.findTransactionIdByIdAndWardId(APPROVAL_ID, WARD_ID))
-            .willReturn(null);
-
-        assertThatThrownBy(() -> service.cancel(APPROVAL_ID, WARD_ID))
-            .isInstanceOf(BusinessException.class)
-            .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
-
-        then(approvalRequestMapper).should(never())
-            .cancelByWard(anyLong(), anyLong(), any(LocalDateTime.class));
-        then(transactionApprovalMapper).should(never()).cancelHeldByWard(anyLong());
-    }
-
-    @Test
-    void cancel_returnsConflictWhenRequestWasProcessedOrExpired() {
-        given(approvalRequestMapper.findTransactionIdByIdAndWardId(APPROVAL_ID, WARD_ID))
-            .willReturn(TRANSACTION_ID);
-        given(approvalRequestMapper.cancelByWard(
-            org.mockito.ArgumentMatchers.eq(APPROVAL_ID),
-            org.mockito.ArgumentMatchers.eq(WARD_ID),
-            any(LocalDateTime.class)))
-            .willReturn(0);
-
-        assertThatThrownBy(() -> service.cancel(APPROVAL_ID, WARD_ID))
-            .isInstanceOf(BusinessException.class)
-            .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
-
-        then(transactionApprovalMapper).should(never()).cancelHeldByWard(anyLong());
-    }
-
-    @Test
-    void cancel_returnsConflictWhenTransactionIsNotHeld() {
-        given(approvalRequestMapper.findTransactionIdByIdAndWardId(APPROVAL_ID, WARD_ID))
-            .willReturn(TRANSACTION_ID);
-        given(approvalRequestMapper.cancelByWard(
-            org.mockito.ArgumentMatchers.eq(APPROVAL_ID),
-            org.mockito.ArgumentMatchers.eq(WARD_ID),
-            any(LocalDateTime.class)))
-            .willReturn(1);
-        given(transactionApprovalMapper.cancelHeldByWard(TRANSACTION_ID)).willReturn(0);
-
-        assertThatThrownBy(() -> service.cancel(APPROVAL_ID, WARD_ID))
-            .isInstanceOf(BusinessException.class)
-            .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
     }
 }

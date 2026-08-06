@@ -16,6 +16,7 @@ export const approvalRequestStatusSchema = z.enum([
 
 export const approvalRequestSummarySchema = z.object({
   approvalId: z.number().int().positive(),
+  transactionId: z.number().int().positive(),
   wardId: z.number().int().positive(),
   wardName: z.string(),
   amount: z.number().nonnegative(),
@@ -59,7 +60,7 @@ export const approvalTransferResultSchema = z.object({
 export const approvalDecisionSchema = z.object({
   approvalId: z.number().int().positive(),
   transactionId: z.number().int().positive(),
-  status: approvalHistoryStatusSchema,
+  status: z.enum(['APPROVED', 'REJECTED']),
   respondedAt: z.string().min(1),
   transfer: approvalTransferResultSchema.nullable(),
 })
@@ -74,18 +75,9 @@ export const approvalDecisionResponseSchema = apiResponseSchema(
   approvalDecisionSchema,
 )
 
-export const approvalHistoryResultSchema = z.object({
-  detail: approvalRequestDetailSchema,
-  decision: approvalDecisionSchema,
-})
-export const approvalHistoryResultResponseSchema = apiResponseSchema(
-  approvalHistoryResultSchema,
-)
-
 export type ApprovalRequestSummary = z.infer<
   typeof approvalRequestSummarySchema
 >
 export type ApprovalRequestDetail = z.infer<typeof approvalRequestDetailSchema>
 export type ApprovalDecision = z.infer<typeof approvalDecisionSchema>
 export type ApprovalHistoryStatus = z.infer<typeof approvalHistoryStatusSchema>
-export type ApprovalHistoryResult = z.infer<typeof approvalHistoryResultSchema>
