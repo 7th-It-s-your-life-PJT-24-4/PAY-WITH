@@ -30,9 +30,13 @@ const canCharge = computed(
 )
 
 watch(
-  accounts,
-  (value) => {
-    if (value.length === 0) return
+  [() => accountsQuery.isSuccess.value, accounts],
+  ([isSuccess, value]) => {
+    if (!isSuccess) return
+    if (value.length === 0) {
+      void router.replace({ name: 'guard-charge-account' })
+      return
+    }
     if (
       !value.some(
         ({ accountId }) => accountId === guardStore.selectedChargeAccountId,
@@ -98,8 +102,33 @@ function goAccountAdd() {
           얼마나 충전할까요?
         </h2>
 
+        <div
+          v-if="accountsQuery.isPending.value"
+          class="mt-sm flex h-20 items-center justify-center rounded-[20px] bg-[#F0F3F8] text-[14px] font-medium text-gray-600"
+          role="status"
+        >
+          계좌 정보를 불러오는 중이에요.
+        </div>
+
+        <div
+          v-else-if="accountsQuery.isError.value"
+          class="mt-sm rounded-[20px] bg-[#F0F3F8] px-md py-md text-center"
+          role="alert"
+        >
+          <p class="text-[14px] font-medium text-gray-700">
+            계좌 정보를 불러오지 못했어요.
+          </p>
+          <button
+            class="mt-xs text-[14px] font-bold text-primary-500"
+            type="button"
+            @click="accountsQuery.refetch()"
+          >
+            다시 시도
+          </button>
+        </div>
+
         <GuardChargeAccountSelectCard
-          v-if="selectedAccount"
+          v-else-if="selectedAccount"
           class="mt-sm"
           :bank-name="selectedAccount.bankName"
           :account-suffix="selectedAccount.accountNo.slice(-4)"
