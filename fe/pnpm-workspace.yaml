@@ -18,6 +18,8 @@ catalog:
   '@vitejs/plugin-vue': ^6.0.7
   '@vue/test-utils': ^2.4.11
   '@vue/tsconfig': ^0.9.1
+  '@zxing/browser': ^0.2.1
+  '@zxing/library': ^0.23.0
   autoprefixer: ^10.5.2
   chromatic: ^18.0.1
   eslint: ^10.7.0

@@ -16,6 +16,8 @@
     "@pay-with/ui": "workspace:*",
     "@phosphor-icons/vue": "catalog:",
     "@tanstack/vue-query": "catalog:",
+    "@zxing/browser": "catalog:",
+    "@zxing/library": "catalog:",
     "ky": "catalog:",
     "pinia": "catalog:",
     "qrcode.vue": "catalog:",

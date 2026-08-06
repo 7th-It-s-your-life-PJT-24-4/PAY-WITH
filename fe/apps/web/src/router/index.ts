@@ -660,6 +660,14 @@ const router = createRouter({
       ],
     },
     {
+      // 가맹점 스캐너는 로그인 계정이 없는 제3 액터라 인증 없이 접근한다.
+      // QR 디코더가 무거워 이 라우트에서만 지연 로딩한다.
+      path: '/scanner',
+      name: 'scanner',
+      component: () => import('@/pages/scanner/page.vue'),
+      meta: { public: true },
+    },
+    {
       path: '/',
       redirect: '/auth/sign-in',
     },
@@ -712,6 +720,9 @@ async function resolveAuthentication() {
 }
 
 router.beforeEach(async (to) => {
+  // 공개 라우트는 인증 해석 자체를 건너뛴다 — 스캐너는 토큰이 없는 것이 정상 상태다
+  if (to.meta.public) return true
+
   const isAuthRoute = to.path.startsWith('/auth')
   const { userId, sessionExpired } = await resolveAuthentication()
 
