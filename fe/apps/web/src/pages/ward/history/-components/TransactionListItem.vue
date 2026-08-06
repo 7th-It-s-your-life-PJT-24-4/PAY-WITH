@@ -34,7 +34,7 @@ const iconClass = computed(() =>
         CAUTION: 'bg-warning/10 text-warning',
         DANGER: 'bg-error/10 text-error',
       }[props.transaction.riskLevel]
-    : 'bg-gray-100 text-body-muted',
+    : 'bg-primary-900 text-body-muted',
 )
 
 const riskClass = computed(() =>

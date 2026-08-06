@@ -14,9 +14,9 @@ const theme = computed(
     ({
       null: {
         border: 'border-border',
-        header: 'bg-gray-100 text-body',
+        header: 'bg-primary-900 text-body',
         text: 'text-body-muted',
-        note: 'border-border bg-gray-50',
+        note: 'border-border bg-primary-900',
         icon: ShieldCheck,
       },
       SAFE: {

@@ -44,7 +44,7 @@ function goToHistory() {
   <div v-else-if="transaction" class="flex flex-col gap-xl">
     <TransactionSummaryCard :transaction="transaction" />
     <TransactionRiskCard
-      v-if="transaction.direction !== 'IN'"
+      v-if="transaction.direction !== 'IN' && transaction.riskLevel"
       :transaction="transaction"
     />
     <TransactionBlockedCard v-if="transaction.status === 'BLOCKED'" />
