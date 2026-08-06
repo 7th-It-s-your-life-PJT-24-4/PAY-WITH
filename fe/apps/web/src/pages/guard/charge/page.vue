@@ -9,6 +9,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { guardChargeHistoriesOptions } from '@/lib/query/guard/charge'
 import { guardHomeOptions } from '@/lib/query/guard/home'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
+import {
+  parsePositiveRouteId,
+  withGuardWardId,
+} from '@/pages/guard/-utils/guard-route'
 import { useGuardStore } from '@/stores/guard.store'
 import { usePairingStore } from '@/stores/pairing.store'
 
@@ -17,7 +21,10 @@ const route = useRoute()
 const guardStore = useGuardStore()
 const pairingStore = usePairingStore()
 const isPairingConfirmOpen = ref(false)
-const activeWardId = computed(() => guardStore.activeWardId)
+const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
+const activeWardId = computed(
+  () => routeWardId.value ?? guardStore.activeWardId,
+)
 const guardHomeQuery = useQuery(guardHomeOptions(activeWardId))
 const chargeHistoriesQuery = useQuery(guardChargeHistoriesOptions())
 
@@ -31,11 +38,11 @@ const seniors = computed(() =>
   ),
 )
 const activeSeniorId = computed(() =>
-  guardStore.activeWardId === null ? '' : String(guardStore.activeWardId),
+  activeWardId.value === null ? '' : String(activeWardId.value),
 )
 const chargeHistories = computed(() =>
   (chargeHistoriesQuery.data.value ?? [])
-    .filter(({ wardId }) => wardId === guardStore.activeWardId)
+    .filter(({ wardId }) => wardId === activeWardId.value)
     .map((history) => ({
       ...history,
       id: String(history.transactionId),
@@ -50,20 +57,14 @@ const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
 
 watch(
-  () => route.query.wardId,
-  (wardId) => {
-    const parsedWardId = Number(wardId)
-    if (Number.isSafeInteger(parsedWardId) && parsedWardId > 0)
-      guardStore.selectWard(parsedWardId)
-  },
-  { immediate: true },
-)
-
-watch(
   () => guardHomeQuery.data.value?.selectedWard?.wardId,
   (wardId) => {
-    if (guardStore.activeWardId === null && wardId)
-      guardStore.selectWard(wardId)
+    if (!wardId) return
+    guardStore.selectWard(wardId)
+    if (routeWardId.value !== wardId)
+      void router.replace({
+        query: withGuardWardId(route.query, wardId),
+      })
   },
   { immediate: true },
 )
@@ -72,6 +73,9 @@ function selectSenior(wardId: string) {
   const parsedWardId = Number(wardId)
   if (!Number.isSafeInteger(parsedWardId) || parsedWardId <= 0) return
   guardStore.selectWard(parsedWardId)
+  void router.replace({
+    query: withGuardWardId(route.query, parsedWardId),
+  })
 }
 
 async function startPairing() {
@@ -79,7 +83,10 @@ async function startPairing() {
   if (!issued) return
 
   isPairingConfirmOpen.value = false
-  router.push({ name: 'guard-pairing-code' })
+  router.push({
+    name: 'guard-pairing-code',
+    query: withGuardWardId({}, activeWardId.value),
+  })
 }
 </script>
 
@@ -125,7 +132,8 @@ async function startPairing() {
               @click="
                 router.push({
                   name: 'guard-charge-detail',
-                  params: { chargeId: history.id },
+                  params: { id: history.id },
+                  query: withGuardWardId({}, activeWardId),
                 })
               "
             >
@@ -163,7 +171,12 @@ async function startPairing() {
           <button
             class="mt-lg flex h-14 w-full items-center justify-center rounded-[10px] bg-primary-500 text-[16px] font-semibold leading-[1.2] tracking-[-0.32px] text-white shadow-[0_10px_15px_-3px_rgb(0_0_0/10%),0_4px_6px_-4px_rgb(0_0_0/10%)] transition-colors hover:bg-primary-400 active:bg-primary-300"
             type="button"
-            @click="router.push({ name: 'guard-charge-be' })"
+            @click="
+              router.push({
+                name: 'guard-charge-be',
+                query: withGuardWardId({}, activeWardId),
+              })
+            "
           >
             시니어에게 첫 충전하기
           </button>
@@ -178,7 +191,12 @@ async function startPairing() {
       <button
         class="flex h-10 items-center gap-xxs rounded-full bg-primary-500 px-[10px] text-4 font-medium leading-[1.6] tracking-[-0.32px] text-white shadow-[0_10px_15px_-3px_rgb(0_0_0/10%),0_4px_6px_-4px_rgb(0_0_0/10%)] transition-colors hover:bg-primary-400 active:bg-primary-300"
         type="button"
-        @click="router.push({ name: 'guard-charge-be' })"
+        @click="
+          router.push({
+            name: 'guard-charge-be',
+            query: withGuardWardId({}, activeWardId),
+          })
+        "
       >
         <PhWallet class="size-5" aria-hidden="true" weight="fill" />
         충전하기

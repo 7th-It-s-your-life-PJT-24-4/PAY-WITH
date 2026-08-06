@@ -54,7 +54,7 @@ function getTransactionStatus(transaction: GuardTransactionHistoryItem) {
 function openTransaction(transactionId: number) {
   router.push({
     name: 'guard-transaction-detail',
-    params: { transactionId },
+    params: { id: transactionId },
     query: { wardId: props.wardId },
   })
 }

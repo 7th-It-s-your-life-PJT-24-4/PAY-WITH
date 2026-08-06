@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { createGuardCharge } from '@/api/guard-charges'
 import { getApiErrorMessage } from '@/api/error'
 import { guardChargeKeys } from '@/lib/query/guard/charge'
+import { withGuardWardId } from '@/pages/guard/-utils/guard-route'
 import { useGuardStore } from '@/stores/guard.store'
 
 const router = useRouter()
@@ -62,7 +63,10 @@ async function submitPassword() {
     guardStore.saveChargeResult(result)
     await queryClient.invalidateQueries({ queryKey: guardChargeKeys.all })
     errorMessage.value = ''
-    await router.replace({ name: 'guard-charge-complete' })
+    await router.replace({
+      name: 'guard-charge-complete',
+      query: withGuardWardId({}, guardStore.activeWardId),
+    })
   } catch (error) {
     errorMessage.value = await getApiErrorMessage(
       error,

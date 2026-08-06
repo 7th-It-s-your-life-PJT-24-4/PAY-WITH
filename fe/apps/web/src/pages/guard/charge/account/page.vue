@@ -10,6 +10,7 @@ import { useRegisterChargeAccountMutation } from '@/composables/useRegisterCharg
 import { banksOptions } from '@/lib/query/bank'
 import GuardBankIconTile from '@/pages/guard/charge/-components/GuardBankIconTile.vue'
 import GuardBankSelectBottomSheet from '@/pages/guard/charge/-components/GuardBankSelectBottomSheet.vue'
+import { withGuardWardId } from '@/pages/guard/-utils/guard-route'
 import type { Bank } from '@/schemas/bank.schema'
 import { useGuardStore } from '@/stores/guard.store'
 import { getBankPresentation } from '@/utils/bank-presentation'
@@ -62,7 +63,10 @@ async function connectAccount() {
     })
     guardStore.selectChargeAccount(account.accountId)
     accountPassword.value = ''
-    await router.replace({ name: 'guard-charge-be' })
+    await router.replace({
+      name: 'guard-charge-be',
+      query: withGuardWardId({}, guardStore.activeWardId),
+    })
   } catch (error) {
     errorMessage.value = await getApiErrorMessage(
       error,

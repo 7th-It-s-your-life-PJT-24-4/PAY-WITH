@@ -47,7 +47,7 @@ function confirm() {
 
   router.replace({
     name: 'guard-transaction-detail',
-    params: { transactionId: transactionId.value! },
+    params: { id: transactionId.value! },
     query: {
       wardId: wardId.value!,
       status: decision.value!,

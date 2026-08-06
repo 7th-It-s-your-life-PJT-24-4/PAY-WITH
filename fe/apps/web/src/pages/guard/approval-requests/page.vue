@@ -13,6 +13,10 @@ import {
   formatApprovalDate,
   formatApprovalListAmount,
 } from '@/pages/guard/approval-requests/-utils/approval-format'
+import {
+  parsePositiveRouteId,
+  withGuardWardId,
+} from '@/pages/guard/-utils/guard-route'
 import type {
   ApprovalHistoryStatus,
   ApprovalRequestSummary,
@@ -48,10 +52,7 @@ const emptyMessageByFilter: Record<ApprovalFilter, string> = {
 
 const route = useRoute()
 const router = useRouter()
-const wardId = computed(() => {
-  const value = Number(route.query.wardId)
-  return Number.isSafeInteger(value) && value > 0 ? value : null
-})
+const wardId = computed(() => parsePositiveRouteId(route.query.wardId))
 const initialFilter = filters.some(({ value }) => value === route.query.status)
   ? (route.query.status as ApprovalFilter)
   : 'pending'
@@ -126,7 +127,7 @@ function openApproval(approval: ApprovalRequestSummary) {
   if (approval.status === 'PENDING') {
     router.push({
       name: 'guard-approval-request-detail',
-      params: { approvalId: approval.approvalId },
+      params: { id: approval.approvalId },
       query: { wardId: approval.wardId },
     })
     return
@@ -134,12 +135,19 @@ function openApproval(approval: ApprovalRequestSummary) {
 
   router.push({
     name: 'guard-transaction-detail',
-    params: { transactionId: approval.transactionId },
+    params: { id: approval.transactionId },
     query: {
       wardId: approval.wardId,
       status: approval.status.toLowerCase(),
       source: 'approval',
     },
+  })
+}
+
+function goHome() {
+  router.replace({
+    name: 'guard-home',
+    query: withGuardWardId({}, wardId.value),
   })
 }
 </script>
@@ -151,7 +159,7 @@ function openApproval(approval: ApprovalRequestSummary) {
     <GuardApprovalHeader
       title="이상 거래 목록"
       back-label="보호자 홈으로 돌아가기"
-      @back="router.replace({ name: 'guard-home' })"
+      @back="goHome"
     />
 
     <nav

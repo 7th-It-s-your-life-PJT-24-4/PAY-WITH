@@ -23,10 +23,10 @@ import GuardChargeBePage from '@/pages/guard/charge/be/page.vue'
 import GuardChargeCompletePage from '@/pages/guard/charge/complete/page.vue'
 import GuardChargeDetailPage from '@/pages/guard/charge/[id]/page.vue'
 import GuardChargePasswordPage from '@/pages/guard/charge/password/page.vue'
-import GuardApprovalDecisionCompletePage from '@/pages/guard/approval-requests/[approvalId]/decision-complete.vue'
-import GuardApprovalRequestDetailPage from '@/pages/guard/approval-requests/[approvalId]/page.vue'
+import GuardApprovalDecisionCompletePage from '@/pages/guard/approval-requests/[id]/decision-complete.vue'
+import GuardApprovalRequestDetailPage from '@/pages/guard/approval-requests/[id]/page.vue'
 import GuardApprovalRequestsPage from '@/pages/guard/approval-requests/page.vue'
-import GuardTransactionDetailPage from '@/pages/guard/history/[transactionId]/page.vue'
+import GuardTransactionDetailPage from '@/pages/guard/history/[id]/page.vue'
 import GuardHistoryPage from '@/pages/guard/history/page.vue'
 import GuardLayout from '@/pages/guard/layout.vue'
 import GuardMyPage from '@/pages/guard/my/page.vue'
@@ -175,7 +175,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'charge/:chargeId',
+          path: 'charge/:id(\\d+)',
           name: 'guard-charge-detail',
           component: GuardChargeDetailPage,
           meta: {
@@ -196,7 +196,7 @@ const router = createRouter({
           meta: { activeNavigation: 'home' },
         },
         {
-          path: 'approval-requests/:approvalId/complete',
+          path: 'approval-requests/:id(\\d+)/complete',
           name: 'guard-approval-decision-complete',
           component: GuardApprovalDecisionCompletePage,
           meta: {
@@ -205,7 +205,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'approval-requests/:approvalId',
+          path: 'approval-requests/:id(\\d+)',
           name: 'guard-approval-request-detail',
           component: GuardApprovalRequestDetailPage,
           meta: {
@@ -241,7 +241,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'history/:transactionId',
+          path: 'history/:id(\\d+)',
           name: 'guard-transaction-detail',
           component: GuardTransactionDetailPage,
           meta: {

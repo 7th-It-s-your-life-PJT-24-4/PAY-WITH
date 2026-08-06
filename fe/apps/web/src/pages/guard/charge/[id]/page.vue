@@ -5,11 +5,15 @@ import { useRoute, useRouter } from 'vue-router'
 
 import backIconUrl from '@/assets/icons/charge-detail-back.svg'
 import { guardChargeDetailOptions } from '@/lib/query/guard/charge'
+import {
+  parsePositiveRouteId,
+  withGuardWardId,
+} from '@/pages/guard/-utils/guard-route'
 
 const route = useRoute()
 const router = useRouter()
 
-const chargeId = Number(route.params.chargeId)
+const chargeId = parsePositiveRouteId(route.params.id) ?? 0
 const chargeDetailQuery = useQuery(guardChargeDetailOptions(chargeId))
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
@@ -33,7 +37,10 @@ const detailRows = computed(() => {
 })
 
 function goBack() {
-  router.replace({ name: 'guard-charge' })
+  router.replace({
+    name: 'guard-charge',
+    query: withGuardWardId({}, parsePositiveRouteId(route.query.wardId)),
+  })
 }
 </script>
 

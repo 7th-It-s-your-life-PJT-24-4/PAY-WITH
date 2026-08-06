@@ -7,6 +7,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { guardHomeOptions } from '@/lib/query/guard/home'
 import { guardTransactionHistoryOptions } from '@/lib/query/guard/transaction'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
+import {
+  parsePositiveRouteId,
+  withGuardWardId,
+} from '@/pages/guard/-utils/guard-route'
 import GuardHistoryTransactionList from '@/pages/guard/history/-components/GuardHistoryTransactionList.vue'
 import type { GuardSeniorAvatar } from '@/mocks/guard-home.mock'
 import type { TransactionRiskLevel } from '@/schemas/transaction.schema'
@@ -26,11 +30,9 @@ const route = useRoute()
 const router = useRouter()
 const pairingStore = usePairingStore()
 const guardStore = useGuardStore()
-const routeWardId = Number(route.query.wardId)
-const selectedWardId = ref<number | null>(
-  Number.isSafeInteger(routeWardId) && routeWardId > 0
-    ? routeWardId
-    : guardStore.activeWardId,
+const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
+const selectedWardId = computed(
+  () => routeWardId.value ?? guardStore.activeWardId,
 )
 const activeFilter = ref<HistoryFilter>('ALL')
 const isPairingConfirmOpen = ref(false)
@@ -70,8 +72,11 @@ watch(
   () => selectedWard.value?.wardId,
   (wardId) => {
     if (!wardId) return
-    selectedWardId.value = wardId
     guardStore.selectWard(wardId)
+    if (routeWardId.value !== wardId)
+      void router.replace({
+        query: withGuardWardId(route.query, wardId),
+      })
   },
   { immediate: true },
 )
@@ -81,14 +86,19 @@ async function startPairing() {
   if (!issued) return
 
   isPairingConfirmOpen.value = false
-  router.push({ name: 'guard-pairing-code' })
+  router.push({
+    name: 'guard-pairing-code',
+    query: withGuardWardId({}, activeWardId.value),
+  })
 }
 
 function selectSenior(seniorId: string) {
   const wardId = Number(seniorId)
   if (!Number.isSafeInteger(wardId) || wardId <= 0) return
-  selectedWardId.value = wardId
   guardStore.selectWard(wardId)
+  void router.replace({
+    query: withGuardWardId(route.query, wardId),
+  })
 }
 </script>
 

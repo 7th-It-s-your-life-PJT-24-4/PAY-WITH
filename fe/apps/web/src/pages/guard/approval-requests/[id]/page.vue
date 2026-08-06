@@ -15,6 +15,7 @@ import {
   guardApprovalDetailOptions,
   guardApprovalKeys,
 } from '@/lib/query/guard/approval'
+import { parsePositiveRouteId } from '@/pages/guard/-utils/guard-route'
 import GuardApprovalDetailContent from '@/pages/guard/approval-requests/-components/GuardApprovalDetailContent.vue'
 import GuardApprovalHeader from '@/pages/guard/approval-requests/-components/GuardApprovalHeader.vue'
 
@@ -23,10 +24,8 @@ type TransactionDecision = 'approved' | 'rejected'
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
-const approvalId = computed(() => {
-  const value = Number(route.params.approvalId)
-  return Number.isSafeInteger(value) && value > 0 ? value : null
-})
+const approvalId = computed(() => parsePositiveRouteId(route.params.id))
+const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
 const approvalQuery = useQuery(guardApprovalDetailOptions(approvalId))
 const isDecisionConfirmOpen = ref(false)
 const pendingDecision = ref<TransactionDecision>('approved')
@@ -55,9 +54,10 @@ const approvalNotFound = computed(
 function goToList() {
   router.replace({
     name: 'guard-approval-requests',
-    query: approvalQuery.data.value
-      ? { wardId: approvalQuery.data.value.wardId }
-      : undefined,
+    query: {
+      wardId:
+        approvalQuery.data.value?.wardId ?? routeWardId.value ?? undefined,
+    },
   })
 }
 
@@ -84,7 +84,7 @@ async function confirmDecision() {
     ])
     await router.replace({
       name: 'guard-approval-decision-complete',
-      params: { approvalId: id },
+      params: { id },
       query: {
         wardId: detail.wardId,
         transactionId: decision.transactionId,
