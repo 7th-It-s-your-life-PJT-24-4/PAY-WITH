@@ -1,10 +1,21 @@
-export type TransactionType = 'PAYMENT' | 'TRANSFER'
+export type TransactionType = 'CHARGE' | 'PAYMENT' | 'TRANSFER'
 
-export type TransactionDirection = 'CREDIT' | 'DEBIT'
+export type TransactionDirection = 'IN' | 'OUT' | 'CREDIT' | 'DEBIT'
 
 export type TransactionRiskLevel = 'SAFE' | 'CAUTION' | 'DANGER'
 
-export type TransactionStatus = 'COMPLETED' | 'BLOCKED'
+export type TransactionStatus =
+  | 'PENDING'
+  | 'REQUESTED'
+  | 'HELD'
+  | 'APPROVED'
+  | 'PROCESSING'
+  | 'REJECTED'
+  | 'COMPLETED'
+  | 'CANCELED'
+  | 'EXPIRED'
+  | 'BLOCKED'
+  | 'FAILED'
 
 export interface PaymentTransactionDetail {
   merchantName: string
@@ -22,12 +33,12 @@ export interface WardTransaction {
   direction: TransactionDirection
   title: string
   amount: number
-  balanceAfter: number
+  balanceAfter: number | null
   occurredAt: string
   methodLabel: string
   memo: string | null
   status: TransactionStatus
-  riskLevel: TransactionRiskLevel
+  riskLevel: TransactionRiskLevel | null
   riskScore: number
   riskSummary: string
   riskReasons: string[]

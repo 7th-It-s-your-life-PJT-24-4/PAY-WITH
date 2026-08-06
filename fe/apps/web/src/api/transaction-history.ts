@@ -1,6 +1,8 @@
 import { apiClient } from '@/api/client'
 import {
+  wardTransactionDetailResponseSchema,
   wardTransactionHistoryResponseSchema,
+  type WardTransactionDetailResponse,
   type TransactionHistoryType,
   type WardTransactionHistory,
 } from '@/schemas/transaction-history.schema'
@@ -31,6 +33,16 @@ export async function getWardTransactionHistory(
   const response = await apiClient.get(
     `/ward/transactions${query}`,
     wardTransactionHistoryResponseSchema,
+  )
+  return response.data
+}
+
+export async function getWardTransactionDetail(
+  transactionId: number,
+): Promise<WardTransactionDetailResponse> {
+  const response = await apiClient.get(
+    `/ward/transactions/${transactionId}`,
+    wardTransactionDetailResponseSchema,
   )
   return response.data
 }

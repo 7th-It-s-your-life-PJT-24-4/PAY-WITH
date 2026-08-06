@@ -12,6 +12,13 @@ const props = defineProps<{
 const theme = computed(
   () =>
     ({
+      null: {
+        border: 'border-border',
+        header: 'bg-primary-900 text-body',
+        text: 'text-body-muted',
+        note: 'border-border bg-primary-900',
+        icon: ShieldCheck,
+      },
       SAFE: {
         border: 'border-success',
         header: 'bg-success text-on-semantic',
@@ -33,7 +40,7 @@ const theme = computed(
         note: 'border-error bg-error/10',
         icon: CircleAlert,
       },
-    })[props.transaction.riskLevel],
+    })[props.transaction.riskLevel ?? 'null'],
 )
 </script>
 
