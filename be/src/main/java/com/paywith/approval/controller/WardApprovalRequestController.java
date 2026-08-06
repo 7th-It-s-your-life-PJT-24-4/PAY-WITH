@@ -1,6 +1,5 @@
 package com.paywith.approval.controller;
 
-import com.paywith.approval.dto.WardApprovalCancelResponse;
 import com.paywith.approval.dto.WardApprovalDetailResponse;
 import com.paywith.approval.service.WardApprovalRequestService;
 import com.paywith.common.ApiResponse;
@@ -11,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import springfox.documentation.annotations.ApiIgnore;
@@ -44,18 +42,5 @@ public class WardApprovalRequestController {
         @PathVariable Long approvalId
     ) {
         return ApiResponse.success(wardApprovalRequestService.findDetailByWard(approvalId, userId));
-    }
-
-    @ApiOperation(
-        value = "본인 승인 대기 건 취소",
-        notes = "피보호자가 보호자 응답 전의 미만료 승인 대기 송금을 직접 취소한다. "
-            + "이미 승인·거절·취소·만료된 건이면 409, 본인 건이 아니면 404.")
-    @PostMapping("/{approvalId}/cancel")
-    public ApiResponse<WardApprovalCancelResponse> cancel(
-        @ApiIgnore @AuthenticationPrincipal Long userId,
-        @ApiParam(value = "승인요청 ID", required = true, example = "1")
-        @PathVariable Long approvalId
-    ) {
-        return ApiResponse.success(wardApprovalRequestService.cancel(approvalId, userId));
     }
 }

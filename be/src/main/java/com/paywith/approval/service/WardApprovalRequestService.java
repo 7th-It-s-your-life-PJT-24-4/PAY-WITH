@@ -1,6 +1,5 @@
 package com.paywith.approval.service;
 
-import com.paywith.approval.dto.WardApprovalCancelResponse;
 import com.paywith.approval.dto.WardApprovalDetailResponse;
 
 /**
@@ -23,7 +22,4 @@ public interface WardApprovalRequestService {
      * @throws com.paywith.exception.BusinessException 본인 건이 아니거나 이미 처리·만료된 경우 404
      */
     WardApprovalDetailResponse findDetailByWard(Long approvalId, Long wardId);
-
-    /** 피보호자가 본인의 미만료 승인 대기 송금을 취소한다. */
-    WardApprovalCancelResponse cancel(Long approvalId, Long wardId);
 }
