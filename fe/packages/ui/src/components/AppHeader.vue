@@ -4,10 +4,12 @@ withDefaults(
     title: string
     showBack?: boolean
     showProfile?: boolean
+    variant?: 'default' | 'primary'
   }>(),
   {
     showBack: false,
     showProfile: false,
+    variant: 'default',
   },
 )
 
@@ -19,12 +21,18 @@ const emit = defineEmits<{
 
 <template>
   <header
-    class="grid h-header w-full grid-cols-[var(--spacing-button-small)_1fr_var(--spacing-button-small)] items-center border-b border-border bg-surface-card px-lg shadow-[0_1px_1px_rgb(0_0_0/5%)]"
+    class="grid h-header w-full grid-cols-[var(--spacing-button-small)_1fr_var(--spacing-button-small)] items-center border-b px-lg shadow-[0_1px_1px_rgb(0_0_0/5%)]"
+    :class="
+      variant === 'primary'
+        ? 'border-primary-500 bg-primary-500'
+        : 'border-border bg-surface-card'
+    "
   >
     <slot name="left">
       <button
         v-if="showBack"
-        class="flex size-button-small items-center justify-center rounded-full text-primary-300 outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        class="flex size-button-small items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        :class="variant === 'primary' ? 'text-white' : 'text-primary-300'"
         type="button"
         aria-label="뒤로 가기"
         @click="emit('back')"
@@ -42,12 +50,18 @@ const emit = defineEmits<{
       <span v-else aria-hidden="true" />
     </slot>
 
-    <h1 class="type-h3 truncate text-center text-primary-300">{{ title }}</h1>
+    <h1
+      class="type-h3 truncate text-center"
+      :class="variant === 'primary' ? 'text-white' : 'text-primary-300'"
+    >
+      {{ title }}
+    </h1>
 
     <slot name="right">
       <button
         v-if="showProfile"
-        class="flex size-button-small items-center justify-center rounded-full text-primary-300 outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        class="flex size-button-small items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        :class="variant === 'primary' ? 'text-white' : 'text-primary-300'"
         type="button"
         aria-label="내 정보"
         @click="emit('profile')"
