@@ -1,8 +1,42 @@
 import { describe, expect, it } from 'vitest'
 
-import { guardTransactionDetailResponseSchema } from '@/schemas/transaction.schema'
+import {
+  guardTransactionDetailResponseSchema,
+  guardTransactionHistoryResponseSchema,
+} from '@/schemas/transaction.schema'
 
-describe('guard transaction detail response schema', () => {
+describe('guard transaction response schema', () => {
+  it('보호자용 거래 목록과 null 위험도를 파싱한다', () => {
+    const result = guardTransactionHistoryResponseSchema.parse({
+      success: true,
+      data: {
+        transactions: [
+          {
+            transactionId: 40,
+            type: 'CHARGE',
+            status: 'COMPLETED',
+            counterpartyName: 'KB국민은행',
+            amount: 50000,
+            riskLevel: null,
+            riskReason: null,
+            createdAt: '2026-08-05T09:20:01',
+          },
+        ],
+        page: 0,
+        size: 100,
+        totalElements: 1,
+        totalPages: 1,
+        hasNext: false,
+      },
+      message: null,
+    })
+
+    expect(result.data.transactions[0]).toMatchObject({
+      transactionId: 40,
+      riskLevel: null,
+    })
+  })
+
   it('동료 백엔드의 위험 분석 응답을 파싱한다', () => {
     const result = guardTransactionDetailResponseSchema.parse({
       success: true,

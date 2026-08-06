@@ -2,13 +2,38 @@ import { queryOptions } from '@tanstack/vue-query'
 import { HTTPError } from 'ky'
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
-import { getGuardTransactionDetail } from '@/api/transactions'
+import {
+  getGuardTransactionDetail,
+  getGuardTransactionHistory,
+  type GuardTransactionHistoryParams,
+} from '@/api/transactions'
 
 export const guardTransactionKeys = {
   all: ['guard-transactions'] as const,
+  lists: () => [...guardTransactionKeys.all, 'list'] as const,
+  list: (wardId: number | null, params: GuardTransactionHistoryParams) =>
+    [...guardTransactionKeys.lists(), wardId, params] as const,
   details: () => [...guardTransactionKeys.all, 'detail'] as const,
   detail: (wardId: number | null, transactionId: number | null) =>
     [...guardTransactionKeys.details(), wardId, transactionId] as const,
+}
+
+export function guardTransactionHistoryOptions(
+  wardId: MaybeRefOrGetter<number | null>,
+  params: MaybeRefOrGetter<GuardTransactionHistoryParams>,
+) {
+  const resolvedWardId = computed(() => toValue(wardId))
+  const resolvedParams = computed(() => toValue(params))
+
+  return queryOptions({
+    queryKey: computed(() =>
+      guardTransactionKeys.list(resolvedWardId.value, resolvedParams.value),
+    ),
+    queryFn: () =>
+      getGuardTransactionHistory(resolvedWardId.value!, resolvedParams.value),
+    enabled: computed(() => resolvedWardId.value !== null),
+    staleTime: 15_000,
+  })
 }
 
 export function guardTransactionDetailOptions(
