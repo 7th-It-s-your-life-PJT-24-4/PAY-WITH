@@ -19,6 +19,8 @@ public class ApprovalRequestView {
     private Long transactionId;
     private LocalDateTime requestedAt;
     private LocalDateTime expiredAt;
+    private String status;
+    private LocalDateTime respondedAt;
 
     private Long wardId;
     private String wardName;
@@ -40,4 +42,9 @@ public class ApprovalRequestView {
     /** 평가 기록이 없으면 null. */
     private String riskLevel;
     private Integer totalScore;
+
+    /** 승인 이후 실제 송금의 현재 상태와 완료 정보. 거절 건이면 transactionStatus 는 REJECTED. */
+    private String transactionStatus;
+    private LocalDateTime completedAt;
+    private Long balanceAfter;
 }
