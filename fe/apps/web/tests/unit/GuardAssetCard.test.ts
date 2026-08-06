@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import GuardAssetCard from '@/pages/guard/-components/GuardAssetCard.vue'
 
 describe('GuardAssetCard', () => {
-  it('안전계좌 추가 버튼을 누르면 추가 플로우 시작을 요청한다', async () => {
+  it('안전계좌 목록 버튼을 누르면 목록 열기를 요청한다', async () => {
     const wrapper = mount(GuardAssetCard, {
       props: {
         seniorName: '수이',
@@ -12,8 +12,13 @@ describe('GuardAssetCard', () => {
       },
     })
 
-    await wrapper.get('button:nth-of-type(2)').trigger('click')
+    const safeAccountButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('안전계좌 목록'))
 
-    expect(wrapper.emitted('addSafeAccount')).toHaveLength(1)
+    expect(safeAccountButton).toBeDefined()
+    await safeAccountButton!.trigger('click')
+
+    expect(wrapper.emitted('openSafeAccounts')).toHaveLength(1)
   })
 })
