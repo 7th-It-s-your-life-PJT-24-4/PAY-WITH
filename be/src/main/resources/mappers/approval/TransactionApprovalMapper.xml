@@ -30,4 +30,11 @@
       AND ar.expired_at &lt;= NOW()
       AND t.status = 'HELD'
   </update>
+
+  <update id="cancelHeldByWard">
+    UPDATE transactions
+    SET status = 'CANCELED'
+    WHERE transaction_id = #{transactionId}
+    AND status = 'HELD'
+  </update>
 </mapper>

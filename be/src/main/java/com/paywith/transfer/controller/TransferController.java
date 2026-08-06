@@ -76,4 +76,19 @@ public class TransferController {
         RecipientHistoryListResponse response = transferService.getRecipientHistory(userId, keyword, sort, size);
         return ApiResponse.success(response);
     }
+
+    @ApiOperation(
+            value = "피보호자 대기 중 송금 취소",
+            notes = "승인 대기(HELD) 중인 송금을 피보호자 본인이 직접 취소한다. "
+                    + "다른 사람의 거래거나 송금이 아니면 404 TRANSFER_007, "
+                    + "이미 완료·거절·취소된 송금이면 409 TRANSFER_008.")
+    @PostMapping("/{id}/cancel")
+    public ApiResponse<TransferCancelResponse> cancelHeldTransfer(
+            @ApiIgnore @AuthenticationPrincipal Long userId,
+            @ApiParam(value = "취소할 송금 거래 번호", required = true, example = "74")
+            @PathVariable Long id
+    ) {
+        TransferCancelResponse response = transferService.cancelHeldTransfer(userId, id);
+        return ApiResponse.success(response);
+    }
 }

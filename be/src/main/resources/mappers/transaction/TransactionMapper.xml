@@ -354,4 +354,13 @@
         WHERE transaction_id = #{transactionId}
     </select>
 
+    <select id="findTransferStatusForCancel" resultType="java.lang.String">
+        SELECT t.status
+        FROM transactions t
+        JOIN wallets w ON w.wallet_id = t.wallet_id
+        WHERE t.transaction_id = #{transactionId}
+        AND w.user_id = #{wardId}
+        AND t.type = 'TRANSFER_OUT'
+    </select>
+
 </mapper>

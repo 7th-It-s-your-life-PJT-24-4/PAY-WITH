@@ -48,4 +48,12 @@ public interface TransactionApprovalMapper {
      * @return CANCELED 로 바꾼 거래 수
      */
     int cancelHeldForExpiredApprovals();
+
+    /**
+     * 피보호자 본인이 대기 중(HELD) 송금을 직접 취소할 때. 조건부 UPDATE라 이미 다른 상태로
+     * 넘어간 거래는 건드리지 않는다.
+     *
+     * @return 취소 처리한 거래 수(0 또는 1)
+     */
+    int cancelHeldByWard(@Param("transactionId") Long transactionId);
 }

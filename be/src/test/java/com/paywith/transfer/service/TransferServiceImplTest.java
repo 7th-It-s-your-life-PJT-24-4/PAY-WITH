@@ -2,6 +2,8 @@ package com.paywith.transfer.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.paywith.approval.mapper.ApprovalRequestMapper;
+import com.paywith.approval.mapper.TransactionApprovalMapper;
 import com.paywith.exception.BusinessException;
 import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.external.openbanking.OpenBankingClient;
@@ -12,6 +14,7 @@ import com.paywith.fds.service.FdsEvaluationService;
 import com.paywith.recipient.domain.Recipient;
 import com.paywith.recipient.mapper.RecipientMapper;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.IdempotencyRecord;
 import com.paywith.transfer.dto.IdempotencyStatus;
 import com.paywith.transfer.dto.PreparedTransfer;
@@ -19,6 +22,7 @@ import com.paywith.transfer.dto.RecipientHistoryItem;
 import com.paywith.transfer.dto.RecipientHistoryListResponse;
 import com.paywith.transfer.dto.RecipientInquiryRequest;
 import com.paywith.transfer.dto.RecipientInquiryResponse;
+import com.paywith.transfer.dto.TransferCancelResponse;
 import com.paywith.transfer.dto.TransferRequest;
 import com.paywith.transfer.dto.TransferResponse;
 import com.paywith.user.domain.Role;
@@ -86,10 +90,20 @@ class TransferServiceImplTest {
     @Mock
     private RecipientMapper recipientMapper;
 
+    @Mock
+    private TransactionMapper transactionMapper;
+
+    @Mock
+    private TransactionApprovalMapper transactionApprovalMapper;
+
+    @Mock
+    private ApprovalRequestMapper approvalRequestMapper;
+
     @InjectMocks
     private TransferServiceImpl transferService;
 
     private final Long userId = 1L;
+    private final Long transactionId = 500L;
     private final String idempotencyKey = "idem-key-1";
     private final String key = "idempotency:transfer:" + userId + ":" + idempotencyKey;
 
@@ -398,6 +412,87 @@ class TransferServiceImplTest {
         RecipientHistoryListResponse response = transferService.getRecipientHistory(userId, "김", "NAME", 10);
 
         assertThat(response.getRecipients()).containsExactly(item);
+    }
+
+    // ===== cancelHeldTransfer =====
+
+    @Test
+    void 취소_시도자가_피보호자가_아니면_예외() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.GUARD));
+
+        assertThatThrownBy(() -> transferService.cancelHeldTransfer(userId, transactionId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+                .hasMessageContaining("피보호자만 접근할 수 있습니다.");
+
+        verify(transactionMapper, never()).findTransferStatusForCancel(any(), any());
+    }
+
+    @Test
+    void 본인_소유의_송금_거래가_아니면_예외() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn(null);
+
+        assertThatThrownBy(() -> transferService.cancelHeldTransfer(userId, transactionId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasMessageContaining("송금 거래를 찾을 수 없습니다.");
+
+        verify(transactionApprovalMapper, never()).cancelHeldByWard(any());
+    }
+
+    @Test
+    void HELD_상태가_아니면_취소할_수_없다() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn("COMPLETED");
+
+        assertThatThrownBy(() -> transferService.cancelHeldTransfer(userId, transactionId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+                .hasMessageContaining("승인 대기 중인 송금만 취소할 수 있습니다.");
+
+        verify(transactionApprovalMapper, never()).cancelHeldByWard(any());
+    }
+
+    @Test
+    void 취소_UPDATE가_0건이면_이미_다른_상태로_바뀐_것이므로_예외() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn("HELD");
+        given(transactionApprovalMapper.cancelHeldByWard(transactionId)).willReturn(0);
+
+        assertThatThrownBy(() -> transferService.cancelHeldTransfer(userId, transactionId))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+                .hasMessageContaining("승인 대기 중인 송금만 취소할 수 있습니다.");
+
+        verify(approvalRequestMapper, never()).cancelPendingByTransactionId(any());
+    }
+
+    @Test
+    void 정상_취소시_거래와_승인요청을_모두_취소하고_응답을_반환한다() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn("HELD");
+        given(transactionApprovalMapper.cancelHeldByWard(transactionId)).willReturn(1);
+        given(approvalRequestMapper.cancelPendingByTransactionId(transactionId)).willReturn(1);
+
+        TransferCancelResponse response = transferService.cancelHeldTransfer(userId, transactionId);
+
+        assertThat(response.getTransactionId()).isEqualTo(transactionId);
+        assertThat(response.getStatus()).isEqualTo("CANCELED");
+        verify(transactionApprovalMapper).cancelHeldByWard(transactionId);
+        verify(approvalRequestMapper).cancelPendingByTransactionId(transactionId);
+    }
+
+    @Test
+    void 승인요청이_이미_다른_상태여도_거래_취소_자체는_성공한다() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn("HELD");
+        given(transactionApprovalMapper.cancelHeldByWard(transactionId)).willReturn(1);
+        given(approvalRequestMapper.cancelPendingByTransactionId(transactionId)).willReturn(0);
+
+        TransferCancelResponse response = transferService.cancelHeldTransfer(userId, transactionId);
+
+        assertThat(response.getStatus()).isEqualTo("CANCELED");
     }
 
     /**

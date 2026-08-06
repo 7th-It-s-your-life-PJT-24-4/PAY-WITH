@@ -12,4 +12,7 @@ public interface TransferService {
 
     // 수취인 목록 조회(최근 거래 계좌)
     RecipientHistoryListResponse getRecipientHistory(Long userId, String keyword, String sort, Integer size);
+
+    // 피보호자 대기 중 송금 취소
+    TransferCancelResponse cancelHeldTransfer(Long userId, Long transactionId);
 }

@@ -32,6 +32,7 @@
         SET balance = balance - #{amount},
         updated_at = NOW()
         WHERE wallet_id = #{walletId}
+        AND #{amount} > 0
         AND balance >= #{amount}
     </update>
 
