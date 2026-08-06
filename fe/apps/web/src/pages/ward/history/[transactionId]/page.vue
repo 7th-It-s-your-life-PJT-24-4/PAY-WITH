@@ -18,8 +18,15 @@ const transaction = computed(() => transactionQuery.data.value)
 const shouldShowRejectedCard = computed(
   () =>
     transaction.value?.status === 'BLOCKED' ||
-    transaction.value?.status === 'REJECTED',
+    transaction.value?.status === 'REJECTED' ||
+    transaction.value?.status === 'CANCELED' ||
+    transaction.value?.status === 'FAILED',
 )
+const resultCardTitle = computed(() => {
+  if (transaction.value?.status === 'CANCELED') return '취소된 거래입니다.'
+  if (transaction.value?.status === 'FAILED') return '실패한 거래입니다.'
+  return '거절된 거래입니다.'
+})
 
 function goToHistory() {
   router.replace({ name: 'ward-transaction-history' })
@@ -52,7 +59,10 @@ function goToHistory() {
       v-if="transaction.direction !== 'IN' && transaction.riskLevel"
       :transaction="transaction"
     />
-    <TransactionBlockedCard v-if="shouldShowRejectedCard" />
+    <TransactionBlockedCard
+      v-if="shouldShowRejectedCard"
+      :title="resultCardTitle"
+    />
 
     <Button
       class="w-full"

@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
     if (detailMatch) {
       const transactionId = Number(detailMatch[1])
 
-      if (transactionId !== 104 && transactionId !== 105) {
+      if (![104, 105, 106, 107].includes(transactionId)) {
         await route.fulfill({
           status: 404,
           contentType: 'application/json',
@@ -26,48 +26,44 @@ test.beforeEach(async ({ page }) => {
         contentType: 'application/json',
         json: {
           success: true,
-          data:
-            transactionId === 104
-              ? {
-                  transactionId: 104,
-                  type: 'PAYMENT',
-                  direction: 'OUT',
-                  status: 'BLOCKED',
-                  riskLevel: 'DANGER',
-                  counterpartyName: 'CU 제주공항점',
-                  bankName: null,
-                  accountNo: null,
-                  amount: 12_000,
-                  memo: null,
-                  occurredAt: '2026-07-27T12:00:00',
-                  balanceAfter: 488_000,
-                  riskScore: null,
-                  riskAnalysis: {
-                    riskScore: 87,
-                    summary: '위험한 결제 패턴이 감지됐어요.',
-                    reasons: ['SUSPICIOUS_MEMO'],
-                  },
-                }
-              : {
-                  transactionId: 105,
-                  type: 'TRANSFER',
-                  direction: 'OUT',
-                  status: 'REJECTED',
-                  riskLevel: 'DANGER',
-                  counterpartyName: '김철수',
-                  bankName: '신한은행',
-                  accountNo: '110123456789',
-                  amount: 120_000,
-                  memo: null,
-                  occurredAt: '2026-07-27T13:00:00',
-                  balanceAfter: null,
-                  riskScore: null,
-                  riskAnalysis: {
-                    riskScore: 88,
-                    summary: '보호자가 위험 거래로 판단해 거절했습니다.',
-                    reasons: ['NEW_RECIPIENT'],
-                  },
-                },
+          data: {
+            transactionId,
+            type: transactionId === 104 ? 'PAYMENT' : 'TRANSFER',
+            direction: 'OUT',
+            status:
+              transactionId === 104
+                ? 'BLOCKED'
+                : transactionId === 105
+                  ? 'REJECTED'
+                  : transactionId === 106
+                    ? 'CANCELED'
+                    : 'FAILED',
+            riskLevel:
+              transactionId === 106 || transactionId === 107 ? null : 'DANGER',
+            counterpartyName:
+              transactionId === 104 ? 'CU 제주공항점' : '김철수',
+            bankName: transactionId === 104 ? null : '신한은행',
+            accountNo: transactionId === 104 ? null : '110123456789',
+            amount: transactionId === 104 ? 12_000 : 120_000,
+            memo: null,
+            occurredAt: '2026-07-27T13:00:00',
+            balanceAfter: transactionId === 104 ? 488_000 : null,
+            riskScore: null,
+            riskAnalysis:
+              transactionId === 104 || transactionId === 105
+                ? {
+                    riskScore: transactionId === 104 ? 87 : 88,
+                    summary:
+                      transactionId === 104
+                        ? '위험한 결제 패턴이 감지됐어요.'
+                        : '보호자가 위험 거래로 판단해 거절했습니다.',
+                    reasons:
+                      transactionId === 104
+                        ? ['SUSPICIOUS_MEMO']
+                        : ['NEW_RECIPIENT'],
+                  }
+                : null,
+          },
           message: null,
         },
       })
@@ -152,6 +148,20 @@ test('보호자가 거절한 거래는 거절 카드로 표시한다', async ({ 
     page.getByText('보호자가 위험 거래로 판단해 거절했습니다.'),
   ).toBeVisible()
   await expect(page.getByText('거절된 거래입니다.')).toBeVisible()
+})
+
+test('취소된 거래는 취소 카드로 표시한다', async ({ page }) => {
+  await page.goto('/ward/history/106')
+
+  await expect(page.getByText('취소된 거래입니다.')).toBeVisible()
+  await expect(page.getByText('거래 안전 확인')).toBeHidden()
+})
+
+test('실패한 거래는 실패 카드로 표시한다', async ({ page }) => {
+  await page.goto('/ward/history/107')
+
+  await expect(page.getByText('실패한 거래입니다.')).toBeVisible()
+  await expect(page.getByText('거래 안전 확인')).toBeHidden()
 })
 
 test('위험 평가가 없는 충전 내역은 위험도 배지를 표시하지 않는다', async ({
