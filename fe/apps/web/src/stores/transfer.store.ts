@@ -1,7 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { getTransferBankCode } from '@/pages/ward/transfer/-utils/transfer-bank'
 import {
   getTransferApiError,
   getTransferFailureAction,
@@ -12,13 +11,14 @@ import type {
   TransferResult,
 } from '@/schemas/transfer.schema'
 import { storedTransferDetailSchema } from '@/schemas/transfer.schema'
+import type { Bank } from '@/schemas/bank.schema'
 import type { TransferDetail } from '@/types/transfer'
 
 export interface TransferRecipient {
   id: number
   name: string
   holderName?: string
-  bankCode?: string
+  bankCode: string
   relation?: string
   bank: string
   accountNumber: string
@@ -59,7 +59,7 @@ export const useTransferStore = defineStore('transfer', () => {
   const amount = ref(0)
   const memo = ref('')
   const balance = ref<number | null>(null)
-  const bankCandidates = ref<string[]>([])
+  const recommendedBanks = ref<Bank[]>([])
   const processingStatus = ref<TransferProcessingStatus>('idle')
   const processingError = ref('')
   const processingFailureAction = ref<TransferFailureAction | null>(null)
@@ -94,7 +94,7 @@ export const useTransferStore = defineStore('transfer', () => {
     accountNumber.value = value.accountNumber
   }
 
-  function selectManualRecipient(selectedBank: string, bankCode?: string) {
+  function selectManualRecipient(selectedBank: string, bankCode: string) {
     bank.value = selectedBank
     recipient.value = {
       id: 0,
@@ -105,8 +105,8 @@ export const useTransferStore = defineStore('transfer', () => {
     }
   }
 
-  function setBankCandidates(value: string[]) {
-    bankCandidates.value = value
+  function setRecommendedBanks(value: Bank[]) {
+    recommendedBanks.value = value
   }
 
   function setVerifiedRecipient(
@@ -120,12 +120,9 @@ export const useTransferStore = defineStore('transfer', () => {
 
   function createTransferIntent(idempotencyKey = crypto.randomUUID()) {
     if (!recipient.value || !canTransfer.value) return null
-    const bankCode = recipient.value.bankCode ?? getTransferBankCode(bank.value)
-    if (!bankCode) return null
-
     const nextIntent: TransferIntent = {
       idempotencyKey,
-      bankCode,
+      bankCode: recipient.value.bankCode,
       bankName: bank.value,
       accountNo: accountNumber.value.replaceAll('-', ''),
       amount: amount.value,
@@ -301,7 +298,7 @@ export const useTransferStore = defineStore('transfer', () => {
     amount.value = 0
     memo.value = ''
     balance.value = null
-    bankCandidates.value = []
+    recommendedBanks.value = []
     processingStatus.value = 'idle'
     processingError.value = ''
     processingFailureAction.value = null
@@ -319,7 +316,7 @@ export const useTransferStore = defineStore('transfer', () => {
     amount,
     memo,
     balance,
-    bankCandidates,
+    recommendedBanks,
     processingStatus,
     processingError,
     processingFailureAction,
@@ -335,7 +332,7 @@ export const useTransferStore = defineStore('transfer', () => {
     restoreTransferDetail,
     selectRecipient,
     selectManualRecipient,
-    setBankCandidates,
+    setRecommendedBanks,
     setVerifiedRecipient,
     createTransferIntent,
     beginTransfer,

@@ -40,12 +40,16 @@ import GuardSafeAccountPage from '@/pages/guard/safe-account/page.vue'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete/page.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
 import WardApprovalRequestDetailPage from '@/pages/ward/approval-requests/[approvalId]/page.vue'
+import WardPendingTransactionsPage from '@/pages/ward/pending-transactions/page.vue'
 import { requireCompletedPairing } from '@/pages/ward/pairing/-utils/pairing-route-guard'
 import WardChargeAccountAddPage from '@/pages/ward/charge/account/add/page.vue'
 import WardChargeAccountCompletePage from '@/pages/ward/charge/account/complete/page.vue'
 import WardChargeCompletePage from '@/pages/ward/charge/[transactionId]/complete/page.vue'
 import WardChargePage from '@/pages/ward/charge/page.vue'
 import WardLayout from '@/pages/ward/layout.vue'
+import WardMyGuardianPage from '@/pages/ward/my/guardian/page.vue'
+import WardMyPage from '@/pages/ward/my/page.vue'
+import WardMyProfilePage from '@/pages/ward/my/profile/page.vue'
 import WardPage from '@/pages/ward/page.vue'
 import WardTransactionDetailPage from '@/pages/ward/history/[transactionId]/page.vue'
 import WardTransactionHistoryPage from '@/pages/ward/history/page.vue'
@@ -395,6 +399,57 @@ const router = createRouter({
           meta: {
             title: '거래 내역 상세',
             backRouteName: 'ward-transaction-history',
+          },
+        },
+        {
+          path: 'my',
+          name: 'ward-my',
+          component: WardMyPage,
+          meta: {
+            title: '마이페이지',
+            activeNavigation: 'home',
+          },
+        },
+        {
+          path: 'my/profile',
+          name: 'ward-my-profile',
+          component: WardMyProfilePage,
+          meta: {
+            title: '내 정보',
+            activeNavigation: 'home',
+            backRouteName: 'ward-my',
+          },
+        },
+        {
+          path: 'my/guardian',
+          name: 'ward-my-guardian',
+          component: WardMyGuardianPage,
+          meta: {
+            title: '보호자 관리',
+            activeNavigation: 'home',
+            backRouteName: 'ward-my',
+          },
+        },
+        {
+          path: 'my/terms/:termId',
+          name: 'ward-my-terms',
+          component: SignUpTermsPage,
+          meta: {
+            title: '약관 상세',
+            activeNavigation: 'home',
+            showBottomNavigation: false,
+            backRouteName: 'ward-my',
+            hideInnerHeader: true,
+          },
+        },
+        {
+          path: 'pending-transactions',
+          name: 'ward-pending-transactions',
+          component: WardPendingTransactionsPage,
+          meta: {
+            title: '승인 대기 거래',
+            activeNavigation: 'home',
+            backRouteName: 'ward-home',
           },
         },
         {

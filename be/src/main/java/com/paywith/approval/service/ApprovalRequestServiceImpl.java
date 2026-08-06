@@ -111,7 +111,7 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
                 HttpStatus.CONFLICT, "이미 처리되었거나 만료된 승인요청입니다.");
         }
 
-        // 같은 트랜잭션에서 비정규화 복사본을 맞춘다(schema.sql 의 single writer 규칙).
+        // 같은 트랜잭션에서 비정규화 복사본을 맞춘다(V1__baseline.sql 의 single writer 규칙).
         transactionApprovalMapper.updateStatus(transactionId, status);
 
         return new ApprovalDecisionResponse(approvalId, transactionId, status, respondedAt);

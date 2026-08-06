@@ -40,9 +40,9 @@ export function formatTransactionTime(value: string) {
 
 export function formatTransactionAmount(
   amount: number,
-  direction: TransactionDirection,
+  direction: TransactionDirection | 'IN' | 'OUT',
 ) {
-  const sign = direction === 'CREDIT' ? '+' : '-'
+  const sign = direction === 'CREDIT' || direction === 'IN' ? '+' : '-'
   return `${sign}${amount.toLocaleString('ko-KR')}원`
 }
 

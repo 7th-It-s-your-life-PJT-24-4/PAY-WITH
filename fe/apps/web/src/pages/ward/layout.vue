@@ -50,7 +50,9 @@ function handleNavigate(value: string) {
           :title="headerTitle"
           :show-back="showBack"
           show-profile
+          variant="primary"
           @back="goBack"
+          @profile="router.push({ name: 'ward-my' })"
         />
       </div>
 

@@ -1,13 +1,19 @@
 package com.paywith.payment.service;
 
 import com.paywith.exception.BusinessException;
+import com.paywith.fds.domain.RiskLevel;
+import com.paywith.fds.dto.FdsDecision;
 import com.paywith.merchant.domain.Merchant;
 import com.paywith.merchant.mapper.MerchantMapper;
+import com.paywith.notification.domain.NotificationType;
+import com.paywith.notification.service.NotificationService;
 import com.paywith.payment.domain.PaymentRequest;
 import com.paywith.payment.domain.PaymentRequestStatus;
 import com.paywith.payment.domain.PaymentWallet;
 import com.paywith.payment.dto.ExecuteRequest;
 import com.paywith.payment.dto.ExecuteResponse;
+import com.paywith.payment.fds.service.PaymentFdsEvaluationService;
+import com.paywith.payment.fds.service.PaymentFdsResultService;
 import com.paywith.payment.mapper.PaymentRequestMapper;
 import com.paywith.transaction.domain.Transaction;
 import com.paywith.transaction.mapper.TransactionMapper;
@@ -34,11 +40,22 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class PaymentExecuteService {
 
     private static final String FAILURE_CODE_INSUFFICIENT_BALANCE = "INSUFFICIENT_BALANCE";
+    private static final String FAILURE_CODE_FDS_BLOCKED = "FDS_BLOCKED";
     private static final String TRANSACTION_TYPE_PAYMENT = "PAYMENT";
     private static final String TRANSACTION_STATUS_COMPLETED = "COMPLETED";
+    private static final String TRANSACTION_STATUS_BLOCKED = "BLOCKED";
 
     private static final String MESSAGE_INVALID_TOKEN = "유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요.";
     private static final String MESSAGE_INSUFFICIENT_BALANCE = "잔액이 부족합니다.";
+    // 발동 룰·점수는 응답에 싣지 않는다 — 스캐너는 제3자라 차단 사유를 학습할 수 없어야 한다
+    private static final String MESSAGE_FDS_BLOCKED = "결제가 차단되었습니다. 보호자에게 문의해 주세요.";
+
+    private static final String NOTIFICATION_REF_TYPE_TRANSACTION = "TRANSACTION";
+    private static final String NOTIFICATION_TITLE_BLOCKED = "결제 차단 알림";
+    private static final String NOTIFICATION_BODY_BLOCKED = "위험 거래가 감지되어 %s %,d원 결제를 차단했습니다.";
+    private static final String NOTIFICATION_TITLE_CAUTION = "결제 주의 알림";
+    private static final String NOTIFICATION_BODY_CAUTION =
+        "주의가 필요한 결제가 감지되었습니다. %s %,d원 결제가 정상 완료되었습니다.";
 
     private static final ZoneId ZONE_SEOUL = ZoneId.of("Asia/Seoul");
 
@@ -47,6 +64,9 @@ public class PaymentExecuteService {
     private final WalletMapper walletMapper;
     private final TransactionMapper transactionMapper;
     private final PaymentTokenStore paymentTokenStore;
+    private final PaymentFdsEvaluationService paymentFdsEvaluationService;
+    private final PaymentFdsResultService paymentFdsResultService;
+    private final NotificationService notificationService;
     private final TransactionTemplate transactionTemplate;
 
     public PaymentExecuteService(
@@ -55,6 +75,9 @@ public class PaymentExecuteService {
         WalletMapper walletMapper,
         TransactionMapper transactionMapper,
         PaymentTokenStore paymentTokenStore,
+        PaymentFdsEvaluationService paymentFdsEvaluationService,
+        PaymentFdsResultService paymentFdsResultService,
+        NotificationService notificationService,
         PlatformTransactionManager transactionManager
     ) {
         this.paymentRequestMapper = paymentRequestMapper;
@@ -62,6 +85,9 @@ public class PaymentExecuteService {
         this.walletMapper = walletMapper;
         this.transactionMapper = transactionMapper;
         this.paymentTokenStore = paymentTokenStore;
+        this.paymentFdsEvaluationService = paymentFdsEvaluationService;
+        this.paymentFdsResultService = paymentFdsResultService;
+        this.notificationService = notificationService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
@@ -117,6 +143,11 @@ public class PaymentExecuteService {
             throw new BusinessException(HttpStatus.NOT_FOUND, "MERCHANT_001", "결제할 수 없는 가맹점입니다.");
         }
 
+        // ②′ PAY-FDS 수집·판정 — 행잠금(③) 전에 끝내 잠금 보유 시간을 늘리지 않는다.
+        // 판정~잠금 사이 다른 결제가 끼어들 수 있으나 반복 룰 집계 1건 오차 수준이라 수용한다.
+        // 내부 오류는 evaluate가 fail-open(SAFE 폴백)으로 흡수하므로 여기서 방어하지 않는다.
+        FdsDecision fdsDecision = evaluateFds(request, merchant);
+
         // ③ 행잠금 후 최종 확인 — 행 존재 / 완료·실패 멱등 / 상태 / 만료 / 소유자 정합
         PaymentRequest paymentRequest = paymentRequestMapper.findByTokenForUpdate(request.getQrToken());
         if (paymentRequest == null) {
@@ -149,7 +180,12 @@ public class PaymentExecuteService {
             throw invalidTokenException();
         }
 
-        // ④ 지갑 차감(조건부 원자 UPDATE) — 0건이면 잔액 부족
+        // ④ 판정 분기 — DANGER 는 차감 없이 증적만 커밋하고 커밋 후 403 을 던진다
+        if (fdsDecision != null && fdsDecision.getRiskLevel() == RiskLevel.DANGER) {
+            return blockPayment(paymentRequest, merchant, request.getAmount(), fdsDecision);
+        }
+
+        // 지갑 차감(조건부 원자 UPDATE) — 0건이면 잔액 부족
         if (walletMapper.decreaseBalanceIfSufficient(wallet.getWalletId(), request.getAmount()) == 0) {
             paymentRequestMapper.failPayment(paymentRequest.getPaymentId(), FAILURE_CODE_INSUFFICIENT_BALANCE);
             return ExecuteResult.failure(
@@ -180,6 +216,21 @@ public class PaymentExecuteService {
                 "결제 완료 전이에 실패했습니다. paymentId=" + paymentRequest.getPaymentId());
         }
 
+        // 판정 기록은 거래 행 확정 후에만 가능하다. CAUTION 은 결제는 그대로 두고 알림만 남긴다.
+        if (fdsDecision != null) {
+            paymentFdsResultService.save(transaction.getTransactionId(), fdsDecision);
+            if (fdsDecision.getRiskLevel() == RiskLevel.CAUTION) {
+                notificationService.notifyGuardians(
+                    paymentRequest.getSeniorId(),
+                    NotificationType.ANOMALY,
+                    NOTIFICATION_TITLE_CAUTION,
+                    String.format(NOTIFICATION_BODY_CAUTION, merchant.getName(), request.getAmount()),
+                    NOTIFICATION_REF_TYPE_TRANSACTION,
+                    transaction.getTransactionId()
+                );
+            }
+        }
+
         return ExecuteResult.success(new ExecuteResponse(
             transaction.getTransactionId(),
             TRANSACTION_STATUS_COMPLETED,
@@ -187,6 +238,53 @@ public class PaymentExecuteService {
             merchant.getName(),
             formatIso(paidAt)
         ));
+    }
+
+    /**
+     * 판정 재료(walletId)는 비잠금 선조회로 얻는다 — 진행의 최종 기준은 ③의 잠금 조회이고,
+     * 여기 결과는 판정에만 쓴다. 진행 가능성이 있는 건(PENDING)만 판정하며, 그 외 상태는
+     * 판정 없이 ③의 최종 확인이 종결한다.
+     */
+    private FdsDecision evaluateFds(ExecuteRequest request, Merchant merchant) {
+        PaymentRequest preview = paymentRequestMapper.findByToken(request.getQrToken());
+        if (preview == null || preview.getStatus() != PaymentRequestStatus.PENDING) {
+            return null;
+        }
+        return paymentFdsEvaluationService.evaluate(
+            preview.getWalletId(), request.getAmount(), merchant);
+    }
+
+    /**
+     * DANGER 차단 경로 — 잔액은 건드리지 않고 증적만 남긴다. BLOCKED 거래 행이 먼저인 이유는
+     * 판정 기록과 알림이 거래 ID 를 참조하기 때문이다. balance_after 는 NULL 로 둬서 잔액
+     * 무변동을 데이터로도 표현한다. 오류 응답은 증적이 커밋으로 남아야 하므로 잔액 부족과 같은
+     * 커밋 후 던지기 패턴을 쓴다.
+     */
+    private ExecuteResult blockPayment(PaymentRequest paymentRequest, Merchant merchant,
+        Long amount, FdsDecision fdsDecision) {
+        Transaction transaction = Transaction.builder()
+            .walletId(paymentRequest.getWalletId())
+            .merchantId(merchant.getMerchantId())
+            .type(TRANSACTION_TYPE_PAYMENT)
+            .amount(amount)
+            .status(TRANSACTION_STATUS_BLOCKED)
+            .latitude(merchant.getLatitude().doubleValue())
+            .longitude(merchant.getLongitude().doubleValue())
+            .createdAt(LocalDateTime.now())
+            .build();
+        transactionMapper.insertTransaction(transaction);
+
+        paymentFdsResultService.save(transaction.getTransactionId(), fdsDecision);
+        paymentRequestMapper.failPayment(paymentRequest.getPaymentId(), FAILURE_CODE_FDS_BLOCKED);
+        notificationService.notifyGuardians(
+            paymentRequest.getSeniorId(),
+            NotificationType.ANOMALY,
+            NOTIFICATION_TITLE_BLOCKED,
+            String.format(NOTIFICATION_BODY_BLOCKED, merchant.getName(), amount),
+            NOTIFICATION_REF_TYPE_TRANSACTION,
+            transaction.getTransactionId()
+        );
+        return ExecuteResult.failure(fdsBlockedException());
     }
 
     /** 완료 건의 멱등 응답 — findByToken의 merchants·transactions JOIN 결과로 조립한다 */
@@ -205,11 +303,18 @@ public class PaymentExecuteService {
         if (FAILURE_CODE_INSUFFICIENT_BALANCE.equals(failureCode)) {
             return new BusinessException(HttpStatus.BAD_REQUEST, "WALLET_001", MESSAGE_INSUFFICIENT_BALANCE);
         }
+        if (FAILURE_CODE_FDS_BLOCKED.equals(failureCode)) {
+            return fdsBlockedException();
+        }
         return new BusinessException(HttpStatus.BAD_REQUEST, "결제에 실패했습니다.");
     }
 
     private BusinessException invalidTokenException() {
         return new BusinessException(HttpStatus.BAD_REQUEST, "PAY_001", MESSAGE_INVALID_TOKEN);
+    }
+
+    private BusinessException fdsBlockedException() {
+        return new BusinessException(HttpStatus.FORBIDDEN, "PAYMENT_006", MESSAGE_FDS_BLOCKED);
     }
 
     /** DB DATETIME(KST 기준)을 명세 형식(ISO 8601 +09:00 오프셋 포함)으로 변환 */

@@ -85,4 +85,33 @@ describe('approval response schemas', () => {
     expect(result.data.status).toBe('APPROVED')
     expect(result.data.transfer?.status).toBe('FAILED')
   })
+
+  it.each(['CANCELED', 'EXPIRED'] as const)(
+    '%s 이력 목록을 파싱한다',
+    (status) => {
+      const summaryResult = approvalRequestListResponseSchema.parse({
+        success: true,
+        data: [
+          {
+            approvalId: 3,
+            transactionId: 41,
+            wardId: 12,
+            wardName: '김시니어',
+            amount: 35000,
+            holderName: '박수취',
+            bankName: '신한은행',
+            riskLevel: 'DANGER',
+            requestedAt: '2026-08-05T09:10:00',
+            expiredAt: '2026-08-05T12:10:00',
+            status,
+            respondedAt: '2026-08-05T12:10:00',
+          },
+        ],
+        message: null,
+      })
+
+      expect(summaryResult.data[0]?.status).toBe(status)
+      expect(summaryResult.data[0]?.transactionId).toBe(41)
+    },
+  )
 })

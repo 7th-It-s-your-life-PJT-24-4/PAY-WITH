@@ -12,16 +12,13 @@ DB는 RDS(MySQL)를 쓴다. Redis는 EC2 안의 컨테이너로 띄운다. 인�
 
 RDS 기본값은 UTC다. 앱은 `LocalDateTime.now()`(TZ=Asia/Seoul)로 `expired_at`을 만드는데 조회는 MySQL `NOW()`와 비교하므로, 서버 시간대가 UTC면 9시간 어긋나 승인요청이 제때 만료되지 않는다. JDBC URL의 `serverTimezone`은 드라이버 쪽 해석만 바꿀 뿐 서버의 `NOW()`는 바꾸지 않는다.
 
-**2. 스키마와 시드를 넣는다.**
+**2. 스키마는 앱이 기동하면서 넣는다 — 수동 작업이 없다.**
 
-컨테이너 MySQL과 달리 RDS에는 `docker-entrypoint-initdb.d` 같은 자동 초기화가 없다.
+`be/src/main/resources/db/migration`의 마이그레이션을 앱이 기동 시 Flyway로 적용한다. 빈 DB면 `V1__baseline.sql`이 실행되어 테이블 19개와 시드가 만들어지고, 이미 테이블이 있는 DB면 `baselineOnMigrate`로 V1은 기록만 남기고 그 이후 버전만 적용된다.
 
-```bash
-mysql -h <RDS_ENDPOINT> -u <MYSQL_USER> -p <MYSQL_DATABASE> < ../be/src/main/resources/db/schema.sql
-mysql -h <RDS_ENDPOINT> -u <MYSQL_USER> -p <MYSQL_DATABASE> < ../be/src/main/resources/db/data.sql
-```
+따라서 스키마를 바꿀 때도 RDS에 직접 접속할 일이 없다. 새 마이그레이션 파일을 코드와 같은 PR에 넣어 `develop`에 머지하면 배포와 함께 반영된다.
 
-`data.sql`은 선택이 아니다. `risk_rules`(FDS 룰 카탈로그), `banks`, `merchants`가 들어 있어 없으면 송금 위험도 평가가 동작하지 않는다.
+> **RDS에 직접 DDL을 치지 않는다.** Flyway는 실행 이력(`flyway_schema_history`)만 볼 뿐 실제 스키마를 검사하지 않으므로, 손으로 바꾼 변경은 감지하지도 되돌리지도 못한다. 그 상태로 다음 마이그레이션이 쌓이면 원인 추적이 어려워진다.
 
 **3. RDS 보안 그룹 인바운드 3306을 EC2의 보안 그룹에서만 허용한다.**
 
@@ -37,6 +34,46 @@ docker compose -f docker-compose.ec2.yml up --build -d
 ```
 
 접속 확인은 `https://paywith.site/healthz`로 한다. 프런트 SPA 라우트는 Nginx의 `try_files` fallback으로 `/index.html`을 반환하며, `/api/*`는 내부 `app:8080` 컨테이너로 전달된다.
+
+## 자동 배포
+
+`develop`이 이 EC2 개발·시연 서버에 대응한다. `develop`에 머지되면 GitHub Actions가 이미지를 만들어 GHCR에 올리고, EC2에 SSH로 들어와 같은 compose 파일로 컨테이너를 교체한다.
+
+| 워크플로 | 트리거 경로 | 교체 대상 |
+| --- | --- | --- |
+| `be-ci-cd.yml` | `be/**`, `deploy/**` | `app` |
+| `fe-ci-cd.yml` | `fe/**`, `deploy/**` | `web` |
+
+CI가 넘기는 값은 이미지 태그(`APP_IMAGE` / `WEB_IMAGE`, 커밋 SHA)뿐이다. **DB·Redis·시크릿은 전부 EC2의 `deploy/.env`에서 온다.** 설정을 바꿀 때 GitHub Secrets가 아니라 `deploy/.env`를 고쳐야 한다.
+
+배포 스크립트는 브랜치를 체크아웃하지 않고 **이미지와 같은 커밋을 detached 상태로 체크아웃한다**(`git checkout --detach <sha>`). 브랜치 최신 HEAD를 받으면 빌드 중 머지된 커밋이 섞여 이미지와 compose·Nginx 설정의 커밋이 어긋나기 때문이다. 그래서 배포 후 EC2는 항상 detached HEAD 상태이며, 이는 정상이다. 서버에서 수동 작업을 할 때만 `git checkout develop`으로 돌아오면 된다.
+
+`deploy/.env`는 gitignore 대상이라 체크아웃에 영향받지 않는다. 다만 추적 중인 파일에 로컬 수정이 있으면 체크아웃이 실패하므로 워킹 트리를 깨끗하게 유지한다.
+
+`up -d` 이후 `/healthz`를 최대 60초간 폴링해 앱이 실제로 응답하는지 확인하고, 실패하면 `app` 컨테이너 로그를 남기고 잡을 실패시킨다. 컨테이너 기동만으로는 Spring 부팅 실패를 걸러내지 못하기 때문이다.
+
+### 필요한 GitHub Secrets
+
+| 이름 | 값 |
+| --- | --- |
+| `EC2_HOST` | EC2 공인 IP |
+| `EC2_USER` | `ubuntu` |
+| `EC2_SSH_KEY` | pem 파일 내용 전체 |
+
+레지스트리 인증은 `GITHUB_TOKEN`으로 처리하므로 별도 계정이 필요 없다.
+
+### 수동 배포와 롤백
+
+Actions 탭에서 `workflow_dispatch`로 원하는 브랜치를 배포할 수 있다. 이 경우 EC2도 그 브랜치를 체크아웃하므로, 확인이 끝나면 `develop`으로 되돌려 둔다.
+
+이전 버전으로 되돌릴 때는 재빌드 없이 태그만 바꿔 띄운다.
+
+```bash
+APP_IMAGE=ghcr.io/7th-it-s-your-life-pjt-24-4/pay-with/pay-with-api:<이전 커밋 SHA> \
+  docker compose --env-file deploy/.env -f deploy/docker-compose.ec2.yml up -d --no-build app
+```
+
+`APP_IMAGE`/`WEB_IMAGE`를 지정하지 않으면 compose가 `../be`, `../fe`를 직접 빌드한다(수동 배포 경로).
 
 ## HTTPS
 

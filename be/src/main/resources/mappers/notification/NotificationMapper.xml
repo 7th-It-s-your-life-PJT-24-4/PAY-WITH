@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.paywith.notification.mapper.NotificationMapper">
+
+  <insert id="insert" parameterType="com.paywith.notification.domain.Notification"
+          useGeneratedKeys="true" keyProperty="notificationId">
+    INSERT INTO notifications (user_id, type, title, body, ref_type, ref_id)
+    VALUES (#{userId}, #{type}, #{title}, #{body}, #{refType}, #{refId})
+  </insert>
+
+  <!-- 수신자 기준은 승인 목록(ApprovalRequestMapper viewJoins)과 같은 의미다: ACTIVE 페어링 보호자만 -->
+  <select id="findActiveGuardIds" resultType="long">
+    SELECT guard_id
+    FROM guard_senior
+    WHERE senior_id = #{seniorId}
+      AND status = 'ACTIVE'
+  </select>
+</mapper>

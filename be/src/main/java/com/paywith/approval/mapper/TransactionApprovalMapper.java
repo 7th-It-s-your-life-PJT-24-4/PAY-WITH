@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.Param;
  * transactions.status 의 승인 결과(APPROVED/REJECTED) 반영 전용.
  *
  * <p>이 값은 approval_requests.status 의 비정규화 복사본이라 승인 처리 서비스가 두 테이블을
- * 같은 트랜잭션에서 함께 갱신해야 한다(schema.sql 의 single writer 규칙). 다른 경로에서
+ * 같은 트랜잭션에서 함께 갱신해야 한다(V1__baseline.sql 의 single writer 규칙). 다른 경로에서
  * 단독으로 갱신하지 않도록 매퍼를 승인 패키지에 두고 용도를 이름으로 못박는다.
  */
 @Mapper
@@ -37,7 +37,7 @@ public interface TransactionApprovalMapper {
     /**
      * 응답 시한이 지난 승인 대기 건의 거래를 CANCELED 로 돌린다.
      *
-     * <p>schema.sql 의 approval_requests.status 주석이 정한 대로 EXPIRED 의 짝은 CANCELED 다.
+     * <p>V1__baseline.sql 의 approval_requests.status 주석이 정한 대로 EXPIRED 의 짝은 CANCELED 다.
      * 보류 시점에는 잔액을 잡아두지 않으므로(차감은 승인 후 송금 실행에서만 일어난다) 되돌릴
      * 잔액은 없고 상태만 종결하면 된다.
      *

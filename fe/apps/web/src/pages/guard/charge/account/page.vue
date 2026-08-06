@@ -8,8 +8,8 @@ import { useRouter } from 'vue-router'
 import { banksOptions } from '@/lib/query/bank'
 import GuardBankIconTile from '@/pages/guard/charge/-components/GuardBankIconTile.vue'
 import GuardBankSelectBottomSheet from '@/pages/guard/charge/-components/GuardBankSelectBottomSheet.vue'
-import { getBankPresentation } from '@/pages/guard/charge/-utils/bank-presentation'
 import type { Bank } from '@/schemas/bank.schema'
+import { getBankPresentation } from '@/utils/bank-presentation'
 
 const router = useRouter()
 const isBankSheetOpen = ref(false)

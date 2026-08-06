@@ -10,7 +10,8 @@ import {
 } from '@/pages/guard/approval-requests/-utils/approval-format'
 import type { ApprovalRequestDetail } from '@/schemas/approval.schema'
 
-type DecisionState = 'pending' | 'approved' | 'rejected'
+type DecisionState =
+  'pending' | 'approved' | 'rejected' | 'canceled' | 'expired'
 
 const props = withDefaults(
   defineProps<{
@@ -27,6 +28,8 @@ const props = withDefaults(
 const title = computed(() => {
   if (props.state === 'approved') return '승인된 이상 거래에요'
   if (props.state === 'rejected') return '거절된 이상 거래에요'
+  if (props.state === 'canceled') return '취소된 이상 거래에요'
+  if (props.state === 'expired') return '만료된 이상 거래에요'
   return '이상 거래가 발생했어요'
 })
 
