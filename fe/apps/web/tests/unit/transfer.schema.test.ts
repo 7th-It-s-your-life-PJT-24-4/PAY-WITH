@@ -5,6 +5,7 @@ import {
   recipientInquiryResponseSchema,
   transferResultResponseSchema,
 } from '@/schemas/transfer.schema'
+import { wardSafeAccountListResponseSchema } from '@/schemas/ward-safe-account.schema'
 
 describe('transfer API schemas', () => {
   it('최근 수취인 목록 응답을 검증한다', () => {
@@ -30,6 +31,30 @@ describe('transfer API schemas', () => {
     })
 
     expect(response.data.recipients[0]?.accountAlias).toBe('민수 형')
+  })
+
+  it('피보호자 안심계좌 목록 응답을 검증한다', () => {
+    const response = wardSafeAccountListResponseSchema.parse({
+      success: true,
+      data: {
+        safeAccounts: [
+          {
+            safeAccountId: 1,
+            recipientId: 1,
+            bankCode: '004',
+            bankName: 'KB국민은행',
+            accountNo: '1234567890123',
+            holderName: '김민수',
+            accountAlias: '민수 형',
+            isVerified: true,
+            createdAt: '2026-08-03T10:00:00',
+          },
+        ],
+      },
+      message: null,
+    })
+
+    expect(response.data.safeAccounts[0]?.recipientId).toBe(1)
   })
   it('수취인 조회 ApiResponse를 검증한다', () => {
     const response = recipientInquiryResponseSchema.parse({
