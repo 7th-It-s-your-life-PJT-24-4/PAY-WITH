@@ -43,6 +43,23 @@ public class ApprovalRequestController {
     }
 
     @ApiOperation(
+        value = "종결된 승인요청 이력",
+        notes = "승인·거절·피보호자 취소·3시간 자동 만료 이력을 종결 시각 최신순으로 반환한다. "
+            + "status 는 APPROVED, REJECTED, CANCELED, EXPIRED를 허용하며 wardId로 필터링할 수 있다.")
+    @GetMapping("/history")
+    public ApiResponse<List<ApprovalRequestSummaryResponse>> findHistory(
+        @ApiIgnore @AuthenticationPrincipal Long guardId,
+        @ApiParam(value = "이력 상태", required = true, example = "CANCELED",
+            allowableValues = "APPROVED,REJECTED,CANCELED,EXPIRED")
+        @RequestParam String status,
+        @ApiParam(value = "피보호자 ID. 생략하면 담당 피보호자 전체", example = "42")
+        @RequestParam(required = false) Long wardId
+    ) {
+        return ApiResponse.success(
+            approvalRequestService.findHistory(guardId, wardId, status));
+    }
+
+    @ApiOperation(
         value = "승인 대기 건 상세",
         notes = "보류 사유(발동한 FDS 룰)를 함께 반환한다. 목록과 같이 승인 대기 건만 조회되므로, "
             + "이미 처리했거나 만료된 건과 담당하지 않는 시니어의 건은 404. "

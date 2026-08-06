@@ -9,6 +9,7 @@ import { wardHomeOptions } from '@/lib/query/ward/home'
 import { wardWalletOptions } from '@/lib/query/ward/wallet'
 import WardBalanceCard from '@/pages/ward/-components/WardBalanceCard.vue'
 import WardPendingTransactionList from '@/pages/ward/-components/WardPendingTransactionList.vue'
+import WardPendingTransactionSummaryCard from '@/pages/ward/-components/WardPendingTransactionSummaryCard.vue'
 import WardUnpairedHome from '@/pages/ward/-components/WardUnpairedHome.vue'
 import { usePairingStore } from '@/stores/pairing.store'
 import type { PendingApprovalItem } from '@/schemas/home.schema'
@@ -25,7 +26,15 @@ const requiresPairing = computed(
 const balance = computed(() =>
   homeQuery.data.value?.wallet.balance.toLocaleString('ko-KR'),
 )
+const pendingTransactions = computed(
+  () => homeQuery.data.value?.pendingApprovals ?? [],
+)
 const homeErrorMessage = ref('')
+
+type PendingTransactionVariant = 'inline-list' | 'summary-card'
+
+// 두 홈 화면 안을 비교하는 동안 이 값만 바꿔 승인 대기 거래 표시 방식을 전환합니다.
+const pendingTransactionVariant = ref<PendingTransactionVariant>('summary-card')
 
 const actions = [
   { label: '송금하기', value: 'transfer' },
@@ -122,8 +131,14 @@ watch(
     <WardBalanceCard :balance="balance ?? '0'" :locked="isWalletLocked" />
 
     <WardPendingTransactionList
-      :transactions="homeQuery.data.value.pendingApprovals"
+      v-if="pendingTransactionVariant === 'inline-list'"
+      :transactions="pendingTransactions"
       @select="openPendingTransaction"
+    />
+    <WardPendingTransactionSummaryCard
+      v-else
+      :count="pendingTransactions.length"
+      @open="router.push({ name: 'ward-pending-transactions' })"
     />
 
     <section class="grid gap-md" aria-label="홈 주요 기능">

@@ -25,7 +25,18 @@ export const guardSafeAccountResponseSchema = apiResponseSchema(
   guardSafeAccountSchema,
 )
 
+export const guardSafeAccountListItemSchema = guardSafeAccountSchema.omit({
+  status: true,
+})
+
+export const guardSafeAccountListResponseSchema = apiResponseSchema(
+  z.object({ safeAccounts: z.array(guardSafeAccountListItemSchema) }),
+)
+
 export type RegisterGuardSafeAccountRequest = z.infer<
   typeof registerGuardSafeAccountRequestSchema
 >
 export type GuardSafeAccount = z.infer<typeof guardSafeAccountSchema>
+export type GuardSafeAccountListItem = z.infer<
+  typeof guardSafeAccountListItemSchema
+>

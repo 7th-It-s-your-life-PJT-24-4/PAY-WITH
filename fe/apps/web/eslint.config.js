@@ -20,6 +20,10 @@ export default [
     },
     rules: {
       'vue/multi-word-component-names': 'off',
+      // .ts 는 typescript-eslint 가 이미 꺼두는 규칙이다. .vue 에도 같이 적용해
+      // DOM 전역(HTMLVideoElement, MediaStream 등)이 미정의로 잡히지 않게 한다 —
+      // 미정의 식별자는 vue-tsc 가 검사한다.
+      'no-undef': 'off',
     },
   },
 ]

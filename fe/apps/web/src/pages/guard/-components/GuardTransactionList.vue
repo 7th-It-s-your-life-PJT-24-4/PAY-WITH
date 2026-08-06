@@ -9,6 +9,7 @@ import {
 
 defineProps<{
   transactions: GuardTransaction[]
+  wardId: number | null
 }>()
 
 const emit = defineEmits<{
@@ -66,7 +67,8 @@ const router = useRouter()
           @click="
             router.push({
               name: 'guard-transaction-detail',
-              params: { transactionId: transaction.id },
+              params: { id: transaction.id },
+              query: { wardId: wardId ?? undefined },
             })
           "
         >

@@ -8,7 +8,7 @@ defineProps<{
 
 const emit = defineEmits<{
   charge: []
-  addSafeAccount: []
+  openSafeAccounts: []
 }>()
 </script>
 
@@ -33,10 +33,10 @@ const emit = defineEmits<{
       />
       <Button
         class="w-full !min-h-[42px] !rounded-medium !border-[0.5px] !border-[#c9ced4] !bg-white !px-sm !py-[6px] !text-[14px] !font-bold !leading-[21px] !tracking-[-0.2px] !text-[#494d54]"
-        label="안전계좌 추가하기"
+        label="안전계좌 목록"
         variant="secondary"
         size="small"
-        @click="emit('addSafeAccount')"
+        @click="emit('openSafeAccounts')"
       />
     </div>
   </section>

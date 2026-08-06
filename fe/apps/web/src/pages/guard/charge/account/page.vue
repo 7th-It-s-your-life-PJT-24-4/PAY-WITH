@@ -5,18 +5,25 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { getApiErrorMessage } from '@/api/error'
+import { useRegisterChargeAccountMutation } from '@/composables/useRegisterChargeAccountMutation'
 import { banksOptions } from '@/lib/query/bank'
 import GuardBankIconTile from '@/pages/guard/charge/-components/GuardBankIconTile.vue'
 import GuardBankSelectBottomSheet from '@/pages/guard/charge/-components/GuardBankSelectBottomSheet.vue'
-import { getBankPresentation } from '@/pages/guard/charge/-utils/bank-presentation'
+import { withGuardWardId } from '@/pages/guard/-utils/guard-route'
 import type { Bank } from '@/schemas/bank.schema'
+import { useGuardStore } from '@/stores/guard.store'
+import { getBankPresentation } from '@/utils/bank-presentation'
 
 const router = useRouter()
+const guardStore = useGuardStore()
 const isBankSheetOpen = ref(false)
 const banksQuery = useQuery(banksOptions())
+const registerAccountMutation = useRegisterChargeAccountMutation()
 const selectedBank = ref<Bank | null>(null)
 const accountNumber = ref('')
 const accountPassword = ref('')
+const errorMessage = ref('')
 const banks = computed(() => banksQuery.data.value ?? [])
 const selectedBankPresentation = computed(() =>
   selectedBank.value ? getBankPresentation(selectedBank.value) : null,
@@ -25,8 +32,9 @@ const selectedBankPresentation = computed(() =>
 const canConnect = computed(
   () =>
     Boolean(selectedBank.value) &&
-    accountNumber.value.trim().length > 0 &&
-    accountPassword.value.length === 4,
+    /^\d{8,16}$/.test(accountNumber.value) &&
+    /^\d{4}$/.test(accountPassword.value) &&
+    !registerAccountMutation.isPending.value,
 )
 
 function selectBank(bank: Bank) {
@@ -35,16 +43,36 @@ function selectBank(bank: Bank) {
 }
 
 function updateAccountNumber(value: string) {
-  accountNumber.value = value.replace(/\D/g, '')
+  accountNumber.value = value.replace(/\D/g, '').slice(0, 16)
 }
 
 function updateAccountPassword(value: string) {
   accountPassword.value = value.replace(/\D/g, '').slice(0, 4)
 }
 
-function connectAccount() {
-  if (!canConnect.value) return
-  router.push({ name: 'guard-charge-be' })
+async function connectAccount() {
+  const bank = selectedBank.value
+  if (!canConnect.value || !bank) return
+  errorMessage.value = ''
+
+  try {
+    const account = await registerAccountMutation.mutateAsync({
+      bankCode: bank.bankCode,
+      accountNo: accountNumber.value,
+      accountPassword: accountPassword.value,
+    })
+    guardStore.selectChargeAccount(account.accountId)
+    accountPassword.value = ''
+    await router.replace({
+      name: 'guard-charge-be',
+      query: withGuardWardId({}, guardStore.activeWardId),
+    })
+  } catch (error) {
+    errorMessage.value = await getApiErrorMessage(
+      error,
+      '계좌를 연동하지 못했습니다.',
+    )
+  }
 }
 </script>
 
@@ -143,6 +171,14 @@ function connectAccount() {
           "
         />
       </label>
+
+      <p
+        v-if="errorMessage"
+        class="mt-md text-center text-[14px] font-medium text-error"
+        role="alert"
+      >
+        {{ errorMessage }}
+      </p>
     </section>
 
     <div
@@ -150,7 +186,11 @@ function connectAccount() {
     >
       <Button
         class="w-full"
-        label="충전계좌 연결하기"
+        :label="
+          registerAccountMutation.isPending.value
+            ? '충전계좌 연결 중'
+            : '충전계좌 연결하기'
+        "
         variant="guard-cta"
         size="guard-cta"
         :disabled="!canConnect"

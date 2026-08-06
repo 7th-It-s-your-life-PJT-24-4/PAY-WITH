@@ -1,5 +1,5 @@
 -- =====================================================================
--- 결제 파트 개발 전용 시드 (B6) — 공용 data.sql과 분리 관리
+-- 결제 파트 개발 전용 시드 (B6) — 공용 R__seed.sql과 분리 관리
 -- QR 결제 API 로컬 테스트용 최소 구성:
 --   ① WARD(피보호자) 사용자 ② GUARDIAN(보호자) 사용자 ③ 둘의 ACTIVE 페어링
 --   ④ WARD의 ACTIVE 지갑 + 초기 잔액 ⑤ DevJwtTokenFactory의 userId(9001/9002)와 일치
@@ -30,7 +30,7 @@ INSERT INTO wallets (wallet_id, user_id, balance, status) VALUES
     ON DUPLICATE KEY UPDATE balance = VALUES(balance), status = 'ACTIVE';
 
 -- 좌표 미등록 가맹점: GET /merchants 목록 제외·결제 실행 거부(A1) 검증용.
--- 공용 data.sql의 가맹점 5곳은 전부 좌표가 있어 이 케이스를 실 DB에서 확인할 수 없다.
+-- 공용 R__seed.sql 의 가맹점 5곳은 전부 좌표가 있어 이 케이스를 실 DB에서 확인할 수 없다.
 INSERT INTO merchants (merchant_id, name, category_code, region, latitude, longitude) VALUES
     (9001, '결제테스트 좌표미등록상점', 'MART', '서울 종로구', NULL, NULL)
     ON DUPLICATE KEY UPDATE name = VALUES(name), latitude = NULL, longitude = NULL;

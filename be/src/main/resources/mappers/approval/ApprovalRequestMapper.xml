@@ -22,6 +22,8 @@
     <result property="transactionId" column="transaction_id" />
     <result property="requestedAt"   column="requested_at" />
     <result property="expiredAt"     column="expired_at" />
+    <result property="status"        column="approval_status" />
+    <result property="respondedAt"   column="responded_at" />
     <result property="wardId"        column="ward_id" />
     <result property="wardName"      column="ward_name" />
     <result property="type"          column="type" />
@@ -40,6 +42,11 @@
     ar.transaction_id,
     ar.requested_at,
     ar.expired_at,
+    ar.status         AS approval_status,
+    CASE
+      WHEN ar.status = 'EXPIRED' THEN COALESCE(ar.responded_at, ar.expired_at)
+      ELSE ar.responded_at
+    END               AS responded_at,
     senior.user_id    AS ward_id,
     senior.name       AS ward_name,
     t.type,
@@ -88,6 +95,24 @@
       AND senior.user_id = #{wardId}
     </if>
     ORDER BY ar.expired_at ASC
+  </select>
+
+  <!-- 보호자가 직접 처리한 승인·거절과 담당 피보호자의 취소·자동 만료 이력을 반환한다.
+       현재 담당 관계가 해제된 시니어의 과거 기록은 viewJoins 의 ACTIVE 조인에서 제외된다. -->
+  <select id="findHistoryByGuardId" resultMap="ApprovalRequestViewResultMap">
+    SELECT <include refid="viewColumns" />
+    <include refid="viewJoins" />
+    WHERE gs.guard_id = #{guardId}
+      AND ar.status = #{status}
+      AND (
+        (ar.status IN ('APPROVED', 'REJECTED') AND ar.responded_by = #{guardId})
+        OR (ar.status = 'CANCELED' AND ar.responded_by = senior.user_id)
+        OR (ar.status = 'EXPIRED' AND ar.responded_by IS NULL)
+      )
+    <if test="wardId != null">
+      AND senior.user_id = #{wardId}
+    </if>
+    ORDER BY COALESCE(ar.responded_at, ar.expired_at) DESC
   </select>
 
   <!-- 홈 화면용. 대기 조건(PENDING + 미만료)은 보호자 목록과 같은 의미로 맞춘다.
@@ -153,7 +178,8 @@
        NOW() 를 쓰는 이유는 updateDecision·findPendingByGuardId 와 같은 시계를 보기 위해서다. -->
   <update id="expireOverdue">
     UPDATE approval_requests
-    SET status = 'EXPIRED'
+    SET status = 'EXPIRED',
+        responded_at = COALESCE(responded_at, expired_at)
     WHERE status = 'PENDING'
       AND expired_at &lt;= NOW()
   </update>

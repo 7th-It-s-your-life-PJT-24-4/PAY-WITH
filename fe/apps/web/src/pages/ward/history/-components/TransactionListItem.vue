@@ -2,61 +2,114 @@
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
+  Ban,
   CircleAlert,
+  CircleX,
+  ShieldX,
   ShoppingBag,
+  X,
 } from '@lucide/vue'
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import {
   formatTransactionAmount,
   formatTransactionTime,
-  getTransactionRiskLabel,
-  getTransactionTypeLabel,
+  transactionRiskLabel,
 } from '@/pages/ward/history/-utils/transaction-format'
-import type { WardTransaction } from '@/types/transaction'
+import type { WardTransactionHistoryItem } from '@/schemas/transaction-history.schema'
 
 const props = defineProps<{
-  transaction: WardTransaction
+  transaction: WardTransactionHistoryItem
 }>()
 
+type InterruptedStatus = 'BLOCKED' | 'REJECTED' | 'CANCELED' | 'FAILED'
+
+const interruptedStatusLabel: Record<InterruptedStatus, string> = {
+  BLOCKED: '거래 차단됨',
+  REJECTED: '거래 거절됨',
+  CANCELED: '거래 취소됨',
+  FAILED: '거래 실패',
+}
+
+const interruptedStatuses = new Set<string>([
+  'BLOCKED',
+  'REJECTED',
+  'CANCELED',
+  'FAILED',
+])
+
+const isInterruptedTransaction = computed(() =>
+  interruptedStatuses.has(props.transaction.status),
+)
+
+const statusBadgeLabel = computed(() => {
+  if (!isInterruptedTransaction.value) return null
+  return interruptedStatusLabel[props.transaction.status as InterruptedStatus]
+})
+
 const icon = computed(() => {
+  if (props.transaction.status === 'BLOCKED') return Ban
+  if (props.transaction.status === 'REJECTED') return ShieldX
+  if (props.transaction.status === 'CANCELED') return X
+  if (props.transaction.status === 'FAILED') return CircleX
   if (props.transaction.riskLevel === 'DANGER') return CircleAlert
   if (props.transaction.type === 'PAYMENT') return ShoppingBag
-  return props.transaction.direction === 'CREDIT'
+  return props.transaction.direction === 'IN'
     ? ArrowDownToLine
     : ArrowUpFromLine
 })
 
-const iconClass = computed(
-  () =>
-    ({
-      SAFE: 'bg-primary-900 text-primary-300',
-      CAUTION: 'bg-warning/10 text-warning',
-      DANGER: 'bg-error/10 text-error',
-    })[props.transaction.riskLevel],
+const iconClass = computed(() =>
+  isInterruptedTransaction.value
+    ? 'bg-gray-900 text-body-muted'
+    : props.transaction.riskLevel
+      ? {
+          SAFE: 'bg-primary-900 text-primary-300',
+          CAUTION: 'bg-warning/10 text-warning',
+          DANGER: 'bg-error/10 text-error',
+        }[props.transaction.riskLevel]
+      : 'bg-primary-900 text-body-muted',
 )
 
-const riskClass = computed(
-  () =>
-    ({
-      SAFE: 'bg-success/10 text-success',
-      CAUTION: 'bg-warning/10 text-warning',
-      DANGER: 'bg-error/10 text-error',
-    })[props.transaction.riskLevel],
+const riskClass = computed(() =>
+  props.transaction.riskLevel
+    ? {
+        SAFE: 'bg-success/10 text-success',
+        CAUTION: 'bg-warning/10 text-warning',
+        DANGER: 'bg-error/10 text-error',
+      }[props.transaction.riskLevel]
+    : '',
 )
+
+const badgeClass = computed(() =>
+  isInterruptedTransaction.value
+    ? 'bg-gray-900 text-body-secondary'
+    : riskClass.value,
+)
+
+const typeLabel = computed(() => {
+  if (props.transaction.type === 'CHARGE') return '충전'
+  if (props.transaction.type === 'PAYMENT') return '결제'
+  return '송금'
+})
 </script>
 
 <template>
   <RouterLink
     :to="{
       name: 'ward-transaction-detail',
-      params: { transactionId: transaction.transactionId },
+      params: { transactionId: String(transaction.transactionId) },
     }"
-    class="flex min-h-[96px] items-center gap-md rounded-large border bg-surface-card p-md shadow-card outline-none focus-visible:ring-2 focus-visible:ring-focus"
+    class="flex min-h-[96px] items-center gap-md rounded-large border bg-surface-card p-md shadow-card"
     :class="
-      transaction.riskLevel === 'DANGER' ? 'border-error/30' : 'border-border'
+      isInterruptedTransaction
+        ? 'border-gray-900'
+        : transaction.riskLevel === 'DANGER'
+          ? 'border-error/30'
+          : 'border-border'
     "
-    :aria-label="`${transaction.title} ${formatTransactionAmount(transaction.amount, transaction.direction)} 상세 보기`"
+    :aria-label="`${transaction.title} ${formatTransactionAmount(transaction.amount, transaction.direction)}`"
   >
     <span
       class="flex size-14 shrink-0 items-center justify-center rounded-full"
@@ -70,21 +123,29 @@ const riskClass = computed(
       <span class="flex items-start justify-between gap-sm">
         <strong
           class="type-h3 truncate"
-          :class="
-            transaction.riskLevel === 'DANGER' ? 'text-error' : 'text-body'
-          "
+          :class="[
+            isInterruptedTransaction
+              ? 'text-body-muted'
+              : transaction.riskLevel === 'DANGER'
+                ? 'text-error'
+                : 'text-body',
+            isInterruptedTransaction ? 'line-through decoration-2' : '',
+          ]"
         >
           {{ transaction.title }}
         </strong>
         <strong
           class="type-h3 shrink-0 font-number"
-          :class="
-            transaction.riskLevel === 'DANGER'
-              ? 'text-error'
-              : transaction.direction === 'CREDIT'
-                ? 'text-primary-300'
-                : 'text-body'
-          "
+          :class="[
+            isInterruptedTransaction
+              ? 'text-body-muted'
+              : transaction.riskLevel === 'DANGER'
+                ? 'text-error'
+                : transaction.direction === 'IN'
+                  ? 'text-primary-300'
+                  : 'text-body',
+            isInterruptedTransaction ? 'line-through decoration-2' : '',
+          ]"
         >
           {{
             formatTransactionAmount(transaction.amount, transaction.direction)
@@ -98,14 +159,17 @@ const riskClass = computed(
             formatTransactionTime(transaction.occurredAt)
           }}</span>
           <span aria-hidden="true"> · </span>
-          {{ getTransactionTypeLabel(transaction.type, transaction.direction) }}
+          {{ typeLabel }}
         </span>
         <span
+          v-if="statusBadgeLabel || transaction.riskLevel"
           class="type-caption shrink-0 rounded-full px-sm py-xxs font-medium"
-          :class="riskClass"
+          :class="badgeClass"
         >
           {{
-            getTransactionRiskLabel(transaction.riskLevel, transaction.status)
+            statusBadgeLabel ??
+            (transaction.riskLevel &&
+              transactionRiskLabel[transaction.riskLevel])
           }}
         </span>
       </span>

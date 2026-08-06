@@ -23,8 +23,10 @@ import GuardChargeBePage from '@/pages/guard/charge/be/page.vue'
 import GuardChargeCompletePage from '@/pages/guard/charge/complete/page.vue'
 import GuardChargeDetailPage from '@/pages/guard/charge/[id]/page.vue'
 import GuardChargePasswordPage from '@/pages/guard/charge/password/page.vue'
+import GuardApprovalDecisionCompletePage from '@/pages/guard/approval-requests/[id]/decision-complete.vue'
+import GuardApprovalRequestDetailPage from '@/pages/guard/approval-requests/[id]/page.vue'
+import GuardApprovalRequestsPage from '@/pages/guard/approval-requests/page.vue'
 import GuardTransactionDetailPage from '@/pages/guard/history/[id]/page.vue'
-import GuardTransactionDecisionCompletePage from '@/pages/guard/history/[id]/decision-complete.vue'
 import GuardHistoryPage from '@/pages/guard/history/page.vue'
 import GuardLayout from '@/pages/guard/layout.vue'
 import GuardMyPage from '@/pages/guard/my/page.vue'
@@ -34,16 +36,21 @@ import GuardMySeniorsPage from '@/pages/guard/my/seniors/page.vue'
 import GuardPage from '@/pages/guard/page.vue'
 import GuardPairingCodePage from '@/pages/guard/pairing/code.vue'
 import GuardSafeAccountConfirmPage from '@/pages/guard/safe-account/confirm/page.vue'
+import GuardSafeAccountAddPage from '@/pages/guard/safe-account/add/page.vue'
 import GuardSafeAccountPage from '@/pages/guard/safe-account/page.vue'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete/page.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
 import WardApprovalRequestDetailPage from '@/pages/ward/approval-requests/[approvalId]/page.vue'
+import WardPendingTransactionsPage from '@/pages/ward/pending-transactions/page.vue'
 import { requireCompletedPairing } from '@/pages/ward/pairing/-utils/pairing-route-guard'
 import WardChargeAccountAddPage from '@/pages/ward/charge/account/add/page.vue'
 import WardChargeAccountCompletePage from '@/pages/ward/charge/account/complete/page.vue'
 import WardChargeCompletePage from '@/pages/ward/charge/[transactionId]/complete/page.vue'
 import WardChargePage from '@/pages/ward/charge/page.vue'
 import WardLayout from '@/pages/ward/layout.vue'
+import WardMyGuardianPage from '@/pages/ward/my/guardian/page.vue'
+import WardMyPage from '@/pages/ward/my/page.vue'
+import WardMyProfilePage from '@/pages/ward/my/profile/page.vue'
 import WardPage from '@/pages/ward/page.vue'
 import WardTransactionDetailPage from '@/pages/ward/history/[transactionId]/page.vue'
 import WardTransactionHistoryPage from '@/pages/ward/history/page.vue'
@@ -168,7 +175,7 @@ const router = createRouter({
           },
         },
         {
-          path: 'charge/:chargeId',
+          path: 'charge/:id(\\d+)',
           name: 'guard-charge-detail',
           component: GuardChargeDetailPage,
           meta: {
@@ -181,6 +188,30 @@ const router = createRouter({
           name: 'guard-history',
           component: GuardHistoryPage,
           meta: { activeNavigation: 'history' },
+        },
+        {
+          path: 'approval-requests',
+          name: 'guard-approval-requests',
+          component: GuardApprovalRequestsPage,
+          meta: { activeNavigation: 'home' },
+        },
+        {
+          path: 'approval-requests/:id(\\d+)/complete',
+          name: 'guard-approval-decision-complete',
+          component: GuardApprovalDecisionCompletePage,
+          meta: {
+            activeNavigation: 'home',
+            showBottomNavigation: false,
+          },
+        },
+        {
+          path: 'approval-requests/:id(\\d+)',
+          name: 'guard-approval-request-detail',
+          component: GuardApprovalRequestDetailPage,
+          meta: {
+            activeNavigation: 'home',
+            showBottomNavigation: false,
+          },
         },
         {
           path: 'safe-account',
@@ -201,16 +232,16 @@ const router = createRouter({
           },
         },
         {
-          path: 'history/:transactionId/decision-complete',
-          name: 'guard-transaction-decision-complete',
-          component: GuardTransactionDecisionCompletePage,
+          path: 'safe-account/add',
+          name: 'guard-safe-account-add',
+          component: GuardSafeAccountAddPage,
           meta: {
-            activeNavigation: 'history',
+            activeNavigation: 'home',
             showBottomNavigation: false,
           },
         },
         {
-          path: 'history/:transactionId',
+          path: 'history/:id(\\d+)',
           name: 'guard-transaction-detail',
           component: GuardTransactionDetailPage,
           meta: {
@@ -378,6 +409,57 @@ const router = createRouter({
           meta: {
             title: '거래 내역 상세',
             backRouteName: 'ward-transaction-history',
+          },
+        },
+        {
+          path: 'my',
+          name: 'ward-my',
+          component: WardMyPage,
+          meta: {
+            title: '마이페이지',
+            activeNavigation: 'home',
+          },
+        },
+        {
+          path: 'my/profile',
+          name: 'ward-my-profile',
+          component: WardMyProfilePage,
+          meta: {
+            title: '내 정보',
+            activeNavigation: 'home',
+            backRouteName: 'ward-my',
+          },
+        },
+        {
+          path: 'my/guardian',
+          name: 'ward-my-guardian',
+          component: WardMyGuardianPage,
+          meta: {
+            title: '보호자 관리',
+            activeNavigation: 'home',
+            backRouteName: 'ward-my',
+          },
+        },
+        {
+          path: 'my/terms/:termId',
+          name: 'ward-my-terms',
+          component: SignUpTermsPage,
+          meta: {
+            title: '약관 상세',
+            activeNavigation: 'home',
+            showBottomNavigation: false,
+            backRouteName: 'ward-my',
+            hideInnerHeader: true,
+          },
+        },
+        {
+          path: 'pending-transactions',
+          name: 'ward-pending-transactions',
+          component: WardPendingTransactionsPage,
+          meta: {
+            title: '승인 대기 거래',
+            activeNavigation: 'home',
+            backRouteName: 'ward-home',
           },
         },
         {
@@ -568,6 +650,14 @@ const router = createRouter({
       ],
     },
     {
+      // 가맹점 스캐너는 로그인 계정이 없는 제3 액터라 인증 없이 접근한다.
+      // QR 디코더가 무거워 이 라우트에서만 지연 로딩한다.
+      path: '/scanner',
+      name: 'scanner',
+      component: () => import('@/pages/scanner/page.vue'),
+      meta: { public: true },
+    },
+    {
       path: '/',
       redirect: '/auth/sign-in',
     },
@@ -620,6 +710,9 @@ async function resolveAuthentication() {
 }
 
 router.beforeEach(async (to) => {
+  // 공개 라우트는 인증 해석 자체를 건너뛴다 — 스캐너는 토큰이 없는 것이 정상 상태다
+  if (to.meta.public) return true
+
   const isAuthRoute = to.path.startsWith('/auth')
   const { userId, sessionExpired } = await resolveAuthentication()
 

@@ -13,7 +13,7 @@ You are a backend maintainer for the Spring Legacy backend in this repository.
 - Spring Framework 5.x MVC and Security
 - MyBatis mapper interfaces and XML
 - JWT auth classes under `com.paywith.security`
-- MySQL schema and seed files under `be/src/main/resources/db`
+- Flyway migrations (MySQL schema and seed) under `be/src/main/resources/db/migration`, applied at app startup
 - Gradle WAR build and Docker Compose local environment
 
 ## Workflow

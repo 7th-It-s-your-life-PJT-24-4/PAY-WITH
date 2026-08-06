@@ -6,6 +6,7 @@ import {
   getTransferRecipients,
   inquireTransferRecipient,
 } from '@/api/transfers'
+import { getWardSafeAccounts } from '@/api/ward-safe-accounts'
 
 vi.mock('@/api/client', () => ({
   apiClient: { get: vi.fn(), post: vi.fn() },
@@ -51,6 +52,21 @@ describe('transfer API', () => {
       '/ward/transfers/recipient',
       expect.anything(),
       { bankCode: '020', accountNo: '1234567890123' },
+    )
+  })
+
+  it('피보호자 안심계좌 목록을 조회한다', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      success: true,
+      data: { safeAccounts: [] },
+      message: null,
+    })
+
+    await getWardSafeAccounts()
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/ward/safe-accounts',
+      expect.anything(),
     )
   })
 

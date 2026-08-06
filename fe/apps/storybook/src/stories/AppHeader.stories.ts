@@ -27,3 +27,9 @@ export const TitleOnly: Story = {
     showProfile: false,
   },
 }
+
+export const Primary: Story = {
+  args: {
+    variant: 'primary',
+  },
+}

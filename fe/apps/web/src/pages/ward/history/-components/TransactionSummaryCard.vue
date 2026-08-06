@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { ArrowDownToLine, ArrowUpFromLine, ReceiptText } from '@lucide/vue'
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Landmark,
+  ReceiptText,
+} from '@lucide/vue'
 import { computed } from 'vue'
 
 import {
@@ -15,14 +20,20 @@ const props = defineProps<{
 }>()
 
 const icon = computed(() => {
+  if (props.transaction.type === 'CHARGE') return Landmark
   if (props.transaction.type === 'PAYMENT') return ReceiptText
-  return props.transaction.direction === 'CREDIT'
+  return props.transaction.direction === 'CREDIT' ||
+    props.transaction.direction === 'IN'
     ? ArrowDownToLine
     : ArrowUpFromLine
 })
 
 const counterpartyLabel = computed(() =>
-  props.transaction.type === 'PAYMENT' ? '가맹점' : '거래한 분',
+  props.transaction.type === 'PAYMENT'
+    ? '가맹점'
+    : props.transaction.type === 'CHARGE'
+      ? '충전 계좌'
+      : '거래한 분',
 )
 </script>
 
@@ -73,7 +84,8 @@ const counterpartyLabel = computed(() =>
           :class="
             transaction.riskLevel === 'DANGER'
               ? 'text-error'
-              : transaction.direction === 'CREDIT'
+              : transaction.direction === 'CREDIT' ||
+                  transaction.direction === 'IN'
                 ? 'text-primary-300'
                 : 'text-body'
           "
@@ -103,7 +115,11 @@ const counterpartyLabel = computed(() =>
     >
       <dt class="type-body-medium text-body-muted">거래 후 잔액</dt>
       <dd class="type-body-medium font-number font-bold text-primary-300">
-        {{ formatTransactionBalance(transaction.balanceAfter) }}
+        {{
+          transaction.balanceAfter == null
+            ? '-'
+            : formatTransactionBalance(transaction.balanceAfter)
+        }}
       </dd>
     </dl>
   </section>

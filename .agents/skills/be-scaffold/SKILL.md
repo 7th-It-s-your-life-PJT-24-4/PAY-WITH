@@ -19,7 +19,8 @@ sed -n '1,80p' src/main/java/com/paywith/user/controller/UserController.java
 sed -n '1,80p' src/main/java/com/paywith/user/service/UserService.java
 sed -n '1,40p' src/main/java/com/paywith/user/mapper/UserMapper.java
 sed -n '1,60p' src/main/resources/mappers/user/UserMapper.xml
-sed -n '1,80p' src/main/resources/db/schema.sql
+sed -n '1,80p' src/main/resources/db/migration/V1__baseline.sql
+ls src/main/resources/db/migration/
 ```
 
 3. Decide the file targets for resource `<Name>` under its own domain package `<domain>` (kebab/lowercase, e.g. `user`, `payment`):
@@ -34,7 +35,12 @@ sed -n '1,80p' src/main/resources/db/schema.sql
 5. Keep the `controller -> service -> mapper -> domain/dto` flow inside the domain package. Controllers stay thin and only call the service, then wrap the result with `ApiResponse.success(...)`. Put validation annotations (`@Valid`, Bean Validation) on request DTOs, not in the controller body.
 6. Put business rules, existence checks, and `@Transactional` boundaries in the service layer. Throw `BusinessException` with an appropriate `HttpStatus` for not-found/conflict cases; do not catch and reformat it in the controller, `GlobalExceptionHandler` already handles it (`GlobalExceptionHandler`/`BusinessException`/`ApiResponse`/`security` stay shared under `com.paywith.exception`/`com.paywith.common`/`com.paywith.security`, not per-domain).
 7. Keep the mapper interface method signatures and the XML `id`s in 1:1 sync. Match the `resultMap` columns (snake_case) to domain fields (camelCase) the way `UserMapper.xml` does. `MyBatisConfig`'s `@MapperScan("com.paywith")` and `setTypeAliasesPackage("com.paywith")` already cover every domain package, so a new domain's mapper needs no extra scan configuration.
-8. If the resource needs a new table or column, update `src/main/resources/db/schema.sql` (and `data.sql` only if seed rows are actually needed for local dev). Do not rename or drop existing columns without explicit confirmation from the user.
+8. If the resource needs a new table or column, add a **new Flyway migration** under `src/main/resources/db/migration/`. Never edit `V1__baseline.sql` or any migration that has already been applied — Flyway validates checksums and the app will refuse to start.
+   - Name it `V<YYYYMMDD>_<HHmm>__<snake_case_summary>.sql` (e.g. `V20260806_1430__approval_add_canceled.sql`). Timestamps avoid version collisions between parallel branches.
+   - One schema change per file. MySQL has no transactional DDL, so a multi-statement file that fails halfway leaves the earlier statements applied.
+   - Seed rows go in `R__seed.sql` instead — edit it in place, do not create a new file. It re-runs whenever its content changes and every INSERT is an `ON DUPLICATE KEY UPDATE` upsert (row-alias form: `... AS new ON DUPLICATE KEY UPDATE col = new.col`, since `VALUES()` is deprecated in MySQL 8.0.20+).
+   - **`R__seed.sql` only adds and updates — it never deletes.** Removing a row from that file leaves the row in the database. To retire a `risk_rules` entry, write a versioned migration that sets `is_active = FALSE` explicitly; otherwise `RiskRuleCache` keeps loading it and the rule keeps firing.
+   - Do not rename or drop existing columns without explicit confirmation from the user.
 9. If the endpoint needs auth rules beyond the current defaults, check `src/main/java/com/paywith/config/SecurityConfig.java` before editing it; do not loosen JWT/security matchers without the user's explicit request.
 10. Run validation from `be`:
 

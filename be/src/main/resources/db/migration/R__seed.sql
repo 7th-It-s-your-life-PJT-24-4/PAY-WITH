@@ -1,6 +1,21 @@
 -- =====================================================================
 -- PAY-WITH 시드 데이터 (ERD v2.6)
--- schema.sql 실행 후 적용. banks / risk_rules / payment_anomaly_rules / merchants
+-- banks / risk_rules / payment_anomaly_rules / merchants
+--
+-- Repeatable 마이그레이션(R__)이라 버전이 없고, 모든 V 파일이 끝난 뒤에 실행된다.
+-- 이 파일의 내용이 바뀌면 다음 기동 때 자동으로 다시 실행된다 — FDS 룰 배점처럼
+-- 자주 조정되는 값을 새 V 파일 없이 반영하기 위한 구조다.
+-- 모든 INSERT 가 ON DUPLICATE KEY UPDATE 라 몇 번 실행돼도 결과가 같다.
+--
+-- ⚠ 이 파일은 추가·수정만 반영한다. 여기서 행을 지워도 DB 에서는 사라지지 않는다.
+--   UPSERT 만 하고 DELETE 를 하지 않기 때문이다. risk_rules 는 특히 주의해야 하는데,
+--   RiskRuleCache 가 is_active 인 행을 전부 읽어 평가기와 매칭하므로 폐기했다고 생각한
+--   룰이 계속 발동한다.
+--   → 룰 폐기·rule_code 변경은 이 파일이 아니라 versioned migration 에서 명시적으로
+--     UPDATE risk_rules SET is_active = FALSE WHERE rule_code = '...' 로 처리한다.
+--
+-- 문법: MySQL 8.0.20 부터 ON DUPLICATE KEY UPDATE 의 VALUES() 가 deprecated 라
+--       행 별칭(AS new)을 쓴다. 로컬(docker mysql:8.4)과 RDS(8.4) 모두 지원한다.
 -- =====================================================================
 
 SET NAMES utf8mb4;
@@ -29,7 +44,8 @@ INSERT INTO banks (bank_code, bank_name, is_active) VALUES
                                                         ('089', '케이뱅크',       TRUE),
                                                         ('090', '카카오뱅크',     TRUE),
                                                         ('092', '토스뱅크',       TRUE)
-    ON DUPLICATE KEY UPDATE bank_name = VALUES(bank_name), is_active = VALUES(is_active);
+    AS new
+    ON DUPLICATE KEY UPDATE bank_name = new.bank_name, is_active = new.is_active;
 
 -- 2) 송금 위험도 배점 규칙  [v2.7 갱신]
 --    배점 원칙: 정상 거래에서도 흔한 신호(신규 수취인·중간 금액)는 낮게,
@@ -51,7 +67,8 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
                                                                       ('HIGH_AMOUNT_L1',       '고액 송금 1구간(L1~L2)',                             10, TRUE),
                                                                       ('NIGHT_TIME_LATE',      '야간 송금(밤~자정)',                                  6, TRUE),
                                                                       ('SAFE_ACCOUNT_CHECK',   '시니어 본인이 안전계좌로 등록한 수취인 감점',        -20, TRUE)
-    ON DUPLICATE KEY UPDATE description = VALUES(description), score = VALUES(score), is_active = VALUES(is_active);
+    AS new
+    ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 
 -- 2-1) 단축평가(블랙리스트) 항목  [v2.7 신규]
 --      점수 합산에는 참여하지 않으므로 score = 0. 발동 시 DANGER 로 즉시 확정되며,
@@ -61,7 +78,8 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
                                                                       ('BL_REJECTED_RECIPIENT', '보호자가 거절한 이력이 있는 계좌로 재송금 시도', 0, TRUE),
                                                                       ('BL_FRAUD_ACCOUNT',      '사기계좌로 신고된 계좌에 송금',                  0, TRUE)
-    ON DUPLICATE KEY UPDATE description = VALUES(description), score = VALUES(score), is_active = VALUES(is_active);
+    AS new
+    ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 
 -- BL_FRAUD_ACCOUNT 는 FraudAccountClient 로 조회한다. 더치트 API 를 개인 개발자가 쓸 수 없어
 -- 현재는 MockFraudAccountClient(설정 기반 목 데이터)를 쓰며, 실제 연동 시 구현체만 교체한다.
@@ -85,13 +103,15 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
                                                                       ('PAY_HIGH_AMOUNT_L1',   '고액 결제 1구간(L1~L2)',                                       10, TRUE),
                                                                       ('PAY_GIFT_CARD_AMOUNT', '상품권 취급 업종에서 단위 배수 금액 결제(상품권 의심)',        10, TRUE),
                                                                       ('PAY_NIGHT_LATE',       '야간 결제(밤~자정)',                                            6, TRUE)
-    ON DUPLICATE KEY UPDATE description = VALUES(description), score = VALUES(score), is_active = VALUES(is_active);
+    AS new
+    ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 
 -- 2-2-1) 결제 단축평가 — 송금 BL_* 와 같은 위상(score 0, 발동 즉시 DANGER, details 에 근거 기록).
 --        결제 DANGER 는 승인 보류가 아니라 즉시 거절(BLOCKED)로 처리된다.
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
                                                                       ('PAY_IMPOSSIBLE_TRAVEL', '직전 결제 대비 물리적으로 불가능한 이동 속도', 0, TRUE)
-    ON DUPLICATE KEY UPDATE description = VALUES(description), score = VALUES(score), is_active = VALUES(is_active);
+    AS new
+    ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 
 -- 3) 결제 이상 규칙 카탈로그 (IMPOSSIBLE_TRAVEL만 즉시 차단)  [변경 없음]
 INSERT INTO payment_anomaly_rules (rule_code, description, default_action, is_active) VALUES
@@ -99,7 +119,8 @@ INSERT INTO payment_anomaly_rules (rule_code, description, default_action, is_ac
                                                                                           ('OUT_OF_ZONE',          '생활 반경 밖 결제',         'NOTIFY', TRUE),
                                                                                           ('IMPOSSIBLE_TRAVEL',    '물리적으로 불가능한 이동',  'BLOCK',  TRUE),
                                                                                           ('MISSED_ROUTINE_VISIT', '루틴 방문 이탈',            'NOTIFY', TRUE)
-    ON DUPLICATE KEY UPDATE description = VALUES(description), default_action = VALUES(default_action), is_active = VALUES(is_active);
+    AS new
+    ON DUPLICATE KEY UPDATE description = new.description, default_action = new.default_action, is_active = new.is_active;
 
 -- 4) 시연용 더미 가맹점 (좌표는 서울 기준 예시)  [변경 없음]
 INSERT INTO merchants (merchant_id, name, category_code, region, latitude, longitude) VALUES
@@ -108,5 +129,6 @@ INSERT INTO merchants (merchant_id, name, category_code, region, latitude, longi
                                                                                           (3, '한마음경로식당',    'RESTAURANT', '서울 종로구',  37.5735000, 126.9768000),
                                                                                           (4, '우리동네편의점',    'CVS',        '서울 중구',    37.5636000, 126.9976000),
                                                                                           (5, '서울대병원 원무과', 'HOSPITAL',   '서울 종로구',  37.5799000, 126.9987000)
-    ON DUPLICATE KEY UPDATE name = VALUES(name), category_code = VALUES(category_code), region = VALUES(region),
-    latitude = VALUES(latitude), longitude = VALUES(longitude);
+    AS new
+    ON DUPLICATE KEY UPDATE name = new.name, category_code = new.category_code, region = new.region,
+    latitude = new.latitude, longitude = new.longitude;

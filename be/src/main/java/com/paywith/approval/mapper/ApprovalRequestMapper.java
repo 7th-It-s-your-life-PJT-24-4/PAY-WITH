@@ -26,6 +26,12 @@ public interface ApprovalRequestMapper {
         @Param("guardId") Long guardId,
         @Param("wardId") Long wardId);
 
+    /** 보호자 담당 범위의 승인·거절·피보호자 취소·자동 만료 이력을 최신순으로 조회한다. */
+    List<ApprovalRequestView> findHistoryByGuardId(
+        @Param("guardId") Long guardId,
+        @Param("wardId") Long wardId,
+        @Param("status") String status);
+
     /**
      * 피보호자 본인의 승인 대기 목록. 홈 화면에서 쓴다.
      *

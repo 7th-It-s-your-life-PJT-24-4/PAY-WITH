@@ -6,10 +6,12 @@ services:
       - .env
     ports:
       - '3306:3306'
+    # 스키마는 앱이 기동하면서 Flyway 로 적용한다. initdb.d 마운트를 두면 로컬만 다른 경로로
+    # 스키마가 생겨 RDS 와 반영 방식이 갈리고, initdb.d 는 데이터 디렉터리가 완전히 빈 최초
+    # 기동에만 동작해서 스키마를 바꿀 때마다 볼륨을 지워야 했다.
+    # → mysql 만 띄우면 DB 는 비어 있다. 테이블을 보려면 앱을 한 번 기동해야 한다.
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-      - ./src/main/resources/db/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
     healthcheck:
       test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-proot']
       interval: 10s

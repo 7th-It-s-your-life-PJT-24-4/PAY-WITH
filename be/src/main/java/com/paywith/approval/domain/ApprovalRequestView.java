@@ -19,6 +19,8 @@ public class ApprovalRequestView {
     private Long transactionId;
     private LocalDateTime requestedAt;
     private LocalDateTime expiredAt;
+    private String status;
+    private LocalDateTime respondedAt;
 
     private Long wardId;
     private String wardName;

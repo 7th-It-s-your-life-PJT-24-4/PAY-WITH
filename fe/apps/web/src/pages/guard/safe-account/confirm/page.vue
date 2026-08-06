@@ -1,19 +1,27 @@
 <script setup lang="ts">
 import { ChevronLeft } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
-import { useMutation } from '@tanstack/vue-query'
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import { registerGuardSafeAccount } from '@/api/guard-safe-accounts'
 import { getApiErrorMessage } from '@/api/error'
+import { guardSafeAccountKeys } from '@/lib/query/guard/safe-account'
 import { useGuardStore } from '@/stores/guard.store'
 import { useSafeAccountStore } from '@/stores/safe-account.store'
 
+const route = useRoute()
 const router = useRouter()
+const queryClient = useQueryClient()
 const guardStore = useGuardStore()
 const safeAccountStore = useSafeAccountStore()
 const errorMessage = ref('')
+const routeWardId = computed(() => {
+  const value = Number(route.query.wardId)
+  return Number.isSafeInteger(value) && value > 0 ? value : null
+})
+const wardId = computed(() => routeWardId.value ?? guardStore.activeWardId)
 const registerMutation = useMutation({
   mutationFn: ({
     wardId,
@@ -24,28 +32,42 @@ const registerMutation = useMutation({
     bankCode: string
     accountNo: string
   }) => registerGuardSafeAccount(wardId, { bankCode, accountNo }),
+  onSuccess: (_data, variables) =>
+    queryClient.invalidateQueries({
+      queryKey: guardSafeAccountKeys.list(variables.wardId),
+    }),
 })
 
 async function completeSafeAccount() {
-  if (guardStore.activeWardId === null) {
+  if (wardId.value === null) {
     errorMessage.value = '연결할 시니어를 다시 선택해주세요.'
     return
   }
 
   try {
     await registerMutation.mutateAsync({
-      wardId: guardStore.activeWardId,
+      wardId: wardId.value,
       bankCode: safeAccountStore.bankCode,
       accountNo: safeAccountStore.accountNumber,
     })
     safeAccountStore.reset()
-    await router.replace({ name: 'guard-home' })
+    await router.replace({
+      name: 'guard-safe-account',
+      query: { wardId: wardId.value },
+    })
   } catch (error) {
     errorMessage.value = await getApiErrorMessage(
       error,
       '안전계좌를 등록하지 못했습니다.',
     )
   }
+}
+
+function goToAdd() {
+  router.push({
+    name: 'guard-safe-account-add',
+    query: { wardId: wardId.value ?? undefined },
+  })
 }
 </script>
 
@@ -57,8 +79,8 @@ async function completeSafeAccount() {
       <button
         class="flex size-11 items-center justify-center text-[#3b3e43]"
         type="button"
-        aria-label="뒤로 가기"
-        @click="router.back()"
+        aria-label="안전계좌 정보 입력으로 돌아가기"
+        @click="goToAdd"
       >
         <ChevronLeft class="size-6" aria-hidden="true" />
       </button>
@@ -78,7 +100,10 @@ async function completeSafeAccount() {
         id="safe-account-confirm-title"
         class="text-[32px] font-bold leading-[1.4] tracking-[-0.64px] text-black"
       >
-        입력한 계좌를<br />
+        <span class="text-primary-500">
+          {{ safeAccountStore.bankName || '선택한 계좌' }}
+        </span>
+        계좌를<br />
         안전계좌에<br />
         추가할까요?
       </h2>

@@ -21,6 +21,10 @@ public interface ApprovalRequestService {
      */
     List<ApprovalRequestSummaryResponse> findPending(Long guardId, Long wardId);
 
+    /** 보호자 담당 범위의 승인·거절·피보호자 취소·자동 만료 이상거래 목록. */
+    List<ApprovalRequestSummaryResponse> findHistory(
+        Long guardId, Long wardId, String status);
+
     /** 승인 판단에 필요한 상세. 담당하지 않는 시니어의 건이면 404. */
     ApprovalRequestDetailResponse findDetail(Long approvalId, Long guardId);
 
@@ -28,7 +32,7 @@ public interface ApprovalRequestService {
      * 보류된 송금을 승인한다.
      *
      * <p>approval_requests 와 transactions 의 상태를 같은 트랜잭션에서 함께 갱신한다
-     * (schema.sql 의 single writer 규칙).
+     * (V1__baseline.sql 의 single writer 규칙).
      */
     ApprovalDecisionResponse approve(Long approvalId, Long guardId);
 

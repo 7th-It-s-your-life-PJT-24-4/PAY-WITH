@@ -63,6 +63,7 @@ class ApprovalRequestQueryTest {
         view.setTotalScore(64);
         view.setRequestedAt(LocalDateTime.now());
         view.setExpiredAt(LocalDateTime.now().plusMinutes(30));
+        view.setStatus("PENDING");
         return view;
     }
 
@@ -81,6 +82,7 @@ class ApprovalRequestQueryTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getApprovalId()).isEqualTo(APPROVAL_ID);
+        assertThat(result.get(0).getTransactionId()).isEqualTo(TRANSACTION_ID);
         assertThat(result.get(0).getWardId()).isEqualTo(WARD_ID);
         assertThat(result.get(0).getWardName()).isEqualTo("김시니어");
         assertThat(result.get(0).getRiskLevel()).isEqualTo("DANGER");
@@ -114,6 +116,51 @@ class ApprovalRequestQueryTest {
     }
 
     @Test
+    void findHistory_mapsApprovedListAndNormalizesStatus() {
+        ApprovalRequestView processed = view();
+        processed.setStatus("APPROVED");
+        processed.setRespondedAt(LocalDateTime.now());
+        given(approvalRequestMapper.findHistoryByGuardId(
+            GUARD_ID, WARD_ID, "APPROVED")).willReturn(List.of(processed));
+
+        List<ApprovalRequestSummaryResponse> result =
+            service.findHistory(GUARD_ID, WARD_ID, " approved ");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getStatus()).isEqualTo("APPROVED");
+        assertThat(result.get(0).getRespondedAt()).isEqualTo(processed.getRespondedAt());
+        then(approvalRequestMapper).should()
+            .findHistoryByGuardId(GUARD_ID, WARD_ID, "APPROVED");
+    }
+
+    @Test
+    void findHistory_acceptsCanceledAndExpiredStatus() {
+        given(approvalRequestMapper.findHistoryByGuardId(GUARD_ID, null, "CANCELED"))
+            .willReturn(List.of());
+        given(approvalRequestMapper.findHistoryByGuardId(GUARD_ID, WARD_ID, "EXPIRED"))
+            .willReturn(List.of());
+
+        assertThat(service.findHistory(GUARD_ID, null, "CANCELED")).isEmpty();
+        assertThat(service.findHistory(GUARD_ID, WARD_ID, " expired ")).isEmpty();
+
+        then(approvalRequestMapper).should()
+            .findHistoryByGuardId(GUARD_ID, null, "CANCELED");
+        then(approvalRequestMapper).should()
+            .findHistoryByGuardId(GUARD_ID, WARD_ID, "EXPIRED");
+    }
+
+    @Test
+    void findHistory_rejectsPendingStatus() {
+        assertThatThrownBy(() -> service.findHistory(GUARD_ID, null, "PENDING"))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+            .hasFieldOrPropertyWithValue("code", "REQUEST_001");
+
+        then(approvalRequestMapper).should(never())
+            .findHistoryByGuardId(anyLong(), anyLong(), org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
     void findDetail_includesRuleHits() {
         given(approvalRequestMapper.findByIdAndGuardId(APPROVAL_ID, GUARD_ID)).willReturn(view());
         given(approvalRequestMapper.findRuleHits(TRANSACTION_ID)).willReturn(List.of(
@@ -140,4 +187,5 @@ class ApprovalRequestQueryTest {
             .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
         then(approvalRequestMapper).should(never()).findRuleHits(anyLong());
     }
+
 }

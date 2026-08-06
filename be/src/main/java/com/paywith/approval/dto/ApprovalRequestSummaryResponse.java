@@ -7,12 +7,15 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.Getter;
 
-@ApiModel(description = "승인 대기 목록의 한 건")
+@ApiModel(description = "승인요청 목록의 한 건")
 @Getter
 public class ApprovalRequestSummaryResponse {
 
     @ApiModelProperty(value = "승인요청 ID", example = "1")
     private final Long approvalId;
+
+    @ApiModelProperty(value = "대상 거래 ID", example = "500")
+    private final Long transactionId;
 
     @ApiModelProperty(value = "송금을 요청한 피보호자 ID. 목록을 피보호자별로 묶거나 필터링할 때 쓴다", example = "42")
     private final Long wardId;
@@ -35,11 +38,19 @@ public class ApprovalRequestSummaryResponse {
     @ApiModelProperty(value = "승인요청 생성 시각")
     private final LocalDateTime requestedAt;
 
-    @ApiModelProperty(value = "승인 만료 시각. 지나면 목록에서 빠진다")
+    @ApiModelProperty(value = "승인 만료 시각. 대기 목록에서는 이 시각이 지나면 제외된다")
     private final LocalDateTime expiredAt;
+
+    @ApiModelProperty(value = "승인요청 상태", example = "APPROVED",
+        allowableValues = "PENDING,APPROVED,REJECTED,CANCELED,EXPIRED")
+    private final String status;
+
+    @ApiModelProperty(value = "보호자 응답·피보호자 취소·자동 만료 시각. 대기 건이면 null")
+    private final LocalDateTime respondedAt;
 
     public ApprovalRequestSummaryResponse(ApprovalRequestView view) {
         this.approvalId = view.getApprovalId();
+        this.transactionId = view.getTransactionId();
         this.wardId = view.getWardId();
         this.wardName = view.getWardName();
         this.amount = view.getAmount();
@@ -48,5 +59,7 @@ public class ApprovalRequestSummaryResponse {
         this.riskLevel = view.getRiskLevel();
         this.requestedAt = view.getRequestedAt();
         this.expiredAt = view.getExpiredAt();
+        this.status = view.getStatus();
+        this.respondedAt = view.getRespondedAt();
     }
 }

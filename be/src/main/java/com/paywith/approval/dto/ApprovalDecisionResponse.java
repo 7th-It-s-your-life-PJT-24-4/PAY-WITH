@@ -15,7 +15,8 @@ public class ApprovalDecisionResponse {
     @ApiModelProperty(value = "대상 송금 거래 ID", example = "500")
     private final Long transactionId;
 
-    @ApiModelProperty(value = "처리 후 승인요청 상태", example = "APPROVED", allowableValues = "APPROVED,REJECTED")
+    @ApiModelProperty(value = "처리 후 승인요청 상태", example = "APPROVED",
+        allowableValues = "APPROVED,REJECTED")
     private final String status;
 
     @ApiModelProperty(value = "처리 시각")

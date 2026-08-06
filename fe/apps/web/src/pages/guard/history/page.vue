@@ -1,58 +1,154 @@
 <script setup lang="ts">
 import { ConfirmModal } from '@pay-with/ui'
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useQuery } from '@tanstack/vue-query'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-import {
-  mockGuardSeniors,
-  mockGuardTransactions,
-  type GuardTransaction,
-} from '@/mocks/guard-home.mock'
+import { guardHomeOptions } from '@/lib/query/guard/home'
+import { guardTransactionHistoryOptions } from '@/lib/query/guard/transaction'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
+import {
+  parsePositiveRouteId,
+  withGuardWardId,
+} from '@/pages/guard/-utils/guard-route'
 import GuardHistoryTransactionList from '@/pages/guard/history/-components/GuardHistoryTransactionList.vue'
+import type { GuardSeniorAvatar } from '@/mocks/guard-home.mock'
+import type { TransactionRiskLevel } from '@/schemas/transaction.schema'
+import { useGuardStore } from '@/stores/guard.store'
 import { usePairingStore } from '@/stores/pairing.store'
 
-type HistoryFilter = 'all' | GuardTransaction['status']
+type HistoryFilter = 'ALL' | TransactionRiskLevel
 
 const filters: Array<{ label: string; value: HistoryFilter }> = [
-  { label: '전체', value: 'all' },
-  { label: '위험', value: 'danger' },
-  { label: '주의', value: 'warning' },
-  { label: '안전', value: 'safe' },
+  { label: '전체', value: 'ALL' },
+  { label: '위험', value: 'DANGER' },
+  { label: '주의', value: 'CAUTION' },
+  { label: '안전', value: 'SAFE' },
 ]
 
+const route = useRoute()
 const router = useRouter()
 const pairingStore = usePairingStore()
-const activeFilter = ref<HistoryFilter>('all')
-const activeSeniorId = ref(mockGuardSeniors[0]?.id ?? '')
+const guardStore = useGuardStore()
+const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
+const selectedWardId = computed(
+  () => routeWardId.value ?? guardStore.activeWardId,
+)
+const activeFilter = ref<HistoryFilter>('ALL')
 const isPairingConfirmOpen = ref(false)
 
-const filteredTransactions = computed(() => {
-  if (activeFilter.value === 'all') return mockGuardTransactions
-  return mockGuardTransactions.filter(
-    ({ status }) => status === activeFilter.value,
-  )
-})
+const guardHomeQuery = useQuery(guardHomeOptions(selectedWardId))
+const selectedWard = computed(
+  () => guardHomeQuery.data.value?.selectedWard ?? null,
+)
+const seniors = computed<GuardSeniorAvatar[]>(() =>
+  (guardHomeQuery.data.value?.wards ?? []).map(
+    ({ wardId, name, avatarId }) => ({
+      id: String(wardId),
+      name,
+      imageUrl: `/images/avatar/avatar${avatarId}.png`,
+    }),
+  ),
+)
+const activeWardId = computed(
+  () => selectedWardId.value ?? selectedWard.value?.wardId ?? null,
+)
+const activeSeniorId = computed(() =>
+  activeWardId.value === null ? '' : String(activeWardId.value),
+)
+const historyParams = computed(() => ({
+  riskLevel: activeFilter.value === 'ALL' ? undefined : activeFilter.value,
+  page: 0,
+  size: 100,
+}))
+const transactionQuery = useQuery(
+  guardTransactionHistoryOptions(activeWardId, historyParams),
+)
+const transactions = computed(
+  () => transactionQuery.data.value?.transactions ?? [],
+)
+
+watch(
+  () => selectedWard.value?.wardId,
+  (wardId) => {
+    if (!wardId) return
+    guardStore.selectWard(wardId)
+    if (routeWardId.value !== wardId)
+      void router.replace({
+        query: withGuardWardId(route.query, wardId),
+      })
+  },
+  { immediate: true },
+)
 
 async function startPairing() {
   const issued = await pairingStore.issueCode()
   if (!issued) return
 
   isPairingConfirmOpen.value = false
-  router.push({ name: 'guard-pairing-code' })
+  router.push({
+    name: 'guard-pairing-code',
+    query: withGuardWardId({}, activeWardId.value),
+  })
 }
 
 function selectSenior(seniorId: string) {
-  if (!mockGuardSeniors.some(({ id }) => id === seniorId)) return
-  activeSeniorId.value = seniorId
+  const wardId = Number(seniorId)
+  if (!Number.isSafeInteger(wardId) || wardId <= 0) return
+  guardStore.selectWard(wardId)
+  void router.replace({
+    query: withGuardWardId(route.query, wardId),
+  })
 }
 </script>
 
 <template>
   <main class="min-h-screen pb-[calc(66px+env(safe-area-inset-bottom))]">
-    <div class="px-mobile-gutter pt-md">
+    <section
+      v-if="guardHomeQuery.isPending.value"
+      class="flex min-h-[calc(100dvh-66px-env(safe-area-inset-bottom))] items-center justify-center px-mobile-gutter text-center text-[16px] font-medium text-gray-500"
+      aria-busy="true"
+    >
+      연결 정보를 불러오는 중이에요.
+    </section>
+
+    <section
+      v-else-if="guardHomeQuery.isError.value"
+      class="flex min-h-[calc(100dvh-66px-env(safe-area-inset-bottom))] flex-col items-center justify-center px-mobile-gutter text-center"
+      role="alert"
+    >
+      <p class="text-[16px] font-medium text-gray-500">
+        연결 정보를 불러오지 못했어요.
+      </p>
+      <button
+        class="mt-md min-h-11 px-md text-[16px] font-semibold text-primary-500"
+        type="button"
+        @click="guardHomeQuery.refetch()"
+      >
+        다시 시도
+      </button>
+    </section>
+
+    <section
+      v-else-if="seniors.length === 0"
+      class="flex min-h-[calc(100dvh-66px-env(safe-area-inset-bottom))] flex-col items-center justify-center px-mobile-gutter text-center"
+    >
+      <p class="text-[16px] font-medium leading-6 text-gray-500">
+        연결된 시니어가 없어요.<br />시니어를 연결한 뒤 거래 내역을 확인해
+        주세요.
+      </p>
+      <button
+        class="mt-lg h-14 w-full rounded-[8px] bg-primary-500 text-[16px] font-semibold text-white"
+        type="button"
+        @click="isPairingConfirmOpen = true"
+      >
+        시니어와 연결하기
+      </button>
+    </section>
+
+    <div v-else class="px-mobile-gutter pt-md">
       <GuardSeniorAvatarList
-        :seniors="mockGuardSeniors"
+        :seniors="seniors"
         :active-senior-id="activeSeniorId"
         @add="isPairingConfirmOpen = true"
         @select="selectSenior"
@@ -77,9 +173,48 @@ function selectSenior(seniorId: string) {
       </div>
 
       <GuardHistoryTransactionList
-        class="mt-md"
-        :transactions="filteredTransactions"
+        v-if="activeWardId !== null && transactions.length > 0"
+        class="mt-md pb-md"
+        :transactions="transactions"
+        :ward-id="activeWardId"
+        :ward-name="selectedWard?.name ?? ''"
       />
+
+      <section
+        v-else-if="transactionQuery.isPending.value"
+        class="flex min-h-[360px] items-center justify-center text-center text-[16px] font-medium text-gray-500"
+        aria-busy="true"
+      >
+        거래 내역을 불러오는 중이에요.
+      </section>
+
+      <section
+        v-else-if="transactionQuery.isError.value"
+        class="flex min-h-[360px] flex-col items-center justify-center text-center"
+        role="alert"
+      >
+        <p class="text-[16px] font-medium text-gray-500">
+          거래 내역을 불러오지 못했어요.
+        </p>
+        <button
+          class="mt-md min-h-11 px-md text-[16px] font-semibold text-primary-500"
+          type="button"
+          @click="transactionQuery.refetch()"
+        >
+          다시 시도
+        </button>
+      </section>
+
+      <p
+        v-else
+        class="flex min-h-[360px] items-center justify-center text-center text-[16px] font-medium leading-6 text-gray-500"
+      >
+        {{
+          activeFilter === 'ALL'
+            ? '아직 거래 내역이 없어요.'
+            : '해당 위험도의 거래 내역이 없어요.'
+        }}
+      </p>
     </div>
 
     <ConfirmModal

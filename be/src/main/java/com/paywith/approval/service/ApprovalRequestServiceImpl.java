@@ -10,6 +10,8 @@ import com.paywith.approval.mapper.TransactionApprovalMapper;
 import com.paywith.exception.BusinessException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ApprovalRequestServiceImpl implements ApprovalRequestService {
+
+    private static final Set<String> HISTORY_STATUSES =
+        Set.of("APPROVED", "REJECTED", "CANCELED", "EXPIRED");
 
     private final ApprovalRequestMapper approvalRequestMapper;
     private final TransactionApprovalMapper transactionApprovalMapper;
@@ -47,6 +52,18 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
     @Override
     public List<ApprovalRequestSummaryResponse> findPending(Long guardId, Long wardId) {
         return approvalRequestMapper.findPendingByGuardId(guardId, wardId).stream()
+            .map(ApprovalRequestSummaryResponse::new)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ApprovalRequestSummaryResponse> findHistory(
+        Long guardId, Long wardId, String status) {
+        String normalizedStatus = normalizeHistoryStatus(status);
+        return approvalRequestMapper
+            .findHistoryByGuardId(guardId, wardId, normalizedStatus)
+            .stream()
             .map(ApprovalRequestSummaryResponse::new)
             .collect(Collectors.toList());
     }
@@ -94,7 +111,7 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
                 HttpStatus.CONFLICT, "이미 처리되었거나 만료된 승인요청입니다.");
         }
 
-        // 같은 트랜잭션에서 비정규화 복사본을 맞춘다(schema.sql 의 single writer 규칙).
+        // 같은 트랜잭션에서 비정규화 복사본을 맞춘다(V1__baseline.sql 의 single writer 규칙).
         transactionApprovalMapper.updateStatus(transactionId, status);
 
         return new ApprovalDecisionResponse(approvalId, transactionId, status, respondedAt);
@@ -103,5 +120,16 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
     /** 담당이 아닌 보호자에게 존재 여부를 알려주지 않기 위해 권한 부족도 404 로 처리한다. */
     private BusinessException notFound() {
         return new BusinessException(HttpStatus.NOT_FOUND, "승인요청을 찾을 수 없습니다.");
+    }
+
+    private String normalizeHistoryStatus(String status) {
+        String normalized = status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
+        if (!HISTORY_STATUSES.contains(normalized)) {
+            throw new BusinessException(
+                HttpStatus.BAD_REQUEST,
+                "REQUEST_001",
+                "이력 상태는 APPROVED, REJECTED, CANCELED, EXPIRED만 조회할 수 있습니다.");
+        }
+        return normalized;
     }
 }

@@ -23,17 +23,21 @@ describe('WardPendingTransactionList', () => {
       props: { transactions: [] },
     })
 
-    expect(wrapper.find('section').exists()).toBe(false)
+    expect(wrapper.find('ul').exists()).toBe(false)
   })
 
-  it('승인 대기 송금을 표시하고 선택한 거래를 전달한다', async () => {
+  it('승인 대기 송금을 독립 카드 버튼으로 표시하고 선택한 거래를 전달한다', async () => {
     const transactions = [transaction]
     const wrapper = mount(WardPendingTransactionList, {
       props: { transactions },
     })
 
+    expect(wrapper.find('section').exists()).toBe(false)
+    expect(wrapper.get('button').classes()).toContain('rounded-large')
     expect(wrapper.text()).toContain('송금')
     expect(wrapper.text()).toContain('김민수')
+    expect(wrapper.text()).toContain('50,000원')
+    expect(wrapper.text()).toContain('주의')
     expect(wrapper.text()).not.toContain('결제')
 
     await wrapper.get('button').trigger('click')

@@ -6,7 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** data.sql 의 결제 룰 카탈로그(PAY_*) 재현. 배점이 바뀌면 여기와 data.sql 을 함께 고쳐야 한다. */
+/** R__seed.sql 의 결제 룰 카탈로그(PAY_*) 재현. 배점이 바뀌면 여기와 R__seed.sql 을 함께 고쳐야 한다. */
 public final class PaymentRiskRules {
 
     /** 배점 룰 (rule_code -> score). */
