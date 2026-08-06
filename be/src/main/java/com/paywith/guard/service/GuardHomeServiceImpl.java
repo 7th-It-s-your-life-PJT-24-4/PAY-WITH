@@ -91,8 +91,11 @@ public class GuardHomeServiceImpl implements GuardHomeService {
         Wallet wallet = walletMapper.findWalletByUserId(ward.getWardId());
         Long balance = wallet != null ? wallet.getBalance() : 0L;
 
-        PendingApprovalResponse pendingApproval = allPending.stream()
+        List<ApprovalRequestView> wardPending = allPending.stream()
             .filter(view -> view.getWardId().equals(ward.getWardId()))
+            .collect(Collectors.toList());
+
+        PendingApprovalResponse pendingApproval = wardPending.stream()
             .findFirst()
             .map(this::toPendingApproval)
             .orElse(null);
@@ -100,7 +103,14 @@ public class GuardHomeServiceImpl implements GuardHomeService {
         List<RecentTransactionResponse> recentTransactions =
             transactionMapper.findRecentByWardId(ward.getWardId(), RECENT_TRANSACTION_LIMIT);
 
-        return new SelectedWardResponse(ward.getWardId(), ward.getName(), balance, pendingApproval, recentTransactions);
+        return new SelectedWardResponse(
+            ward.getWardId(),
+            ward.getName(),
+            balance,
+            pendingApproval,
+            wardPending.size(),
+            recentTransactions
+        );
     }
 
     private PendingApprovalResponse toPendingApproval(ApprovalRequestView view) {

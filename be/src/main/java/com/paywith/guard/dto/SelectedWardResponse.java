@@ -10,6 +10,7 @@ public class SelectedWardResponse {
     private final String name;
     private final Long balance;
     private final PendingApprovalResponse pendingApproval;
+    private final int pendingApprovalCount;
     private final List<RecentTransactionResponse> recentTransactions;
 
     public SelectedWardResponse(
@@ -17,12 +18,14 @@ public class SelectedWardResponse {
         String name,
         Long balance,
         PendingApprovalResponse pendingApproval,
+        int pendingApprovalCount,
         List<RecentTransactionResponse> recentTransactions
     ) {
         this.wardId = wardId;
         this.name = name;
         this.balance = balance;
         this.pendingApproval = pendingApproval;
+        this.pendingApprovalCount = pendingApprovalCount;
         this.recentTransactions = recentTransactions;
     }
 }
