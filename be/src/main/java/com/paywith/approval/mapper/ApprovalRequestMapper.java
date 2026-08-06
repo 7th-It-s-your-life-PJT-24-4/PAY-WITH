@@ -119,4 +119,10 @@ public interface ApprovalRequestMapper {
      * @return 만료 처리한 승인요청 수
      */
     int expireOverdue();
+
+    /**
+     * 피보호자 본인이 직접 거래를 취소할 때
+     * 승인 요청이 들어가있는 상태에서 취소할 수 있음 (PENDING)
+     */
+    int cancelPendingByTransactionId(@Param("transactionId") Long transactionId);
 }

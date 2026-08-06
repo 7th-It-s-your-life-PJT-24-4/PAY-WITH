@@ -201,6 +201,7 @@
         LEFT JOIN risk_evaluations re ON re.transaction_id = t.transaction_id
         WHERE gs.guard_id = #{guardId}
         AND w.user_id = #{wardId}
+        AND t.initiated_by IS NULL
         <if test="type != null">AND t.type = #{type}</if>
         <if test="riskLevel != null">AND re.risk_level = #{riskLevel}</if>
         ORDER BY t.created_at DESC
@@ -215,6 +216,7 @@
         LEFT JOIN risk_evaluations re ON re.transaction_id = t.transaction_id
         WHERE gs.guard_id = #{guardId}
         AND w.user_id = #{wardId}
+        AND t.initiated_by IS NULL
         <if test="type != null">AND t.type = #{type}</if>
         <if test="riskLevel != null">AND re.risk_level = #{riskLevel}</if>
     </select>
@@ -352,6 +354,15 @@
         SELECT reason
         FROM llm_risk_reviews
         WHERE transaction_id = #{transactionId}
+    </select>
+
+    <select id="findTransferStatusForCancel" resultType="java.lang.String">
+        SELECT t.status
+        FROM transactions t
+        JOIN wallets w ON w.wallet_id = t.wallet_id
+        WHERE t.transaction_id = #{transactionId}
+        AND w.user_id = #{wardId}
+        AND t.type = 'TRANSFER_OUT'
     </select>
 
 </mapper>

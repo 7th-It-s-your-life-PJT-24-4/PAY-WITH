@@ -2,6 +2,8 @@ package com.paywith.transfer.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paywith.approval.mapper.ApprovalRequestMapper;
+import com.paywith.approval.mapper.TransactionApprovalMapper;
 import com.paywith.exception.BusinessException;
 import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.external.openbanking.OpenBankingClient;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -50,6 +53,8 @@ public class TransferServiceImpl implements TransferService{
     private final UserMapper userMapper;
     private final RecipientMapper recipientMapper;
     private final TransactionMapper transactionMapper;
+    private final TransactionApprovalMapper transactionApprovalMapper;
+    private final ApprovalRequestMapper approvalRequestMapper;
 
 
     @Override
@@ -201,6 +206,41 @@ public class TransferServiceImpl implements TransferService{
         return RecipientHistoryListResponse.builder()
                 .recipients(recipients)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public TransferCancelResponse cancelHeldTransfer(Long userId, Long transactionId) {
+        // 1. 피보호자 계정인지 확인
+        User user = userMapper.findById(userId);
+        if (user.getRole() != Role.WARD) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "AUTH_004", "피보호자만 접근할 수 있습니다.");
+        }
+
+        // 2. 존재 + 본인 소유 + 송금 여부 확인
+        String status = transactionMapper.findTransferStatusForCancel(transactionId, userId);
+        if (status == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "TRANSFER_007", "송금 거래를 찾을 수 없습니다.");
+        }
+
+        // 3. HELD가 아니면 취소 불가
+        if (!"HELD".equals(status)) {
+            throw new BusinessException(HttpStatus.CONFLICT, "TRANSFER_008", "승인 대기 중인 송금만 취소할 수 있습니다.");
+        }
+
+        // 4. 실제 취소 (조건부 UPDATE).
+        int canceled = transactionApprovalMapper.cancelHeldByWard(transactionId);
+        if (canceled == 0) {
+            throw new BusinessException(HttpStatus.CONFLICT, "TRANSFER_008", "승인 대기 중인 송금만 취소할 수 있습니다.");
+        }
+
+        // 5. 승인 요청 종결
+        int approvalCanceled = approvalRequestMapper.cancelPendingByTransactionId(transactionId);
+        if (approvalCanceled == 0) {
+            log.warn("거래는 취소됐지만 승인요청이 이미 다른 상태였음. transactionId={}", transactionId);
+        }
+
+        return new TransferCancelResponse(transactionId, "CANCELED");
     }
 
     private String hashRequest(TransferRequest request) {

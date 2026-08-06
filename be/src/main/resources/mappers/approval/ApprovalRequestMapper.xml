@@ -10,7 +10,14 @@
     VALUES (#{transactionId}, #{status}, #{expiredAt})
   </insert>
 
-  <resultMap id="ApprovalRequestViewResultMap" type="com.paywith.approval.domain.ApprovalRequestView">
+  <update id="cancelPendingByTransactionId">
+    UPDATE approval_requests
+    SET status = 'CANCELED'
+    WHERE transaction_id = #{transactionId}
+    AND status = 'PENDING'
+  </update>
+
+    <resultMap id="ApprovalRequestViewResultMap" type="com.paywith.approval.domain.ApprovalRequestView">
     <id     property="approvalId"    column="approval_id" />
     <result property="transactionId" column="transaction_id" />
     <result property="requestedAt"   column="requested_at" />

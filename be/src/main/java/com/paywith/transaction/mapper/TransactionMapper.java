@@ -105,4 +105,7 @@ public interface TransactionMapper {
             @Param("limit") int limit
     );
 
+    // 취소 대상 조회 -> 승인 대기 중 피보호자가 직접 거래 취소 (Approval 도메인과 연관)
+    String findTransferStatusForCancel(@Param("transactionId") Long transactionId, @Param("wardId") Long wardId);
+
 }
