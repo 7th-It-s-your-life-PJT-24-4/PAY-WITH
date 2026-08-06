@@ -17,6 +17,7 @@ describe('transfer store', () => {
     store.selectRecipient({
       id: 1,
       name: '김민수',
+      bankCode: '004',
       bank: '국민은행',
       accountNumber: '432102-01-234567',
     })
@@ -38,6 +39,7 @@ describe('transfer store', () => {
     store.selectRecipient({
       id: 1,
       name: '김민수',
+      bankCode: '004',
       bank: '국민은행',
       accountNumber: '432102-01-234567',
     })
@@ -54,6 +56,7 @@ describe('transfer store', () => {
     store.selectRecipient({
       id: 1,
       name: '김민수',
+      bankCode: '004',
       bank: '국민은행',
       accountNumber: '432102-01-234567',
     })

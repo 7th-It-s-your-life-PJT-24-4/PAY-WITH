@@ -1,15 +1,34 @@
 <script setup lang="ts">
 import { Button, NumericKeypad } from '@pay-with/ui'
+import { useMutation } from '@tanstack/vue-query'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { transferBanks } from '@/pages/ward/transfer/-utils/transfer-bank'
+import { filterBanks } from '@/api/banks'
+import { getApiErrorMessage } from '@/api/error'
 import { useTransferStore } from '@/stores/transfer.store'
 
 const router = useRouter()
 const transferStore = useTransferStore()
-function proceed() {
-  transferStore.setBankCandidates(transferBanks.map(({ name }) => name))
-  router.push({ name: 'ward-transfer-bank' })
+const bankFilterMutation = useMutation({ mutationFn: filterBanks })
+const errorMessage = ref('')
+
+async function proceed() {
+  if (bankFilterMutation.isPending.value) return
+  errorMessage.value = ''
+
+  try {
+    const banks = await bankFilterMutation.mutateAsync({
+      accountNo: transferStore.accountNumber,
+    })
+    transferStore.setRecommendedBanks(banks)
+    await router.push({ name: 'ward-transfer-bank' })
+  } catch (error) {
+    errorMessage.value = await getApiErrorMessage(
+      error,
+      '은행 정보를 불러오지 못했습니다. 다시 시도해 주세요.',
+    )
+  }
 }
 </script>
 
@@ -44,11 +63,22 @@ function proceed() {
       @cancel="transferStore.accountNumber = ''"
     />
 
+    <p
+      v-if="errorMessage"
+      class="type-body-medium text-center text-error"
+      role="alert"
+    >
+      {{ errorMessage }}
+    </p>
+
     <Button
       class="w-full"
-      label="다음으로"
+      :label="bankFilterMutation.isPending.value ? '은행 찾는 중' : '다음으로'"
       size="large"
-      :disabled="transferStore.accountNumber.length < 8"
+      :disabled="
+        transferStore.accountNumber.length < 8 ||
+        bankFilterMutation.isPending.value
+      "
       @click="proceed"
     />
   </div>

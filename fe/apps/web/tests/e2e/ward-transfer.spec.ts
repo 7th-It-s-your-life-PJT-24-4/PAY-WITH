@@ -183,6 +183,43 @@ test.beforeEach(async ({ page }) => {
     })
   })
 
+  await page.route('**/api/banks', async (route) => {
+    expect(route.request().method()).toBe('GET')
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: [
+          { bankCode: '004', bankName: 'KB국민은행' },
+          { bankCode: '020', bankName: '우리은행' },
+          { bankCode: '081', bankName: '하나은행' },
+          { bankCode: '088', bankName: '신한은행' },
+        ],
+        message: null,
+      },
+    })
+  })
+
+  await page.route('**/api/ward/filter-bank', async (route) => {
+    expect(route.request().postDataJSON()).toEqual({
+      accountNo: '12345678',
+    })
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          banks: [
+            { bankCode: '020', bankName: '우리은행' },
+            { bankCode: '081', bankName: '하나은행' },
+          ],
+        },
+        message: null,
+      },
+    })
+  })
+
   await page.route('**/api/ward/transfers/recipient*', async (route) => {
     if (route.request().method() === 'GET') {
       const keyword = new URL(route.request().url()).searchParams.get('keyword')
@@ -376,9 +413,24 @@ test('계좌번호로 은행을 찾고 계좌를 확인한다', async ({ page })
   }
   await page.getByRole('button', { name: '다음으로' }).click()
 
+  await expect(
+    page.getByRole('button', { name: '은행 찾는 중' }),
+  ).toBeDisabled()
+
   await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
 
-  await page.getByRole('button', { name: /하나은행/ }).click()
+  const bankButtons = page
+    .getByRole('region', { name: '은행 목록' })
+    .getByRole('button')
+  await expect(bankButtons).toHaveCount(4)
+  await expect(bankButtons.nth(0)).toContainText('우리은행')
+  await expect(bankButtons.nth(1)).toContainText('하나은행')
+  await expect(bankButtons.nth(2)).toContainText('KB국민은행')
+  await expect(bankButtons.nth(3)).toContainText('신한은행')
+
+  const hanaBankButton = page.getByRole('button', { name: /하나은행/ })
+  await expect(hanaBankButton.locator('img')).toBeVisible()
+  await hanaBankButton.click()
   await page.getByRole('button', { name: '다음으로' }).click()
 
   await expect(
@@ -386,6 +438,118 @@ test('계좌번호로 은행을 찾고 계좌를 확인한다', async ({ page })
   ).toBeVisible()
   await expect(page).toHaveURL(/\/ward\/transfer\/amount$/)
   await expect(page.getByText('김준호')).toBeVisible()
+})
+
+test('전체 은행 목록을 한 페이지에 최대 6개씩 표시한다', async ({ page }) => {
+  await page.unroute('**/api/banks')
+  await page.route('**/api/banks', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: [
+          { bankCode: '004', bankName: 'KB국민은행' },
+          { bankCode: '020', bankName: '우리은행' },
+          { bankCode: '081', bankName: '하나은행' },
+          { bankCode: '088', bankName: '신한은행' },
+          { bankCode: '003', bankName: '기업은행' },
+          { bankCode: '011', bankName: '농협은행' },
+          { bankCode: '023', bankName: 'SC제일은행' },
+          { bankCode: '027', bankName: '한국씨티은행' },
+        ],
+        message: null,
+      },
+    })
+  })
+
+  await page.goto('/ward/transfer/account')
+  for (const digit of '12345678') {
+    await page.getByRole('button', { name: digit, exact: true }).click()
+  }
+  await page.getByRole('button', { name: '다음으로' }).click()
+  await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
+
+  const bankList = page.getByRole('region', { name: '은행 목록' })
+  await expect(bankList.getByRole('button')).toHaveCount(6)
+  await expect(page.getByText('1/2', { exact: true })).toBeVisible()
+  await expect(bankList.getByRole('button').nth(0)).toContainText('우리은행')
+  await expect(bankList.getByRole('button').nth(1)).toContainText('하나은행')
+  const pagination = page.getByRole('navigation', {
+    name: '은행 목록 페이지',
+  })
+  const paginationBefore = await pagination.boundingBox()
+
+  await page.getByRole('button', { name: '다음 은행 목록' }).click()
+
+  await expect(bankList.getByRole('button')).toHaveCount(2)
+  await expect(page.getByText('2/2', { exact: true })).toBeVisible()
+  await expect(bankList.getByRole('button').nth(0)).toContainText('SC제일은행')
+  await expect(bankList.getByRole('button').nth(1)).toContainText(
+    '한국씨티은행',
+  )
+  const paginationAfter = await pagination.boundingBox()
+  expect(paginationAfter?.y).toBeCloseTo(paginationBefore?.y ?? 0, 1)
+
+  await page.getByRole('button', { name: '이전 은행 목록' }).click()
+  await expect(bankList.getByRole('button')).toHaveCount(6)
+  await expect(page.getByText('1/2', { exact: true })).toBeVisible()
+})
+
+test('은행 후보 조회에 실패하면 계좌번호 화면에서 다시 시도할 수 있다', async ({
+  page,
+}) => {
+  await page.unroute('**/api/ward/filter-bank')
+  await page.route('**/api/ward/filter-bank', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      json: {
+        success: false,
+        data: null,
+        code: 'BANK_001',
+        message: '은행 정보를 조회하지 못했습니다.',
+      },
+    })
+  })
+  await page.goto('/ward/transfer/account')
+
+  for (const digit of '12345678') {
+    await page.getByRole('button', { name: digit, exact: true }).click()
+  }
+  await page.getByRole('button', { name: '다음으로' }).click()
+
+  await expect(page).toHaveURL(/\/ward\/transfer\/account$/)
+  await expect(page.getByRole('alert')).toContainText(
+    '은행 정보를 조회하지 못했습니다.',
+  )
+  await expect(page.getByRole('button', { name: '다음으로' })).toBeEnabled()
+})
+
+test('추천 은행이 없어도 전체 은행 목록을 표시한다', async ({ page }) => {
+  await page.unroute('**/api/ward/filter-bank')
+  await page.route('**/api/ward/filter-bank', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: { success: true, data: { banks: [] }, message: null },
+    })
+  })
+  await page.goto('/ward/transfer/account')
+
+  for (const digit of '12345678') {
+    await page.getByRole('button', { name: digit, exact: true }).click()
+  }
+  await page.getByRole('button', { name: '다음으로' }).click()
+
+  await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
+  const bankButtons = page
+    .getByRole('region', { name: '은행 목록' })
+    .getByRole('button')
+  await expect(bankButtons).toHaveCount(4)
+  await expect(bankButtons.nth(0)).toContainText('KB국민은행')
+  await expect(bankButtons.nth(1)).toContainText('신한은행')
+  await expect(bankButtons.nth(2)).toContainText('우리은행')
+  await expect(bankButtons.nth(3)).toContainText('하나은행')
+  await expect(page.getByRole('button', { name: '다음으로' })).toBeDisabled()
 })
 
 test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ page }) => {

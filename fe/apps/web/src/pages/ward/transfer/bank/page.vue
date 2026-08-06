@@ -1,29 +1,37 @@
 <script setup lang="ts">
-import { Landmark } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
-import { useMutation } from '@tanstack/vue-query'
+import { useMutation, useQuery } from '@tanstack/vue-query'
+import { ChevronLeft, ChevronRight } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { inquireTransferRecipient } from '@/api/transfers'
+import { banksOptions } from '@/lib/query/bank'
 import TransferErrorModal from '@/pages/ward/transfer/-components/TransferErrorModal.vue'
 import TransferLoadingModal from '@/pages/ward/transfer/-components/TransferLoadingModal.vue'
+import { prioritizeBanks } from '@/pages/ward/transfer/-utils/bank-order'
 import { getTransferApiError } from '@/pages/ward/transfer/-utils/transfer-api-error'
-import {
-  getTransferBankCode,
-  transferBanks,
-} from '@/pages/ward/transfer/-utils/transfer-bank'
 import { isValidTransferAccountNumber } from '@/pages/ward/transfer/-utils/transfer-route-guard'
 import { useTransferStore } from '@/stores/transfer.store'
+import { getBankPresentation } from '@/utils/bank-presentation'
 
 const router = useRouter()
 const transferStore = useTransferStore()
+const banksQuery = useQuery(banksOptions())
 const recipientMutation = useMutation({ mutationFn: inquireTransferRecipient })
-const selectedBank = ref('')
-const defaultBanks = transferBanks.map(({ name }) => name)
-const banks = transferStore.bankCandidates.length
-  ? transferStore.bankCandidates
-  : defaultBanks
+const selectedBankCode = ref('')
+const currentPage = ref(1)
+const banksPerPage = 6
+const banks = computed(() =>
+  prioritizeBanks(banksQuery.data.value ?? [], transferStore.recommendedBanks),
+)
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil(banks.value.length / banksPerPage)),
+)
+const visibleBanks = computed(() => {
+  const startIndex = (currentPage.value - 1) * banksPerPage
+  return banks.value.slice(startIndex, startIndex + banksPerPage)
+})
 const errorMessage = ref('')
 const canValidateAccount = computed(() =>
   isValidTransferAccountNumber(transferStore.accountNumber),
@@ -32,19 +40,21 @@ const canValidateAccount = computed(() =>
 async function proceed() {
   if (
     !canValidateAccount.value ||
-    !selectedBank.value ||
+    !selectedBankCode.value ||
     recipientMutation.isPending.value
   )
     return
   errorMessage.value = ''
-  const bankCode = getTransferBankCode(selectedBank.value)
-  if (!bankCode) {
+  const selectedBank = banks.value.find(
+    ({ bankCode }) => bankCode === selectedBankCode.value,
+  )
+  if (!selectedBank) {
     errorMessage.value = '은행 정보를 확인하지 못했습니다.'
     return
   }
   try {
     const account = await recipientMutation.mutateAsync({
-      bankCode,
+      bankCode: selectedBank.bankCode,
       accountNo: transferStore.accountNumber.replaceAll('-', ''),
     })
     transferStore.setVerifiedRecipient(
@@ -78,31 +88,106 @@ async function proceed() {
       @click="router.push({ name: 'ward-transfer-account' })"
     />
 
-    <section class="grid grid-cols-2 gap-md" aria-label="은행 목록">
+    <p
+      v-if="banksQuery.isPending.value"
+      class="type-body-medium py-xl text-center text-body-muted"
+      role="status"
+    >
+      은행 목록을 불러오고 있습니다.
+    </p>
+
+    <section
+      v-else-if="banksQuery.isError.value"
+      class="rounded-large bg-surface-card p-xl text-center shadow-card"
+    >
+      <p class="type-body-medium text-error" role="alert">
+        은행 목록을 불러오지 못했습니다.
+      </p>
+      <Button
+        class="mt-md"
+        label="다시 시도"
+        variant="outline-primary"
+        @click="banksQuery.refetch()"
+      />
+    </section>
+
+    <section
+      v-else-if="banks.length"
+      class="grid h-[calc(21rem+var(--spacing-md)+var(--spacing-md))] grid-cols-2 content-start gap-md"
+      aria-label="은행 목록"
+    >
       <button
-        v-for="bankName in banks"
-        :key="bankName"
+        v-for="bank in visibleBanks"
+        :key="bank.bankCode"
         class="type-h4 flex h-28 flex-col items-center justify-center gap-sm rounded-large border bg-surface-card shadow-card"
         :class="
-          selectedBank === bankName
+          selectedBankCode === bank.bankCode
             ? 'border-primary-500 ring-2 ring-primary-500/20'
             : 'border-border'
         "
         type="button"
         :disabled="recipientMutation.isPending.value"
-        @click="selectedBank = bankName"
+        @click="selectedBankCode = bank.bankCode"
       >
         <span
-          class="flex size-12 items-center justify-center rounded-full bg-gray-900 text-primary-300"
+          :class="[
+            'flex size-12 items-center justify-center overflow-hidden rounded-full',
+            getBankPresentation(bank).brandClass,
+          ]"
           aria-hidden="true"
         >
-          <Landmark class="size-xl" :stroke-width="2.25" />
+          <img
+            v-if="getBankPresentation(bank).iconUrl"
+            class="size-8 object-contain"
+            :src="getBankPresentation(bank).iconUrl"
+            alt=""
+          />
+          <span v-else class="type-h3 text-white">
+            {{ bank.bankName.slice(0, 1) }}
+          </span>
         </span>
-        {{ bankName }}
+        {{ bank.bankName }}
       </button>
     </section>
 
-    <p class="type-h2 text-center">1/2</p>
+    <section
+      v-else
+      class="rounded-large bg-surface-card p-xl text-center shadow-card"
+      role="status"
+    >
+      <p class="type-h4">선택 가능한 은행이 없습니다.</p>
+      <p class="type-body-medium mt-xs text-body-secondary">
+        잠시 후 다시 시도해 주세요.
+      </p>
+    </section>
+
+    <nav
+      v-if="banks.length"
+      class="flex w-full items-center justify-between gap-md"
+      aria-label="은행 목록 페이지"
+    >
+      <button
+        class="flex size-12 items-center justify-center rounded-full border-2 border-primary-500 bg-surface-card text-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
+        type="button"
+        aria-label="이전 은행 목록"
+        :disabled="currentPage === 1"
+        @click="currentPage -= 1"
+      >
+        <ChevronLeft class="size-xl" aria-hidden="true" />
+      </button>
+      <p class="type-h2 min-w-12 text-center" aria-live="polite">
+        {{ currentPage }}/{{ pageCount }}
+      </p>
+      <button
+        class="flex size-12 items-center justify-center rounded-full border-2 border-primary-500 bg-surface-card text-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
+        type="button"
+        aria-label="다음 은행 목록"
+        :disabled="currentPage === pageCount"
+        @click="currentPage += 1"
+      >
+        <ChevronRight class="size-xl" aria-hidden="true" />
+      </button>
+    </nav>
 
     <Button
       class="w-full"
@@ -110,7 +195,9 @@ async function proceed() {
       :label="recipientMutation.isPending.value ? '계좌 확인 중' : '다음으로'"
       :disabled="
         !canValidateAccount ||
-        !selectedBank ||
+        banksQuery.isPending.value ||
+        banksQuery.isError.value ||
+        !selectedBankCode ||
         recipientMutation.isPending.value
       "
       @click="proceed"
