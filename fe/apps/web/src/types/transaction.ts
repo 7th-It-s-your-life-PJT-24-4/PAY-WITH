@@ -1,6 +1,6 @@
-export type TransactionType = 'PAYMENT' | 'TRANSFER'
+export type TransactionType = 'CHARGE' | 'PAYMENT' | 'TRANSFER'
 
-export type TransactionDirection = 'CREDIT' | 'DEBIT'
+export type TransactionDirection = 'IN' | 'OUT' | 'CREDIT' | 'DEBIT'
 
 export type TransactionRiskLevel = 'SAFE' | 'CAUTION' | 'DANGER'
 
@@ -27,7 +27,7 @@ export interface WardTransaction {
   methodLabel: string
   memo: string | null
   status: TransactionStatus
-  riskLevel: TransactionRiskLevel
+  riskLevel: TransactionRiskLevel | null
   riskScore: number
   riskSummary: string
   riskReasons: string[]

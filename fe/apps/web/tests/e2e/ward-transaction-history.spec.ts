@@ -4,6 +4,54 @@ test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.route('**/ward/transactions**', async (route) => {
     const url = new URL(route.request().url())
+    const detailMatch = url.pathname.match(/\/ward\/transactions\/(\d+)$/)
+
+    if (detailMatch) {
+      const transactionId = Number(detailMatch[1])
+
+      if (transactionId !== 104) {
+        await route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          json: {
+            success: false,
+            data: null,
+            message: '거래 내역을 찾을 수 없습니다.',
+          },
+        })
+        return
+      }
+
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          success: true,
+          data: {
+            transactionId: 104,
+            type: 'PAYMENT',
+            direction: 'OUT',
+            status: 'BLOCKED',
+            riskLevel: 'DANGER',
+            counterpartyName: 'CU 제주공항점',
+            bankName: null,
+            accountNo: null,
+            amount: 12_000,
+            memo: null,
+            occurredAt: '2026-07-27T12:00:00',
+            balanceAfter: 488_000,
+            riskScore: null,
+            riskAnalysis: {
+              riskScore: 87,
+              summary: '위험한 결제 패턴이 감지됐어요.',
+              reasons: ['SUSPICIOUS_MEMO'],
+            },
+          },
+          message: null,
+        },
+      })
+      return
+    }
+
     const category = url.searchParams.get('category')
     const keyword = url.searchParams.get('keyword')
     const transactions = [
@@ -67,13 +115,11 @@ test('결제 내역을 서버 조건으로 검색한다', async ({ page }) => {
 })
 
 test('보호자가 승인한 위험 거래는 위험으로 표시한다', async ({ page }) => {
-  await page.goto('/ward/history/106')
+  await page.goto('/ward/history/104')
 
   await expect(page.getByText('위험', { exact: true })).toBeVisible()
-  await expect(
-    page.getByText('위험한 거래로 판단되었지만 보호자가 승인했습니다.'),
-  ).toBeVisible()
-  await expect(page.getByText('거절된 거래입니다.')).toBeHidden()
+  await expect(page.getByText('위험한 결제 패턴이 감지됐어요.')).toBeVisible()
+  await expect(page.getByText('거절된 거래입니다.')).toBeVisible()
 })
 
 test('위험 평가가 없는 충전 내역은 위험도 배지를 표시하지 않는다', async ({
@@ -86,7 +132,9 @@ test('위험 평가가 없는 충전 내역은 위험도 배지를 표시하지 
   await expect(page.getByText('위험', { exact: true })).toBeHidden()
 })
 
-test('잘못된 거래 번호는 거래 내역 목록으로 이동한다', async ({ page }) => {
+test('없는 거래 번호는 오류 상태를 표시한다', async ({ page }) => {
   await page.goto('/ward/history/9999')
+  await expect(page.getByText('거래 상세를 불러오지 못했어요.')).toBeVisible()
+  await page.getByRole('button', { name: '목록으로 돌아가기' }).click()
   await expect(page).toHaveURL(/\/ward\/history$/)
 })

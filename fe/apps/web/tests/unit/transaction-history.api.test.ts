@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiClient } from '@/api/client'
-import { getWardTransactionHistory } from '@/api/transaction-history'
+import {
+  getWardTransactionDetail,
+  getWardTransactionHistory,
+} from '@/api/transaction-history'
 
 vi.mock('@/api/client', () => ({
   apiClient: { get: vi.fn() },
@@ -38,5 +41,40 @@ describe('transaction history API', () => {
       '/ward/transactions?category=TRANSFER&keyword=%ED%99%8D%EA%B8%B8%EB%8F%99&page=1&size=20',
       expect.anything(),
     )
+  })
+
+  it('피보호자 거래 상세를 요청한다', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      success: true,
+      data: {
+        transactionId: 104,
+        type: 'TRANSFER',
+        direction: 'OUT',
+        status: 'COMPLETED',
+        riskLevel: 'DANGER',
+        counterpartyName: '김철수',
+        bankName: '신한은행',
+        accountNo: '110123456789',
+        amount: 120_000,
+        memo: '생활비',
+        occurredAt: '2026-08-05T09:30:00',
+        balanceAfter: 380_000,
+        riskScore: null,
+        riskAnalysis: {
+          riskScore: 72,
+          summary: '평소보다 큰 금액이 송금됐어요.',
+          reasons: ['HIGH_AMOUNT_L2', 'NEW_RECIPIENT'],
+        },
+      },
+      message: null,
+    })
+
+    const detail = await getWardTransactionDetail(104)
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/ward/transactions/104',
+      expect.anything(),
+    )
+    expect(detail.riskAnalysis?.riskScore).toBe(72)
   })
 })

@@ -54,8 +54,9 @@ export function getTransactionTypeLabel(
   type: TransactionType,
   direction: TransactionDirection,
 ) {
+  if (type === 'CHARGE') return '충전'
   if (type === 'PAYMENT') return '결제'
-  return direction === 'CREDIT' ? '받은 돈' : '보낸 돈'
+  return direction === 'CREDIT' || direction === 'IN' ? '받은 돈' : '보낸 돈'
 }
 
 export const transactionRiskLabel: Record<TransactionRiskLevel, string> = {
@@ -65,8 +66,9 @@ export const transactionRiskLabel: Record<TransactionRiskLevel, string> = {
 }
 
 export function getTransactionRiskLabel(
-  riskLevel: TransactionRiskLevel,
+  riskLevel: TransactionRiskLevel | null,
   status: TransactionStatus,
 ) {
+  if (!riskLevel) return '위험 평가 없음'
   return status === 'BLOCKED' ? '거래 차단됨' : transactionRiskLabel[riskLevel]
 }
