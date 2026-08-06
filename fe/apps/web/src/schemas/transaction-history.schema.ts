@@ -17,7 +17,7 @@ export const wardTransactionHistoryItemSchema = z.object({
   direction: transactionDirectionSchema,
   title: z.string(),
   amount: z.number().int().nonnegative(),
-  status: z.string().min(1),
+  status: z.enum(['COMPLETED', 'BLOCKED']),
   riskLevel: transactionRiskLevelSchema.nullable(),
   occurredAt: z.string().min(1),
 })
