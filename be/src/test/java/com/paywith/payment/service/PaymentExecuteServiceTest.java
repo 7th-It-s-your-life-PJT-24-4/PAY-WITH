@@ -412,7 +412,7 @@ class PaymentExecuteServiceTest {
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
-            .hasFieldOrPropertyWithValue("code", "WALLET_001")
+            .hasFieldOrPropertyWithValue("code", "WALLET_003")
             .hasMessage("잔액이 부족합니다.");
         verifyNoInteractions(merchantMapper, walletMapper, transactionMapper);
     }
@@ -619,7 +619,7 @@ class PaymentExecuteServiceTest {
         assertThatThrownBy(() -> paymentExecuteService.execute(request()))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
-            .hasFieldOrPropertyWithValue("code", "WALLET_001")
+            .hasFieldOrPropertyWithValue("code", "WALLET_003")
             .hasMessage("잔액이 부족합니다.");
         verify(paymentRequestMapper).failPayment(PAYMENT_ID, "INSUFFICIENT_BALANCE");
         verify(paymentRequestMapper, never()).completePayment(anyLong(), anyLong());

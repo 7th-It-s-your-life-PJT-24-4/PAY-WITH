@@ -189,7 +189,7 @@ public class PaymentExecuteService {
         if (walletMapper.decreaseBalanceIfSufficient(wallet.getWalletId(), request.getAmount()) == 0) {
             paymentRequestMapper.failPayment(paymentRequest.getPaymentId(), FAILURE_CODE_INSUFFICIENT_BALANCE);
             return ExecuteResult.failure(
-                new BusinessException(HttpStatus.BAD_REQUEST, "WALLET_001", MESSAGE_INSUFFICIENT_BALANCE));
+                new BusinessException(HttpStatus.BAD_REQUEST, "WALLET_003", MESSAGE_INSUFFICIENT_BALANCE));
         }
 
         // 차감 후 같은 트랜잭션 내 재조회로 balance_after 확정 (송금 구현과 동일 패턴)
@@ -301,7 +301,7 @@ public class PaymentExecuteService {
     /** 실패로 종결된 건의 재시도 — 최초 실패와 동일한 오류를 멱등 반환한다 */
     private BusinessException settledFailureException(String failureCode) {
         if (FAILURE_CODE_INSUFFICIENT_BALANCE.equals(failureCode)) {
-            return new BusinessException(HttpStatus.BAD_REQUEST, "WALLET_001", MESSAGE_INSUFFICIENT_BALANCE);
+            return new BusinessException(HttpStatus.BAD_REQUEST, "WALLET_003", MESSAGE_INSUFFICIENT_BALANCE);
         }
         if (FAILURE_CODE_FDS_BLOCKED.equals(failureCode)) {
             return fdsBlockedException();
