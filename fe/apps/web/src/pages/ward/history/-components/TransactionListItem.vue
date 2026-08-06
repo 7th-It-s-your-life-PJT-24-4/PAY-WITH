@@ -2,8 +2,12 @@
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
+  Ban,
   CircleAlert,
+  CircleX,
+  ShieldX,
   ShoppingBag,
+  X,
 } from '@lucide/vue'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -45,7 +49,10 @@ const statusBadgeLabel = computed(() => {
 })
 
 const icon = computed(() => {
-  if (isInterruptedTransaction.value) return CircleAlert
+  if (props.transaction.status === 'BLOCKED') return Ban
+  if (props.transaction.status === 'REJECTED') return ShieldX
+  if (props.transaction.status === 'CANCELED') return X
+  if (props.transaction.status === 'FAILED') return CircleX
   if (props.transaction.riskLevel === 'DANGER') return CircleAlert
   if (props.transaction.type === 'PAYMENT') return ShoppingBag
   return props.transaction.direction === 'IN'
