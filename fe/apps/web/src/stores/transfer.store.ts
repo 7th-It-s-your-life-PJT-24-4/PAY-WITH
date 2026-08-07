@@ -88,13 +88,26 @@ export const useTransferStore = defineStore('transfer', () => {
     balance.value = value
   }
 
+  function clearSubsequentSteps() {
+    amount.value = 0
+    memo.value = ''
+    transferIntent.value = null
+    transferResult.value = null
+    processingStatus.value = 'idle'
+    processingError.value = ''
+    processingFailureAction.value = null
+    pendingPin.value = ''
+  }
+
   function selectRecipient(value: TransferRecipient) {
+    clearSubsequentSteps()
     recipient.value = value
     bank.value = value.bank
     accountNumber.value = value.accountNumber
   }
 
   function selectManualRecipient(selectedBank: string, bankCode: string) {
+    clearSubsequentSteps()
     bank.value = selectedBank
     recipient.value = {
       id: 0,

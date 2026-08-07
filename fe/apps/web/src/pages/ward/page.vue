@@ -2,7 +2,7 @@
 import { PlusCircle, QrCode, ReceiptText, SendHorizontal } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { getApiErrorCode, getApiErrorMessage } from '@/api/error'
@@ -12,12 +12,21 @@ import WardBalanceCard from '@/pages/ward/-components/WardBalanceCard.vue'
 import WardPendingTransactionList from '@/pages/ward/-components/WardPendingTransactionList.vue'
 import WardPendingTransactionSummaryCard from '@/pages/ward/-components/WardPendingTransactionSummaryCard.vue'
 import WardUnpairedHome from '@/pages/ward/-components/WardUnpairedHome.vue'
+import { useChargeStore } from '@/stores/charge.store'
 import { usePairingStore } from '@/stores/pairing.store'
+import { useTransferStore } from '@/stores/transfer.store'
 import type { PendingApprovalItem } from '@/schemas/home.schema'
 
 const router = useRouter()
 const pairingStore = usePairingStore()
+const transferStore = useTransferStore()
+const chargeStore = useChargeStore()
 const queryClient = useQueryClient()
+
+onMounted(() => {
+  transferStore.reset()
+  chargeStore.resetDraft()
+})
 
 const isWalletLocked = false
 const homeQuery = useQuery(wardHomeOptions())
