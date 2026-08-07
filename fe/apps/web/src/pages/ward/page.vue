@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { PlusCircle, QrCode, ReceiptText, SendHorizontal } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
@@ -37,10 +38,10 @@ type PendingTransactionVariant = 'inline-list' | 'summary-card'
 const pendingTransactionVariant = ref<PendingTransactionVariant>('summary-card')
 
 const actions = [
-  { label: '송금하기', value: 'transfer' },
-  { label: '충전하기', value: 'charge' },
-  { label: '결제하기', value: 'payment' },
-  { label: '내역 조회', value: 'history' },
+  { label: '송금하기', value: 'transfer', icon: SendHorizontal },
+  { label: '충전하기', value: 'charge', icon: PlusCircle },
+  { label: '결제하기', value: 'payment', icon: QrCode },
+  { label: '내역 조회', value: 'history', icon: ReceiptText },
 ]
 
 function handleAction(value: string) {
@@ -150,7 +151,16 @@ watch(
         variant="outline-primary"
         size="large"
         @click="handleAction(action.value)"
-      />
+      >
+        <template #leading>
+          <component
+            :is="action.icon"
+            class="size-xl shrink-0"
+            :stroke-width="2.25"
+            aria-hidden="true"
+          />
+        </template>
+      </Button>
     </section>
   </div>
 </template>

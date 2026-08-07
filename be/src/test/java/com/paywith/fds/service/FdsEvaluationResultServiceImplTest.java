@@ -126,6 +126,30 @@ class FdsEvaluationResultServiceImplTest {
         then(approvalRequestService).should().create(TRANSACTION_ID);
     }
 
+    // 블랙리스트는 즉시 차단이라 보호자 승인 경로를 타지 않는다.
+    // 승인 요청이 없다는 것은 보호자가 나중에 풀어줄 수도 없다는 뜻이다.
+    @Test
+    void save_doesNotCreateApprovalRequestWhenBlacklisted() {
+        FdsDecision decision = decider.decide(normal().recipientRejectedBefore(true).build());
+        assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.DANGER);
+        assertThat(decision.isBlocked()).isTrue();
+
+        service.save(TRANSACTION_ID, decision);
+
+        then(approvalRequestService).should(never()).create(anyLong());
+    }
+
+    // 사기계좌도 거절이력과 동일하게 차단된다
+    @Test
+    void save_doesNotCreateApprovalRequestWhenFraudAccount() {
+        FdsDecision decision = decider.decide(normal().recipientReportedAsFraud(true).build());
+        assertThat(decision.isBlocked()).isTrue();
+
+        service.save(TRANSACTION_ID, decision);
+
+        then(approvalRequestService).should(never()).create(anyLong());
+    }
+
     @Test
     void save_doesNotCreateApprovalRequestWhenCaution() {
         service.save(TRANSACTION_ID, cautionDecision());
@@ -140,8 +164,9 @@ class FdsEvaluationResultServiceImplTest {
         then(approvalRequestService).should(never()).create(anyLong());
     }
 
+    // 상세 배점·총점·비정규화 복사본이 모두 카탈로그 배점으로 일치해야 한다
     @Test
-    void save_savesPrefilterRuleAsDetailWithZeroScore() {
+    void save_savesPrefilterRuleAsDetailWithMaxScore() {
         FdsDecision decision = decider.decide(normal().recipientRejectedBefore(true).build());
 
         service.save(TRANSACTION_ID, decision);
@@ -149,8 +174,9 @@ class FdsEvaluationResultServiceImplTest {
         ArgumentCaptor<RiskEvaluationDetail> captor =
             ArgumentCaptor.forClass(RiskEvaluationDetail.class);
         then(riskEvaluationDetailMapper).should().insert(captor.capture());
-        assertThat(captor.getValue().getScore()).isZero();
-        then(transactionRiskMapper).should().updateRiskScore(eq(TRANSACTION_ID), eq(0));
+        assertThat(captor.getValue().getScore()).isEqualTo(RiskRules.PREFILTER_SCORE);
+        then(transactionRiskMapper).should()
+            .updateRiskScore(eq(TRANSACTION_ID), eq(RiskRules.PREFILTER_SCORE));
     }
 
     // UPDATE 는 대상이 없어도 조용히 0행이 된다

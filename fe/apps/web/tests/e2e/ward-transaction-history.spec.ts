@@ -159,16 +159,16 @@ test('결제 내역을 서버 조건으로 검색한다', async ({ page }) => {
 
   await page.getByRole('searchbox', { name: '거래 내역 검색' }).fill('제주')
   await expect(page.getByText('CU 제주공항점', { exact: true })).toBeVisible()
-  await expect(page.getByText('거래 차단됨', { exact: true })).toBeVisible()
+  await expect(page.getByText('시스템 차단됨', { exact: true })).toBeVisible()
 })
 
 test('이루어지지 않은 거래는 목록에서 상태 뱃지로 표시한다', async ({
   page,
 }) => {
   await expect(page.getByText('CU 제주공항점', { exact: true })).toBeVisible()
-  await expect(page.getByText('거래 차단됨', { exact: true })).toBeVisible()
+  await expect(page.getByText('시스템 차단됨', { exact: true })).toBeVisible()
   await expect(page.getByText('김철수', { exact: true })).toBeVisible()
-  await expect(page.getByText('거래 거절됨', { exact: true })).toBeVisible()
+  await expect(page.getByText('보호자가 거절함', { exact: true })).toBeVisible()
   await expect(page.getByText('박영희', { exact: true })).toBeVisible()
   await expect(page.getByText('거래 취소됨', { exact: true })).toBeVisible()
   await expect(page.getByText('실패 상점', { exact: true })).toBeVisible()
@@ -180,7 +180,7 @@ test('차단된 위험 거래는 거절 카드로 표시한다', async ({ page }
 
   await expect(page.getByText('위험', { exact: true })).toBeVisible()
   await expect(page.getByText('위험한 결제 패턴이 감지됐어요.')).toBeVisible()
-  await expect(page.getByText('거절된 거래입니다.')).toBeVisible()
+  await expect(page.getByText('시스템이 차단한 거래입니다.')).toBeVisible()
 })
 
 test('보호자가 거절한 거래는 거절 카드로 표시한다', async ({ page }) => {
@@ -190,7 +190,7 @@ test('보호자가 거절한 거래는 거절 카드로 표시한다', async ({ 
   await expect(
     page.getByText('보호자가 위험 거래로 판단해 거절했습니다.'),
   ).toBeVisible()
-  await expect(page.getByText('거절된 거래입니다.')).toBeVisible()
+  await expect(page.getByText('보호자가 거절한 거래입니다.')).toBeVisible()
 })
 
 test('취소된 거래는 취소 카드로 표시한다', async ({ page }) => {

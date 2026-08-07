@@ -1,27 +1,37 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import { getBankPresentation } from '@/utils/bank-presentation'
+
 const props = defineProps<{
   bankCode: string
+  bankName?: string
 }>()
 
-const bankLabel = computed(
-  () =>
-    ({
-      '004': 'KB',
-      '011': 'NH',
-      '020': '우리',
-      '081': '하나',
-      '088': '신한',
-    })[props.bankCode] ?? props.bankCode,
+const presentation = computed(() =>
+  getBankPresentation({
+    bankCode: props.bankCode,
+    bankName: props.bankName ?? props.bankCode,
+  }),
 )
 </script>
 
 <template>
   <span
-    class="type-caption flex size-12 shrink-0 items-center justify-center rounded-full bg-primary-900 font-bold text-primary-300"
+    :class="[
+      'flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full',
+      presentation.brandClass,
+    ]"
     aria-hidden="true"
   >
-    {{ bankLabel }}
+    <img
+      v-if="presentation.iconUrl"
+      class="size-8 object-contain"
+      :src="presentation.iconUrl"
+      alt=""
+    />
+    <span v-else class="type-caption font-bold text-white">
+      {{ (bankName ?? bankCode).slice(0, 1) }}
+    </span>
   </span>
 </template>

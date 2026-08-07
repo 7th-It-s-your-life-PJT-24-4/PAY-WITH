@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ArrowRight, RotateCcw } from '@lucide/vue'
-import { Button } from '@pay-with/ui'
+import { Button, WardToast } from '@pay-with/ui'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -16,6 +16,9 @@ const chargeStore = useChargeStore()
 const accountsQuery = useQuery(chargeAccountsOptions())
 const chargeMutation = useMutation({ mutationFn: createWardCharge })
 const errorMessage = ref('')
+const toastOpen = ref(false)
+const toastMessage = ref('')
+
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
 const amountText = computed(() =>
@@ -45,6 +48,24 @@ watch(
 function updateAmount(value: string) {
   const digits = value.replace(/\D/g, '')
   chargeStore.setAmount(Number(digits))
+}
+
+function handleSubmitChargeClick() {
+  if (!selectedAccount.value) {
+    toastMessage.value = '출금 계좌를 선택해 주세요'
+    toastOpen.value = true
+    return
+  }
+  if (!chargeStore.canCharge) {
+    if (chargeStore.amount <= 0) {
+      toastMessage.value = '충전할 금액을 1원 이상 입력해 주세요'
+    } else {
+      toastMessage.value = '충전 금액을 다시 확인해 주세요'
+    }
+    toastOpen.value = true
+    return
+  }
+  void submitCharge()
 }
 
 async function submitCharge() {
@@ -173,16 +194,27 @@ async function submitCharge() {
       {{ errorMessage }}
     </p>
 
-    <Button
-      class="mt-auto w-full"
-      :label="chargeMutation.isPending.value ? '충전하고 있습니다' : '충전하기'"
-      size="large"
-      :disabled="!chargeStore.canCharge || chargeMutation.isPending.value"
-      @click="submitCharge"
-    >
-      <template #trailing>
-        <ArrowRight />
-      </template>
-    </Button>
+    <div @click="handleSubmitChargeClick">
+      <Button
+        class="mt-auto w-full"
+        :class="{
+          'opacity-50 cursor-not-allowed':
+            !chargeStore.canCharge || chargeMutation.isPending.value,
+        }"
+        :label="
+          chargeMutation.isPending.value ? '충전하고 있습니다' : '충전하기'
+        "
+        size="large"
+        :aria-disabled="
+          !chargeStore.canCharge || chargeMutation.isPending.value
+        "
+      >
+        <template #trailing>
+          <ArrowRight />
+        </template>
+      </Button>
+    </div>
+
+    <WardToast v-model:open="toastOpen" :message="toastMessage" />
   </div>
 </template>

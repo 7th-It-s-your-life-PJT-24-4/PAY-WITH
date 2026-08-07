@@ -70,4 +70,21 @@
         ORDER BY gs.connected_at ASC
     </select>
 
+    <resultMap id="GuardSummaryResultMap" type="com.paywith.guard.domain.GuardSummary">
+        <id     property="guardId" column="guard_id" />
+        <result property="name"    column="name" />
+        <result property="phone"   column="phone" />
+        <result property="avatarId" column="avatar_id" />
+    </resultMap>
+
+    <select id="findActiveGuardByWardId" resultMap="GuardSummaryResultMap">
+        SELECT u.user_id AS guard_id, u.name, u.phone, u.avatar_id
+        FROM guard_senior gs
+        JOIN users u ON u.user_id = gs.guard_id
+        WHERE gs.senior_id = #{wardId}
+        AND gs.status = 'ACTIVE'
+        ORDER BY gs.connected_at ASC
+        LIMIT 1
+    </select>
+
 </mapper>

@@ -2,6 +2,8 @@ package com.paywith.guard.service;
 
 import com.paywith.exception.BusinessException;
 import com.paywith.guard.domain.GuardSeniorRelation;
+import com.paywith.guard.domain.GuardSummary;
+import com.paywith.guard.dto.GuardInfoResponse;
 import com.paywith.guard.dto.GuardPairingCodeResponse;
 import com.paywith.guard.dto.WardPairingResponse;
 import com.paywith.guard.mapper.GuardSeniorMapper;
@@ -135,6 +137,22 @@ public class GuardServiceImpl implements GuardService {
                 "연결된 시니어를 찾을 수 없습니다."
             );
         }
+    }
+
+    @Override
+    public GuardInfoResponse findMyGuardian(Long wardId) {
+        requireRole(wardId, Role.WARD);
+
+        GuardSummary guardian = guardSeniorMapper.findActiveGuardByWardId(wardId);
+        if (guardian == null) {
+            throw new BusinessException(
+                HttpStatus.FORBIDDEN,
+                "WARD_001",
+                "페어링 완료 후 이용할 수 있습니다."
+            );
+        }
+
+        return new GuardInfoResponse(guardian);
     }
 
     private void requireRole(Long userId, Role expected) {

@@ -3,7 +3,7 @@ package com.paywith.transfer.service;
 import com.paywith.exception.BusinessException;
 import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.external.openbanking.OpenBankingClient;
-import com.paywith.fds.domain.RiskLevel;
+import com.paywith.fds.dto.FdsDecision;
 import com.paywith.recipient.mapper.RecipientMapper;
 import com.paywith.transaction.domain.TransactionStatus;
 import com.paywith.transaction.domain.TransactionType;
@@ -40,24 +40,22 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
     private final RecipientMapper recipientMapper;
 
     @Override
-    public TransferResponse finalize(PreparedTransfer prepared, RiskLevel riskLevel, TransferRequest request) {
+    public TransferResponse finalize(PreparedTransfer prepared, FdsDecision decision, TransferRequest request) {
 
         Long transactionId = prepared.getTransaction().getTransactionId();
 
 
-        // 6. 만약 riskLevel 이 위험이라면 다음 거래를 진행하지 않음
-        // -> transaction 테이블의 status 컬럼을 Held로 변경
+        // 6. 만약 위험 판정이라면 다음 거래를 진행하지 않음
+        // -> transaction 테이블의 status 컬럼을 BLOCKED(블랙리스트) 또는 HELD(그 밖의 DANGER)로 변경
         // update는 거래 실패 시 0 으로 결과값이 나오기 때문에 그것도 확인 해주는 것이 필요함
-        if (riskLevel == RiskLevel.DANGER) {
-            int updated = transactionMapper.updateStatus(transactionId, TransactionStatus.HELD);
-            if (updated != 1) {
-                throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "거래 상태를 HELD로 변경하지 못했습니다. transactionId=" + transactionId);
-            }
-            return TransferResponse.builder()
-                    .transactionId(transactionId)
-                    .status(TransactionStatus.HELD)
-                    .build();
+        //
+        // 블랙리스트는 승인 요청 자체를 만들지 않아 보호자가 풀어줄 수 없다. 잔액은 건드리지 않고
+        // 거래 상태로만 증적을 남긴다 — 결제(PaymentExecuteService)의 BLOCKED 처리와 같은 위상이다.
+        if (decision.isBlocked()) {
+            return terminate(transactionId, TransactionStatus.BLOCKED);
+        }
+        if (decision.isHeld()) {
+            return terminate(transactionId, TransactionStatus.HELD);
         }
 
         TransferExecutionContext context = TransferExecutionContext.builder()
@@ -74,6 +72,19 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
                 .build();
 
         return executeCompletion(context);
+    }
+
+    /** 이체를 실행하지 않고 상태만 확정한다. 잔액은 손대지 않으므로 되돌릴 것도 없다. */
+    private TransferResponse terminate(Long transactionId, TransactionStatus status) {
+        int updated = transactionMapper.updateStatus(transactionId, status);
+        if (updated != 1) {
+            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "거래 상태를 " + status + "로 변경하지 못했습니다. transactionId=" + transactionId);
+        }
+        return TransferResponse.builder()
+                .transactionId(transactionId)
+                .status(status)
+                .build();
     }
 
     @Override

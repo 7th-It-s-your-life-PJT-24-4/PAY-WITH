@@ -66,7 +66,10 @@ function handleViewportScroll(event: { currentTarget: unknown }) {
     >
       <SelectValue class="min-w-0 flex-1" placeholder="은행을 선택해주세요">
         <span v-if="selectedBank" class="flex min-w-0 items-center gap-md">
-          <ChargeBankMark :bank-code="selectedBank.code" />
+          <ChargeBankMark
+            :bank-code="selectedBank.code"
+            :bank-name="selectedBank.name"
+          />
           <span class="type-h3 truncate text-body">
             {{ selectedBank.name }}
           </span>
@@ -107,7 +110,7 @@ function handleViewportScroll(event: { currentTarget: unknown }) {
             class="group/item relative flex min-h-16 cursor-pointer select-none items-center gap-md rounded-medium px-md py-sm outline-none data-[highlighted]:bg-primary-900 data-[state=checked]:text-primary-500"
             :value="bank.code"
           >
-            <ChargeBankMark :bank-code="bank.code" />
+            <ChargeBankMark :bank-code="bank.code" :bank-name="bank.name" />
             <SelectItemText class="type-h3 min-w-0 flex-1 truncate">
               {{ bank.name }}
             </SelectItemText>

@@ -70,5 +70,7 @@ export function getTransactionRiskLabel(
   status: TransactionStatus,
 ) {
   if (!riskLevel) return '위험 평가 없음'
-  return status === 'BLOCKED' ? '거래 차단됨' : transactionRiskLabel[riskLevel]
+  return status === 'BLOCKED'
+    ? '시스템 차단됨'
+    : transactionRiskLabel[riskLevel]
 }

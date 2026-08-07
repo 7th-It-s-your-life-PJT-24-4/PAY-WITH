@@ -3,6 +3,7 @@ package com.paywith.bank.controller;
 import com.paywith.bank.dto.BankFilterRequest;
 import com.paywith.bank.dto.BankFilterResponse;
 import com.paywith.bank.service.BankFilterService;
+import io.swagger.annotations.Api;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.paywith.common.ApiResponse;
 
+@Api(tags = "피보호자 은행 필터링")
 @RestController
 @RequestMapping("/api/ward/filter-bank")
 public class BankFilterController {

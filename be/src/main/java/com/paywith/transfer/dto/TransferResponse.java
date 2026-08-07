@@ -19,8 +19,11 @@ public class TransferResponse {
     @ApiModelProperty(value = "송금 거래 ID", example = "999")
     private Long transactionId;
 
-    @ApiModelProperty(value = "거래 상태. FDS 위험 등급(DANGER)이면 HELD(202), 그 외에는 COMPLETED(201)",
-        example = "COMPLETED", allowableValues = "HELD,COMPLETED")
+    @ApiModelProperty(
+        value = "거래 상태. 블랙리스트 차단이면 BLOCKED(200), 그 밖의 위험 판정이면 HELD(202), "
+            + "정상이면 COMPLETED(201). BLOCKED·HELD 는 이체가 일어나지 않아 이 필드와 "
+            + "transactionId 만 채워지고 나머지는 null 이다.",
+        example = "COMPLETED", allowableValues = "BLOCKED,HELD,COMPLETED")
     private TransactionStatus status;
 
     @ApiModelProperty(value = "수취인 예금주명", example = "김시니어")

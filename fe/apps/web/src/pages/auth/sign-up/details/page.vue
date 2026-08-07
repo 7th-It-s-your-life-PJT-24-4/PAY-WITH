@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { AppHeader, Button } from '@pay-with/ui'
 import { useMutation } from '@tanstack/vue-query'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 
@@ -67,12 +67,13 @@ const verificationToken = ref<string | null>(
     : null,
 )
 
-const { defineField, errors, setErrors } = useForm<SignUpDetailsForm>({
-  initialValues: {
-    ...initialDetails,
-    birthDate: formatBirthDate(initialDetails.birthDate),
-  },
-})
+const { defineField, errors, setErrors, setFieldError } =
+  useForm<SignUpDetailsForm>({
+    initialValues: {
+      ...initialDetails,
+      birthDate: formatBirthDate(initialDetails.birthDate),
+    },
+  })
 
 const [fullName] = defineField('fullName')
 const [phoneNumber] = defineField('phoneNumber')
@@ -122,6 +123,31 @@ function flushSignUpDraftSave() {
   saveSignUpDraft()
 }
 
+function clearFieldErrorsIfValid() {
+  const currentValues: Record<keyof SignUpDetailsForm, unknown> = {
+    fullName: fullName.value,
+    phoneNumber: phoneNumber.value,
+    birthDate: birthDate.value,
+    gender: gender.value,
+    avatarId: avatarId.value,
+    loginPassword: loginPassword.value,
+    paymentPassword: paymentPassword.value,
+    serviceTerms: serviceTerms.value,
+    privacyTerms: privacyTerms.value,
+    identifierTerms: identifierTerms.value,
+  }
+
+  for (const [key, schema] of Object.entries(signUpDetailsSchema.shape)) {
+    const fieldKey = key as keyof SignUpDetailsForm
+    if (errors.value[fieldKey]) {
+      const fieldResult = schema.safeParse(currentValues[fieldKey])
+      if (fieldResult.success) {
+        setFieldError(fieldKey, undefined)
+      }
+    }
+  }
+}
+
 watch(
   [
     fullName,
@@ -135,29 +161,32 @@ watch(
     privacyTerms,
     identifierTerms,
   ],
-  scheduleSignUpDraftSave,
+  () => {
+    scheduleSignUpDraftSave()
+    clearFieldErrorsIfValid()
+  },
 )
 
-const isReadyToSubmit = computed(() => {
-  const result = signUpDetailsSchema.safeParse({
-    fullName: fullName.value,
-    phoneNumber: phoneNumber.value,
-    birthDate: birthDate.value,
-    gender: gender.value,
-    avatarId: avatarId.value,
-    loginPassword: loginPassword.value,
-    paymentPassword: paymentPassword.value,
-    serviceTerms: serviceTerms.value,
-    privacyTerms: privacyTerms.value,
-    identifierTerms: identifierTerms.value,
-  })
-
-  return (
-    result.success &&
-    verificationToken.value !== null &&
-    signUpStore.role !== null
-  )
+const termsError = computed(() => {
+  const tError =
+    errors.value.serviceTerms ||
+    errors.value.privacyTerms ||
+    errors.value.identifierTerms
+  return tError ? '모든 필수 약관에 동의해 주세요.' : undefined
 })
+
+async function scrollToFirstError() {
+  await nextTick()
+  const errorElement = globalThis.document.querySelector<HTMLElement>(
+    '[aria-invalid="true"], .text-error',
+  )
+  if (errorElement) {
+    errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if ('focus' in errorElement && typeof errorElement.focus === 'function') {
+      errorElement.focus()
+    }
+  }
+}
 
 function formatPhoneNumber(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 11)
@@ -300,6 +329,8 @@ async function confirmPhoneCode() {
     })
     clearPhoneCodeTimer()
     phoneVerificationMessage.value = '인증 완료했어요.'
+    phoneRequestError.value = ''
+    setFieldError('phoneNumber', undefined)
   } catch (error) {
     formError.value = await getApiErrorMessage(
       error,
@@ -314,6 +345,10 @@ onBeforeUnmount(() => {
 })
 
 async function submitSignUp() {
+  formError.value = ''
+  phoneRequestError.value = ''
+  setErrors({})
+
   const result = signUpDetailsSchema.safeParse({
     fullName: fullName.value,
     phoneNumber: phoneNumber.value,
@@ -328,21 +363,28 @@ async function submitSignUp() {
   })
 
   if (!result.success) {
-    const errors = result.error.flatten().fieldErrors
+    const fieldErrors = result.error.flatten().fieldErrors
     setErrors(
       Object.fromEntries(
-        Object.entries(errors).map(([key, messages]) => [key, messages?.[0]]),
+        Object.entries(fieldErrors).map(([key, messages]) => [
+          key,
+          messages?.[0],
+        ]),
       ),
     )
     formError.value = '입력한 정보를 다시 확인해 주세요.'
+    await scrollToFirstError()
     return
   }
 
   if (!verificationToken.value || !signUpStore.role) {
-    formError.value =
-      verificationToken.value === null
-        ? '휴대폰 인증을 완료해 주세요.'
-        : '가입 유형을 다시 선택해 주세요.'
+    if (verificationToken.value === null) {
+      setErrors({ phoneNumber: '휴대폰 인증을 완료해 주세요.' })
+      formError.value = '휴대폰 인증을 완료해 주세요.'
+    } else {
+      formError.value = '가입 유형을 다시 선택해 주세요.'
+    }
+    await scrollToFirstError()
     return
   }
 
@@ -466,6 +508,7 @@ function openAvatarModal() {
           :identifier-terms="identifierTerms"
           :privacy-terms="privacyTerms"
           :service-terms="serviceTerms"
+          :terms-error="termsError"
           @before-navigate="flushSignUpDraftSave"
           @update:identifier-terms="identifierTerms = $event"
           @update:privacy-terms="privacyTerms = $event"
@@ -490,9 +533,7 @@ function openAvatarModal() {
           "
           type="submit"
           :disabled="
-            !isReadyToSubmit ||
-            createUserMutation.isPending.value ||
-            loginMutation.isPending.value
+            createUserMutation.isPending.value || loginMutation.isPending.value
           "
         />
       </div>

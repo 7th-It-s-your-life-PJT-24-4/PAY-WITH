@@ -2,7 +2,7 @@ import ky, { HTTPError } from 'ky'
 import { expireAuthenticationSession } from '@/api/auth-session'
 import { isUnauthorizedApiError } from '@/api/error'
 import { refreshAccessToken } from '@/api/token-refresh'
-import { tokenStorage } from '@/api/token-storage'
+import { isAccessTokenExpiring, tokenStorage } from '@/api/token-storage'
 import type { ZodType as ZodSchema } from 'zod'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -15,8 +15,18 @@ const httpClient = ky.create({
   },
   hooks: {
     beforeRequest: [
-      ({ request }) => {
-        const accessToken = tokenStorage.getAccessToken()
+      async ({ request }) => {
+        let accessToken = tokenStorage.getAccessToken()
+        const refreshToken = tokenStorage.getRefreshToken()
+
+        if (accessToken && refreshToken && isAccessTokenExpiring(accessToken)) {
+          try {
+            accessToken = await refreshAccessToken()
+          } catch {
+            // 사전 갱신 실패 시 기존 토큰으로 시도하고 401 수신 시 beforeRetry에 처리를 위임한다.
+          }
+        }
+
         if (accessToken) {
           request.headers.set('Authorization', `Bearer ${accessToken}`)
         }

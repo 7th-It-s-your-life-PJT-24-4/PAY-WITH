@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Button, NumericKeypad } from '@pay-with/ui'
+import { Button, NumericKeypad, WardToast } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
-import { watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { wardWalletOptions } from '@/lib/query/ward/wallet'
@@ -10,6 +10,9 @@ import { useTransferStore } from '@/stores/transfer.store'
 const router = useRouter()
 const transferStore = useTransferStore()
 const walletQuery = useQuery(wardWalletOptions())
+const toastOpen = ref(false)
+const toastMessage = ref('')
+
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
 
@@ -20,6 +23,22 @@ watch(
   },
   { immediate: true },
 )
+
+function handleNextClick() {
+  if (!transferStore.canTransfer) {
+    if (transferStore.amount <= 0) {
+      toastMessage.value = '보낼 금액을 1원 이상 입력해 주세요'
+    } else if (transferStore.isAmountOverBalance) {
+      toastMessage.value = '지갑 잔액보다 큰 금액은 송금할 수 없어요'
+    } else {
+      toastMessage.value = '송금 금액을 다시 확인해 주세요'
+    }
+    toastOpen.value = true
+    return
+  }
+  router.push({ name: 'ward-transfer-confirm' })
+}
+
 const quickAmountButtonClass =
   '!border-gray-900 !bg-surface-card whitespace-nowrap hover:!border-gray-900 hover:!bg-surface-card'
 </script>
@@ -128,12 +147,16 @@ const quickAmountButtonClass =
       @cancel="transferStore.amount = 0"
     />
 
-    <Button
-      class="w-full"
-      label="다음으로"
-      size="large"
-      :disabled="!transferStore.canTransfer"
-      @click="router.push({ name: 'ward-transfer-confirm' })"
-    />
+    <div @click="handleNextClick">
+      <Button
+        class="w-full"
+        :class="{ 'opacity-50 cursor-not-allowed': !transferStore.canTransfer }"
+        label="다음으로"
+        size="large"
+        :aria-disabled="!transferStore.canTransfer"
+      />
+    </div>
+
+    <WardToast v-model:open="toastOpen" :message="toastMessage" />
   </div>
 </template>
