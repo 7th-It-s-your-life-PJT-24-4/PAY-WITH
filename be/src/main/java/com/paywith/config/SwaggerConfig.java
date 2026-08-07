@@ -3,8 +3,10 @@ package com.paywith.config;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.service.ApiInfo;
 import springfox.documentation.service.ApiKey;
 import springfox.documentation.service.AuthorizationScope;
 import springfox.documentation.service.SecurityReference;
@@ -28,11 +30,25 @@ public class SwaggerConfig {
     public Docket api() {
         // 컨트롤러가 도메인별 패키지(com.paywith.<domain>.controller)에 흩어져 있어 루트로 잡는다.
         return new Docket(DocumentationType.SWAGGER_2)
+            .apiInfo(apiInfo())
+            // springfox 가 전 응답에 붙이는 기본 200/201/401/403/404 행은 실제 계약과 무관해 끈다.
+            .useDefaultResponseMessages(false)
             .securitySchemes(List.of(apiKey()))
             .securityContexts(List.of(securityContext()))
             .select()
             .apis(RequestHandlerSelectors.basePackage("com.paywith"))
             .paths(PathSelectors.ant("/api/**"))
+            .build();
+    }
+
+    /** 첫 화면에서 반복 질문 두 가지(응답 래퍼 구조, Authorize 입력 형식)가 해소되도록 적어 둔다. */
+    private ApiInfo apiInfo() {
+        return new ApiInfoBuilder()
+            .title("PayWith API")
+            .description("시니어 안심 전자지갑 API. 역할은 WARD(피보호자)/GUARD(보호자)로 나뉜다. "
+                + "모든 응답은 {success, data, message(, code)} 래퍼로 감싸진다. "
+                + "인증이 필요한 API는 우측 상단 Authorize 에 \"Bearer {accessToken}\" 형식으로 입력한다.")
+            .version("1.0")
             .build();
     }
 
