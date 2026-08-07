@@ -2,6 +2,7 @@ export interface GuardSeniorAvatar {
   id: string
   name: string
   imageUrl?: string
+  hasPending?: boolean
 }
 
 export interface GuardTransaction {

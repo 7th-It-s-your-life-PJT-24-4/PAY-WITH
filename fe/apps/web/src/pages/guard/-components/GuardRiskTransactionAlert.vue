@@ -4,7 +4,6 @@ import lockIconUrl from '@pay-with/ui/svg/lock.svg'
 
 defineProps<{
   count: number
-  seniorName: string
 }>()
 
 const emit = defineEmits<{
@@ -26,14 +25,9 @@ const emit = defineEmits<{
     />
 
     <div class="min-w-0 flex-1">
-      <p
-        class="text-[18px] font-medium leading-[1.2] tracking-[-0.36px] text-gray-600"
-      >
-        {{ seniorName }}님의 송금·거래 중
-      </p>
       <h2
         id="guard-risk-transaction-title"
-        class="mt-xxs text-[24px] font-semibold leading-[1.2] tracking-[-0.48px] text-black"
+        class="text-[24px] font-semibold leading-[1.2] tracking-[-0.48px] text-black"
       >
         위험 거래 <span class="text-error">{{ count }}건</span> 발생
       </h2>

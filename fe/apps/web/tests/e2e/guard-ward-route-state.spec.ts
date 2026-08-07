@@ -11,6 +11,7 @@ const selectedWards = {
     name: '수이',
     balance: 120000,
     pendingApproval: null,
+    pendingApprovalCount: 0,
     recentTransactions: [],
   },
   13: {
@@ -18,6 +19,7 @@ const selectedWards = {
     name: '원이',
     balance: 230000,
     pendingApproval: null,
+    pendingApprovalCount: 0,
     recentTransactions: [],
   },
 }

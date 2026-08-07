@@ -10,6 +10,7 @@ const guardHome = {
     name: '수이',
     balance: 120000,
     pendingApproval: null,
+    pendingApprovalCount: 0,
     recentTransactions: [],
   },
 }

@@ -21,14 +21,19 @@ const emit = defineEmits<{
       :key="senior.id"
       class="flex w-16 flex-col items-center gap-xxs"
       type="button"
+      :aria-label="
+        senior.hasPending ? `${senior.name} 이상 거래 있음` : senior.name
+      "
       @click="emit('select', senior.id)"
     >
       <span
         class="flex size-16 items-center justify-center overflow-hidden rounded-full bg-gray-900 text-primary-500"
         :class="
-          senior.id === activeSeniorId
-            ? 'border-2 border-primary-500'
-            : 'border-0'
+          senior.hasPending
+            ? 'border-2 border-error'
+            : senior.id === activeSeniorId
+              ? 'border-2 border-primary-500'
+              : 'border-0'
         "
       >
         <img
