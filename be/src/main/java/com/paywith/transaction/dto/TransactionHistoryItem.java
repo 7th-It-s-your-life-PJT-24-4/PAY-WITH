@@ -1,5 +1,8 @@
 package com.paywith.transaction.dto;
 
+import com.paywith.fds.domain.RiskLevel;
+import com.paywith.transaction.domain.TransactionCategory;
+import com.paywith.transaction.domain.TransactionStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -20,7 +23,7 @@ public class TransactionHistoryItem {
     private Long transactionId;
 
     @ApiModelProperty(value = "거래 유형", allowableValues = "CHARGE,TRANSFER,PAYMENT", example = "PAYMENT")
-    private String type;
+    private TransactionCategory type;
 
     @ApiModelProperty(value = "잔액 증감 방향", allowableValues = "IN,OUT", example = "OUT")
     private String direction;
@@ -34,11 +37,11 @@ public class TransactionHistoryItem {
     @ApiModelProperty(value = "거래 처리 상태",
             allowableValues = "REQUESTED,HELD,APPROVED,PROCESSING,REJECTED,COMPLETED,CANCELED,BLOCKED,FAILED",
             example = "COMPLETED")
-    private String status;
+    private TransactionStatus status;
 
     @ApiModelProperty(value = "거래 위험 단계. 평가 기록이 없으면 null",
             allowableValues = "SAFE,CAUTION,DANGER", example = "SAFE")
-    private String riskLevel;
+    private RiskLevel riskLevel;
 
     @ApiModelProperty(value = "목록에 표시할 거래 시각")
     private LocalDateTime occurredAt;

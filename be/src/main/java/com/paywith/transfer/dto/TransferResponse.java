@@ -1,5 +1,6 @@
 package com.paywith.transfer.dto;
 
+import com.paywith.transaction.domain.TransactionStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -20,7 +21,7 @@ public class TransferResponse {
 
     @ApiModelProperty(value = "거래 상태. FDS 위험 등급(DANGER)이면 HELD(202), 그 외에는 COMPLETED(201)",
         example = "COMPLETED", allowableValues = "HELD,COMPLETED")
-    private String status;
+    private TransactionStatus status;
 
     @ApiModelProperty(value = "수취인 예금주명", example = "김시니어")
     private String holderName;      // recipientName → holderName (DB: recipients.holder_name)

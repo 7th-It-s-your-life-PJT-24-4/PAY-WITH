@@ -7,6 +7,7 @@ import com.paywith.guard.service.GuardService;
 import com.paywith.recipient.domain.Recipient;
 import com.paywith.recipient.mapper.BankMapper;
 import com.paywith.recipient.mapper.RecipientMapper;
+import com.paywith.safeaccount.domain.SafeAccountStatus;
 import com.paywith.safeaccount.dto.*;
 import com.paywith.safeaccount.mapper.SafeAccountMapper;
 import com.paywith.user.domain.Role;
@@ -90,7 +91,7 @@ public class SafeAccountServiceImpl implements SafeAccountService{
                 .holderName(recipient.getHolderName())
                 .accountAlias(alias)
                 .isVerified(true)
-                .status("ACTIVE")
+                .status(SafeAccountStatus.ACTIVE)
                 .createdAt(LocalDateTime.now())
                 .newlyRegistered(isFirstRegistration)
                 .build();
@@ -158,7 +159,7 @@ public class SafeAccountServiceImpl implements SafeAccountService{
                 .holderName(holderName)
                 .accountAlias(alias)
                 .isVerified(true)
-                .status("ACTIVE")
+                .status(SafeAccountStatus.ACTIVE)
                 .createdAt(LocalDateTime.now())
                 .newlyRegistered(isFirstRegistration)
                 .build();
@@ -227,7 +228,7 @@ public class SafeAccountServiceImpl implements SafeAccountService{
         // 4. 응답
         return SafeAccountDeleteResponse.builder()
                 .safeAccountId(recipient.getRecipientId())
-                .status("INACTIVE")
+                .status(SafeAccountStatus.INACTIVE)
                 .build();
     }
 
@@ -253,7 +254,7 @@ public class SafeAccountServiceImpl implements SafeAccountService{
         // 4. 응답
         return SafeAccountDeleteResponse.builder()
                 .safeAccountId(recipient.getRecipientId())
-                .status("INACTIVE")
+                .status(SafeAccountStatus.INACTIVE)
                 .build();
     }
 

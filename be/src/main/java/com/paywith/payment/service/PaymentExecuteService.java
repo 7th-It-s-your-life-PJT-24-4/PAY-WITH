@@ -16,6 +16,8 @@ import com.paywith.payment.fds.service.PaymentFdsEvaluationService;
 import com.paywith.payment.fds.service.PaymentFdsResultService;
 import com.paywith.payment.mapper.PaymentRequestMapper;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transaction.domain.TransactionStatus;
+import com.paywith.transaction.domain.TransactionType;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.wallet.mapper.WalletMapper;
 import java.time.LocalDateTime;
@@ -41,9 +43,7 @@ public class PaymentExecuteService {
 
     private static final String FAILURE_CODE_INSUFFICIENT_BALANCE = "INSUFFICIENT_BALANCE";
     private static final String FAILURE_CODE_FDS_BLOCKED = "FDS_BLOCKED";
-    private static final String TRANSACTION_TYPE_PAYMENT = "PAYMENT";
     private static final String TRANSACTION_STATUS_COMPLETED = "COMPLETED";
-    private static final String TRANSACTION_STATUS_BLOCKED = "BLOCKED";
 
     private static final String MESSAGE_INVALID_TOKEN = "유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요.";
     private static final String MESSAGE_INSUFFICIENT_BALANCE = "잔액이 부족합니다.";
@@ -198,10 +198,10 @@ public class PaymentExecuteService {
         Transaction transaction = Transaction.builder()
             .walletId(wallet.getWalletId())
             .merchantId(merchant.getMerchantId())
-            .type(TRANSACTION_TYPE_PAYMENT)
+            .type(TransactionType.PAYMENT)
             .amount(request.getAmount())
             .balanceAfter(balanceAfter)
-            .status(TRANSACTION_STATUS_COMPLETED)
+            .status(TransactionStatus.COMPLETED)
             .latitude(merchant.getLatitude().doubleValue())
             .longitude(merchant.getLongitude().doubleValue())
             .createdAt(paidAt)
@@ -265,9 +265,9 @@ public class PaymentExecuteService {
         Transaction transaction = Transaction.builder()
             .walletId(paymentRequest.getWalletId())
             .merchantId(merchant.getMerchantId())
-            .type(TRANSACTION_TYPE_PAYMENT)
+            .type(TransactionType.PAYMENT)
             .amount(amount)
-            .status(TRANSACTION_STATUS_BLOCKED)
+            .status(TransactionStatus.BLOCKED)
             .latitude(merchant.getLatitude().doubleValue())
             .longitude(merchant.getLongitude().doubleValue())
             .createdAt(LocalDateTime.now())

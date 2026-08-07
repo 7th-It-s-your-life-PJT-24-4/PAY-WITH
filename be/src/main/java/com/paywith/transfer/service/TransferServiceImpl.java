@@ -12,6 +12,7 @@ import com.paywith.fds.domain.RiskLevel;
 import com.paywith.fds.dto.FdsEvaluationRequest;
 import com.paywith.fds.service.FdsEvaluationService;
 import com.paywith.recipient.mapper.RecipientMapper;
+import com.paywith.transaction.domain.TransactionStatus;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.*;
 import com.paywith.user.domain.Role;
@@ -218,13 +219,13 @@ public class TransferServiceImpl implements TransferService{
         }
 
         // 2. 존재 + 본인 소유 + 송금 여부 확인
-        String status = transactionMapper.findTransferStatusForCancel(transactionId, userId);
+        TransactionStatus status = transactionMapper.findTransferStatusForCancel(transactionId, userId);
         if (status == null) {
             throw new BusinessException(HttpStatus.NOT_FOUND, "TRANSFER_007", "송금 거래를 찾을 수 없습니다.");
         }
 
         // 3. HELD가 아니면 취소 불가
-        if (!"HELD".equals(status)) {
+        if (status != TransactionStatus.HELD) {
             throw new BusinessException(HttpStatus.CONFLICT, "TRANSFER_008", "승인 대기 중인 송금만 취소할 수 있습니다.");
         }
 
@@ -240,7 +241,7 @@ public class TransferServiceImpl implements TransferService{
             log.warn("거래는 취소됐지만 승인요청이 이미 다른 상태였음. transactionId={}", transactionId);
         }
 
-        return new TransferCancelResponse(transactionId, "CANCELED");
+        return new TransferCancelResponse(transactionId, TransactionStatus.CANCELED);
     }
 
     private String hashRequest(TransferRequest request) {

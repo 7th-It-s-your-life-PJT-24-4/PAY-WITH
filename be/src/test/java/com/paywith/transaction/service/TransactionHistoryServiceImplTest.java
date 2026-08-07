@@ -12,7 +12,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.paywith.exception.BusinessException;
+import com.paywith.fds.domain.RiskLevel;
 import com.paywith.guard.service.GuardService;
+import com.paywith.transaction.domain.TransactionCategory;
+import com.paywith.transaction.domain.TransactionStatus;
+import com.paywith.transaction.domain.TransactionType;
 import com.paywith.transaction.dto.GuardTransactionDetailResponse;
 import com.paywith.transaction.dto.GuardTransactionHistoryItem;
 import com.paywith.transaction.dto.GuardTransactionHistoryListResponse;
@@ -121,25 +125,25 @@ class TransactionHistoryServiceImplTest {
 
     @Test
     void category가_TRANSFER면_type을_TRANSFER_OUT으로_변환해서_조회한다() {
-        given(transactionMapper.findMyTransactions(eq(userId), eq("TRANSFER_OUT"), isNull(), eq(0), eq(20)))
+        given(transactionMapper.findMyTransactions(eq(userId), eq(TransactionType.TRANSFER_OUT), isNull(), eq(0), eq(20)))
                 .willReturn(List.of());
-        given(transactionMapper.countMyTransactions(eq(userId), eq("TRANSFER_OUT"), isNull())).willReturn(0);
+        given(transactionMapper.countMyTransactions(eq(userId), eq(TransactionType.TRANSFER_OUT), isNull())).willReturn(0);
 
         transactionHistoryService.findMyTransactions(userId, "TRANSFER", null, null, null);
 
-        verify(transactionMapper).findMyTransactions(userId, "TRANSFER_OUT", null, 0, 20);
-        verify(transactionMapper).countMyTransactions(userId, "TRANSFER_OUT", null);
+        verify(transactionMapper).findMyTransactions(userId, TransactionType.TRANSFER_OUT, null, 0, 20);
+        verify(transactionMapper).countMyTransactions(userId, TransactionType.TRANSFER_OUT, null);
     }
 
     @Test
     void category가_CHARGE_PAYMENT면_DB값_그대로_전달한다() {
-        given(transactionMapper.findMyTransactions(eq(userId), eq("CHARGE"), isNull(), eq(0), eq(20)))
+        given(transactionMapper.findMyTransactions(eq(userId), eq(TransactionType.CHARGE), isNull(), eq(0), eq(20)))
                 .willReturn(List.of());
-        given(transactionMapper.countMyTransactions(eq(userId), eq("CHARGE"), isNull())).willReturn(0);
+        given(transactionMapper.countMyTransactions(eq(userId), eq(TransactionType.CHARGE), isNull())).willReturn(0);
 
         transactionHistoryService.findMyTransactions(userId, "CHARGE", null, null, null);
 
-        verify(transactionMapper).findMyTransactions(userId, "CHARGE", null, 0, 20);
+        verify(transactionMapper).findMyTransactions(userId, TransactionType.CHARGE, null, 0, 20);
     }
 
     @Test
@@ -157,12 +161,12 @@ class TransactionHistoryServiceImplTest {
     void 정상_조회시_페이지_정보와_목록을_그대로_응답한다() {
         TransactionHistoryItem item = TransactionHistoryItem.builder()
                 .transactionId(141L)
-                .type("PAYMENT")
+                .type(TransactionCategory.PAYMENT)
                 .direction("OUT")
                 .title("이마트 서울점")
                 .amount(45_200L)
-                .status("COMPLETED")
-                .riskLevel("SAFE")
+                .status(TransactionStatus.COMPLETED)
+                .riskLevel(RiskLevel.SAFE)
                 .build();
         given(transactionMapper.findMyTransactions(eq(userId), isNull(), eq("이마트"), eq(0), eq(20)))
                 .willReturn(List.of(item));
@@ -255,24 +259,24 @@ class TransactionHistoryServiceImplTest {
 
     @Test
     void type이_TRANSFER면_TRANSFER_OUT으로_변환해서_조회한다() {
-        given(transactionMapper.findWardTransactions(eq(guardId), eq(wardId), eq("TRANSFER_OUT"), isNull(), eq(0), eq(20)))
+        given(transactionMapper.findWardTransactions(eq(guardId), eq(wardId), eq(TransactionType.TRANSFER_OUT), isNull(), eq(0), eq(20)))
                 .willReturn(List.of());
-        given(transactionMapper.countWardTransactions(eq(guardId), eq(wardId), eq("TRANSFER_OUT"), isNull())).willReturn(0);
+        given(transactionMapper.countWardTransactions(eq(guardId), eq(wardId), eq(TransactionType.TRANSFER_OUT), isNull())).willReturn(0);
 
         transactionHistoryService.findWardTransactions(guardId, wardId, "TRANSFER", null, null, null);
 
-        verify(transactionMapper).findWardTransactions(guardId, wardId, "TRANSFER_OUT", null, 0, 20);
+        verify(transactionMapper).findWardTransactions(guardId, wardId, TransactionType.TRANSFER_OUT, null, 0, 20);
     }
 
     @Test
     void type이_CHARGE_PAYMENT면_DB값_그대로_전달한다() {
-        given(transactionMapper.findWardTransactions(eq(guardId), eq(wardId), eq("CHARGE"), isNull(), eq(0), eq(20)))
+        given(transactionMapper.findWardTransactions(eq(guardId), eq(wardId), eq(TransactionType.CHARGE), isNull(), eq(0), eq(20)))
                 .willReturn(List.of());
-        given(transactionMapper.countWardTransactions(eq(guardId), eq(wardId), eq("CHARGE"), isNull())).willReturn(0);
+        given(transactionMapper.countWardTransactions(eq(guardId), eq(wardId), eq(TransactionType.CHARGE), isNull())).willReturn(0);
 
         transactionHistoryService.findWardTransactions(guardId, wardId, "CHARGE", null, null, null);
 
-        verify(transactionMapper).findWardTransactions(guardId, wardId, "CHARGE", null, 0, 20);
+        verify(transactionMapper).findWardTransactions(guardId, wardId, TransactionType.CHARGE, null, 0, 20);
     }
 
     @Test
@@ -290,16 +294,16 @@ class TransactionHistoryServiceImplTest {
     void 정상_조회시_피보호자_거래내역과_페이지_정보를_그대로_응답한다() {
         GuardTransactionHistoryItem item = GuardTransactionHistoryItem.builder()
                 .transactionId(141L)
-                .type("PAYMENT")
-                .status("COMPLETED")
+                .type(TransactionCategory.PAYMENT)
+                .status(TransactionStatus.COMPLETED)
                 .counterpartyName("이마트 서울점")
                 .amount(45_200L)
-                .riskLevel("CAUTION")
+                .riskLevel(RiskLevel.CAUTION)
                 .riskReason("평소보다 큰 금액")
                 .build();
-        given(transactionMapper.findWardTransactions(eq(guardId), eq(wardId), isNull(), eq("CAUTION"), eq(0), eq(20)))
+        given(transactionMapper.findWardTransactions(eq(guardId), eq(wardId), isNull(), eq(RiskLevel.CAUTION), eq(0), eq(20)))
                 .willReturn(List.of(item));
-        given(transactionMapper.countWardTransactions(eq(guardId), eq(wardId), isNull(), eq("CAUTION"))).willReturn(43);
+        given(transactionMapper.countWardTransactions(eq(guardId), eq(wardId), isNull(), eq(RiskLevel.CAUTION))).willReturn(43);
 
         GuardTransactionHistoryListResponse response =
                 transactionHistoryService.findWardTransactions(guardId, wardId, null, "CAUTION", 0, 20);
@@ -342,8 +346,8 @@ class TransactionHistoryServiceImplTest {
     void 본인_거래상세가_TRANSFER_PAYMENT가_아니면_riskAnalysis는_null이고_위험사유는_조회하지_않는다() {
         TransactionDetailResponse detail = TransactionDetailResponse.builder()
                 .transactionId(transactionId)
-                .type("CHARGE")
-                .riskLevel("CAUTION")
+                .type(TransactionCategory.CHARGE)
+                .riskLevel(RiskLevel.CAUTION)
                 .riskScore(50)
                 .build();
         given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(detail);
@@ -359,8 +363,8 @@ class TransactionHistoryServiceImplTest {
     void 본인_거래상세가_PAYMENT이고_CAUTION_DANGER면_riskAnalysis를_조립한다() {
         TransactionDetailResponse detail = TransactionDetailResponse.builder()
                 .transactionId(transactionId)
-                .type("PAYMENT")
-                .riskLevel("DANGER")
+                .type(TransactionCategory.PAYMENT)
+                .riskLevel(RiskLevel.DANGER)
                 .riskScore(70)
                 .build();
         given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(detail);
@@ -379,8 +383,8 @@ class TransactionHistoryServiceImplTest {
     void 본인_거래상세가_TRANSFER이고_SAFE면_riskAnalysis는_null이다() {
         TransactionDetailResponse detail = TransactionDetailResponse.builder()
                 .transactionId(transactionId)
-                .type("TRANSFER")
-                .riskLevel("SAFE")
+                .type(TransactionCategory.TRANSFER)
+                .riskLevel(RiskLevel.SAFE)
                 .riskScore(10)
                 .build();
         given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(detail);
@@ -395,8 +399,8 @@ class TransactionHistoryServiceImplTest {
     void 본인_거래상세가_TRANSFER이고_riskScore가_없으면_riskAnalysis는_null이다() {
         TransactionDetailResponse detail = TransactionDetailResponse.builder()
                 .transactionId(transactionId)
-                .type("TRANSFER")
-                .riskLevel("CAUTION")
+                .type(TransactionCategory.TRANSFER)
+                .riskLevel(RiskLevel.CAUTION)
                 .riskScore(null)
                 .build();
         given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(detail);
@@ -411,8 +415,8 @@ class TransactionHistoryServiceImplTest {
     void 본인_거래상세가_TRANSFER이고_CAUTION_DANGER면_riskAnalysis를_조립한다() {
         TransactionDetailResponse detail = TransactionDetailResponse.builder()
                 .transactionId(transactionId)
-                .type("TRANSFER")
-                .riskLevel("DANGER")
+                .type(TransactionCategory.TRANSFER)
+                .riskLevel(RiskLevel.DANGER)
                 .riskScore(85)
                 .build();
         given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(detail);
@@ -431,8 +435,8 @@ class TransactionHistoryServiceImplTest {
     void 본인_거래상세_응답의_riskScore_평면값은_항상_비워진다() {
         TransactionDetailResponse transferDetail = TransactionDetailResponse.builder()
                 .transactionId(transactionId)
-                .type("TRANSFER")
-                .riskLevel("DANGER")
+                .type(TransactionCategory.TRANSFER)
+                .riskLevel(RiskLevel.DANGER)
                 .riskScore(85)
                 .build();
         given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(transferDetail);
@@ -475,8 +479,8 @@ class TransactionHistoryServiceImplTest {
     void 피보호자_거래상세가_TRANSFER가_아니면_riskAnalysis는_null이다() {
         GuardTransactionDetailResponse detail = GuardTransactionDetailResponse.builder()
                 .transactionId(transactionId)
-                .type("CHARGE")
-                .riskLevel("CAUTION")
+                .type(TransactionCategory.CHARGE)
+                .riskLevel(RiskLevel.CAUTION)
                 .riskScore(50)
                 .build();
         given(transactionMapper.findWardTransactionDetail(transactionId, wardId)).willReturn(detail);
@@ -492,8 +496,8 @@ class TransactionHistoryServiceImplTest {
     void 피보호자_거래상세가_TRANSFER이고_CAUTION_DANGER면_riskAnalysis를_조립한다() {
         GuardTransactionDetailResponse detail = GuardTransactionDetailResponse.builder()
                 .transactionId(transactionId)
-                .type("TRANSFER")
-                .riskLevel("CAUTION")
+                .type(TransactionCategory.TRANSFER)
+                .riskLevel(RiskLevel.CAUTION)
                 .riskScore(60)
                 .build();
         given(transactionMapper.findWardTransactionDetail(transactionId, wardId)).willReturn(detail);
@@ -512,8 +516,8 @@ class TransactionHistoryServiceImplTest {
     void 피보호자_거래상세_응답의_riskScore_평면값도_항상_비워진다() {
         GuardTransactionDetailResponse detail = GuardTransactionDetailResponse.builder()
                 .transactionId(transactionId)
-                .type("TRANSFER")
-                .riskLevel("DANGER")
+                .type(TransactionCategory.TRANSFER)
+                .riskLevel(RiskLevel.DANGER)
                 .riskScore(90)
                 .build();
         given(transactionMapper.findWardTransactionDetail(transactionId, wardId)).willReturn(detail);

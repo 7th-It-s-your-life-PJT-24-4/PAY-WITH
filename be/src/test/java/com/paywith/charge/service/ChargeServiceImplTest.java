@@ -14,6 +14,7 @@ import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.external.openbanking.dto.WithdrawResponse;
 import com.paywith.guard.service.GuardService;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transaction.domain.TransactionStatus;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.user.domain.User;
 import com.paywith.user.mapper.UserMapper;
@@ -156,7 +157,7 @@ class ChargeServiceImplTest {
         given(openBankingClient.withdraw("004", "11012300006781", 30_000L))
                 .willReturn(new WithdrawResponse());
         given(walletMapper.findWalletByUserId(userId)).willReturn(updatedWallet);
-        given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(80_000L), any()))
+        given(transactionMapper.completeTransaction(eq(999L), eq(TransactionStatus.COMPLETED), eq(80_000L), any()))
                 .willReturn(1);
 
         ChargeResponse response = chargeService.charge(userId, request);
@@ -170,7 +171,7 @@ class ChargeServiceImplTest {
 
         verify(walletMapper).increaseBalance(20L, 30_000L);
         verify(transactionMapper).insertTransaction(any(Transaction.class));
-        verify(transactionMapper).completeTransaction(eq(999L), eq("COMPLETED"), eq(80_000L), any());
+        verify(transactionMapper).completeTransaction(eq(999L), eq(TransactionStatus.COMPLETED), eq(80_000L), any());
     }
 
     @Test
@@ -241,7 +242,7 @@ class ChargeServiceImplTest {
         given(openBankingClient.withdraw("004", "11012300006781", 30_000L))
                 .willReturn(new WithdrawResponse());
         given(walletMapper.findWalletByUserId(wardId)).willReturn(updatedWallet);
-        given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(80_000L), any()))
+        given(transactionMapper.completeTransaction(eq(999L), eq(TransactionStatus.COMPLETED), eq(80_000L), any()))
                 .willReturn(1);
 
         ChargeResponse response = chargeService.chargeByGuard(guardId, wardId, request);

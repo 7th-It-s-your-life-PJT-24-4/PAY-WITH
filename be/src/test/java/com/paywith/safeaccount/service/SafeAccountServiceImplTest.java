@@ -7,6 +7,7 @@ import com.paywith.guard.service.GuardService;
 import com.paywith.recipient.domain.Recipient;
 import com.paywith.recipient.mapper.BankMapper;
 import com.paywith.recipient.mapper.RecipientMapper;
+import com.paywith.safeaccount.domain.SafeAccountStatus;
 import com.paywith.safeaccount.dto.GuardSafeAccountRegisterRequest;
 import com.paywith.safeaccount.dto.SafeAccountDeleteResponse;
 import com.paywith.safeaccount.dto.SafeAccountListItem;
@@ -233,7 +234,7 @@ class SafeAccountServiceImplTest {
         assertThat(response.getHolderName()).isEqualTo("김수취");
         assertThat(response.getAccountAlias()).isEqualTo("용돈용");
         assertThat(response.getIsVerified()).isTrue();
-        assertThat(response.getStatus()).isEqualTo("ACTIVE");
+        assertThat(response.getStatus()).isEqualTo(SafeAccountStatus.ACTIVE);
         assertThat(response.getNewlyRegistered()).isTrue();
 
         verify(safeAccountMapper).registerSafeAccount(eq(recipientId), isNull(), eq("용돈용"));
@@ -564,7 +565,7 @@ class SafeAccountServiceImplTest {
         SafeAccountDeleteResponse response = safeAccountService.deactivateByWard(wardId, recipientId);
 
         assertThat(response.getSafeAccountId()).isEqualTo(recipientId);
-        assertThat(response.getStatus()).isEqualTo("INACTIVE");
+        assertThat(response.getStatus()).isEqualTo(SafeAccountStatus.INACTIVE);
 
         verify(safeAccountMapper).deactivateSafeAccount(recipientId);
     }
@@ -610,7 +611,7 @@ class SafeAccountServiceImplTest {
         SafeAccountDeleteResponse response = safeAccountService.deactivateByGuard(guardId, wardId, recipientId);
 
         assertThat(response.getSafeAccountId()).isEqualTo(recipientId);
-        assertThat(response.getStatus()).isEqualTo("INACTIVE");
+        assertThat(response.getStatus()).isEqualTo(SafeAccountStatus.INACTIVE);
 
         verify(safeAccountMapper).deactivateSafeAccount(recipientId);
     }

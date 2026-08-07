@@ -5,6 +5,8 @@ import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.fds.domain.RiskLevel;
 import com.paywith.recipient.mapper.RecipientMapper;
+import com.paywith.transaction.domain.TransactionStatus;
+import com.paywith.transaction.domain.TransactionType;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.PreparedTransfer;
 import com.paywith.transfer.dto.TransferExecutionContext;
@@ -47,14 +49,14 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
         // -> transaction 테이블의 status 컬럼을 Held로 변경
         // update는 거래 실패 시 0 으로 결과값이 나오기 때문에 그것도 확인 해주는 것이 필요함
         if (riskLevel == RiskLevel.DANGER) {
-            int updated = transactionMapper.updateStatus(transactionId, "HELD");
+            int updated = transactionMapper.updateStatus(transactionId, TransactionStatus.HELD);
             if (updated != 1) {
                 throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR,
                         "거래 상태를 HELD로 변경하지 못했습니다. transactionId=" + transactionId);
             }
             return TransferResponse.builder()
                     .transactionId(transactionId)
-                    .status("HELD")
+                    .status(TransactionStatus.HELD)
                     .build();
         }
 
@@ -93,7 +95,7 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
         Long balanceAfter = transactionTemplate.execute(status -> {
             // 7. 아니라면 status는 PROCESSING으로 업데이트
             // update 거래 실패 시 확인
-            int processingUpdated = transactionMapper.updateStatus(transactionId, "PROCESSING");
+            int processingUpdated = transactionMapper.updateStatus(transactionId, TransactionStatus.PROCESSING);
             if (processingUpdated != 1) {
                 throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR,
                         "거래 상태를 PROCESSING으로 변경하지 못했습니다. transactionId=" + transactionId);
@@ -148,7 +150,7 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
         // 12. 응답
         return TransferResponse.builder()
                 .transactionId(transactionId)
-                .status("COMPLETED")
+                .status(TransactionStatus.COMPLETED)
                 .holderName(context.getHolderName())
                 .bankCode(context.getBankCode())
                 .bankName(context.getBankName())
@@ -163,7 +165,7 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
     private boolean tryCompleteTransaction(Long transactionId, Long balanceAfter, LocalDateTime completedAt) {
         for (int attempt = 1; attempt <= COMPLETE_MAX_ATTEMPTS; attempt++) {
             try {
-                int updated = transactionMapper.completeTransaction(transactionId, "COMPLETED", balanceAfter, completedAt);
+                int updated = transactionMapper.completeTransaction(transactionId, TransactionStatus.COMPLETED, balanceAfter, completedAt);
                 if (updated == 1) {
                     return true;
                 }
@@ -189,7 +191,7 @@ public class TransferFinalizationServiceImpl implements TransferFinalizationServ
     private void markFailed(Long transactionId, String reason) {
         log.error("송금 확정 실패, FAILED로 표시. transactionId={}, reason={}", transactionId, reason);
         try {
-            transactionMapper.updateStatus(transactionId, "FAILED");
+            transactionMapper.updateStatus(transactionId, TransactionStatus.FAILED);
         } catch (RuntimeException e) {
             log.error("FAILED 상태 기록마저 실패. transactionId={}", transactionId, e);
         }
