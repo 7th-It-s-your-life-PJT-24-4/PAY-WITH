@@ -6,6 +6,7 @@ interface NavigationItem {
   value: string
   label: string
   icon?: Component
+  disabled?: boolean
 }
 
 const props = withDefaults(
@@ -87,15 +88,18 @@ function getGuardTextStyle(value: string) {
     <button
       v-if="centerItem"
       type="button"
+      :disabled="centerItem.disabled ? true : undefined"
       class="absolute left-1/2 top-[-32px] z-30 flex size-[120px] -translate-x-1/2 flex-col items-center justify-center gap-1 rounded-full border-none bg-gradient-to-b from-[#99E0ED] to-[#00B1D2] text-white text-shadow-lg shadow-[0_6px_20px_rgba(0,177,210,0.35)] transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
       :class="[
-        active === centerItem.value
-          ? 'brightness-110 font-bold'
-          : 'hover:brightness-105',
+        centerItem.disabled
+          ? 'cursor-not-allowed opacity-40 pointer-events-none'
+          : active === centerItem.value
+            ? 'brightness-110 font-bold'
+            : 'hover:brightness-105',
       ]"
       data-center-action="true"
       :aria-current="active === centerItem.value ? 'page' : undefined"
-      @click="emit('navigate', centerItem.value)"
+      @click="!centerItem.disabled && emit('navigate', centerItem.value)"
     >
       <slot
         name="icon"
@@ -122,14 +126,17 @@ function getGuardTextStyle(value: string) {
       <button
         v-if="leftItem"
         type="button"
+        :disabled="leftItem.disabled ? true : undefined"
         class="group relative flex flex-1 items-center justify-center border-none outline-none transition-all duration-200 hover:translate-y-[-4px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/40 focus-visible:ring-inset motion-reduce:transition-none motion-reduce:hover:translate-y-0"
         :class="[
-          active === leftItem.value
-            ? 'brightness-105 font-bold'
-            : 'opacity-95 hover:opacity-100',
+          leftItem.disabled
+            ? 'cursor-not-allowed opacity-40 pointer-events-none'
+            : active === leftItem.value
+              ? 'brightness-105 font-bold'
+              : 'opacity-95 hover:opacity-100',
         ]"
         :aria-current="active === leftItem.value ? 'page' : undefined"
-        @click="emit('navigate', leftItem.value)"
+        @click="!leftItem.disabled && emit('navigate', leftItem.value)"
       >
         <svg
           class="absolute inset-0 -ml-[16px] h-[calc(100%+20px)] w-[calc(100%+16px)] pointer-events-none drop-shadow-[0_-8px_20px_rgba(8,13,18,0.12)]"
@@ -167,14 +174,17 @@ function getGuardTextStyle(value: string) {
       <button
         v-if="rightItem"
         type="button"
+        :disabled="rightItem.disabled ? true : undefined"
         class="group relative flex flex-1 items-center justify-center border-none outline-none transition-all duration-200 hover:translate-y-[-4px] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/40 focus-visible:ring-inset motion-reduce:transition-none motion-reduce:hover:translate-y-0"
         :class="[
-          active === rightItem.value
-            ? 'brightness-105 font-bold'
-            : 'opacity-95 hover:opacity-100',
+          rightItem.disabled
+            ? 'cursor-not-allowed opacity-40 pointer-events-none'
+            : active === rightItem.value
+              ? 'brightness-105 font-bold'
+              : 'opacity-95 hover:opacity-100',
         ]"
         :aria-current="active === rightItem.value ? 'page' : undefined"
-        @click="emit('navigate', rightItem.value)"
+        @click="!rightItem.disabled && emit('navigate', rightItem.value)"
       >
         <svg
           class="absolute inset-0 -mr-[16px] h-[calc(100%+20px)] w-[calc(100%+16px)] pointer-events-none drop-shadow-[0_-8px_20px_rgba(8,13,18,0.12)]"
@@ -220,11 +230,17 @@ function getGuardTextStyle(value: string) {
     <button
       v-for="item in items"
       :key="item.value"
+      :disabled="item.disabled"
       class="relative flex min-h-touch-target flex-col items-center justify-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
-      :class="getGuardItemClasses(item.value)"
+      :class="[
+        item.disabled
+          ? 'cursor-not-allowed opacity-40 pointer-events-none'
+          : '',
+        ...getGuardItemClasses(item.value),
+      ]"
       type="button"
       :aria-current="active === item.value ? 'page' : undefined"
-      @click="emit('navigate', item.value)"
+      @click="!item.disabled && emit('navigate', item.value)"
     >
       <slot name="icon" :item="item" :active="active === item.value">
         <component

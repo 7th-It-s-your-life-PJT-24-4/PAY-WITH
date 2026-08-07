@@ -29,10 +29,10 @@ const emit = defineEmits<{
       <span
         class="flex size-16 items-center justify-center overflow-hidden rounded-full bg-gray-900 text-primary-500"
         :class="
-          senior.hasPending
-            ? 'border-2 border-error'
-            : senior.id === activeSeniorId
-              ? 'border-2 border-primary-500'
+          senior.id === activeSeniorId
+            ? 'border-2 border-primary-500'
+            : senior.hasPending
+              ? 'border-2 border-error'
               : 'border-0'
         "
       >

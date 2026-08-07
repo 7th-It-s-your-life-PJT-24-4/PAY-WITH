@@ -2,7 +2,7 @@
 import { ArrowRight, RotateCcw } from '@lucide/vue'
 import { Button, WardToast } from '@pay-with/ui'
 import { useMutation, useQuery } from '@tanstack/vue-query'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { createWardCharge } from '@/api/charges'
@@ -13,6 +13,10 @@ import { useChargeStore } from '@/stores/charge.store'
 
 const router = useRouter()
 const chargeStore = useChargeStore()
+
+onMounted(() => {
+  chargeStore.resetDraft()
+})
 const accountsQuery = useQuery(chargeAccountsOptions())
 const chargeMutation = useMutation({ mutationFn: createWardCharge })
 const errorMessage = ref('')

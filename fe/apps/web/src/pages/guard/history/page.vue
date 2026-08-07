@@ -34,8 +34,39 @@ const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
 const selectedWardId = computed(
   () => routeWardId.value ?? guardStore.activeWardId,
 )
-const activeFilter = ref<HistoryFilter>('ALL')
+const validRiskLevels: HistoryFilter[] = ['ALL', 'DANGER', 'CAUTION', 'SAFE']
+const initialRiskLevel = computed<HistoryFilter>(() => {
+  const level =
+    typeof route.query.riskLevel === 'string'
+      ? route.query.riskLevel.toUpperCase()
+      : ''
+  return validRiskLevels.includes(level as HistoryFilter)
+    ? (level as HistoryFilter)
+    : 'ALL'
+})
+
+const activeFilter = ref<HistoryFilter>(initialRiskLevel.value)
 const isPairingConfirmOpen = ref(false)
+
+watch(
+  () => route.query.riskLevel,
+  () => {
+    if (activeFilter.value !== initialRiskLevel.value) {
+      activeFilter.value = initialRiskLevel.value
+    }
+  },
+)
+
+function setFilter(filter: HistoryFilter) {
+  activeFilter.value = filter
+  const query = { ...route.query }
+  if (filter !== 'ALL') {
+    query.riskLevel = filter
+  } else {
+    delete query.riskLevel
+  }
+  void router.replace({ query })
+}
 
 const guardHomeQuery = useQuery(guardHomeOptions(selectedWardId))
 const selectedWard = computed(
@@ -166,7 +197,7 @@ function selectSenior(seniorId: string) {
           "
           type="button"
           :aria-pressed="activeFilter === filter.value"
-          @click="activeFilter = filter.value"
+          @click="setFilter(filter.value)"
         >
           {{ filter.label }}
         </button>

@@ -4,11 +4,13 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import WardBottomNavigation from '@/pages/ward/-components/WardBottomNavigation.vue'
+import { usePairingStore } from '@/stores/pairing.store'
 
 type WardNavigationValue = 'transfer' | 'home' | 'payment'
 
 const router = useRouter()
 const route = useRoute()
+const pairingStore = usePairingStore()
 
 const headerTitle = computed(() => String(route.meta.title ?? 'PayWith'))
 const showBack = computed(() => route.meta.showBack !== false)
@@ -32,6 +34,9 @@ function goBack() {
 }
 
 function handleNavigate(value: string) {
+  if (!pairingStore.isPaired && (value === 'transfer' || value === 'payment')) {
+    return
+  }
   if (value === 'transfer') router.push({ name: 'ward-transfer' })
   if (value === 'home') router.push({ name: 'ward-home' })
   if (value === 'payment') router.push({ name: 'ward-payment' })
@@ -70,6 +75,7 @@ function handleNavigate(value: string) {
       <WardBottomNavigation
         v-if="showBottomNavigation"
         :active="activeNavigation"
+        :is-paired="pairingStore.isPaired"
         @navigate="handleNavigate"
       />
     </div>

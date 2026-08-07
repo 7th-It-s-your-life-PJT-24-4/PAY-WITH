@@ -117,6 +117,7 @@ describe('transaction history schemas', () => {
       message: null,
     })
 
+    expect(response.data.riskAnalysis?.riskScore).toBe(72)
     expect(response.data.riskAnalysis?.reasons).toContain('NEW_RECIPIENT')
   })
 
