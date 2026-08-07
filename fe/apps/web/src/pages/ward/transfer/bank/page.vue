@@ -57,9 +57,13 @@ async function proceed() {
       bankCode: selectedBank.bankCode,
       accountNo: transferStore.accountNumber.replaceAll('-', ''),
     })
+    const resolvedBankName =
+      account.bankName === '알 수 없는 은행'
+        ? selectedBank.bankName
+        : account.bankName
     transferStore.setVerifiedRecipient(
       account.holderName,
-      account.bankName,
+      resolvedBankName,
       account.bankCode,
     )
     await router.push({ name: 'ward-transfer-amount' })

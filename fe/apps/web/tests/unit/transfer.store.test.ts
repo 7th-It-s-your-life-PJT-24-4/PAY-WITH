@@ -49,6 +49,16 @@ describe('transfer store', () => {
     expect(store.accountNumber).toBe('432102-01-234567')
   })
 
+  it('검증된 수취인 정보(setVerifiedRecipient)를 올바르게 저장한다', () => {
+    const store = useTransferStore()
+
+    store.setVerifiedRecipient('홍길동', 'NH농협은행', '011')
+
+    expect(store.recipient?.name).toBe('홍길동')
+    expect(store.bank).toBe('NH농협은행')
+    expect(store.recipient?.bankCode).toBe('011')
+  })
+
   it('빠른 금액 입력이 잔액을 초과해도 입력값을 유지한다', () => {
     const store = useTransferStore()
     store.setBalance(1_250_000)
