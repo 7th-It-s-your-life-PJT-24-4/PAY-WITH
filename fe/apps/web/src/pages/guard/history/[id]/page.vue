@@ -83,6 +83,7 @@ const transactionQuery = useQuery(
   guardTransactionDetailOptions(wardId, transactionId),
 )
 const detail = computed(() => transactionQuery.data.value ?? null)
+const isCharge = computed(() => detail.value?.type === 'CHARGE')
 const riskLevel = computed(() => detail.value?.riskLevel ?? 'SAFE')
 const presentation = computed(() => riskPresentation[riskLevel.value])
 const title = computed(
@@ -225,9 +226,10 @@ function goBack() {
     <section
       v-else
       class="px-mobile-gutter pt-8"
-      aria-labelledby="transaction-risk-title"
+      :aria-labelledby="isCharge ? undefined : 'transaction-risk-title'"
     >
       <h2
+        v-if="!isCharge"
         id="transaction-risk-title"
         class="text-[28px] font-bold leading-[1.2] tracking-[-0.56px]"
         :class="titleClass"
@@ -235,7 +237,7 @@ function goBack() {
         {{ title }}
       </h2>
 
-      <dl class="mt-10 grid gap-10">
+      <dl class="grid gap-10" :class="{ 'mt-10': !isCharge }">
         <div
           v-for="row in detailRows"
           :key="row.label"
@@ -249,6 +251,7 @@ function goBack() {
       </dl>
 
       <section
+        v-if="!isCharge"
         class="relative mt-10 rounded-[12px] px-xl pt-lg pb-lg"
         :class="presentation.cardClass"
         aria-labelledby="risk-analysis-title"
