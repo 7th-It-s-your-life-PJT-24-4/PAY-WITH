@@ -109,6 +109,7 @@ test('홈의 거래 확인하기에서 선택한 시니어의 이상 거래 목�
               riskReason: '메모에 위험 키워드 포함',
               createdAt: '2026-08-05T09:10:00',
             },
+            pendingApprovalCount: 3,
             recentTransactions: [],
           },
         },
@@ -121,6 +122,9 @@ test('홈의 거래 확인하기에서 선택한 시니어의 이상 거래 목�
   await expect(
     page.locator('[aria-labelledby="guard-risk-transaction-title"] img'),
   ).toHaveAttribute('src', /data:image\/svg\+xml.*%2300B1D2/)
+  await expect(
+    page.getByRole('heading', { name: '위험 거래 3건 발생' }),
+  ).toBeVisible()
   await page.getByRole('button', { name: '거래 확인하기' }).click()
 
   await expect(page).toHaveURL(/\/guard\/approval-requests\?wardId=12$/)

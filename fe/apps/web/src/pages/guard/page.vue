@@ -54,7 +54,9 @@ const recentGuardTransactions = computed(() =>
 const pendingApproval = computed(
   () => selectedWard.value?.pendingApproval ?? null,
 )
-const dangerTransactionCount = computed(() => (pendingApproval.value ? 1 : 0))
+const dangerTransactionCount = computed(
+  () => selectedWard.value?.pendingApprovalCount ?? 0,
+)
 const formattedBalance = computed(() =>
   new Intl.NumberFormat('ko-KR').format(selectedWard.value?.balance ?? 0),
 )
