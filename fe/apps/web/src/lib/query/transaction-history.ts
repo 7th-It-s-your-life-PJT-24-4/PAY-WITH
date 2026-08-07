@@ -43,18 +43,20 @@ export function wardTransactionDetailOptions(
 }
 
 const riskReasonMessages: Record<string, string> = {
-  HIGH_AMOUNT_L3: '평소보다 매우 큰 금액을 송금했어요.',
+  BL_FRAUD_ACCOUNT: '사기 신고 이력이 있는 계좌예요.',
+  BL_REJECTED_RECIPIENT: '보호자가 이전에 거절한 수취인 계좌예요.',
   DIVISION_TRANSFER: '짧은 시간 안에 여러 계좌로 나누어 송금했어요.',
-  SUSPICIOUS_MEMO: '거래 메모에 주의가 필요한 단어가 포함됐어요.',
+  HIGH_AMOUNT_L1: '일반적인 생활 송금보다 큰 금액이에요.',
   HIGH_AMOUNT_L2: '평소보다 큰 금액을 송금했어요.',
+  HIGH_AMOUNT_L3: '평소보다 매우 큰 금액을 송금했어요.',
+  NEW_RECIPIENT: '처음 송금하는 상대에게 보낸 거래예요.',
+  NIGHT_TIME_DEEP: '자정 이후 늦은 시간에 요청된 송금이에요.',
+  NIGHT_TIME_LATE: '늦은 밤 시간대에 요청된 송금이에요.',
   PENDING_APPROVAL_EXISTS:
     '승인 대기 중인 송금이 있는 상태에서 추가 송금했어요.',
-  NEW_RECIPIENT: '처음 송금하는 상대에게 보낸 거래예요.',
   REPEATED: '짧은 시간 안에 반복해서 송금했어요.',
-  NIGHT_TIME_DEEP: '자정 이후 늦은 시간에 요청된 송금이에요.',
-  HIGH_AMOUNT_L1: '일반적인 생활 송금보다 큰 금액이에요.',
-  NIGHT_TIME_LATE: '늦은 밤 시간대에 요청된 송금이에요.',
   SAFE_ACCOUNT_CHECK: '등록된 안전계좌 여부가 위험도 판단에 반영됐어요.',
+  SUSPICIOUS_MEMO: '거래 메모에 주의가 필요한 단어가 포함됐어요.',
 }
 
 function toWardTransaction(
@@ -104,9 +106,10 @@ function getDefaultMethodLabel(type: string) {
 }
 
 function getDefaultRiskSummary(riskLevel: string | null, status: string) {
-  if (status === 'BLOCKED') return '보호자가 거래를 거절했습니다.'
+  if (status === 'BLOCKED') return '시스템이 차단한 거래입니다.'
+  if (status === 'REJECTED') return '보호자가 거절한 거래입니다.'
   if (riskLevel === 'DANGER')
-    return '위험한 거래로 판단되었지만 보호자가 승인했습니다.'
+    return '위험한 거래로 판단되었으나 진행된 거래입니다.'
   if (riskLevel === 'CAUTION') return '주의가 필요한 거래로 분류됐어요.'
   if (riskLevel === 'SAFE') return '안전한 거래로 확인됐어요.'
   return '위험 평가 대상이 아닌 거래예요.'

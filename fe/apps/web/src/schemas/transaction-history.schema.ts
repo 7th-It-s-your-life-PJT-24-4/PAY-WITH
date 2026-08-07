@@ -60,7 +60,6 @@ export const wardTransactionDetailSchema = z.object({
   memo: z.string().nullable(),
   occurredAt: z.string().min(1),
   balanceAfter: z.number().int().nonnegative().nullable(),
-  riskScore: z.number().int().nullable(),
   riskAnalysis: transactionRiskAnalysisSchema.nullable(),
 })
 

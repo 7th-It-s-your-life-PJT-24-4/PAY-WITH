@@ -64,7 +64,6 @@ export const guardTransactionDetailSchema = z.object({
   amount: z.number().int().nonnegative(),
   memo: z.string().nullable(),
   balanceAfter: z.number().int().nonnegative().nullable(),
-  riskScore: z.number().int().min(0).max(100).nullable(),
   riskAnalysis: transactionRiskAnalysisSchema.nullable(),
   occurredAt: z.string().min(1),
 })
