@@ -68,6 +68,15 @@ function completePassword(value: string) {
   passwordSheetOpen.value = false
 }
 
+function handleAccountCompleteClick() {
+  if (!/^\d{8,16}$/.test(accountNumber.value)) {
+    toastMessage.value = '계좌번호 8자리 이상을 입력해 주세요'
+    toastOpen.value = true
+    return
+  }
+  accountSheetOpen.value = false
+}
+
 function handleRegisterClick() {
   if (!canRegister.value) {
     if (!bankCode.value) {
@@ -209,13 +218,17 @@ async function registerAccount() {
         @backspace="removeAccountDigit"
         @cancel="accountSheetOpen = false"
       />
-      <Button
-        class="mt-lg w-full"
-        label="입력 완료"
-        size="large"
-        :disabled="!/^\d{8,16}$/.test(accountNumber)"
-        @click="accountSheetOpen = false"
-      />
+      <div @click="handleAccountCompleteClick">
+        <Button
+          class="mt-lg w-full"
+          :class="{
+            'opacity-50 cursor-not-allowed': !/^\d{8,16}$/.test(accountNumber),
+          }"
+          label="입력 완료"
+          size="large"
+          :aria-disabled="!/^\d{8,16}$/.test(accountNumber)"
+        />
+      </div>
     </WardKeypadBottomSheet>
 
     <WardKeypadBottomSheet
