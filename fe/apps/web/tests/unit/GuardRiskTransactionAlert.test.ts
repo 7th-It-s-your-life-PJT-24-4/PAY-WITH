@@ -15,10 +15,13 @@ describe('GuardRiskTransactionAlert', () => {
     const alert = wrapper.get(
       'section[aria-labelledby="guard-risk-transaction-title"]',
     )
+    const confirmButton = wrapper.get('button:not([aria-label])')
 
     expect(heading.text()).toBe('위험 거래 2건 발생')
     expect(heading.classes()).not.toContain('text-center')
     expect(alert.classes()).toContain('flex')
     expect(alert.classes()).toContain('items-center')
+    expect(confirmButton.classes()).toContain('h-fit')
+    expect(confirmButton.classes()).not.toContain('min-h-touch-target')
   })
 })

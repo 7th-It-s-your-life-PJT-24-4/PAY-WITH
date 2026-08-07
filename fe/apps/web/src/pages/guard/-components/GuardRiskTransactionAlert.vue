@@ -32,7 +32,7 @@ const emit = defineEmits<{
         위험 거래 <span class="text-error">{{ count }}건</span> 발생
       </h2>
       <button
-        class="mt-xs inline-flex min-h-touch-target items-center gap-xxs text-[20px] font-medium leading-[1.2] tracking-[-0.4px] text-gray-500"
+        class="mt-xs inline-flex h-fit items-center gap-xxs text-[20px] font-medium leading-[1.2] tracking-[-0.4px] text-gray-500"
         type="button"
         @click="emit('confirm')"
       >
