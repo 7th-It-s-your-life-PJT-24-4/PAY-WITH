@@ -23,8 +23,17 @@ public class FdsDecision {
     private final int dangerThreshold;
     private final List<TriggeredRule> triggeredRules;
 
+    /**
+     * 블랙리스트 확정 건은 보호자 승인을 받지 않고 즉시 차단한다. 승인 요청을 만들지 않으므로
+     * 보호자가 나중에 풀어줄 경로도 없다 — 확정적으로 위험한 항목만 블랙리스트에 두는 이유다.
+     */
+    public boolean isBlocked() {
+        return decidedBy == DecidedBy.BLACKLIST;
+    }
+
+    /** 점수 합산으로 DANGER 가 된 건만 승인 대기로 보낸다. 블랙리스트는 차단이라 여기서 빠진다. */
     public boolean isHeld() {
-        return riskLevel == RiskLevel.DANGER;
+        return riskLevel == RiskLevel.DANGER && !isBlocked();
     }
 
     public boolean requiresGuardNotification() {

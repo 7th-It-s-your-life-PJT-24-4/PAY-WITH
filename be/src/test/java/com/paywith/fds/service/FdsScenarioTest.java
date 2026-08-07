@@ -147,6 +147,26 @@ class FdsScenarioTest {
             .isEqualTo("BL_REJECTED_RECIPIENT");
     }
 
+    // 같은 DANGER 라도 블랙리스트는 차단, 점수 합산은 승인 대기로 갈린다
+    @Test
+    void blacklistedDecision_isBlockedNotHeld() {
+        FdsDecision decision = service.decide(normal().recipientRejectedBefore(true).build());
+
+        assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.DANGER);
+        assertThat(decision.isBlocked()).isTrue();
+        assertThat(decision.isHeld()).isFalse();
+    }
+
+    @Test
+    void ruleScoredDangerDecision_isHeldNotBlocked() {
+        FdsDecision decision =
+            service.decide(normal().recipientSendCount(0).amount(won("3000000")).build());
+
+        assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.DANGER);
+        assertThat(decision.isHeld()).isTrue();
+        assertThat(decision.isBlocked()).isFalse();
+    }
+
     // 감점 룰과 무관하게 만점이 남는다 — 총점이 룰 합산으로 희석되지 않는지 확인
     @Test
     void blacklistScoreIsNotDilutedByOtherRules() {

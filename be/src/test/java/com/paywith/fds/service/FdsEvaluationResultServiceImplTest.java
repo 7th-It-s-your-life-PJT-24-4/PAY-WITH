@@ -126,6 +126,30 @@ class FdsEvaluationResultServiceImplTest {
         then(approvalRequestService).should().create(TRANSACTION_ID);
     }
 
+    // 블랙리스트는 즉시 차단이라 보호자 승인 경로를 타지 않는다.
+    // 승인 요청이 없다는 것은 보호자가 나중에 풀어줄 수도 없다는 뜻이다.
+    @Test
+    void save_doesNotCreateApprovalRequestWhenBlacklisted() {
+        FdsDecision decision = decider.decide(normal().recipientRejectedBefore(true).build());
+        assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.DANGER);
+        assertThat(decision.isBlocked()).isTrue();
+
+        service.save(TRANSACTION_ID, decision);
+
+        then(approvalRequestService).should(never()).create(anyLong());
+    }
+
+    // 사기계좌도 거절이력과 동일하게 차단된다
+    @Test
+    void save_doesNotCreateApprovalRequestWhenFraudAccount() {
+        FdsDecision decision = decider.decide(normal().recipientReportedAsFraud(true).build());
+        assertThat(decision.isBlocked()).isTrue();
+
+        service.save(TRANSACTION_ID, decision);
+
+        then(approvalRequestService).should(never()).create(anyLong());
+    }
+
     @Test
     void save_doesNotCreateApprovalRequestWhenCaution() {
         service.save(TRANSACTION_ID, cautionDecision());

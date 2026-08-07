@@ -4,7 +4,7 @@ import com.paywith.exception.BusinessException;
 import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
-import com.paywith.fds.domain.RiskLevel;
+import com.paywith.fds.support.FdsDecisions;
 import com.paywith.recipient.domain.Recipient;
 import com.paywith.recipient.mapper.RecipientMapper;
 import com.paywith.transaction.domain.Transaction;
@@ -94,7 +94,7 @@ class TransferFinalizationServiceImplTest {
     void 위험등급이면_거래를_HELD로_전환하고_잔액은_건드리지_않는다() {
         given(transactionMapper.updateStatus(999L, "HELD")).willReturn(1);
 
-        TransferResponse result = transferFinalizationService.finalize(prepared, RiskLevel.DANGER, request);
+        TransferResponse result = transferFinalizationService.finalize(prepared, FdsDecisions.held(), request);
 
         assertThat(result.getStatus()).isEqualTo("HELD");
         assertThat(result.getTransactionId()).isEqualTo(999L);
@@ -105,12 +105,43 @@ class TransferFinalizationServiceImplTest {
         verify(recipientMapper, never()).updateSendInfo(any());
     }
 
+    // 블랙리스트는 승인 대기 없이 끝나므로 HELD 가 아니라 BLOCKED 로 확정돼야 한다
+    @Test
+    void blockedDecision_marksTransactionBlockedAndSkipsTransfer() {
+        given(transactionMapper.updateStatus(999L, "BLOCKED")).willReturn(1);
+
+        TransferResponse result =
+                transferFinalizationService.finalize(prepared, FdsDecisions.blocked(), request);
+
+        assertThat(result.getStatus()).isEqualTo("BLOCKED");
+        assertThat(result.getTransactionId()).isEqualTo(999L);
+
+        verify(transactionMapper).updateStatus(999L, "BLOCKED");
+        verify(transactionMapper, never()).updateStatus(999L, "HELD");
+        verify(walletMapper, never()).decreaseBalanceIfSufficient(any(), any());
+        verify(openBankingClient, never()).deposit(any(), any(), any());
+        verify(recipientMapper, never()).updateSendInfo(any());
+    }
+
+    // 상태 전환이 0행이면 차단이 반영되지 않은 것이라 조용히 넘어가면 안 된다
+    @Test
+    void blockedDecision_failsWhenStatusUpdateMatchesNoRow() {
+        given(transactionMapper.updateStatus(999L, "BLOCKED")).willReturn(0);
+
+        assertThatThrownBy(
+                () -> transferFinalizationService.finalize(prepared, FdsDecisions.blocked(), request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("BLOCKED");
+
+        verify(openBankingClient, never()).deposit(any(), any(), any());
+    }
+
     @Test
     void 잔액이_부족하면_예외를_던지고_입금이체는_하지_않는다() {
         given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
         given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(0);
 
-        assertThatThrownBy(() -> transferFinalizationService.finalize(prepared, RiskLevel.SAFE, request))
+        assertThatThrownBy(() -> transferFinalizationService.finalize(prepared, FdsDecisions.safe(), request))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.UNPROCESSABLE_ENTITY)
                 .hasMessageContaining("송금 가능한 잔액이 부족합니다");
@@ -130,7 +161,7 @@ class TransferFinalizationServiceImplTest {
         given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class)))
                 .willReturn(1);
 
-        TransferResponse result = transferFinalizationService.finalize(prepared, RiskLevel.SAFE, request);
+        TransferResponse result = transferFinalizationService.finalize(prepared, FdsDecisions.safe(), request);
 
         assertThat(result.getStatus()).isEqualTo("COMPLETED");
         assertThat(result.getTransactionId()).isEqualTo(999L);
@@ -154,7 +185,7 @@ class TransferFinalizationServiceImplTest {
         given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class)))
                 .willReturn(1);
 
-        TransferResponse result = transferFinalizationService.finalize(prepared, RiskLevel.CAUTION, request);
+        TransferResponse result = transferFinalizationService.finalize(prepared, FdsDecisions.caution(), request);
 
         assertThat(result.getStatus()).isEqualTo("COMPLETED");
         verify(transactionMapper, never()).updateStatus(999L, "HELD");
@@ -173,7 +204,7 @@ class TransferFinalizationServiceImplTest {
                 .willThrow(new RuntimeException("네트워크 오류"));
         given(transactionMapper.updateStatus(999L, "FAILED")).willReturn(1);
 
-        assertThatThrownBy(() -> transferFinalizationService.finalize(prepared, RiskLevel.SAFE, request))
+        assertThatThrownBy(() -> transferFinalizationService.finalize(prepared, FdsDecisions.safe(), request))
                 .isInstanceOf(TransferIrrecoverableException.class)
                 .hasMessageContaining("transactionId=999");
 
@@ -193,7 +224,7 @@ class TransferFinalizationServiceImplTest {
                 .willReturn(0);
         given(transactionMapper.updateStatus(999L, "FAILED")).willReturn(1);
 
-        assertThatThrownBy(() -> transferFinalizationService.finalize(prepared, RiskLevel.SAFE, request))
+        assertThatThrownBy(() -> transferFinalizationService.finalize(prepared, FdsDecisions.safe(), request))
                 .isInstanceOf(TransferIrrecoverableException.class);
 
         // 입금은 재시도 없이 딱 1번만 호출돼야 한다 (이미 성공했으므로 다시 부르면 이중 입금)
@@ -214,7 +245,7 @@ class TransferFinalizationServiceImplTest {
         given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class)))
                 .willReturn(0, 1); // 1차 실패, 2차 성공
 
-        TransferResponse result = transferFinalizationService.finalize(prepared, RiskLevel.SAFE, request);
+        TransferResponse result = transferFinalizationService.finalize(prepared, FdsDecisions.safe(), request);
 
         assertThat(result.getStatus()).isEqualTo("COMPLETED");
         verify(transactionMapper, times(2))

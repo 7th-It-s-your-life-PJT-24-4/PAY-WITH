@@ -42,8 +42,10 @@ public class TransferController {
         value = "송금",
         notes = "Idempotency-Key 헤더로 중복 요청을 방지한다. 동일 키로 이미 처리 중인 요청이 있으면 "
             + "409, 이전에 완료된 요청과 같은 내용이면 저장해둔 응답을 그대로 재반환한다. "
-            + "FDS 평가 결과가 위험(DANGER)이면 송금을 보류하고 202로 응답하며, 그 외에는 송금을 "
-            + "완료하고 201로 응답한다.")
+            + "FDS 평가 결과가 위험(DANGER)이면 송금을 보류하고 202로 응답한다. 블랙리스트에 걸린 "
+            + "건은 보호자 승인 없이 차단되며 200으로 응답한다(생성된 것이 없으므로 201이 아니다). "
+            + "그 외에는 송금을 완료하고 201로 응답한다. 어느 경우든 확정 상태는 본문 status 로 "
+            + "판단한다.")
     @PostMapping
     public ResponseEntity<ApiResponse<TransferResponse>> transfer(
             @ApiIgnore @AuthenticationPrincipal Long userId,
@@ -52,10 +54,22 @@ public class TransferController {
             @Valid @RequestBody TransferRequest request
             ){
         TransferResponse response = transferService.transfer(userId, idempotencyKey, request);
-        HttpStatus status = "HELD".equals(response.getStatus())
-                ? HttpStatus.ACCEPTED //202 거래이상 보류
-                : HttpStatus.CREATED; //201 송금완료
-        return ResponseEntity.status(status).body(ApiResponse.success(response));
+        return ResponseEntity.status(httpStatusOf(response.getStatus()))
+                .body(ApiResponse.success(response));
+    }
+
+    /**
+     * 확정 상태를 HTTP 코드로 옮긴다. 새 상태가 생겼을 때 조용히 201(송금완료)로 흘러가지 않도록
+     * 알고 있는 상태만 매핑하고 나머지는 200으로 둔다.
+     */
+    private HttpStatus httpStatusOf(String transferStatus) {
+        if ("HELD".equals(transferStatus)) {
+            return HttpStatus.ACCEPTED;     //202 거래이상 보류(보호자 승인 대기)
+        }
+        if ("COMPLETED".equals(transferStatus)) {
+            return HttpStatus.CREATED;      //201 송금완료
+        }
+        return HttpStatus.OK;               //200 차단(BLOCKED) 등 — 이체가 일어나지 않은 종결
     }
 
     @ApiOperation(

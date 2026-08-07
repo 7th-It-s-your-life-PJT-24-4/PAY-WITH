@@ -47,11 +47,11 @@ public class FdsEvaluationServiceImpl implements FdsEvaluationService {
 
     /** 수집·판정은 트랜잭션 밖, 저장만 별도 빈의 트랜잭션 안에서 일어난다. */
     @Override
-    public RiskLevel evaluate(FdsEvaluationRequest request) {
+    public FdsDecision evaluate(FdsEvaluationRequest request) {
         RuleContext context = ruleContextCollectorService.collect(request);
         FdsDecision decision = decide(context);
         fdsEvaluationResultService.save(request.getTransactionId(), decision);
-        return decision.getRiskLevel();
+        return decision;
     }
 
     /** 조회도 저장도 하지 않아 컨텍스트만 넣으면 판정 로직을 그대로 검증할 수 있다. */
