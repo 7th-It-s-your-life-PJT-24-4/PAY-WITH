@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Button, NumericKeypad } from '@pay-with/ui'
+import { Button, NumericKeypad, WardToast } from '@pay-with/ui'
 import { useMutation } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -12,6 +12,17 @@ const router = useRouter()
 const transferStore = useTransferStore()
 const bankFilterMutation = useMutation({ mutationFn: filterBanks })
 const errorMessage = ref('')
+const toastOpen = ref(false)
+const toastMessage = ref('')
+
+function handleProceedClick() {
+  if (transferStore.accountNumber.length < 8) {
+    toastMessage.value = '계좌번호 8자리 이상을 입력해 주세요'
+    toastOpen.value = true
+    return
+  }
+  void proceed()
+}
 
 async function proceed() {
   if (bankFilterMutation.isPending.value) return
@@ -71,15 +82,24 @@ async function proceed() {
       {{ errorMessage }}
     </p>
 
-    <Button
-      class="w-full"
-      :label="bankFilterMutation.isPending.value ? '은행 찾는 중' : '다음으로'"
-      size="large"
-      :disabled="
-        transferStore.accountNumber.length < 8 ||
-        bankFilterMutation.isPending.value
-      "
-      @click="proceed"
-    />
+    <div @click="handleProceedClick">
+      <Button
+        class="w-full"
+        :class="{
+          'opacity-50 cursor-not-allowed':
+            transferStore.accountNumber.length < 8,
+        }"
+        :label="
+          bankFilterMutation.isPending.value ? '은행 찾는 중' : '다음으로'
+        "
+        size="large"
+        :aria-disabled="
+          transferStore.accountNumber.length < 8 ||
+          bankFilterMutation.isPending.value
+        "
+      />
+    </div>
+
+    <WardToast v-model:open="toastOpen" :message="toastMessage" />
   </div>
 </template>

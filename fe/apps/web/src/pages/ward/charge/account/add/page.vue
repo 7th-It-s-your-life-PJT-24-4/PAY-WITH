@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ArrowRight } from '@lucide/vue'
-import { Button, NumericKeypad, PinKeypad } from '@pay-with/ui'
+import { Button, NumericKeypad, PinKeypad, WardToast } from '@pay-with/ui'
 import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -28,6 +28,8 @@ const keypad = ref<{ reset: () => void } | null>(null)
 const accountSheetOpen = ref(false)
 const passwordSheetOpen = ref(false)
 const errorMessage = ref('')
+const toastOpen = ref(false)
+const toastMessage = ref('')
 const accountNumberError = computed(() =>
   accountNumber.value.length > 0 && !/^\d{8,16}$/.test(accountNumber.value)
     ? '계좌번호는 숫자 8~16자리로 입력해주세요.'
@@ -66,8 +68,24 @@ function completePassword(value: string) {
   passwordSheetOpen.value = false
 }
 
+function handleRegisterClick() {
+  if (!canRegister.value) {
+    if (!bankCode.value) {
+      toastMessage.value = '은행을 먼저 선택해 주세요'
+    } else if (!/^\d{8,16}$/.test(accountNumber.value)) {
+      toastMessage.value = '계좌번호 8자리 이상을 입력해 주세요'
+    } else if (!/^\d{4}$/.test(accountPassword.value)) {
+      toastMessage.value = '계좌 비밀번호 4자리를 입력해 주세요'
+    } else {
+      toastMessage.value = '입력 항목을 모두 확인해 주세요'
+    }
+    toastOpen.value = true
+    return
+  }
+  void registerAccount()
+}
+
 async function registerAccount() {
-  if (!canRegister.value) return
   errorMessage.value = ''
   try {
     const account = await registerAccountMutation.mutateAsync({
@@ -161,21 +179,23 @@ async function registerAccount() {
       {{ errorMessage }}
     </p>
 
-    <Button
-      class="w-full"
-      :label="
-        registerAccountMutation.isPending.value
-          ? '계좌를 등록하고 있습니다'
-          : '계좌 등록하기'
-      "
-      size="large"
-      :disabled="!canRegister"
-      @click="registerAccount"
-    >
-      <template #trailing>
-        <ArrowRight />
-      </template>
-    </Button>
+    <div @click="handleRegisterClick">
+      <Button
+        class="w-full"
+        :class="{ 'opacity-50 cursor-not-allowed': !canRegister }"
+        :label="
+          registerAccountMutation.isPending.value
+            ? '계좌를 등록하고 있습니다'
+            : '계좌 등록하기'
+        "
+        size="large"
+        :aria-disabled="!canRegister"
+      >
+        <template #trailing>
+          <ArrowRight />
+        </template>
+      </Button>
+    </div>
 
     <WardKeypadBottomSheet
       v-model:open="accountSheetOpen"
@@ -219,5 +239,7 @@ async function registerAccount() {
         @cancel="closePasswordSheet"
       />
     </WardKeypadBottomSheet>
+
+    <WardToast v-model:open="toastOpen" :message="toastMessage" />
   </div>
 </template>
