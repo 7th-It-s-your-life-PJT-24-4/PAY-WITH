@@ -338,6 +338,7 @@ const router = createRouter({
           path: 'payment',
           name: 'ward-payment',
           component: WardPaymentPage,
+          beforeEnter: requireCompletedPairing,
           meta: {
             title: '비밀번호 입력',
             activeNavigation: 'payment',
@@ -501,6 +502,7 @@ const router = createRouter({
           path: 'transfer',
           name: 'ward-transfer',
           component: WardTransferPage,
+          beforeEnter: requireCompletedPairing,
           meta: { title: '송금 대상 선택', activeNavigation: 'transfer' },
         },
         {

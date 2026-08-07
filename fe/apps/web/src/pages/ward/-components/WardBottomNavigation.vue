@@ -1,28 +1,44 @@
 <script setup lang="ts">
 import { ArrowUpFromLine, Home, QrCode } from '@lucide/vue'
 import { BottomNavigation } from '@pay-with/ui'
+import { computed } from 'vue'
 import type { Component } from 'vue'
 
 type WardNavigationValue = 'transfer' | 'home' | 'payment'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     active?: WardNavigationValue | ''
+    isPaired?: boolean
   }>(),
   {
     active: 'home',
+    isPaired: true,
   },
 )
 
-const items: Array<{
-  label: string
-  value: WardNavigationValue
-  icon: Component
-}> = [
-  { label: '송금', value: 'transfer', icon: ArrowUpFromLine },
+const items = computed<
+  Array<{
+    label: string
+    value: WardNavigationValue
+    icon: Component
+    disabled?: boolean
+  }>
+>(() => [
+  {
+    label: '송금',
+    value: 'transfer',
+    icon: ArrowUpFromLine,
+    disabled: !props.isPaired,
+  },
   { label: '홈', value: 'home', icon: Home },
-  { label: '결제', value: 'payment', icon: QrCode },
-]
+  {
+    label: '결제',
+    value: 'payment',
+    icon: QrCode,
+    disabled: !props.isPaired,
+  },
+])
 
 const emit = defineEmits<{
   navigate: [value: WardNavigationValue]
