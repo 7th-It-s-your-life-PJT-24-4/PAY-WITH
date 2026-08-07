@@ -107,6 +107,7 @@ function paymentDigit(index: number) {
           v-for="(_, index) in paymentPasswordInputIds"
           :id="paymentPasswordInputIds[index]"
           :key="paymentPasswordInputIds[index]"
+          :aria-invalid="paymentPasswordError ? 'true' : undefined"
           :aria-label="`결제 비밀번호 ${index + 1}번째 자리`"
           :value="paymentDigit(index)"
           class="type-h3 h-[52px] min-w-0 rounded-medium border border-border-strong bg-surface-card text-center text-body outline-none focus:border-focus focus:ring-2 focus:ring-focus/20"
