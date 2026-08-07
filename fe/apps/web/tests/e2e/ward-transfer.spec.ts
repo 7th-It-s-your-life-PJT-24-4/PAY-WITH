@@ -408,9 +408,7 @@ test('계좌번호로 은행을 찾고 계좌를 확인한다', async ({ page })
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/ward/transfer/account')
 
-  for (const digit of '12345678') {
-    await page.getByRole('button', { name: digit, exact: true }).click()
-  }
+  await page.getByLabel('계좌 번호').fill('12345678')
   await page.getByRole('button', { name: '다음으로' }).click()
 
   await expect(
@@ -463,9 +461,7 @@ test('전체 은행 목록을 한 페이지에 최대 6개씩 표시한다', asy
   })
 
   await page.goto('/ward/transfer/account')
-  for (const digit of '12345678') {
-    await page.getByRole('button', { name: digit, exact: true }).click()
-  }
+  await page.getByLabel('계좌 번호').fill('12345678')
   await page.getByRole('button', { name: '다음으로' }).click()
   await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
 
@@ -513,9 +509,7 @@ test('은행 후보 조회에 실패하면 계좌번호 화면에서 다시 시�
   })
   await page.goto('/ward/transfer/account')
 
-  for (const digit of '12345678') {
-    await page.getByRole('button', { name: digit, exact: true }).click()
-  }
+  await page.getByLabel('계좌 번호').fill('12345678')
   await page.getByRole('button', { name: '다음으로' }).click()
 
   await expect(page).toHaveURL(/\/ward\/transfer\/account$/)
@@ -535,9 +529,7 @@ test('추천 은행이 없어도 전체 은행 목록을 표시한다', async ({
   })
   await page.goto('/ward/transfer/account')
 
-  for (const digit of '12345678') {
-    await page.getByRole('button', { name: digit, exact: true }).click()
-  }
+  await page.getByLabel('계좌 번호').fill('12345678')
   await page.getByRole('button', { name: '다음으로' }).click()
 
   await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
