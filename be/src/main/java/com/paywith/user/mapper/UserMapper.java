@@ -20,5 +20,8 @@ public interface UserMapper {
 
     int updatePassword(@Param("id") Long id, @Param("password") String password);
 
+    /** 로그아웃·토큰 해제 시 null 을 넣어 지운다 */
+    int updateFcmToken(@Param("id") Long id, @Param("fcmToken") String fcmToken);
+
     int delete(@Param("id") Long id);
 }

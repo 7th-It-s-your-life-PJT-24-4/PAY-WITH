@@ -50,6 +50,13 @@
     WHERE user_id = #{id}
   </update>
 
+  <update id="updateFcmToken">
+    UPDATE users
+    <!-- 해제는 null 을 넣는 경로라 jdbcType 을 명시한다 (null 은 타입 추론이 안 된다) -->
+    SET fcm_token = #{fcmToken, jdbcType=VARCHAR}
+    WHERE user_id = #{id}
+  </update>
+
   <update id="delete">
     UPDATE users
     SET status = 'WITHDRAWN'

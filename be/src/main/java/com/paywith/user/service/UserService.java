@@ -92,6 +92,23 @@ public class UserService {
         return new UserResponse(findUser(id));
     }
 
+    /**
+     * 기기 토큰은 재발급될 때마다 덮어쓴다. 한 사용자에 한 토큰만 두므로 다른 기기에서
+     * 로그인하면 이전 기기로는 더 이상 발송되지 않는다.
+     */
+    @Transactional
+    public void updateFcmToken(Long id, String fcmToken) {
+        findUser(id);
+        userMapper.updateFcmToken(id, fcmToken);
+    }
+
+    /** 로그아웃 시 호출해 발송 대상에서 제외한다 */
+    @Transactional
+    public void deleteFcmToken(Long id) {
+        findUser(id);
+        userMapper.updateFcmToken(id, null);
+    }
+
     @Transactional
     public void delete(Long id) {
         int deleted = userMapper.delete(id);

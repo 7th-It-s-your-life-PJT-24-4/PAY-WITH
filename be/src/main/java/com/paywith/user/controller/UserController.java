@@ -1,6 +1,7 @@
 package com.paywith.user.controller;
 
 import com.paywith.common.ApiResponse;
+import com.paywith.user.dto.FcmTokenUpdateRequest;
 import com.paywith.user.dto.UserCreateRequest;
 import com.paywith.user.dto.UserResponse;
 import com.paywith.user.dto.UserUpdateRequest;
@@ -10,6 +11,7 @@ import io.swagger.annotations.ApiOperation;
 import java.util.List;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -67,5 +69,28 @@ public class UserController {
     public ApiResponse<Void> delete(@PathVariable Long id) {
         userService.delete(id);
         return ApiResponse.success(null);
+    }
+
+    @ApiOperation(
+        value = "FCM 토큰 등록",
+        notes = "로그인한 사용자 본인의 토큰만 갱신한다. 기기에서 토큰이 재발급될 때마다 호출한다.")
+    @PutMapping("/me/fcm-token")
+    public ApiResponse<Void> updateFcmToken(
+        @Valid @RequestBody FcmTokenUpdateRequest request,
+        Authentication authentication
+    ) {
+        userService.updateFcmToken(currentUserId(authentication), request.getFcmToken());
+        return ApiResponse.success(null);
+    }
+
+    @ApiOperation(value = "FCM 토큰 해제", notes = "로그아웃 시 호출해 발송 대상에서 제외한다.")
+    @DeleteMapping("/me/fcm-token")
+    public ApiResponse<Void> deleteFcmToken(Authentication authentication) {
+        userService.deleteFcmToken(currentUserId(authentication));
+        return ApiResponse.success(null);
+    }
+
+    private Long currentUserId(Authentication authentication) {
+        return (Long) authentication.getPrincipal();
     }
 }
