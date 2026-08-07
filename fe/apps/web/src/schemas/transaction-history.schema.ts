@@ -11,7 +11,6 @@ export const transactionHistoryTypeSchema = z.enum([
 export const transactionDirectionSchema = z.enum(['IN', 'OUT'])
 export const transactionRiskLevelSchema = z.enum(['SAFE', 'CAUTION', 'DANGER'])
 export const transactionStatusSchema = z.enum([
-  'PENDING',
   'REQUESTED',
   'HELD',
   'APPROVED',
@@ -19,22 +18,18 @@ export const transactionStatusSchema = z.enum([
   'REJECTED',
   'COMPLETED',
   'CANCELED',
-  'EXPIRED',
   'BLOCKED',
   'FAILED',
 ])
 
 export const wardTransactionHistoryItemSchema = z.object({
   transactionId: z.number().int().positive(),
-  type: z.preprocess(normalizeTransactionType, transactionHistoryTypeSchema),
+  type: transactionHistoryTypeSchema,
   direction: transactionDirectionSchema,
   title: z.string().nullable().transform(formatTransactionTitle),
-  amount: z.number().int().transform(Math.abs),
+  amount: z.number().int().nonnegative(),
   status: transactionStatusSchema,
-  riskLevel: z.preprocess(
-    normalizeNullableString,
-    transactionRiskLevelSchema.nullable(),
-  ),
+  riskLevel: transactionRiskLevelSchema.nullable(),
   occurredAt: z.string().min(1),
 })
 
@@ -46,17 +41,14 @@ export const transactionRiskAnalysisSchema = z.object({
 
 export const wardTransactionDetailSchema = z.object({
   transactionId: z.number().int().positive(),
-  type: z.preprocess(normalizeTransactionType, transactionHistoryTypeSchema),
+  type: transactionHistoryTypeSchema,
   direction: transactionDirectionSchema,
-  status: z.preprocess(normalizeTransactionStatus, transactionStatusSchema),
-  riskLevel: z.preprocess(
-    normalizeNullableString,
-    transactionRiskLevelSchema.nullable(),
-  ),
+  status: transactionStatusSchema,
+  riskLevel: transactionRiskLevelSchema.nullable(),
   counterpartyName: z.string().nullable(),
   bankName: z.string().nullable(),
   accountNo: z.string().nullable(),
-  amount: z.number().int().transform(Math.abs),
+  amount: z.number().int().nonnegative(),
   memo: z.string().nullable(),
   occurredAt: z.string().min(1),
   balanceAfter: z.number().int().nonnegative().nullable(),
@@ -76,18 +68,6 @@ function pagedTransactionHistorySchema<T extends z.ZodTypeAny>(itemSchema: T) {
 
 function formatTransactionTitle(title: string | null) {
   return title ?? '거래 상대'
-}
-
-function normalizeTransactionType(type: unknown) {
-  return type === 'TRANSFER_OUT' ? 'TRANSFER' : type
-}
-
-function normalizeTransactionStatus(status: unknown) {
-  return status === 'RJECTED' ? 'REJECTED' : status
-}
-
-function normalizeNullableString(value: unknown) {
-  return value === '' ? null : value
 }
 
 export const wardTransactionHistorySchema = pagedTransactionHistorySchema(

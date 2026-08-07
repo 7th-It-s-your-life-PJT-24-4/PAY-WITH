@@ -8,7 +8,6 @@ export const guardTransactionHistoryItemSchema = z.object({
   transactionId: z.number().int().positive(),
   type: z.enum(['CHARGE', 'PAYMENT', 'TRANSFER']),
   status: z.enum([
-    'PENDING',
     'REQUESTED',
     'HELD',
     'APPROVED',
@@ -16,7 +15,6 @@ export const guardTransactionHistoryItemSchema = z.object({
     'REJECTED',
     'COMPLETED',
     'CANCELED',
-    'EXPIRED',
     'BLOCKED',
     'FAILED',
   ]),

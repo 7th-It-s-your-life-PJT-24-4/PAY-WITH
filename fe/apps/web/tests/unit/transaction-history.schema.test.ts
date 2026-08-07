@@ -62,19 +62,19 @@ describe('transaction history schemas', () => {
     expect(response.data.transactions[0]?.title).toBe('거래 상대')
   })
 
-  it('전체 조회에 섞인 이전 계약 값을 목록 표시 값으로 정규화한다', () => {
+  it('최신 BE 거래 enum 값을 그대로 파싱한다', () => {
     const response = wardTransactionHistoryResponseSchema.parse({
       success: true,
       data: {
         transactions: [
           {
             transactionId: 3,
-            type: 'TRANSFER_OUT',
+            type: 'TRANSFER',
             direction: 'OUT',
             title: '김철수',
-            amount: -20_000,
-            status: 'PENDING',
-            riskLevel: '',
+            amount: 20_000,
+            status: 'REQUESTED',
+            riskLevel: null,
             occurredAt: '2026-08-05T09:30:00',
           },
         ],
@@ -88,7 +88,7 @@ describe('transaction history schemas', () => {
     })
 
     expect(response.data.transactions[0]?.type).toBe('TRANSFER')
-    expect(response.data.transactions[0]?.amount).toBe(20_000)
+    expect(response.data.transactions[0]?.status).toBe('REQUESTED')
     expect(response.data.transactions[0]?.riskLevel).toBeNull()
   })
 
@@ -180,4 +180,30 @@ describe('transaction history schemas', () => {
       expect(response.data.riskLevel).toBeNull()
     },
   )
+
+  it('최신 BE enum에 없는 과거 거래 유형과 상태를 거부한다', () => {
+    const detail = {
+      success: true,
+      data: {
+        transactionId: 106,
+        type: 'TRANSFER_OUT',
+        direction: 'OUT',
+        status: 'RJECTED',
+        riskLevel: null,
+        counterpartyName: '김철수',
+        bankName: '신한은행',
+        accountNo: '110123456789',
+        amount: 120_000,
+        memo: null,
+        occurredAt: '2026-08-05T09:30:00',
+        balanceAfter: null,
+        riskAnalysis: null,
+      },
+      message: null,
+    }
+
+    expect(wardTransactionDetailResponseSchema.safeParse(detail).success).toBe(
+      false,
+    )
+  })
 })
