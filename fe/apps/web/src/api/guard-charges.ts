@@ -1,10 +1,10 @@
 import { apiClient } from '@/api/client'
 import {
-  createChargeRequestSchema,
+  createGuardChargeRequestSchema,
   guardChargeDetailResponseSchema,
   guardChargeHistoriesResponseSchema,
   guardChargeResultResponseSchema,
-  type CreateChargeRequest,
+  type CreateGuardChargeRequest,
   type GuardChargeDetail,
   type GuardChargeHistoryItem,
   type GuardChargeResult,
@@ -12,9 +12,9 @@ import {
 
 export async function createGuardCharge(
   wardId: number,
-  body: CreateChargeRequest,
+  body: CreateGuardChargeRequest,
 ): Promise<GuardChargeResult> {
-  const request = createChargeRequestSchema.parse(body)
+  const request = createGuardChargeRequestSchema.parse(body)
   const response = await apiClient.post(
     `/guard/wards/${wardId}/charges`,
     guardChargeResultResponseSchema,

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getChargeAccounts, registerChargeAccount } from '@/api/accounts'
 import { createWardCharge } from '@/api/charges'
 import { apiClient } from '@/api/client'
+import { createGuardCharge } from '@/api/guard-charges'
 
 vi.mock('@/api/client', () => ({
   apiClient: {
@@ -79,6 +80,33 @@ describe('charge API', () => {
     )
   })
 
+  it('보호자 충전 요청에 6자리 PIN을 포함한다', async () => {
+    const result = {
+      transactionId: 44,
+      chargeAmount: 50_000,
+      balanceAfter: 200_000,
+      bankName: 'KB국민은행',
+      accountNo: '12345612123456',
+      createdAt: '2026-08-07T10:30:00',
+      wardId: 13,
+      wardName: '김시니어',
+    }
+    vi.mocked(apiClient.post).mockResolvedValue({
+      success: true,
+      data: result,
+      message: null,
+    })
+
+    const request = { accountId: 7, amount: 50_000, pin: '123456' }
+
+    await expect(createGuardCharge(13, request)).resolves.toEqual(result)
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/guard/wards/13/charges',
+      expect.anything(),
+      request,
+    )
+  })
+
   it('잘못된 계좌 등록 및 충전 요청은 전송하지 않는다', async () => {
     await expect(
       registerChargeAccount({
@@ -89,6 +117,13 @@ describe('charge API', () => {
     ).rejects.toBeDefined()
     await expect(
       createWardCharge({ accountId: 7, amount: 0 }),
+    ).rejects.toBeDefined()
+    await expect(
+      createGuardCharge(13, {
+        accountId: 7,
+        amount: 50_000,
+        pin: '12345',
+      }),
     ).rejects.toBeDefined()
 
     expect(apiClient.post).not.toHaveBeenCalled()
