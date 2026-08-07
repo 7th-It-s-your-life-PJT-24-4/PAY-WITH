@@ -9,6 +9,7 @@ const props = defineProps<{
   serviceTerms: boolean
   privacyTerms: boolean
   identifierTerms: boolean
+  termsError?: string
 }>()
 
 const emit = defineEmits<{
@@ -70,6 +71,7 @@ function updateTerm(
         <span class="flex items-center gap-md">
           <CheckboxRoot
             :aria-label="term.label"
+            :aria-invalid="termsError ? 'true' : undefined"
             :model-value="
               termId === 'serviceTerms'
                 ? serviceTerms
@@ -96,5 +98,8 @@ function updateTerm(
         </RouterLink>
       </div>
     </div>
+    <p v-if="termsError" class="type-caption mt-sm text-error" role="alert">
+      {{ termsError }}
+    </p>
   </section>
 </template>
