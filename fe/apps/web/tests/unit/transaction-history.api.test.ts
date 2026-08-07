@@ -59,7 +59,6 @@ describe('transaction history API', () => {
         memo: '생활비',
         occurredAt: '2026-08-05T09:30:00',
         balanceAfter: 380_000,
-        riskScore: null,
         riskAnalysis: {
           riskScore: 72,
           summary: '평소보다 큰 금액이 송금됐어요.',
