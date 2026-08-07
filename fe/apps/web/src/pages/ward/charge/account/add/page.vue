@@ -1,26 +1,28 @@
 <script setup lang="ts">
 import { ArrowRight } from '@lucide/vue'
 import { Button, NumericKeypad, PinKeypad, WardToast } from '@pay-with/ui'
+import { useQuery } from '@tanstack/vue-query'
 import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { getApiErrorMessage } from '@/api/error'
 import { useRegisterChargeAccountMutation } from '@/composables/useRegisterChargeAccountMutation'
+import { banksOptions } from '@/lib/query/bank'
 import WardKeypadBottomSheet from '@/pages/ward/-components/WardKeypadBottomSheet.vue'
 import ChargeBankSelect from '@/pages/ward/charge/-components/ChargeBankSelect.vue'
 import { useChargeStore } from '@/stores/charge.store'
 
-const banks = [
-  { code: '004', name: 'KB국민은행' },
-  { code: '011', name: 'NH농협은행' },
-  { code: '088', name: '신한은행' },
-  { code: '020', name: '우리은행' },
-  { code: '081', name: '하나은행' },
-]
-
 const router = useRouter()
 const chargeStore = useChargeStore()
 const registerAccountMutation = useRegisterChargeAccountMutation()
+const banksQuery = useQuery(banksOptions())
+
+const banks = computed(() =>
+  (banksQuery.data.value ?? []).map((b) => ({
+    code: b.bankCode,
+    name: b.bankName,
+  })),
+)
 const bankCode = ref('')
 const accountNumber = ref('')
 const accountPassword = ref('')
