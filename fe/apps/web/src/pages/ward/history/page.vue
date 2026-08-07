@@ -2,6 +2,7 @@
 import { Search } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import { wardTransactionHistoryOptions } from '@/lib/query/transaction-history'
 import TransactionListItem from '@/pages/ward/history/-components/TransactionListItem.vue'
@@ -10,9 +11,36 @@ import type { TransactionHistoryType } from '@/schemas/transaction-history.schem
 
 type TransactionFilter = 'ALL' | TransactionHistoryType
 
-const searchQuery = ref('')
-const activeFilter = ref<TransactionFilter>('ALL')
-const page = ref(0)
+const route = useRoute()
+const router = useRouter()
+
+const validCategories: TransactionFilter[] = [
+  'ALL',
+  'CHARGE',
+  'TRANSFER',
+  'PAYMENT',
+]
+
+const initialCategory = computed<TransactionFilter>(() => {
+  const cat =
+    typeof route.query.category === 'string'
+      ? route.query.category.toUpperCase()
+      : ''
+  return validCategories.includes(cat as TransactionFilter)
+    ? (cat as TransactionFilter)
+    : 'ALL'
+})
+const initialKeyword = computed(() =>
+  typeof route.query.keyword === 'string' ? route.query.keyword : '',
+)
+const initialPage = computed(() => {
+  const p = Number(route.query.page)
+  return Number.isInteger(p) && p >= 0 ? p : 0
+})
+
+const searchQuery = ref(initialKeyword.value)
+const activeFilter = ref<TransactionFilter>(initialCategory.value)
+const page = ref(initialPage.value)
 const size = 20
 
 const filters: Array<{ label: string; value: TransactionFilter }> = [
@@ -33,8 +61,53 @@ const transactions = computed(
   () => transactionQuery.data.value?.transactions ?? [],
 )
 
+function updateQueryParams() {
+  const query = { ...route.query }
+
+  if (activeFilter.value !== 'ALL') {
+    query.category = activeFilter.value
+  } else {
+    delete query.category
+  }
+
+  const keyword = searchQuery.value.trim()
+  if (keyword) {
+    query.keyword = keyword
+  } else {
+    delete query.keyword
+  }
+
+  if (page.value > 0) {
+    query.page = String(page.value)
+  } else {
+    delete query.page
+  }
+
+  void router.replace({ query })
+}
+
+watch(
+  () => route.query,
+  () => {
+    if (activeFilter.value !== initialCategory.value) {
+      activeFilter.value = initialCategory.value
+    }
+    if (searchQuery.value !== initialKeyword.value) {
+      searchQuery.value = initialKeyword.value
+    }
+    if (page.value !== initialPage.value) {
+      page.value = initialPage.value
+    }
+  },
+)
+
 watch([activeFilter, searchQuery], () => {
   page.value = 0
+  updateQueryParams()
+})
+
+watch(page, () => {
+  updateQueryParams()
 })
 
 const transactionGroups = computed(() => {
