@@ -1,19 +1,33 @@
 package com.paywith.external.openbanking;
 
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
+import com.paywith.recipient.mapper.BankMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class OpenBankingClientTest {
+
+    @Mock
+    private BankMapper bankMapper;
 
     private OpenBankingClient client;
 
     @BeforeEach
     void setUp() {
-        client = new OpenBankingClient();
+        given(bankMapper.findBankName("004")).willReturn("KB국민은행");
+
+        client = new OpenBankingClient(bankMapper);
         // application-local/prod.properties의 mock.holder-name.* 값과 동일하게 맞춘다
         ReflectionTestUtils.setField(client, "surnamesRaw", "이,김,박,최,정,강,조,윤,장,임");
         ReflectionTestUtils.setField(client, "givenFirstRaw", "서,민,지,수,윤,예,준,아,현,하");
@@ -85,5 +99,14 @@ class OpenBankingClientTest {
         assertThat(response.getBankName()).isEqualTo("KB국민은행");
         assertThat(response.getAccountNum()).isEqualTo("11012300006781");
         assertThat(response.getAccountType()).isEqualTo("1");
+    }
+
+    @Test
+    void banks_테이블에_없는_은행코드면_알수없는은행을_반환한다() {
+        given(bankMapper.findBankName("999")).willReturn(null);
+
+        RealNameInquiryResponse response = client.inquireRealName("999", "11012300006781", null);
+
+        assertThat(response.getBankName()).isEqualTo("알 수 없는 은행");
     }
 }
