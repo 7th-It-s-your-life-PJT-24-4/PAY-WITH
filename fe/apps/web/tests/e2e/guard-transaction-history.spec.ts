@@ -64,7 +64,7 @@ const chargeTransactionDetail = {
   direction: 'IN',
   status: 'COMPLETED',
   riskLevel: null,
-  counterpartyName: 'KB국민은행',
+  counterpartyName: '수이',
   bankName: 'KB국민은행',
   accountNo: '12345678901234',
   amount: 50000,
@@ -146,7 +146,7 @@ test('보호자가 위험도별 거래 목록을 조회하고 상세를 확인�
   await expect(page.getByRole('button', { name: '연락하기' })).toBeVisible()
 })
 
-test('보호자가 피보호자의 직접 충전 상세를 볼 때 안전 점수 영역을 표시하지 않는다', async ({
+test('보호자가 피보호자의 직접 충전 상세에서 충전 계좌 정보만 확인한다', async ({
   page,
 }) => {
   await page.goto('/guard/history?wardId=12')
@@ -157,6 +157,10 @@ test('보호자가 피보호자의 직접 충전 상세를 볼 때 안전 점수
 
   await expect(page).toHaveURL(/\/guard\/history\/40\?wardId=12$/)
   await expect(page.getByText('거래금액')).toBeVisible()
+  await expect(page.getByText('충전', { exact: true })).toBeVisible()
+  await expect(page.getByText('수이(KB국민은행1234)')).toBeVisible()
+  await expect(page.getByText('사용처')).toBeHidden()
+  await expect(page.getByText('출금처')).toBeHidden()
   await expect(
     page.getByRole('heading', { name: '안심할 수 있는 거래에요' }),
   ).toBeHidden()
