@@ -46,7 +46,7 @@ public class PaymentExecuteService {
     private static final String TRANSACTION_STATUS_BLOCKED = "BLOCKED";
 
     private static final String MESSAGE_INVALID_TOKEN = "유효하지 않은 QR입니다. 새 QR로 다시 시도해주세요.";
-    private static final String MESSAGE_INSUFFICIENT_BALANCE = "잔액이 부족합니다.";
+    private static final String MESSAGE_INSUFFICIENT_BALANCE = "결제 가능한 잔액이 부족합니다.";
     // 발동 룰·점수는 응답에 싣지 않는다 — 스캐너는 제3자라 차단 사유를 학습할 수 없어야 한다
     private static final String MESSAGE_FDS_BLOCKED = "결제가 차단되었습니다. 보호자에게 문의해 주세요.";
 
@@ -189,7 +189,7 @@ public class PaymentExecuteService {
         if (walletMapper.decreaseBalanceIfSufficient(wallet.getWalletId(), request.getAmount()) == 0) {
             paymentRequestMapper.failPayment(paymentRequest.getPaymentId(), FAILURE_CODE_INSUFFICIENT_BALANCE);
             return ExecuteResult.failure(
-                new BusinessException(HttpStatus.BAD_REQUEST, "WALLET_003", MESSAGE_INSUFFICIENT_BALANCE));
+                new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "WALLET_003", MESSAGE_INSUFFICIENT_BALANCE));
         }
 
         // 차감 후 같은 트랜잭션 내 재조회로 balance_after 확정 (송금 구현과 동일 패턴)
@@ -301,7 +301,7 @@ public class PaymentExecuteService {
     /** 실패로 종결된 건의 재시도 — 최초 실패와 동일한 오류를 멱등 반환한다 */
     private BusinessException settledFailureException(String failureCode) {
         if (FAILURE_CODE_INSUFFICIENT_BALANCE.equals(failureCode)) {
-            return new BusinessException(HttpStatus.BAD_REQUEST, "WALLET_003", MESSAGE_INSUFFICIENT_BALANCE);
+            return new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "WALLET_003", MESSAGE_INSUFFICIENT_BALANCE);
         }
         if (FAILURE_CODE_FDS_BLOCKED.equals(failureCode)) {
             return fdsBlockedException();
