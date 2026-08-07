@@ -52,7 +52,11 @@ INSERT INTO banks (bank_code, bank_name, is_active) VALUES
 --              사기에서만 관찰되는 신호(위험 메모·분할 송금)는 높게 배분한다.
 --    [변경] 금액·시간대·메모를 구간별 rule_code 로 분리. 같은 계열에서는 한 행만 발동한다.
 --    [변경] 등급 경계는 application.properties(fds.threshold.caution=25 / fds.threshold.danger=50)
---          안전 0~24 / 주의 25~49 / 위험 50 이상. 총점은 0 하한.
+--          안전 0~24 / 주의 25~49 / 위험 50 이상.
+--          총점은 0~100 으로 자른다(RiskGrader.MAX_SCORE). 배점 합은 상한을 넘을 수 있으나
+--          (여러 룰 동시 발동 시 최대 151) 그 구간은 이미 전부 위험이라 등급은 영향받지 않는다.
+--          배점 합을 100 에 맞추려 재배점하지 않는다. 룰을 추가할 때마다 전 항목을 다시
+--          튜닝해야 하고, 결제 룰과 공유하는 척도(주의 25 / 위험 50)까지 어긋난다.
 --    [변경] SAFE_ACCOUNT_CHECK 는 시니어 본인이 등록한 계좌에만 적용(-40 → -20).
 --          보호자가 등록한 안전계좌는 감점이 아니라 화이트리스트 단축평가로 처리한다.
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
@@ -71,13 +75,18 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
     ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 
 -- 2-1) 단축평가(블랙리스트) 항목  [v2.7 신규]
---      점수 합산에는 참여하지 않으므로 score = 0. 발동 시 DANGER 로 즉시 확정되며,
+--      룰 합산에는 참여하지 않는다(평가기 빈이 없어 순회에서 건너뛴다). 발동 시 DANGER 로 즉시
+--      확정되며, 이때 이 배점이 그대로 총점이 된다.
+--      [변경] score 0 → 100. 확정 위험이므로 만점을 준다. 0 이면 조회 화면에 '위험한데 0점' 으로
+--            보이고, risk_score 로 정렬·비교할 때 안전 거래와 구분되지 않는다.
+--      [변경] 발동 시 보호자 승인을 받지 않고 거래를 BLOCKED 로 즉시 차단한다. 점수 룰로 DANGER 가
+--            된 건만 HELD(승인 대기)로 간다. 승인 요청이 없으므로 보호자가 나중에 풀어줄 수도 없다.
 --      발동 내역은 다른 룰과 동일하게 risk_evaluation_details 에 남는다(판정 근거 조회용).
 --      확정적으로 위험한 경우만 둔다. 애매한 신호는 점수 룰로 처리해 조합으로 걸러낸다.
 --      화이트리스트는 폐지. 안전계좌는 무조건 통과가 아니라 SAFE_ACCOUNT_CHECK 감점으로만 반영한다.
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
-                                                                      ('BL_REJECTED_RECIPIENT', '보호자가 거절한 이력이 있는 계좌로 재송금 시도', 0, TRUE),
-                                                                      ('BL_FRAUD_ACCOUNT',      '사기계좌로 신고된 계좌에 송금',                  0, TRUE)
+                                                                      ('BL_REJECTED_RECIPIENT', '보호자가 거절한 이력이 있는 계좌로 재송금 시도', 100, TRUE),
+                                                                      ('BL_FRAUD_ACCOUNT',      '사기계좌로 신고된 계좌에 송금',                  100, TRUE)
     AS new
     ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 
@@ -106,8 +115,10 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
     AS new
     ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 
--- 2-2-1) 결제 단축평가 — 송금 BL_* 와 같은 위상(score 0, 발동 즉시 DANGER, details 에 근거 기록).
+-- 2-2-1) 결제 단축평가 — 송금 BL_* 와 같은 위상(발동 즉시 DANGER, details 에 근거 기록).
 --        결제 DANGER 는 승인 보류가 아니라 즉시 거절(BLOCKED)로 처리된다.
+--        송금 BL_* 는 score 0 → 100 으로 올렸으나 여기는 결제 담당 판단이 필요해 0 으로 둔다.
+--        PaymentFdsEvaluationServiceImpl.evaluateShortcut 도 총점을 0 으로 하드코딩한 상태다.
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
                                                                       ('PAY_IMPOSSIBLE_TRAVEL', '직전 결제 대비 물리적으로 불가능한 이동 속도', 0, TRUE)
     AS new

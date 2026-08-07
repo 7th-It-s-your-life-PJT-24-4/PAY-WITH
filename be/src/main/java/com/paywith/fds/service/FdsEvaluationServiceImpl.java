@@ -47,11 +47,11 @@ public class FdsEvaluationServiceImpl implements FdsEvaluationService {
 
     /** 수집·판정은 트랜잭션 밖, 저장만 별도 빈의 트랜잭션 안에서 일어난다. */
     @Override
-    public RiskLevel evaluate(FdsEvaluationRequest request) {
+    public FdsDecision evaluate(FdsEvaluationRequest request) {
         RuleContext context = ruleContextCollectorService.collect(request);
         FdsDecision decision = decide(context);
         fdsEvaluationResultService.save(request.getTransactionId(), decision);
-        return decision.getRiskLevel();
+        return decision;
     }
 
     /** 조회도 저장도 하지 않아 컨텍스트만 넣으면 판정 로직을 그대로 검증할 수 있다. */
@@ -75,19 +75,24 @@ public class FdsEvaluationServiceImpl implements FdsEvaluationService {
     }
 
     /**
-     * 블랙리스트 항목도 risk_rules 행이라 발동 내역은 남기되 점수 합산에는 넣지 않는다.
+     * 블랙리스트 항목도 risk_rules 행이라 발동 내역과 배점을 그대로 쓴다. 룰 합산을 거치지 않을 뿐
+     * 총점은 카탈로그 배점(만점)이라, 조회 화면에서 DANGER 인데 0점으로 보이지 않는다.
      * 활성 행이 없으면(is_active=FALSE 이거나 시드 누락) 차단하지 않는다.
      */
     private Optional<FdsDecision> blacklisted(String ruleCode) {
         return riskRuleCache.findByCode(ruleCode)
-            .map(rule -> new FdsDecision(
-                RiskLevel.DANGER,
-                DecidedBy.BLACKLIST,
-                0,
-                riskGrader.getCautionThreshold(),
-                riskGrader.getDangerThreshold(),
-                Collections.singletonList(new TriggeredRule(rule.getRuleId(), 0))
-            ));
+            .map(rule -> {
+                // 룰 합산과 같은 척도(0~100)로 맞춘다. 시드가 잘못돼도 범위 밖 총점은 남지 않는다.
+                int score = riskGrader.normalizeScore(rule.getScore());
+                return new FdsDecision(
+                    RiskLevel.DANGER,
+                    DecidedBy.BLACKLIST,
+                    score,
+                    riskGrader.getCautionThreshold(),
+                    riskGrader.getDangerThreshold(),
+                    Collections.singletonList(new TriggeredRule(rule.getRuleId(), score))
+                );
+            });
     }
 
     private FdsDecision scoreByRules(RuleContext context) {

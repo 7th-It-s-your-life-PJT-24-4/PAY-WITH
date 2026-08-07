@@ -67,14 +67,17 @@ class FdsEvaluationServiceImplTest {
             return new FdsEvaluationRequest(TRANSACTION_ID, 1L, 2L, won("30000"), null);
         }
 
+        // 호출부가 즉시 차단과 승인 대기를 구분해야 해서 등급이 아니라 판정을 돌려준다
         @Test
-        void evaluate_returnsRiskLevelOnly() {
+        void evaluate_returnsDecision() {
             FdsEvaluationRequest request = request();
             given(ruleContextCollectorService.collect(request)).willReturn(normal().build());
 
-            RiskLevel level = service.evaluate(request);
+            FdsDecision decision = service.evaluate(request);
 
-            assertThat(level).isEqualTo(RiskLevel.SAFE);
+            assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.SAFE);
+            assertThat(decision.isBlocked()).isFalse();
+            assertThat(decision.isHeld()).isFalse();
         }
 
         @Test
@@ -93,9 +96,9 @@ class FdsEvaluationServiceImplTest {
             given(ruleContextCollectorService.collect(request))
                 .willReturn(normal().recipientSendCount(0).amount(won("800000")).build());
 
-            RiskLevel level = service.evaluate(request);
+            FdsDecision decision = service.evaluate(request);
 
-            assertThat(level).isEqualTo(RiskLevel.CAUTION);
+            assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.CAUTION);
             then(fdsEvaluationResultService).should()
                 .save(org.mockito.ArgumentMatchers.eq(TRANSACTION_ID),
                     org.mockito.ArgumentMatchers.any(FdsDecision.class));

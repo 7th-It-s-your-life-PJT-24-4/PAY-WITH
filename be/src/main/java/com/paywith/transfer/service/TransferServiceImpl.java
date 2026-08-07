@@ -8,7 +8,7 @@ import com.paywith.exception.BusinessException;
 import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
-import com.paywith.fds.domain.RiskLevel;
+import com.paywith.fds.dto.FdsDecision;
 import com.paywith.fds.dto.FdsEvaluationRequest;
 import com.paywith.fds.service.FdsEvaluationService;
 import com.paywith.recipient.mapper.RecipientMapper;
@@ -132,10 +132,10 @@ public class TransferServiceImpl implements TransferService{
                     BigDecimal.valueOf(request.getAmount()),
                     request.getMemo()
             );
-            RiskLevel riskLevel = fdsEvaluationService.evaluate(fdsRequest);
+            FdsDecision decision = fdsEvaluationService.evaluate(fdsRequest);
 
             // 6~12 fds 판정 이후 상태 업데이트, 잔액 확인, 이체, 완료 상태 업데이트
-            TransferResponse response = transferFinalizationService.finalize(prepared, riskLevel, request);
+            TransferResponse response = transferFinalizationService.finalize(prepared, decision, request);
 
             // 완료됐으니 결과를 저장해두고 TTL을 늘려서, 재전송이 들어와도 재실행 없이 이 값을 돌려줌
             IdempotencyRecord done = new IdempotencyRecord(IdempotencyStatus.DONE, requestHash, response);
