@@ -2,7 +2,7 @@
 import { ChevronRight, Landmark, Plus } from '@lucide/vue'
 import { Button, Input } from '@pay-with/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { getApiErrorMessage } from '@/api/error'
@@ -29,6 +29,10 @@ import {
 const router = useRouter()
 const queryClient = useQueryClient()
 const transferStore = useTransferStore()
+
+onMounted(() => {
+  transferStore.reset()
+})
 const search = ref('')
 const contactModalOpen = ref(false)
 const pendingContact = ref<TransferRecipient | null>(null)
