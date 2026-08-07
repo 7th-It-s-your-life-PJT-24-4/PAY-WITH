@@ -135,15 +135,29 @@ class FdsScenarioTest {
     }
 
     @Test
-    void blacklistedDecision_carriesZeroScoreAndBlacklistPath() {
+    void blacklistedDecision_carriesMaxScoreAndBlacklistPath() {
         FdsDecision decision = service.decide(normal().recipientRejectedBefore(true).build());
 
-        // 블랙리스트는 점수와 무관하게 확정된다
-        assertThat(decision.getTotalScore()).isZero();
+        // 룰 합산을 건너뛰고 카탈로그 배점(만점)이 그대로 총점이 된다
+        assertThat(decision.getTotalScore()).isEqualTo(RiskRules.PREFILTER_SCORE);
         assertThat(decision.getDecidedBy()).isEqualTo(DecidedBy.BLACKLIST);
         assertThat(decision.getTriggeredRules()).hasSize(1);
+        assertThat(decision.getTriggeredRules().get(0).getScore()).isEqualTo(RiskRules.PREFILTER_SCORE);
         assertThat(ruleCodeById.get(decision.getTriggeredRules().get(0).getRuleId()))
             .isEqualTo("BL_REJECTED_RECIPIENT");
+    }
+
+    // 감점 룰과 무관하게 만점이 남는다 — 총점이 룰 합산으로 희석되지 않는지 확인
+    @Test
+    void blacklistScoreIsNotDilutedByOtherRules() {
+        FdsDecision decision = service.decide(normal()
+            .recipientRegisteredSafe(true)
+            .recipientSendCount(0)
+            .recipientRejectedBefore(true)
+            .build());
+
+        assertThat(decision.getTotalScore()).isEqualTo(RiskRules.PREFILTER_SCORE);
+        assertThat(decision.getTriggeredRules()).hasSize(1);
     }
 
     // is_active=FALSE 로 끈 블랙리스트는 동작하지 않아야 한다

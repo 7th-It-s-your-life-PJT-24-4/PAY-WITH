@@ -140,8 +140,9 @@ class FdsEvaluationResultServiceImplTest {
         then(approvalRequestService).should(never()).create(anyLong());
     }
 
+    // 상세 배점·총점·비정규화 복사본이 모두 카탈로그 배점으로 일치해야 한다
     @Test
-    void save_savesPrefilterRuleAsDetailWithZeroScore() {
+    void save_savesPrefilterRuleAsDetailWithMaxScore() {
         FdsDecision decision = decider.decide(normal().recipientRejectedBefore(true).build());
 
         service.save(TRANSACTION_ID, decision);
@@ -149,8 +150,9 @@ class FdsEvaluationResultServiceImplTest {
         ArgumentCaptor<RiskEvaluationDetail> captor =
             ArgumentCaptor.forClass(RiskEvaluationDetail.class);
         then(riskEvaluationDetailMapper).should().insert(captor.capture());
-        assertThat(captor.getValue().getScore()).isZero();
-        then(transactionRiskMapper).should().updateRiskScore(eq(TRANSACTION_ID), eq(0));
+        assertThat(captor.getValue().getScore()).isEqualTo(RiskRules.PREFILTER_SCORE);
+        then(transactionRiskMapper).should()
+            .updateRiskScore(eq(TRANSACTION_ID), eq(RiskRules.PREFILTER_SCORE));
     }
 
     // UPDATE 는 대상이 없어도 조용히 0행이 된다
