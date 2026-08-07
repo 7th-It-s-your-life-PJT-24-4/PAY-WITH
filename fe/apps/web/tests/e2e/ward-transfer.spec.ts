@@ -695,9 +695,8 @@ test('잔액 초과 금액을 유지하고 잔액 배지를 강조한다', async
     .first()
     .click()
 
-  for (const digit of '2000000') {
-    await page.getByRole('button', { name: digit, exact: true }).click()
-  }
+  const amountInput = page.getByLabel('송금 금액 입력')
+  await amountInput.fill('2000000')
 
   const balanceBadge = page.getByText('잔액 1,250,000원', { exact: true })
   const amountCard = balanceBadge.locator('..')
@@ -708,7 +707,7 @@ test('잔액 초과 금액을 유지하고 잔액 배지를 강조한다', async
   await expect(page.getByRole('button', { name: '다음으로' })).toBeDisabled()
   const overBalanceCardBox = await amountCard.boundingBox()
 
-  await page.getByRole('button', { name: '한 글자 지우기' }).click()
+  await amountInput.fill('200000')
 
   await expect(page.getByText('200,000')).toBeVisible()
   await expect(balanceBadge).toHaveCSS('background-color', 'rgb(204, 239, 246)')
