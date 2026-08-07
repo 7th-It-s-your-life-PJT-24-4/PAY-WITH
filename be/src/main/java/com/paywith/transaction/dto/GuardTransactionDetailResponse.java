@@ -1,5 +1,6 @@
 package com.paywith.transaction.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.paywith.fds.domain.RiskLevel;
 import com.paywith.transaction.domain.TransactionCategory;
 import com.paywith.transaction.domain.TransactionStatus;
@@ -31,6 +32,7 @@ public class GuardTransactionDetailResponse {
     private String memo;
     private Long balanceAfter;
 
+    @JsonIgnore
     private Integer riskScore;
 
     private RiskAnalysisResponse riskAnalysis;

@@ -1,5 +1,6 @@
 package com.paywith.transaction.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.paywith.fds.domain.RiskLevel;
 import com.paywith.transaction.domain.TransactionCategory;
 import com.paywith.transaction.domain.TransactionStatus;
@@ -34,6 +35,7 @@ public class TransactionDetailResponse {
 
     // Mapper 조회 시점엔 riskScore로 채워졌다가,
     // Service가 riskAnalysis 객체로 재조립하면서 이 필드는 버려짐
+    @JsonIgnore
     private Integer riskScore;
 
     private RiskAnalysisResponse riskAnalysis;

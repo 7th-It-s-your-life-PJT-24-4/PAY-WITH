@@ -162,7 +162,7 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
         if (type != TransactionCategory.TRANSFER && type != TransactionCategory.PAYMENT) {
             return null; // CHARGE 평가 대상이 아님
         }
-        if (riskLevel == null || riskLevel == RiskLevel.SAFE || riskScore == null) {
+        if (riskLevel == null || riskScore == null) {
             return null; // 평가 대상 아니었거나, 안전 거래
         }
 

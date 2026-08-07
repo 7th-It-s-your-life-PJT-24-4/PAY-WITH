@@ -380,7 +380,7 @@ class TransactionHistoryServiceImplTest {
     }
 
     @Test
-    void 본인_거래상세가_TRANSFER이고_SAFE면_riskAnalysis는_null이다() {
+    void 본인_거래상세가_TRANSFER이고_SAFE여도_riskScore가_있으면_riskAnalysis를_조립한다() {
         TransactionDetailResponse detail = TransactionDetailResponse.builder()
                 .transactionId(transactionId)
                 .type(TransactionCategory.TRANSFER)
@@ -388,11 +388,13 @@ class TransactionHistoryServiceImplTest {
                 .riskScore(10)
                 .build();
         given(transactionMapper.findMyTransactionDetail(transactionId, userId)).willReturn(detail);
+        given(transactionMapper.findRiskReasons(transactionId)).willReturn(List.of());
+        given(transactionMapper.findLlmSummary(transactionId)).willReturn(null);
 
         TransactionDetailResponse response = transactionHistoryService.findMyTransactionDetail(userId, transactionId);
 
-        assertThat(response.getRiskAnalysis()).isNull();
-        verify(transactionMapper, never()).findRiskReasons(any());
+        assertThat(response.getRiskAnalysis()).isNotNull();
+        assertThat(response.getRiskAnalysis().getRiskScore()).isEqualTo(10);
     }
 
     @Test
