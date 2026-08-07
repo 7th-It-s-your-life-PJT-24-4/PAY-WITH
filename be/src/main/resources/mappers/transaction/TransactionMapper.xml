@@ -314,7 +314,7 @@
         t.status AS status,
         re.risk_level AS riskLevel,
         CASE t.type
-        WHEN 'CHARGE' THEN COALESCE(ib.name, b.bank_name)
+        WHEN 'CHARGE' THEN wu.name
         WHEN 'PAYMENT' THEN m.name
         WHEN 'TRANSFER_OUT' THEN r.holder_name
         END AS counterpartyName,
@@ -322,7 +322,10 @@
         WHEN 'CHARGE' THEN b.bank_name
         WHEN 'TRANSFER_OUT' THEN rb.bank_name
         END AS bankName,
-        CASE WHEN t.type = 'TRANSFER_OUT' THEN r.account_no END AS accountNo,
+        CASE t.type
+        WHEN 'CHARGE' THEN la.account_no
+        WHEN 'TRANSFER_OUT' THEN r.account_no
+        END AS accountNo,
         t.amount AS amount,
         t.memo AS memo,
         COALESCE(t.completed_at, t.created_at) AS occurredAt,
@@ -330,12 +333,12 @@
         re.total_score AS riskScore
         FROM transactions t
         JOIN wallets w ON w.wallet_id = t.wallet_id
+        JOIN users wu ON wu.user_id = w.user_id
         LEFT JOIN recipients r ON r.recipient_id = t.recipient_id
         LEFT JOIN banks rb ON rb.bank_code = r.bank_code
         LEFT JOIN merchants m ON m.merchant_id = t.merchant_id
         LEFT JOIN linked_accounts la ON la.account_id = t.account_id
         LEFT JOIN banks b ON b.bank_code = la.bank_code
-        LEFT JOIN users ib ON ib.user_id = t.initiated_by
         LEFT JOIN risk_evaluations re ON re.transaction_id = t.transaction_id
         WHERE t.transaction_id = #{transactionId}
         AND w.user_id = #{wardId}
