@@ -9,6 +9,7 @@ import { getApiErrorMessage } from '@/api/error'
 import { useEnsureFocusedInputVisible } from '@/composables/useEnsureFocusedInputVisible'
 import { useRegisterChargeAccountMutation } from '@/composables/useRegisterChargeAccountMutation'
 import { banksOptions } from '@/lib/query/bank'
+import WardKeypadBottomSheet from '@/pages/ward/-components/WardKeypadBottomSheet.vue'
 import ChargeBankSelect from '@/pages/ward/charge/-components/ChargeBankSelect.vue'
 import { useChargeStore } from '@/stores/charge.store'
 
