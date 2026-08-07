@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Button, WardToast } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useEnsureFocusedInputVisible } from '@/composables/useEnsureFocusedInputVisible'
@@ -13,7 +13,7 @@ const transferStore = useTransferStore()
 const walletQuery = useQuery(wardWalletOptions())
 const toastOpen = ref(false)
 const toastMessage = ref('')
-const amountInput = ref<HTMLElement | null>(null)
+const amountInput = ref<HTMLInputElement | null>(null)
 
 useEnsureFocusedInputVisible(amountInput)
 
@@ -28,8 +28,21 @@ watch(
   { immediate: true },
 )
 
+function setCursorToEnd(el: HTMLInputElement | null) {
+  if (!el) return
+  nextTick(() => {
+    const len = el.value.length
+    try {
+      el.setSelectionRange(len, len)
+    } catch {
+      // ignore
+    }
+  })
+}
+
 function focusAmountInput() {
   amountInput.value?.focus()
+  setCursorToEnd(amountInput.value)
 }
 
 function handleAmountInput(event: Event) {
@@ -38,6 +51,12 @@ function handleAmountInput(event: Event) {
   const num = digits ? Number(digits) : 0
   transferStore.amount = num
   target.value = num ? String(num) : ''
+  setCursorToEnd(target)
+}
+
+function handleCursorFix(event: Event) {
+  const target = event.target as HTMLInputElement
+  setCursorToEnd(target)
 }
 
 function handleNextClick() {
@@ -90,6 +109,10 @@ const quickAmountButtonClass =
         :value="transferStore.amount ? String(transferStore.amount) : ''"
         aria-label="송금 금액 입력"
         @input="handleAmountInput"
+        @click="handleCursorFix"
+        @focus="handleCursorFix"
+        @select="handleCursorFix"
+        @keyup="handleCursorFix"
       />
       <p
         class="type-amount"
