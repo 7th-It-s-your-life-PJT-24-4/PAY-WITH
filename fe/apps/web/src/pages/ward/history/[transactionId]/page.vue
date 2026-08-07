@@ -33,7 +33,11 @@ const resultCardTitle = computed(() => {
 })
 
 function goToHistory() {
-  router.replace({ name: 'ward-transaction-history' })
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    void router.replace({ name: 'ward-transaction-history' })
+  }
 }
 </script>
 
