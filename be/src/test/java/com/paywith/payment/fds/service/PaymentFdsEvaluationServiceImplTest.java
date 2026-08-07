@@ -114,15 +114,17 @@ class PaymentFdsEvaluationServiceImplTest {
                     lastPayment(BUSAN_LAT, BUSAN_LNG, at(14).minusMinutes(5)));
         }
 
+        /** 확정 위험이라 룰 행의 만점이 그대로 총점이 된다 — 차단인데 0점으로 보이던 문제를 막는다. */
         @Test
-        void decidesDangerWithZeroScoreBeforeScoringRules() {
+        void decidesDangerWithFullScoreBeforeScoringRules() {
             FdsDecision decision = service.decide(impossibleTravelContext().build());
 
             assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.DANGER);
             assertThat(decision.getDecidedBy()).isEqualTo(DecidedBy.BLACKLIST);
-            assertThat(decision.getTotalScore()).isZero();
+            assertThat(decision.getTotalScore()).isEqualTo(PaymentRiskRules.PREFILTER_SCORE);
             assertThat(decision.getTriggeredRules()).hasSize(1);
-            assertThat(decision.getTriggeredRules().get(0).getScore()).isZero();
+            assertThat(decision.getTriggeredRules().get(0).getScore())
+                .isEqualTo(PaymentRiskRules.PREFILTER_SCORE);
         }
 
         /** 활성 행이 없으면(시드 누락·비활성) 단축평가로 차단하지 않는다 — 송금 블랙리스트와 동일. */
@@ -132,9 +134,9 @@ class PaymentFdsEvaluationServiceImplTest {
 
             FdsDecision decision = service.decide(impossibleTravelContext().build());
 
-            // 위험업종(25) + 고액 L3(35) = 60 — 점수 경로로 넘어가 DANGER
+            // 위험업종(50) + 고액 L3(70) = 120 → 상한 100 — 점수 경로로 넘어가 DANGER
             assertThat(decision.getDecidedBy()).isEqualTo(DecidedBy.RULE);
-            assertThat(decision.getTotalScore()).isEqualTo(60);
+            assertThat(decision.getTotalScore()).isEqualTo(100);
         }
     }
 
@@ -147,16 +149,17 @@ class PaymentFdsEvaluationServiceImplTest {
             FdsDecision decision = service.decide(
                 normal().merchantCategoryCode("JEWELRY").amount(90_000L).build());
 
-            assertThat(decision.getTotalScore()).isEqualTo(25);
+            assertThat(decision.getTotalScore()).isEqualTo(50);
             assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.CAUTION);
         }
 
+        /** 50 + 70 = 120 이라 상한에 걸린다. 잘려도 위험 문턱(100) 위라 등급은 그대로다. */
         @Test
         void riskyCategoryWithHighAmountL3IsDanger() {
             FdsDecision decision = service.decide(
                 normal().merchantCategoryCode("JEWELRY").amount(500_000L).build());
 
-            assertThat(decision.getTotalScore()).isEqualTo(60);
+            assertThat(decision.getTotalScore()).isEqualTo(100);
             assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.DANGER);
         }
 
@@ -165,7 +168,7 @@ class PaymentFdsEvaluationServiceImplTest {
             FdsDecision decision = service.decide(
                 normal().merchantCategoryCode("CVS").amount(50_000L).build());
 
-            assertThat(decision.getTotalScore()).isEqualTo(10);
+            assertThat(decision.getTotalScore()).isEqualTo(20);
             assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.SAFE);
         }
 
@@ -175,38 +178,39 @@ class PaymentFdsEvaluationServiceImplTest {
                 normal().merchantCategoryCode("CVS").amount(10_000L)
                     .giftCardSuspectRecentCount(2).build());
 
-            assertThat(decision.getTotalScore()).isEqualTo(40);
+            assertThat(decision.getTotalScore()).isEqualTo(80);
             assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.CAUTION);
         }
 
-        /** 10만 원대 분할부터 차단된다 — 분할(40) + L1(10) = 정확히 위험 문턱. */
+        /** 10만 원대 분할부터 차단된다 — 분할(80) + L1(20) = 정확히 위험 문턱. */
         @Test
         void splitPaymentWithL1IsDanger() {
             FdsDecision decision = service.decide(
                 normal().merchantCategoryCode("CVS").amount(100_000L)
                     .giftCardSuspectRecentCount(2).build());
 
-            assertThat(decision.getTotalScore()).isEqualTo(50);
+            assertThat(decision.getTotalScore()).isEqualTo(100);
             assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.DANGER);
         }
 
+        /** 분할(80) + 심야(28) = 108 이라 상한에 걸린다. */
         @Test
         void splitPaymentAtDeepNightIsDanger() {
             FdsDecision decision = service.decide(
                 normal().merchantCategoryCode("CVS").amount(10_000L)
                     .giftCardSuspectRecentCount(2).requestedAt(at(2)).build());
 
-            assertThat(decision.getTotalScore()).isEqualTo(54);
+            assertThat(decision.getTotalScore()).isEqualTo(100);
             assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.DANGER);
         }
 
-        /** 일괄 구매(L3+GIFT=45 알림)가 분할(50 차단)보다 유리해야 회피 인센티브가 없다. */
+        /** 일괄 구매(L3+GIFT=90 알림)가 분할(100 차단)보다 유리해야 회피 인센티브가 없다. */
         @Test
         void bulkGiftCardPurchaseIsCautionNotDanger() {
             FdsDecision decision = service.decide(
                 normal().merchantCategoryCode("CVS").amount(500_000L).build());
 
-            assertThat(decision.getTotalScore()).isEqualTo(45);
+            assertThat(decision.getTotalScore()).isEqualTo(90);
             assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.CAUTION);
         }
 
@@ -215,7 +219,7 @@ class PaymentFdsEvaluationServiceImplTest {
             FdsDecision decision = service.decide(
                 normal().amount(500_000L).requestedAt(at(2)).build());
 
-            assertThat(decision.getTotalScore()).isEqualTo(49);
+            assertThat(decision.getTotalScore()).isEqualTo(98);
             assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.CAUTION);
         }
     }

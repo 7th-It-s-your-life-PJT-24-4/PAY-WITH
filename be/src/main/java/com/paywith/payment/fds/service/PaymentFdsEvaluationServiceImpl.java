@@ -5,7 +5,6 @@ import com.paywith.fds.domain.RiskLevel;
 import com.paywith.fds.domain.RiskRule;
 import com.paywith.fds.dto.FdsDecision;
 import com.paywith.fds.dto.TriggeredRule;
-import com.paywith.fds.service.RiskGrader;
 import com.paywith.fds.service.rule.RiskRuleCache;
 import com.paywith.merchant.domain.Merchant;
 import com.paywith.payment.fds.rule.PaymentRiskRuleEvaluator;
@@ -24,8 +23,9 @@ import org.springframework.stereotype.Service;
 
 /**
  * 송금 {@code FdsEvaluationServiceImpl}과 같은 파이프라인(단축평가 → 점수 합산 → 등급 환산)을
- * 결제 전용 평가기로 돌린다. RiskGrader·RiskRuleCache 는 송금과 같은 빈을 공유하고, 룰 순회는
- * 자기 평가기 맵에 있는 코드만 집으므로 카탈로그에 송금 룰이 섞여 있어도 무해하다(대칭 구조).
+ * 결제 전용 평가기로 돌린다. RiskRuleCache 는 송금과 같은 빈을 공유하고, 룰 순회는 자기 평가기 맵에
+ * 있는 코드만 집으므로 카탈로그에 송금 룰이 섞여 있어도 무해하다(대칭 구조). 등급 환산만은 임계값이
+ * 달라 {@link PaymentRiskGrader} 를 쓴다.
  */
 @Service
 public class PaymentFdsEvaluationServiceImpl implements PaymentFdsEvaluationService {
@@ -35,20 +35,20 @@ public class PaymentFdsEvaluationServiceImpl implements PaymentFdsEvaluationServ
     private final PaymentRuleContextCollector paymentRuleContextCollector;
     private final PaymentImpossibleTravelEvaluator impossibleTravelEvaluator;
     private final RiskRuleCache riskRuleCache;
-    private final RiskGrader riskGrader;
+    private final PaymentRiskGrader paymentRiskGrader;
     private final Map<String, PaymentRiskRuleEvaluator> evaluatorsByRuleCode;
 
     public PaymentFdsEvaluationServiceImpl(
         PaymentRuleContextCollector paymentRuleContextCollector,
         PaymentImpossibleTravelEvaluator impossibleTravelEvaluator,
         RiskRuleCache riskRuleCache,
-        RiskGrader riskGrader,
+        PaymentRiskGrader paymentRiskGrader,
         List<PaymentRiskRuleEvaluator> evaluators
     ) {
         this.paymentRuleContextCollector = paymentRuleContextCollector;
         this.impossibleTravelEvaluator = impossibleTravelEvaluator;
         this.riskRuleCache = riskRuleCache;
-        this.riskGrader = riskGrader;
+        this.paymentRiskGrader = paymentRiskGrader;
         this.evaluatorsByRuleCode = evaluators.stream()
             .collect(Collectors.toMap(PaymentRiskRuleEvaluator::getRuleCode, Function.identity()));
     }
@@ -78,6 +78,10 @@ public class PaymentFdsEvaluationServiceImpl implements PaymentFdsEvaluationServ
     /**
      * 확정적으로 위험한 경우(불가능한 이동)를 먼저 걸러 룰 점수 계산을 건너뛴다.
      * 활성 행이 없으면(is_active=FALSE 이거나 시드 누락) 차단하지 않는다 — 송금 블랙리스트와 동일.
+     *
+     * <p>총점은 룰 행의 배점(현재 만점)을 그대로 쓴다. 예전에는 0 으로 고정했는데, 차단해 놓고 조회
+     * 화면에는 0점으로 뜨는 데다 risk_score 로 정렬·비교하면 안전 거래와 구분되지 않았다(QA 지적).
+     * 송금 블랙리스트(BL_*)가 같은 이유로 이미 0 → 100 으로 올라가 있어 위상도 맞춘다.
      */
     private Optional<FdsDecision> evaluateShortcut(PaymentRuleContext context) {
         if (!impossibleTravelEvaluator.evaluate(context)) {
@@ -87,10 +91,10 @@ public class PaymentFdsEvaluationServiceImpl implements PaymentFdsEvaluationServ
             .map(rule -> new FdsDecision(
                 RiskLevel.DANGER,
                 DecidedBy.BLACKLIST,
-                0,
-                riskGrader.getCautionThreshold(),
-                riskGrader.getDangerThreshold(),
-                Collections.singletonList(new TriggeredRule(rule.getRuleId(), 0))
+                paymentRiskGrader.normalizeScore(rule.getScore()),
+                paymentRiskGrader.getCautionThreshold(),
+                paymentRiskGrader.getDangerThreshold(),
+                Collections.singletonList(new TriggeredRule(rule.getRuleId(), rule.getScore()))
             ));
     }
 
@@ -109,13 +113,13 @@ public class PaymentFdsEvaluationServiceImpl implements PaymentFdsEvaluationServ
             }
         }
 
-        int totalScore = riskGrader.normalizeScore(rawScore);
+        int totalScore = paymentRiskGrader.normalizeScore(rawScore);
         return new FdsDecision(
-            riskGrader.grade(totalScore),
+            paymentRiskGrader.grade(totalScore),
             DecidedBy.RULE,
             totalScore,
-            riskGrader.getCautionThreshold(),
-            riskGrader.getDangerThreshold(),
+            paymentRiskGrader.getCautionThreshold(),
+            paymentRiskGrader.getDangerThreshold(),
             triggeredRules
         );
     }
@@ -126,8 +130,8 @@ public class PaymentFdsEvaluationServiceImpl implements PaymentFdsEvaluationServ
             RiskLevel.SAFE,
             DecidedBy.RULE,
             0,
-            riskGrader.getCautionThreshold(),
-            riskGrader.getDangerThreshold(),
+            paymentRiskGrader.getCautionThreshold(),
+            paymentRiskGrader.getDangerThreshold(),
             Collections.emptyList()
         );
     }

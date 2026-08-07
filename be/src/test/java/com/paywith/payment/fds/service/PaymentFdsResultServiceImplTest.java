@@ -82,7 +82,7 @@ class PaymentFdsResultServiceImplTest {
         );
     }
 
-    /** 위험업종 단독(25) → CAUTION */
+    /** 위험업종 단독(50) → CAUTION */
     private FdsDecision cautionDecision() {
         return decider.decide(normal().merchantCategoryCode("JEWELRY").amount(90_000L).build());
     }
@@ -95,7 +95,7 @@ class PaymentFdsResultServiceImplTest {
         then(riskEvaluationMapper).should().insert(captor.capture());
         RiskEvaluation saved = captor.getValue();
         assertThat(saved.getTransactionId()).isEqualTo(TRANSACTION_ID);
-        assertThat(saved.getTotalScore()).isEqualTo(25);
+        assertThat(saved.getTotalScore()).isEqualTo(50);
         assertThat(saved.getRiskLevel()).isEqualTo(RiskLevel.CAUTION);
         assertThat(saved.getDecidedBy()).isEqualTo(DecidedBy.RULE);
         assertThat(saved.getCautionThreshold()).isEqualTo(PaymentFdsTestWiring.CAUTION_THRESHOLD);
@@ -104,7 +104,7 @@ class PaymentFdsResultServiceImplTest {
 
     @Test
     void save_savesOneDetailPerTriggeredRule() {
-        // 위험업종(25) + 고액 L3(35) = 발동 2건
+        // 위험업종(50) + 고액 L3(70) = 발동 2건
         FdsDecision decision =
             decider.decide(normal().merchantCategoryCode("JEWELRY").amount(500_000L).build());
 
@@ -118,12 +118,12 @@ class PaymentFdsResultServiceImplTest {
     void save_updatesDenormalizedRiskScore() {
         service.save(TRANSACTION_ID, cautionDecision());
 
-        then(transactionRiskMapper).should().updateRiskScore(TRANSACTION_ID, 25);
+        then(transactionRiskMapper).should().updateRiskScore(TRANSACTION_ID, 50);
     }
 
-    /** 단축평가 확정 건도 근거는 details 에 남는다 — 점수는 0. */
+    /** 단축평가 확정 건도 근거는 details 에 남는다 — 점수는 만점. */
     @Test
-    void save_savesShortcutRuleAsDetailWithZeroScore() {
+    void save_savesShortcutRuleAsDetailWithFullScore() {
         FdsDecision decision = decider.decide(normal()
             .lastCompletedPayment(lastPayment(BUSAN_LAT, BUSAN_LNG, at(14).minusMinutes(5)))
             .build());
@@ -134,8 +134,9 @@ class PaymentFdsResultServiceImplTest {
         ArgumentCaptor<RiskEvaluationDetail> captor =
             ArgumentCaptor.forClass(RiskEvaluationDetail.class);
         then(riskEvaluationDetailMapper).should().insert(captor.capture());
-        assertThat(captor.getValue().getScore()).isZero();
-        then(transactionRiskMapper).should().updateRiskScore(TRANSACTION_ID, 0);
+        assertThat(captor.getValue().getScore()).isEqualTo(PaymentRiskRules.PREFILTER_SCORE);
+        then(transactionRiskMapper).should()
+            .updateRiskScore(TRANSACTION_ID, PaymentRiskRules.PREFILTER_SCORE);
     }
 
     /**
