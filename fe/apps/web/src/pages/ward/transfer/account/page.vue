@@ -76,6 +76,7 @@ async function proceed() {
         ]"
         type="text"
         inputmode="numeric"
+        maxlength="16"
         placeholder="숫자만 입력"
         :value="transferStore.accountNumber"
         @input="handleAccountInput"

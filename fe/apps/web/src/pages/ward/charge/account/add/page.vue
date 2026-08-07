@@ -141,6 +141,7 @@ async function registerAccount() {
         ]"
         type="text"
         inputmode="numeric"
+        maxlength="16"
         placeholder="계좌번호를 입력해주세요"
         :value="accountNumber"
         :aria-invalid="accountNumberError ? 'true' : undefined"
