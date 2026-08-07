@@ -1,26 +1,28 @@
 <script setup lang="ts">
 import { ArrowRight } from '@lucide/vue'
-import { Button, NumericKeypad, PinKeypad } from '@pay-with/ui'
+import { Button, NumericKeypad, PinKeypad, WardToast } from '@pay-with/ui'
+import { useQuery } from '@tanstack/vue-query'
 import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { getApiErrorMessage } from '@/api/error'
 import { useRegisterChargeAccountMutation } from '@/composables/useRegisterChargeAccountMutation'
+import { banksOptions } from '@/lib/query/bank'
 import WardKeypadBottomSheet from '@/pages/ward/-components/WardKeypadBottomSheet.vue'
 import ChargeBankSelect from '@/pages/ward/charge/-components/ChargeBankSelect.vue'
 import { useChargeStore } from '@/stores/charge.store'
 
-const banks = [
-  { code: '004', name: 'KB국민은행' },
-  { code: '011', name: 'NH농협은행' },
-  { code: '088', name: '신한은행' },
-  { code: '020', name: '우리은행' },
-  { code: '081', name: '하나은행' },
-]
-
 const router = useRouter()
 const chargeStore = useChargeStore()
 const registerAccountMutation = useRegisterChargeAccountMutation()
+const banksQuery = useQuery(banksOptions())
+
+const banks = computed(() =>
+  (banksQuery.data.value ?? []).map((b) => ({
+    code: b.bankCode,
+    name: b.bankName,
+  })),
+)
 const bankCode = ref('')
 const accountNumber = ref('')
 const accountPassword = ref('')
@@ -28,6 +30,8 @@ const keypad = ref<{ reset: () => void } | null>(null)
 const accountSheetOpen = ref(false)
 const passwordSheetOpen = ref(false)
 const errorMessage = ref('')
+const toastOpen = ref(false)
+const toastMessage = ref('')
 const accountNumberError = computed(() =>
   accountNumber.value.length > 0 && !/^\d{8,16}$/.test(accountNumber.value)
     ? '계좌번호는 숫자 8~16자리로 입력해주세요.'
@@ -66,8 +70,33 @@ function completePassword(value: string) {
   passwordSheetOpen.value = false
 }
 
+function handleAccountCompleteClick() {
+  if (!/^\d{8,16}$/.test(accountNumber.value)) {
+    toastMessage.value = '계좌번호 8자리 이상을 입력해 주세요'
+    toastOpen.value = true
+    return
+  }
+  accountSheetOpen.value = false
+}
+
+function handleRegisterClick() {
+  if (!canRegister.value) {
+    if (!bankCode.value) {
+      toastMessage.value = '은행을 먼저 선택해 주세요'
+    } else if (!/^\d{8,16}$/.test(accountNumber.value)) {
+      toastMessage.value = '계좌번호 8자리 이상을 입력해 주세요'
+    } else if (!/^\d{4}$/.test(accountPassword.value)) {
+      toastMessage.value = '계좌 비밀번호 4자리를 입력해 주세요'
+    } else {
+      toastMessage.value = '입력 항목을 모두 확인해 주세요'
+    }
+    toastOpen.value = true
+    return
+  }
+  void registerAccount()
+}
+
 async function registerAccount() {
-  if (!canRegister.value) return
   errorMessage.value = ''
   try {
     const account = await registerAccountMutation.mutateAsync({
@@ -108,8 +137,13 @@ async function registerAccount() {
       </label>
       <input
         id="charge-account-number"
-        class="type-numeric-input-large font-number h-[72px] w-full cursor-pointer rounded-medium border bg-surface-card px-md text-body outline-none transition-colors placeholder:font-sans placeholder:text-[20px] placeholder:font-semibold placeholder:leading-tight placeholder:tracking-[-0.4px] placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
-        :class="accountNumberError ? 'border-error' : 'border-border-strong'"
+        class="h-[72px] w-full cursor-pointer rounded-medium border bg-surface-card px-md text-body outline-none transition-colors placeholder:font-sans placeholder:text-[20px] placeholder:font-semibold placeholder:leading-none placeholder:tracking-[-0.4px] placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
+        :class="[
+          accountNumberError ? 'border-error' : 'border-border-strong',
+          accountNumber
+            ? 'type-numeric-input-large font-number leading-none'
+            : '',
+        ]"
         type="text"
         inputmode="none"
         placeholder="계좌번호를 입력해주세요"
@@ -161,21 +195,23 @@ async function registerAccount() {
       {{ errorMessage }}
     </p>
 
-    <Button
-      class="w-full"
-      :label="
-        registerAccountMutation.isPending.value
-          ? '계좌를 등록하고 있습니다'
-          : '계좌 등록하기'
-      "
-      size="large"
-      :disabled="!canRegister"
-      @click="registerAccount"
-    >
-      <template #trailing>
-        <ArrowRight />
-      </template>
-    </Button>
+    <div @click="handleRegisterClick">
+      <Button
+        class="w-full"
+        :class="{ 'opacity-50 cursor-not-allowed': !canRegister }"
+        :label="
+          registerAccountMutation.isPending.value
+            ? '계좌를 등록하고 있습니다'
+            : '계좌 등록하기'
+        "
+        size="large"
+        :aria-disabled="!canRegister"
+      >
+        <template #trailing>
+          <ArrowRight />
+        </template>
+      </Button>
+    </div>
 
     <WardKeypadBottomSheet
       v-model:open="accountSheetOpen"
@@ -189,13 +225,17 @@ async function registerAccount() {
         @backspace="removeAccountDigit"
         @cancel="accountSheetOpen = false"
       />
-      <Button
-        class="mt-lg w-full"
-        label="입력 완료"
-        size="large"
-        :disabled="!/^\d{8,16}$/.test(accountNumber)"
-        @click="accountSheetOpen = false"
-      />
+      <div @click="handleAccountCompleteClick">
+        <Button
+          class="mt-lg w-full"
+          :class="{
+            'opacity-50 cursor-not-allowed': !/^\d{8,16}$/.test(accountNumber),
+          }"
+          label="입력 완료"
+          size="large"
+          :aria-disabled="!/^\d{8,16}$/.test(accountNumber)"
+        />
+      </div>
     </WardKeypadBottomSheet>
 
     <WardKeypadBottomSheet
@@ -219,5 +259,7 @@ async function registerAccount() {
         @cancel="closePasswordSheet"
       />
     </WardKeypadBottomSheet>
+
+    <WardToast v-model:open="toastOpen" :message="toastMessage" />
   </div>
 </template>

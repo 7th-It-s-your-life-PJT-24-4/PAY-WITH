@@ -25,6 +25,6 @@ describe('transaction-format', () => {
 
   it('위험 판단과 보호자 차단 결과를 구분한다', () => {
     expect(getTransactionRiskLabel('DANGER', 'COMPLETED')).toBe('위험')
-    expect(getTransactionRiskLabel('DANGER', 'BLOCKED')).toBe('거래 차단됨')
+    expect(getTransactionRiskLabel('DANGER', 'BLOCKED')).toBe('시스템 차단됨')
   })
 })

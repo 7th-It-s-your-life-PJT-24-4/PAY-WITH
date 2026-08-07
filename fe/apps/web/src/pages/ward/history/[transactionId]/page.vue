@@ -25,6 +25,10 @@ const shouldShowRejectedCard = computed(
 const resultCardTitle = computed(() => {
   if (transaction.value?.status === 'CANCELED') return '취소된 거래입니다.'
   if (transaction.value?.status === 'FAILED') return '실패한 거래입니다.'
+  if (transaction.value?.status === 'BLOCKED')
+    return '시스템이 차단한 거래입니다.'
+  if (transaction.value?.status === 'REJECTED')
+    return '보호자가 거절한 거래입니다.'
   return '거절된 거래입니다.'
 })
 
