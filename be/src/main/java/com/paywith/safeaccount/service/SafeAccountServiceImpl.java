@@ -136,7 +136,7 @@ public class SafeAccountServiceImpl implements SafeAccountService{
                     request.getBankCode(), request.getAccountNo(), null
             );
             if (!inquiry.isSuccess()){
-                throw new BusinessException(HttpStatus.NOT_FOUND, "ACCOUNT_002", "해당 계좌를 찾을 수 없습니다.");
+                throw new BusinessException(HttpStatus.NOT_FOUND, "ACCOUNT_005", "해당 계좌를 찾을 수 없습니다.");
             }
 
             recipientId = safeAccountMapper.insertSafeAccountByGuard(
