@@ -33,7 +33,11 @@ const resultCardTitle = computed(() => {
 })
 
 function goToHistory() {
-  router.replace({ name: 'ward-transaction-history' })
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    void router.replace({ name: 'ward-transaction-history' })
+  }
 }
 </script>
 
@@ -60,7 +64,7 @@ function goToHistory() {
   <div v-else-if="transaction" class="flex flex-col gap-xl">
     <TransactionSummaryCard :transaction="transaction" />
     <TransactionRiskCard
-      v-if="transaction.direction !== 'IN' && transaction.riskLevel"
+      v-if="transaction.type !== 'CHARGE' && transaction.riskLevel"
       :transaction="transaction"
     />
     <TransactionBlockedCard

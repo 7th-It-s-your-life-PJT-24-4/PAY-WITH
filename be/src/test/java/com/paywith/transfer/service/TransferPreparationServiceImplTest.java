@@ -6,6 +6,8 @@ import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
 import com.paywith.recipient.domain.Recipient;
 import com.paywith.recipient.mapper.RecipientMapper;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transaction.domain.TransactionStatus;
+import com.paywith.transaction.domain.TransactionType;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.PreparedTransfer;
 import com.paywith.transfer.dto.TransferRequest;
@@ -165,8 +167,8 @@ class TransferPreparationServiceImplTest {
         assertThat(result.getRecipient().getRecipientId()).isEqualTo(100L);
         assertThat(result.getRecipient().getHolderName()).isEqualTo("김시니어");
         assertThat(result.getTransaction().getTransactionId()).isEqualTo(999L);
-        assertThat(result.getTransaction().getStatus()).isEqualTo("REQUESTED");
-        assertThat(result.getTransaction().getType()).isEqualTo("TRANSFER_OUT");
+        assertThat(result.getTransaction().getStatus()).isEqualTo(TransactionStatus.REQUESTED);
+        assertThat(result.getTransaction().getType()).isEqualTo(TransactionType.TRANSFER_OUT);
         assertThat(result.getInquiryResponse()).isEqualTo(inquiryResponse);
 
         verify(recipientMapper).insertRecipient(any(Recipient.class));

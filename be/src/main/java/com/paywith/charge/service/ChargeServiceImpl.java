@@ -9,6 +9,8 @@ import com.paywith.exception.ChargeIrrecoverableException;
 import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.guard.service.GuardService;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transaction.domain.TransactionStatus;
+import com.paywith.transaction.domain.TransactionType;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.user.domain.User;
 import com.paywith.user.mapper.UserMapper;
@@ -117,10 +119,10 @@ public class ChargeServiceImpl implements ChargeService{
             Transaction transaction = Transaction.builder()
                     .walletId(wallet.getWalletId())
                     .accountId(request.getAccountId())
-                    .type("CHARGE")
+                    .type(TransactionType.CHARGE)
                     .amount(request.getAmount())
                     .initiatedBy(initiatedBy)
-                    .status("REQUESTED")
+                    .status(TransactionStatus.REQUESTED)
                     .createdAt(createdAt)
                     .build();
 
@@ -174,7 +176,7 @@ public class ChargeServiceImpl implements ChargeService{
                     Wallet updatedWallet = walletMapper.findWalletByUserId(walletOwnerId);
 
                     int updatedRows = transactionMapper.completeTransaction(
-                            prepared.transactionId(), "COMPLETED", updatedWallet.getBalance(), completedAt);
+                            prepared.transactionId(), TransactionStatus.COMPLETED, updatedWallet.getBalance(), completedAt);
                     if (updatedRows != 1){
                         throw new IllegalStateException("거래 완료 처리 실패(영향 행 0)");
                     }

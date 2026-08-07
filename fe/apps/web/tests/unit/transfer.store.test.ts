@@ -59,6 +59,34 @@ describe('transfer store', () => {
     expect(store.recipient?.bankCode).toBe('011')
   })
 
+  it('수취인을 변경하면 이전 단계의 금액과 메모 등의 입력값이 초기화된다', () => {
+    const store = useTransferStore()
+    store.selectRecipient({
+      id: 1,
+      name: '김민수',
+      bankCode: '004',
+      bank: '국민은행',
+      accountNumber: '432102-01-234567',
+    })
+    store.amount = 50_000
+    store.memo = '용돈'
+
+    expect(store.amount).toBe(50_000)
+    expect(store.memo).toBe('용돈')
+
+    store.selectRecipient({
+      id: 2,
+      name: '이영희',
+      bankCode: '088',
+      bank: '신한은행',
+      accountNumber: '110123-45-678910',
+    })
+
+    expect(store.recipient?.name).toBe('이영희')
+    expect(store.amount).toBe(0)
+    expect(store.memo).toBe('')
+  })
+
   it('빠른 금액 입력이 잔액을 초과해도 입력값을 유지한다', () => {
     const store = useTransferStore()
     store.setBalance(1_250_000)

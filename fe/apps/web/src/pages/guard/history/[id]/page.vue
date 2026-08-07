@@ -98,9 +98,7 @@ const titleClass = computed(() =>
       ? 'text-error'
       : presentation.value.textClass,
 )
-const riskScore = computed(
-  () => detail.value?.riskAnalysis?.riskScore ?? detail.value?.riskScore ?? 0,
-)
+const riskScore = computed(() => detail.value?.riskAnalysis?.riskScore ?? 0)
 const riskReasons = computed(() =>
   (detail.value?.riskAnalysis?.reasons ?? []).map(
     (reason) => riskReasonLabels[reason] ?? reason,

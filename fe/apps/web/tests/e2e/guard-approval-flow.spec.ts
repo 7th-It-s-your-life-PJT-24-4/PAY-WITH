@@ -37,7 +37,6 @@ const transactionDetail = {
   amount: 35000,
   memo: '생활비',
   balanceAfter: 120000,
-  riskScore: null,
   riskAnalysis: {
     riskScore: 87,
     summary: '평소와 다른 고액 송금이에요.',
@@ -95,6 +94,12 @@ test('홈의 거래 확인하기에서 선택한 시니어의 이상 거래 목�
               avatarId: 1,
               hasPending: true,
             },
+            {
+              wardId: 13,
+              name: '이시니어',
+              avatarId: 2,
+              hasPending: true,
+            },
           ],
           selectedWard: {
             wardId: 12,
@@ -129,6 +134,12 @@ test('홈의 거래 확인하기에서 선택한 시니어의 이상 거래 목�
   await expect(
     page
       .getByRole('button', { name: '김시니어 이상 거래 있음' })
+      .locator('span')
+      .first(),
+  ).toHaveClass(/border-primary-500/)
+  await expect(
+    page
+      .getByRole('button', { name: '이시니어 이상 거래 있음' })
       .locator('span')
       .first(),
   ).toHaveClass(/border-error/)

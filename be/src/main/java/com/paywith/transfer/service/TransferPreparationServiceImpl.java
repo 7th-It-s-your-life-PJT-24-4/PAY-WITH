@@ -6,6 +6,8 @@ import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
 import com.paywith.recipient.domain.Recipient;
 import com.paywith.recipient.mapper.RecipientMapper;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transaction.domain.TransactionStatus;
+import com.paywith.transaction.domain.TransactionType;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.PreparedTransfer;
 import com.paywith.transfer.dto.TransferRequest;
@@ -83,11 +85,11 @@ public class TransferPreparationServiceImpl implements TransferPreparationServic
         Transaction transaction = Transaction.builder()
                 .walletId(wallet.getWalletId())
                 .recipientId(recipient.getRecipientId())
-                .type("TRANSFER_OUT")
+                .type(TransactionType.TRANSFER_OUT)
                 .initiatedBy(null)
                 .amount(request.getAmount())
                 .memo(request.getMemo())
-                .status("REQUESTED")
+                .status(TransactionStatus.REQUESTED)
                 .createdAt(LocalDateTime.now())
                 .build();
         transactionMapper.insertTransaction(transaction);

@@ -1,7 +1,10 @@
 package com.paywith.transaction.service;
 
 import com.paywith.exception.BusinessException;
+import com.paywith.fds.domain.RiskLevel;
 import com.paywith.guard.service.GuardService;
+import com.paywith.transaction.domain.TransactionCategory;
+import com.paywith.transaction.domain.TransactionType;
 import com.paywith.transaction.dto.*;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.wallet.service.WalletService;
@@ -39,22 +42,23 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
 
         // 2. category 안에 있는지 확인
         String resolvedCategory = (category == null || category.isBlank()) ? "ALL" : category;
-        if(!ALLOWED_CATEGORIES.contains(resolvedCategory)){
+        if (!ALLOWED_CATEGORIES.contains(resolvedCategory)) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "TRANSACTION_001", "조회 조건이 올바르지 않습니다.");
         }
 
         // 3. page값이 음수거나, size 값이 0 이하거나 100 초과하면 걸러냄
         int resolvedPage = (page == null) ? DEFAULT_PAGE : page;
         int resolvedSize = (size == null) ? DEFAULT_SIZE : size;
-        if(resolvedPage < 0 || resolvedSize < 1 || resolvedSize > MAX_SIZE){
-            throw new BusinessException(HttpStatus.BAD_REQUEST,"TRANSACTION_001", "조회 조건이 올바르지 않습니다.");
+        if (resolvedPage < 0 || resolvedSize < 1 || resolvedSize > MAX_SIZE) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "TRANSACTION_001", "조회 조건이 올바르지 않습니다.");
         }
 
         // 4. API 표현을 DB 표현으로 변경
-        String type = switch (resolvedCategory) {
+        TransactionType type = switch (resolvedCategory) {
             case "ALL" -> null;
-            case "TRANSFER" -> "TRANSFER_OUT";
-            default -> resolvedCategory; // CHARGE, PAYMENT는 DB 값과 동일
+            case "TRANSFER" -> TransactionType.TRANSFER_OUT;
+            case "CHARGE" -> TransactionType.CHARGE;
+            default -> TransactionType.PAYMENT;
         };
 
         // 5. 페이지 번호를 SQL의 OFFSET으로 변환
@@ -74,39 +78,42 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
     public GuardTransactionHistoryListResponse findWardTransactions(Long guardId, Long wardId, String type, String riskLevel, Integer page, Integer size) {
 
         // 1. 보호자와 피보호자가 연동 되어 있는지
-        if (!guardService.verifyGuardOfWard(guardId, wardId)){
+        if (!guardService.verifyGuardOfWard(guardId, wardId)) {
             throw new BusinessException(HttpStatus.NOT_FOUND, "LINK_001", "연동된 피보호자를 찾을 수 없습니다.");
         }
 
         // 2. type과 riskLevel이 null이 아니고 ALLOWED_TYPES, ALLOWED_RISK_LEVELS 안에 있는지 확인
-        if (type != null && !ALLOWED_TYPES.contains(type)){
+        if (type != null && !ALLOWED_TYPES.contains(type)) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "REQUEST_001", "요청 값이 올바르지 않습니다.");
         }
-        if (riskLevel != null && !ALLOWED_RISK_LEVELS.contains(riskLevel)){
+        if (riskLevel != null && !ALLOWED_RISK_LEVELS.contains(riskLevel)) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "REQUEST_001", "요청 값이 올바르지 않습니다.");
         }
 
         // 3. page값이 음수거나, size 값이 0 이하거나 100 초과하면 걸러냄
         int resolvedPage = (page == null) ? DEFAULT_PAGE : page;
         int resolvedSize = (size == null) ? DEFAULT_SIZE : size;
-        if (resolvedPage < 0 || resolvedSize < 1 || resolvedSize > MAX_SIZE){
+        if (resolvedPage < 0 || resolvedSize < 1 || resolvedSize > MAX_SIZE) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "REQUEST_001", "요청 값이 올바르지 않습니다.");
         }
 
         // 4. API 표현을 DB 표현으로 변경
-        String dbType = "TRANSFER".equals(type) ? "TRANSFER_OUT" : type;
+        TransactionType dbType = (type == null) ? null
+                : "TRANSFER".equals(type) ? TransactionType.TRANSFER_OUT
+                  : TransactionType.valueOf(type);
+        RiskLevel dbRiskLevel = (riskLevel == null) ? null : RiskLevel.valueOf(riskLevel);
 
         // 5. 페이지 번호를 SQL의 OFFSET으로 변환
         int offset = resolvedPage * resolvedSize;
 
         // 6. 실제 조회
         List<GuardTransactionHistoryItem> items =
-                transactionMapper.findWardTransactions(guardId, wardId, dbType, riskLevel, offset, resolvedSize);
+                transactionMapper.findWardTransactions(guardId, wardId, dbType, dbRiskLevel, offset, resolvedSize);
         int totalElements =
-                transactionMapper.countWardTransactions(guardId,wardId, dbType, riskLevel);
+                transactionMapper.countWardTransactions(guardId, wardId, dbType, dbRiskLevel);
 
         // 7. 응답
-        return new GuardTransactionHistoryListResponse(items, resolvedPage, resolvedSize,totalElements);
+        return new GuardTransactionHistoryListResponse(items, resolvedPage, resolvedSize, totalElements);
     }
 
     @Override
@@ -131,13 +138,13 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
     @Transactional(readOnly = true)
     public GuardTransactionDetailResponse findWardTransactionDetail(Long guardId, Long wardId, Long transactionId) {
         // 1. 보호자-피보호자 연동 확인
-        if(!guardService.verifyGuardOfWard(guardId,wardId)){
+        if (!guardService.verifyGuardOfWard(guardId, wardId)) {
             throw new BusinessException(HttpStatus.NOT_FOUND, "LINK_001", "연동된 피보호자를 찾을 수 없습니다.");
         }
 
         // 2. 조회
         GuardTransactionDetailResponse detail = transactionMapper.findWardTransactionDetail(transactionId, wardId);
-        if (detail == null){
+        if (detail == null) {
             throw new BusinessException(HttpStatus.NOT_FOUND, "TRANSACTION_003", "거래 내역을 찾을 수 없습니다.");
         }
 
@@ -147,15 +154,15 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
         );
         detail.setRiskScore(null);
 
-        return  detail;
+        return detail;
     }
 
     // riskAnalysis 조립
-    private RiskAnalysisResponse buildRiskAnalysis(Long transactionId, String type, String riskLevel, Integer riskScore) {
-        if (!"TRANSFER".equals(type) && !"PAYMENT".equals(type)) {
+    private RiskAnalysisResponse buildRiskAnalysis(Long transactionId, TransactionCategory type, RiskLevel riskLevel, Integer riskScore) {
+        if (type != TransactionCategory.TRANSFER && type != TransactionCategory.PAYMENT) {
             return null; // CHARGE 평가 대상이 아님
         }
-        if (riskLevel == null || "SAFE".equals(riskLevel) || riskScore == null) {
+        if (riskLevel == null || riskScore == null) {
             return null; // 평가 대상 아니었거나, 안전 거래
         }
 

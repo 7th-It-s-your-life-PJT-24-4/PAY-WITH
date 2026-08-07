@@ -8,6 +8,7 @@ import com.paywith.fds.support.FdsDecisions;
 import com.paywith.recipient.domain.Recipient;
 import com.paywith.recipient.mapper.RecipientMapper;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transaction.domain.TransactionStatus;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.PreparedTransfer;
 import com.paywith.transfer.dto.TransferExecutionContext;
@@ -92,14 +93,14 @@ class TransferFinalizationServiceImplTest {
 
     @Test
     void 위험등급이면_거래를_HELD로_전환하고_잔액은_건드리지_않는다() {
-        given(transactionMapper.updateStatus(999L, "HELD")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.HELD)).willReturn(1);
 
         TransferResponse result = transferFinalizationService.finalize(prepared, FdsDecisions.held(), request);
 
-        assertThat(result.getStatus()).isEqualTo("HELD");
+        assertThat(result.getStatus()).isEqualTo(TransactionStatus.HELD);
         assertThat(result.getTransactionId()).isEqualTo(999L);
 
-        verify(transactionMapper).updateStatus(999L, "HELD");
+        verify(transactionMapper).updateStatus(999L, TransactionStatus.HELD);
         verify(walletMapper, never()).decreaseBalanceIfSufficient(any(), any());
         verify(openBankingClient, never()).deposit(any(), any(), any());
         verify(recipientMapper, never()).updateSendInfo(any());
@@ -108,16 +109,16 @@ class TransferFinalizationServiceImplTest {
     // 블랙리스트는 승인 대기 없이 끝나므로 HELD 가 아니라 BLOCKED 로 확정돼야 한다
     @Test
     void blockedDecision_marksTransactionBlockedAndSkipsTransfer() {
-        given(transactionMapper.updateStatus(999L, "BLOCKED")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.BLOCKED)).willReturn(1);
 
         TransferResponse result =
                 transferFinalizationService.finalize(prepared, FdsDecisions.blocked(), request);
 
-        assertThat(result.getStatus()).isEqualTo("BLOCKED");
+        assertThat(result.getStatus()).isEqualTo(TransactionStatus.BLOCKED);
         assertThat(result.getTransactionId()).isEqualTo(999L);
 
-        verify(transactionMapper).updateStatus(999L, "BLOCKED");
-        verify(transactionMapper, never()).updateStatus(999L, "HELD");
+        verify(transactionMapper).updateStatus(999L, TransactionStatus.BLOCKED);
+        verify(transactionMapper, never()).updateStatus(999L, TransactionStatus.HELD);
         verify(walletMapper, never()).decreaseBalanceIfSufficient(any(), any());
         verify(openBankingClient, never()).deposit(any(), any(), any());
         verify(recipientMapper, never()).updateSendInfo(any());
@@ -126,7 +127,7 @@ class TransferFinalizationServiceImplTest {
     // 상태 전환이 0행이면 차단이 반영되지 않은 것이라 조용히 넘어가면 안 된다
     @Test
     void blockedDecision_failsWhenStatusUpdateMatchesNoRow() {
-        given(transactionMapper.updateStatus(999L, "BLOCKED")).willReturn(0);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.BLOCKED)).willReturn(0);
 
         assertThatThrownBy(
                 () -> transferFinalizationService.finalize(prepared, FdsDecisions.blocked(), request))
@@ -138,7 +139,7 @@ class TransferFinalizationServiceImplTest {
 
     @Test
     void 잔액이_부족하면_예외를_던지고_입금이체는_하지_않는다() {
-        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.PROCESSING)).willReturn(1);
         given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(0);
 
         assertThatThrownBy(() -> transferFinalizationService.finalize(prepared, FdsDecisions.safe(), request))
@@ -146,7 +147,7 @@ class TransferFinalizationServiceImplTest {
                 .hasFieldOrPropertyWithValue("status", HttpStatus.UNPROCESSABLE_ENTITY)
                 .hasMessageContaining("송금 가능한 잔액이 부족합니다");
 
-        verify(transactionMapper).updateStatus(999L, "PROCESSING");
+        verify(transactionMapper).updateStatus(999L, TransactionStatus.PROCESSING);
         verify(openBankingClient, never()).deposit(any(), any(), any());
         verify(transactionMapper, never()).completeTransaction(any(), any(), any(), any());
         verify(recipientMapper, never()).updateSendInfo(any());
@@ -154,16 +155,16 @@ class TransferFinalizationServiceImplTest {
 
     @Test
     void 정상_완료시_입금이체하고_완료_응답을_반환한다() {
-        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.PROCESSING)).willReturn(1);
         given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(1);
         Wallet updatedWallet = Wallet.builder().walletId(10L).userId(userId).balance(50_000L).build();
         given(walletMapper.findWalletByUserId(userId)).willReturn(updatedWallet);
-        given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class)))
+        given(transactionMapper.completeTransaction(eq(999L), eq(TransactionStatus.COMPLETED), eq(50_000L), any(LocalDateTime.class)))
                 .willReturn(1);
 
         TransferResponse result = transferFinalizationService.finalize(prepared, FdsDecisions.safe(), request);
 
-        assertThat(result.getStatus()).isEqualTo("COMPLETED");
+        assertThat(result.getStatus()).isEqualTo(TransactionStatus.COMPLETED);
         assertThat(result.getTransactionId()).isEqualTo(999L);
         assertThat(result.getHolderName()).isEqualTo("김시니어");
         assertThat(result.getBankName()).isEqualTo("KB국민은행");
@@ -172,23 +173,23 @@ class TransferFinalizationServiceImplTest {
         assertThat(result.getMemo()).isEqualTo("생활비");
 
         verify(openBankingClient).deposit("004", "11012300006781", 50_000L);
-        verify(transactionMapper).completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class));
+        verify(transactionMapper).completeTransaction(eq(999L), eq(TransactionStatus.COMPLETED), eq(50_000L), any(LocalDateTime.class));
         verify(recipientMapper).updateSendInfo(200L);
     }
 
     @Test
     void 주의등급도_HELD로_보류되지_않고_정상적으로_송금이_진행된다() {
-        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.PROCESSING)).willReturn(1);
         given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(1);
         given(walletMapper.findWalletByUserId(userId))
                 .willReturn(Wallet.builder().walletId(10L).userId(userId).balance(50_000L).build());
-        given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class)))
+        given(transactionMapper.completeTransaction(eq(999L), eq(TransactionStatus.COMPLETED), eq(50_000L), any(LocalDateTime.class)))
                 .willReturn(1);
 
         TransferResponse result = transferFinalizationService.finalize(prepared, FdsDecisions.caution(), request);
 
-        assertThat(result.getStatus()).isEqualTo("COMPLETED");
-        verify(transactionMapper, never()).updateStatus(999L, "HELD");
+        assertThat(result.getStatus()).isEqualTo(TransactionStatus.COMPLETED);
+        verify(transactionMapper, never()).updateStatus(999L, TransactionStatus.HELD);
         verify(recipientMapper).updateSendInfo(200L);
     }
 
@@ -196,33 +197,33 @@ class TransferFinalizationServiceImplTest {
 
     @Test
     void 입금_호출이_실패하면_FAILED로_기록하고_TransferIrrecoverableException을_던진다() {
-        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.PROCESSING)).willReturn(1);
         given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(1);
         given(walletMapper.findWalletByUserId(userId))
                 .willReturn(Wallet.builder().walletId(10L).userId(userId).balance(50_000L).build());
         given(openBankingClient.deposit("004", "11012300006781", 50_000L))
                 .willThrow(new RuntimeException("네트워크 오류"));
-        given(transactionMapper.updateStatus(999L, "FAILED")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.FAILED)).willReturn(1);
 
         assertThatThrownBy(() -> transferFinalizationService.finalize(prepared, FdsDecisions.safe(), request))
                 .isInstanceOf(TransferIrrecoverableException.class)
                 .hasMessageContaining("transactionId=999");
 
-        verify(transactionMapper).updateStatus(999L, "FAILED");
+        verify(transactionMapper).updateStatus(999L, TransactionStatus.FAILED);
         verify(transactionMapper, never()).completeTransaction(any(), any(), any(), any());
         verify(recipientMapper, never()).updateSendInfo(any());
     }
 
     @Test
     void 완료_처리가_반복_실패하면_짧게_재시도한_뒤_FAILED로_기록한다() {
-        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.PROCESSING)).willReturn(1);
         given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(1);
         given(walletMapper.findWalletByUserId(userId))
                 .willReturn(Wallet.builder().walletId(10L).userId(userId).balance(50_000L).build());
         // 입금은 이미 성공, 완료 처리(completeTransaction)만 계속 0행(실패)
-        given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class)))
+        given(transactionMapper.completeTransaction(eq(999L), eq(TransactionStatus.COMPLETED), eq(50_000L), any(LocalDateTime.class)))
                 .willReturn(0);
-        given(transactionMapper.updateStatus(999L, "FAILED")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.FAILED)).willReturn(1);
 
         assertThatThrownBy(() -> transferFinalizationService.finalize(prepared, FdsDecisions.safe(), request))
                 .isInstanceOf(TransferIrrecoverableException.class);
@@ -230,27 +231,27 @@ class TransferFinalizationServiceImplTest {
         // 입금은 재시도 없이 딱 1번만 호출돼야 한다 (이미 성공했으므로 다시 부르면 이중 입금)
         verify(openBankingClient, times(1)).deposit("004", "11012300006781", 50_000L);
         verify(transactionMapper, times(3))
-                .completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class));
-        verify(transactionMapper).updateStatus(999L, "FAILED");
+                .completeTransaction(eq(999L), eq(TransactionStatus.COMPLETED), eq(50_000L), any(LocalDateTime.class));
+        verify(transactionMapper).updateStatus(999L, TransactionStatus.FAILED);
         // 입금은 성공했으므로 완료 처리와 무관하게 수취인 송금 이력은 반영돼야 한다
         verify(recipientMapper).updateSendInfo(200L);
     }
 
     @Test
     void 완료_처리가_처음엔_실패했다가_재시도로_성공하면_정상_완료된다() {
-        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.PROCESSING)).willReturn(1);
         given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(1);
         given(walletMapper.findWalletByUserId(userId))
                 .willReturn(Wallet.builder().walletId(10L).userId(userId).balance(50_000L).build());
-        given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class)))
+        given(transactionMapper.completeTransaction(eq(999L), eq(TransactionStatus.COMPLETED), eq(50_000L), any(LocalDateTime.class)))
                 .willReturn(0, 1); // 1차 실패, 2차 성공
 
         TransferResponse result = transferFinalizationService.finalize(prepared, FdsDecisions.safe(), request);
 
-        assertThat(result.getStatus()).isEqualTo("COMPLETED");
+        assertThat(result.getStatus()).isEqualTo(TransactionStatus.COMPLETED);
         verify(transactionMapper, times(2))
-                .completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class));
-        verify(transactionMapper, never()).updateStatus(999L, "FAILED");
+                .completeTransaction(eq(999L), eq(TransactionStatus.COMPLETED), eq(50_000L), any(LocalDateTime.class));
+        verify(transactionMapper, never()).updateStatus(999L, TransactionStatus.FAILED);
         verify(recipientMapper).updateSendInfo(200L);
     }
 
@@ -286,23 +287,23 @@ class TransferFinalizationServiceImplTest {
                 .memo("생활비")
                 .build();
         given(transactionMapper.findExecutionContextByTransactionId(999L)).willReturn(context);
-        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.PROCESSING)).willReturn(1);
         given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(1);
         given(walletMapper.findWalletByUserId(userId))
                 .willReturn(Wallet.builder().walletId(10L).userId(userId).balance(50_000L).build());
-        given(transactionMapper.completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class)))
+        given(transactionMapper.completeTransaction(eq(999L), eq(TransactionStatus.COMPLETED), eq(50_000L), any(LocalDateTime.class)))
                 .willReturn(1);
 
         TransferResponse result = transferFinalizationService.finalizeApprovedTransfer(999L);
 
-        assertThat(result.getStatus()).isEqualTo("COMPLETED");
+        assertThat(result.getStatus()).isEqualTo(TransactionStatus.COMPLETED);
         assertThat(result.getTransactionId()).isEqualTo(999L);
         assertThat(result.getHolderName()).isEqualTo("김시니어");
         assertThat(result.getBankName()).isEqualTo("KB국민은행");
         assertThat(result.getBalanceAfter()).isEqualTo(50_000L);
 
         verify(openBankingClient).deposit("004", "11012300006781", 50_000L);
-        verify(transactionMapper).completeTransaction(eq(999L), eq("COMPLETED"), eq(50_000L), any(LocalDateTime.class));
+        verify(transactionMapper).completeTransaction(eq(999L), eq(TransactionStatus.COMPLETED), eq(50_000L), any(LocalDateTime.class));
         verify(recipientMapper).updateSendInfo(200L);
     }
 
@@ -321,19 +322,19 @@ class TransferFinalizationServiceImplTest {
                 .memo("생활비")
                 .build();
         given(transactionMapper.findExecutionContextByTransactionId(999L)).willReturn(context);
-        given(transactionMapper.updateStatus(999L, "PROCESSING")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.PROCESSING)).willReturn(1);
         given(walletMapper.decreaseBalanceIfSufficient(10L, 50_000L)).willReturn(1);
         given(walletMapper.findWalletByUserId(userId))
                 .willReturn(Wallet.builder().walletId(10L).userId(userId).balance(50_000L).build());
         given(openBankingClient.deposit("004", "11012300006781", 50_000L))
                 .willThrow(new RuntimeException("네트워크 오류"));
-        given(transactionMapper.updateStatus(999L, "FAILED")).willReturn(1);
+        given(transactionMapper.updateStatus(999L, TransactionStatus.FAILED)).willReturn(1);
 
         assertThatThrownBy(() -> transferFinalizationService.finalizeApprovedTransfer(999L))
                 .isInstanceOf(TransferIrrecoverableException.class)
                 .hasMessageContaining("transactionId=999");
 
-        verify(transactionMapper).updateStatus(999L, "FAILED");
+        verify(transactionMapper).updateStatus(999L, TransactionStatus.FAILED);
         verify(transactionMapper, never()).completeTransaction(any(), any(), any(), any());
         verify(recipientMapper, never()).updateSendInfo(any());
     }

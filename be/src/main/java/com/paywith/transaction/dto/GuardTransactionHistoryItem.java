@@ -1,5 +1,8 @@
 package com.paywith.transaction.dto;
 
+import com.paywith.fds.domain.RiskLevel;
+import com.paywith.transaction.domain.TransactionCategory;
+import com.paywith.transaction.domain.TransactionStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -17,11 +20,11 @@ import java.time.LocalDateTime;
 public class GuardTransactionHistoryItem {
 
     private Long transactionId;
-    private String type;
-    private String status;
+    private TransactionCategory type;
+    private TransactionStatus status;
     private String counterpartyName;
     private Long amount;
-    private String riskLevel;
+    private RiskLevel riskLevel;
     private String riskReason;
     private LocalDateTime createdAt;
 }

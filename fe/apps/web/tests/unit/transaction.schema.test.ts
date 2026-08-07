@@ -52,7 +52,6 @@ describe('guard transaction response schema', () => {
         amount: 35000,
         memo: '생활비',
         balanceAfter: 120000,
-        riskScore: null,
         riskAnalysis: {
           riskScore: 87,
           summary: '평소와 다른 고액 송금이에요.',
@@ -84,7 +83,6 @@ describe('guard transaction response schema', () => {
         amount: 50000,
         memo: null,
         balanceAfter: 170000,
-        riskScore: null,
         riskAnalysis: null,
         occurredAt: '2026-08-05T10:00:00',
       },
@@ -92,5 +90,34 @@ describe('guard transaction response schema', () => {
     })
 
     expect(result.data.riskAnalysis).toBeNull()
+  })
+
+  it('SAFE 거래의 위험 분석 점수를 파싱한다', () => {
+    const result = guardTransactionDetailResponseSchema.parse({
+      success: true,
+      data: {
+        transactionId: 43,
+        type: 'PAYMENT',
+        direction: 'OUT',
+        status: 'COMPLETED',
+        riskLevel: 'SAFE',
+        counterpartyName: '동네 약국',
+        bankName: null,
+        accountNo: null,
+        amount: 12000,
+        memo: null,
+        balanceAfter: 158000,
+        riskAnalysis: {
+          riskScore: 8,
+          summary: null,
+          reasons: [],
+        },
+        occurredAt: '2026-08-07T10:30:00',
+      },
+      message: null,
+    })
+
+    expect(result.data.riskLevel).toBe('SAFE')
+    expect(result.data.riskAnalysis?.riskScore).toBe(8)
   })
 })

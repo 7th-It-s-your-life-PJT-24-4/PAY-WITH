@@ -1,5 +1,6 @@
 package com.paywith.transfer.dto;
 
+import com.paywith.transaction.domain.TransactionStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -23,7 +24,7 @@ public class TransferResponse {
             + "정상이면 COMPLETED(201). BLOCKED·HELD 는 이체가 일어나지 않아 이 필드와 "
             + "transactionId 만 채워지고 나머지는 null 이다.",
         example = "COMPLETED", allowableValues = "BLOCKED,HELD,COMPLETED")
-    private String status;
+    private TransactionStatus status;
 
     @ApiModelProperty(value = "수취인 예금주명", example = "김시니어")
     private String holderName;      // recipientName → holderName (DB: recipients.holder_name)

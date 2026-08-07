@@ -2,6 +2,7 @@ package com.paywith.transfer.controller;
 
 
 import com.paywith.common.ApiResponse;
+import com.paywith.transaction.domain.TransactionStatus;
 import com.paywith.transfer.dto.*;
 import com.paywith.transfer.service.TransferService;
 import io.swagger.annotations.Api;
@@ -62,11 +63,11 @@ public class TransferController {
      * 확정 상태를 HTTP 코드로 옮긴다. 새 상태가 생겼을 때 조용히 201(송금완료)로 흘러가지 않도록
      * 알고 있는 상태만 매핑하고 나머지는 200으로 둔다.
      */
-    private HttpStatus httpStatusOf(String transferStatus) {
-        if ("HELD".equals(transferStatus)) {
+    private HttpStatus httpStatusOf(TransactionStatus transferStatus) {
+        if (transferStatus == TransactionStatus.HELD) {
             return HttpStatus.ACCEPTED;     //202 거래이상 보류(보호자 승인 대기)
         }
-        if ("COMPLETED".equals(transferStatus)) {
+        if (transferStatus == TransactionStatus.COMPLETED) {
             return HttpStatus.CREATED;      //201 송금완료
         }
         return HttpStatus.OK;               //200 차단(BLOCKED) 등 — 이체가 일어나지 않은 종결

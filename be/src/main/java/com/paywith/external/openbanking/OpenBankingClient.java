@@ -3,6 +3,8 @@ package com.paywith.external.openbanking;
 import com.paywith.external.openbanking.dto.DepositResponse;
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
 import com.paywith.external.openbanking.dto.WithdrawResponse;
+import com.paywith.recipient.mapper.BankMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -12,6 +14,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -19,10 +22,13 @@ import java.util.Map;
 import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class OpenBankingClient {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private String clientUseCode;
+
+    private final BankMapper bankMapper;
 
     private static final DateTimeFormatter TRAN_DTIME_FORMAT =
             DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -36,7 +42,29 @@ public class OpenBankingClient {
     @Value("${kftc.client-secret:mock-client-secret}")
     private String clientSecret;
 
-    /** 접근토큰(Access Token) 발급 - 2-legged */
+    // 시연용 예금주 이름 생성 매핑 테이블 (application.properties에서 주입, 재배포 없이 값 조정 가능)
+    // 프로퍼티가 누락돼도 기동이 실패하지 않도록 기본값을 둔다
+    @Value("${mock.holder-name.surnames:이,김,박,최,정,강,조,윤,장,임}")
+    private String surnamesRaw;
+
+    @Value("${mock.holder-name.given-first:서,민,지,수,윤,예,준,아,현,하}")
+    private String givenFirstRaw;
+    @Value("${mock.holder-name.given-second:아,민,준,호,영,진,희,우,빈,서}")
+    private String givenSecondRaw;
+    private String[] surnames;
+    private String[] givenFirst;
+    private String[] givenSecond;
+
+    @PostConstruct
+    private void initHolderNameTables() {
+        surnames = surnamesRaw.split(",");
+        givenFirst = givenFirstRaw.split(",");
+        givenSecond = givenSecondRaw.split(",");
+    }
+
+    /**
+     * 접근토큰(Access Token) 발급 - 2-legged
+     */
     public String getAccessToken() {
         String url = baseUrl + "/oauth/2.0/token";
 
@@ -73,27 +101,32 @@ public class OpenBankingClient {
 
     // 계좌번호 별로 수취인 다르게 임시 매핑
     private String resolveMockHolderName(String accountNum) {
-        return switch (accountNum) {
-            case "11012300006781" -> "김시니어";
-            case "11012300006782" -> "이보호자";
-            case "22011122223333" -> "김준호";
-            case "33044455556666" -> "박지연";
-            case "44077788889999" -> "최영희";
-            case "55011112222333" -> "정민수";
-            default -> "홍길동";  // 등록 안 된 계좌번호는 기본값
-        };
+        // 시연용: 계좌번호의 첫 자리/5번째 자리/마지막 자리를 뽑아 성+이름을 조합해 생성.
+        // 등록된 몇 개 번호만 이름이 뜨던 방식 대신, 어떤 계좌번호를 입력해도 이름이 나오게 함.
+        if (accountNum == null || accountNum.length() < 5) {
+            return "홍길동"; // 비정상적으로 짧은 계좌번호는 기본값
+        }
+
+        String surname = pickByDigit(accountNum.charAt(0), surnames);
+        String first = pickByDigit(accountNum.charAt(4), givenFirst);
+        String second = pickByDigit(accountNum.charAt(accountNum.length() - 1), givenSecond);
+
+        return surname + first + second;
     }
+
+    // 숫자 문자 하나(digit)를 배열 인덱스로 변환해서 값을 꺼낸다. 숫자가 아니면 0번째로 고정.
+    private String pickByDigit(char digit, String[] table) {
+        if (!Character.isDigit(digit)) {
+            return table[0];
+        }
+        return table[digit - '0'];
+    }
+
 
     // bankCode에 맞는 은행명을 대충 흉내내기 위한 임시 매핑 (실제로는 banks 테이블/join으로 이미 처리 중)
     private String resolveMockBankName(String bankCodeStd) {
-        return switch (bankCodeStd) {
-            case "004" -> "KB국민은행";
-            case "088" -> "신한은행";
-            case "020" -> "우리은행";
-            case "081" -> "하나은행";
-            case "090" -> "카카오뱅크";
-            default -> "알 수 없는 은행";
-        };
+        String bankName = bankMapper.findBankName(bankCodeStd);
+        return (bankName != null) ? bankName : "알 수 없는 은행"; // banks 테이블에 없는 코드일 때만 최후 fallback
     }
 
     public WithdrawResponse withdraw(String bankCodeStd, String accountNum, Long amount) {
@@ -103,12 +136,12 @@ public class OpenBankingClient {
         return response;
     }
 
-    /**
-     * 계좌실명조회 (예금주 확인)
-     * @param bankCodeStd 개설기관 표준코드 (예: "004")
-     * @param accountNum 계좌번호
-     * @param accountHolderInfo 예금주 인증정보 (생년월일 등)
-     */
+/**
+ * 계좌실명조회 (예금주 확인)
+ * @param bankCodeStd 개설기관 표준코드 (예: "004")
+ * @param accountNum 계좌번호
+ * @param accountHolderInfo 예금주 인증정보 (생년월일 등)
+ */
 //    public RealNameInquiryResponse inquireRealName(
 //            String bankCodeStd, String accountNum, String accountHolderInfo) {
 //
@@ -143,7 +176,9 @@ public class OpenBankingClient {
 //        return response;
 //    }
 
-    /** 은행거래고유번호 생성 (이용기관코드 + 유니크값 조합이 표준이나, 테스트베드는 간단히 생성) */
+    /**
+     * 은행거래고유번호 생성 (이용기관코드 + 유니크값 조합이 표준이나, 테스트베드는 간단히 생성)
+     */
     private String generateBankTranId() {
         String serialNumber = UUID.randomUUID().toString().replace("-", "").substring(0, 9);
         String bankTranId = clientUseCode + "U" + serialNumber;

@@ -15,6 +15,7 @@ import com.paywith.fds.service.FdsEvaluationService;
 import com.paywith.recipient.domain.Recipient;
 import com.paywith.recipient.mapper.RecipientMapper;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transaction.domain.TransactionStatus;
 import com.paywith.transaction.mapper.TransactionMapper;
 import com.paywith.transfer.dto.IdempotencyRecord;
 import com.paywith.transfer.dto.IdempotencyStatus;
@@ -168,7 +169,7 @@ class TransferServiceImplTest {
     void 정상_송금이면_완료_응답을_반환하고_결과를_24시간_캐시한다() {
         TransferResponse response = TransferResponse.builder()
                 .transactionId(999L)
-                .status("COMPLETED")
+                .status(TransactionStatus.COMPLETED)
                 .holderName("김시니어")
                 .balanceAfter(50_000L)
                 .build();
@@ -191,7 +192,7 @@ class TransferServiceImplTest {
     void FDS_위험등급으로_보류돼도_결과를_그대로_반환하고_캐시한다() {
         TransferResponse held = TransferResponse.builder()
                 .transactionId(999L)
-                .status("HELD")
+                .status(TransactionStatus.HELD)
                 .build();
 
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
@@ -204,7 +205,7 @@ class TransferServiceImplTest {
 
         TransferResponse result = transferService.transfer(userId, idempotencyKey, request);
 
-        assertThat(result.getStatus()).isEqualTo("HELD");
+        assertThat(result.getStatus()).isEqualTo(TransactionStatus.HELD);
         verify(valueOperations).set(eq(key), anyString(), eq(Duration.ofHours(24)));
     }
 
@@ -230,7 +231,7 @@ class TransferServiceImplTest {
     void 완료된_같은_요청이_재전송되면_저장된_응답을_그대로_반환한다() throws Exception {
         TransferResponse previousResponse = TransferResponse.builder()
                 .transactionId(999L)
-                .status("COMPLETED")
+                .status(TransactionStatus.COMPLETED)
                 .build();
         IdempotencyRecord done = new IdempotencyRecord(IdempotencyStatus.DONE, hashRequest(request), previousResponse);
 
@@ -445,7 +446,7 @@ class TransferServiceImplTest {
     @Test
     void HELD_상태가_아니면_취소할_수_없다() {
         given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
-        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn("COMPLETED");
+        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn(TransactionStatus.COMPLETED);
 
         assertThatThrownBy(() -> transferService.cancelHeldTransfer(userId, transactionId))
                 .isInstanceOf(BusinessException.class)
@@ -458,7 +459,7 @@ class TransferServiceImplTest {
     @Test
     void 취소_UPDATE가_0건이면_이미_다른_상태로_바뀐_것이므로_예외() {
         given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
-        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn("HELD");
+        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn(TransactionStatus.HELD);
         given(transactionApprovalMapper.cancelHeldByWard(transactionId)).willReturn(0);
 
         assertThatThrownBy(() -> transferService.cancelHeldTransfer(userId, transactionId))
@@ -472,14 +473,14 @@ class TransferServiceImplTest {
     @Test
     void 정상_취소시_거래와_승인요청을_모두_취소하고_응답을_반환한다() {
         given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
-        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn("HELD");
+        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn(TransactionStatus.HELD);
         given(transactionApprovalMapper.cancelHeldByWard(transactionId)).willReturn(1);
         given(approvalRequestMapper.cancelPendingByTransactionId(transactionId)).willReturn(1);
 
         TransferCancelResponse response = transferService.cancelHeldTransfer(userId, transactionId);
 
         assertThat(response.getTransactionId()).isEqualTo(transactionId);
-        assertThat(response.getStatus()).isEqualTo("CANCELED");
+        assertThat(response.getStatus()).isEqualTo(TransactionStatus.CANCELED);
         verify(transactionApprovalMapper).cancelHeldByWard(transactionId);
         verify(approvalRequestMapper).cancelPendingByTransactionId(transactionId);
     }
@@ -487,13 +488,13 @@ class TransferServiceImplTest {
     @Test
     void 승인요청이_이미_다른_상태여도_거래_취소_자체는_성공한다() {
         given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
-        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn("HELD");
+        given(transactionMapper.findTransferStatusForCancel(transactionId, userId)).willReturn(TransactionStatus.HELD);
         given(transactionApprovalMapper.cancelHeldByWard(transactionId)).willReturn(1);
         given(approvalRequestMapper.cancelPendingByTransactionId(transactionId)).willReturn(0);
 
         TransferCancelResponse response = transferService.cancelHeldTransfer(userId, transactionId);
 
-        assertThat(response.getStatus()).isEqualTo("CANCELED");
+        assertThat(response.getStatus()).isEqualTo(TransactionStatus.CANCELED);
     }
 
     /**
