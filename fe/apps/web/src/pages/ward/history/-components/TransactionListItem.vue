@@ -26,8 +26,8 @@ const props = defineProps<{
 type InterruptedStatus = 'BLOCKED' | 'REJECTED' | 'CANCELED' | 'FAILED'
 
 const interruptedStatusLabel: Record<InterruptedStatus, string> = {
-  BLOCKED: '거래 차단됨',
-  REJECTED: '거래 거절됨',
+  BLOCKED: '시스템 차단됨',
+  REJECTED: '보호자가 거절함',
   CANCELED: '거래 취소됨',
   FAILED: '거래 실패',
 }

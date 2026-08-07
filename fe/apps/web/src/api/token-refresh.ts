@@ -15,9 +15,12 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 let refreshPromise: Promise<string> | null = null
 let refreshTimer: ReturnType<typeof globalThis.setTimeout> | null = null
+let checkInterval: ReturnType<typeof globalThis.setInterval> | null = null
+let scheduledExpiresAt: number | null = null
 let schedulerStarted = false
 const refreshLeewayMs = 60_000
 const refreshRetryDelayMs = 30_000
+const periodicCheckIntervalMs = 30_000
 
 function handleScheduledRefreshFailure(error: unknown): void {
   if (isUnauthorizedApiError(error)) {
@@ -28,6 +31,8 @@ function handleScheduledRefreshFailure(error: unknown): void {
   if (!tokenStorage.getRefreshToken()) return
 
   // 네트워크·서버 장애를 토큰 만료로 오인하지 않고 잠시 뒤 재시도한다.
+  if (refreshTimer) globalThis.clearTimeout(refreshTimer)
+  scheduledExpiresAt = null
   refreshTimer = globalThis.setTimeout(() => {
     void refreshAccessToken().catch(handleScheduledRefreshFailure)
   }, refreshRetryDelayMs)
@@ -47,29 +52,63 @@ async function requestNewAccessToken(refreshToken: string): Promise<string> {
 }
 
 export function scheduleAccessTokenRefresh(): void {
-  if (refreshTimer) globalThis.clearTimeout(refreshTimer)
-  refreshTimer = null
-
   const accessToken = tokenStorage.getAccessToken()
-  if (!accessToken || !tokenStorage.getRefreshToken()) return
+  if (!accessToken || !tokenStorage.getRefreshToken()) {
+    if (refreshTimer) globalThis.clearTimeout(refreshTimer)
+    refreshTimer = null
+    scheduledExpiresAt = null
+    return
+  }
 
   const expiresAt = getAccessTokenExpiresAt(accessToken)
-  if (expiresAt === null) return
+  if (expiresAt === null) {
+    if (refreshTimer) globalThis.clearTimeout(refreshTimer)
+    refreshTimer = null
+    scheduledExpiresAt = null
+    return
+  }
+
+  // 이미 동일한 만료 시각으로 스케줄링된 타이머가 유효하게 대기 중이면 무분별한 리셋을 무시한다.
+  if (refreshTimer !== null && scheduledExpiresAt === expiresAt) {
+    return
+  }
+
+  if (refreshTimer) globalThis.clearTimeout(refreshTimer)
+  scheduledExpiresAt = expiresAt
 
   const delay = Math.max(0, expiresAt - Date.now() - refreshLeewayMs)
   refreshTimer = globalThis.setTimeout(() => {
+    scheduledExpiresAt = null
+    refreshTimer = null
     void refreshAccessToken().catch(handleScheduledRefreshFailure)
   }, delay)
 }
 
 export function startAccessTokenRefreshScheduler(): void {
   scheduleAccessTokenRefresh()
-  if (schedulerStarted || typeof document === 'undefined') return
+  if (schedulerStarted || typeof window === 'undefined') return
 
   schedulerStarted = true
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') scheduleAccessTokenRefresh()
-  })
+
+  const handleFocusOrVisibility = () => {
+    if (
+      typeof document !== 'undefined' &&
+      document.visibilityState === 'visible'
+    ) {
+      scheduleAccessTokenRefresh()
+    }
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleFocusOrVisibility)
+  }
+  window.addEventListener('focus', handleFocusOrVisibility)
+
+  if (!checkInterval) {
+    checkInterval = globalThis.setInterval(() => {
+      scheduleAccessTokenRefresh()
+    }, periodicCheckIntervalMs)
+  }
 }
 
 // 동시에 여러 요청이 401을 받아도 refresh 호출은 한 번만 나가도록 in-flight 요청을 공유한다.

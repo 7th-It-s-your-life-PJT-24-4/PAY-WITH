@@ -51,10 +51,35 @@ class RiskGraderTest {
         assertThat(grader.normalizeScore(37)).isEqualTo(37);
     }
 
+    // 룰이 여럿 겹치면 합산이 상한을 넘는다(현재 배점 최대 151)
+    @Test
+    void normalizeScore_clampsAboveMaxToMax() {
+        assertThat(grader.normalizeScore(151)).isEqualTo(RiskGrader.MAX_SCORE);
+    }
+
+    @Test
+    void normalizeScore_keepsMaxAsIs() {
+        assertThat(grader.normalizeScore(RiskGrader.MAX_SCORE)).isEqualTo(RiskGrader.MAX_SCORE);
+    }
+
+    // 상한을 잘라도 등급 판정은 그대로여야 한다
+    @Test
+    void gradesClampedScoreAsDanger() {
+        assertThat(grader.grade(grader.normalizeScore(151))).isEqualTo(RiskLevel.DANGER);
+    }
+
     @Test
     void constructor_rejectsCautionAboveDanger() {
         assertThatThrownBy(() -> new RiskGrader(60, 50))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("fds.threshold.caution");
+    }
+
+    // 상한을 넘는 임계값은 클램프 때문에 도달 불가라 기동을 막는다
+    @Test
+    void constructor_rejectsDangerAboveMaxScore() {
+        assertThatThrownBy(() -> new RiskGrader(25, RiskGrader.MAX_SCORE + 1))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("fds.threshold.danger");
     }
 }

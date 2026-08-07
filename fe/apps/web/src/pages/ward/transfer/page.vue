@@ -124,7 +124,7 @@ function selectRecipient(recipient: TransferRecipient) {
         <div
           v-for="recipient in recentRecipients"
           :key="recipient.id"
-          class="flex w-32 shrink-0 snap-start flex-col items-center gap-sm"
+          class="flex w-36 shrink-0 snap-start flex-col items-center gap-sm"
         >
           <button
             class="flex w-full flex-col items-center gap-xs rounded-medium outline-none focus-visible:ring-2 focus-visible:ring-focus"
@@ -141,13 +141,17 @@ function selectRecipient(recipient: TransferRecipient) {
           </button>
           <button
             v-if="!isContact(recipient)"
-            class="type-h4 flex min-h-touch-target w-full items-center justify-center gap-xs rounded-full border-2 border-primary-500 bg-surface-card px-sm text-primary-500 outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            class="type-h4 flex min-h-touch-target w-full items-center justify-center gap-xs whitespace-nowrap rounded-full border-2 border-primary-500 bg-surface-card px-xs text-primary-500 outline-none focus-visible:ring-2 focus-visible:ring-focus"
             type="button"
             :aria-label="`${recipient.name} 안심계좌 추가`"
             @click="openContactModal(recipient)"
           >
-            <Plus class="size-lg" :stroke-width="2.5" aria-hidden="true" />
-            <span>안심계좌 추가</span>
+            <Plus
+              class="size-lg shrink-0"
+              :stroke-width="2.5"
+              aria-hidden="true"
+            />
+            <span class="whitespace-nowrap">안심계좌 추가</span>
           </button>
           <span v-else class="min-h-touch-target" aria-hidden="true" />
         </div>
@@ -176,7 +180,7 @@ function selectRecipient(recipient: TransferRecipient) {
     />
 
     <Button
-      class="type-h2 w-full"
+      class="type-h2 w-full whitespace-nowrap"
       label="계좌 번호 직접 입력하기"
       size="large"
       @click="router.push({ name: 'ward-transfer-account' })"

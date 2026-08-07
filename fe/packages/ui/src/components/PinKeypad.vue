@@ -20,7 +20,7 @@ const props = withDefaults(
     randomize: true,
     randomizeOnInput: false,
     pseudoClick: true,
-    activeDuration: 180,
+    activeDuration: 200,
     disabled: false,
     error: undefined,
     cancelLabel: '',
@@ -162,10 +162,10 @@ onBeforeUnmount(clearActiveState)
                 'h-[50px] text-[24px] font-bold leading-[1.6] tracking-[-0.48px] text-primary-500',
               ]
             : [
-                'type-numeric-input h-16 rounded-medium border border-border bg-surface-card text-body shadow-card transition-colors',
+                'type-numeric-input h-16 rounded-medium border shadow-card transition-all duration-150 transform',
                 activeKey === key || pseudoActiveKey === key
-                  ? 'border-primary-500 bg-primary-900 text-primary-300'
-                  : '',
+                  ? 'border-primary-500 bg-primary-500 text-white scale-95 shadow-inner'
+                  : 'border-border bg-surface-card text-body',
               ]
         "
         type="button"
@@ -182,9 +182,11 @@ onBeforeUnmount(clearActiveState)
       >
         <span
           v-if="variant === 'minimal'"
-          class="flex size-11 items-center justify-center rounded-full transition-colors"
+          class="flex size-11 items-center justify-center rounded-full transition-all duration-150 transform"
           :class="
-            activeKey === key || pseudoActiveKey === key ? 'bg-primary-900' : ''
+            activeKey === key || pseudoActiveKey === key
+              ? 'bg-primary-500 text-white scale-95'
+              : ''
           "
         >
           {{ key }}
@@ -215,10 +217,10 @@ onBeforeUnmount(clearActiveState)
                 'h-[50px] text-[24px] font-bold leading-[1.6] tracking-[-0.48px] text-primary-500',
               ]
             : [
-                'type-numeric-input h-16 rounded-medium border border-border bg-surface-card text-body shadow-card transition-colors',
+                'type-numeric-input h-16 rounded-medium border shadow-card transition-all duration-150 transform',
                 activeKey === keys[9] || pseudoActiveKey === keys[9]
-                  ? 'border-primary-500 bg-primary-900 text-primary-300'
-                  : '',
+                  ? 'border-primary-500 bg-primary-500 text-white scale-95 shadow-inner'
+                  : 'border-border bg-surface-card text-body',
               ]
         "
         type="button"
@@ -235,10 +237,10 @@ onBeforeUnmount(clearActiveState)
       >
         <span
           v-if="variant === 'minimal'"
-          class="flex size-11 items-center justify-center rounded-full transition-colors"
+          class="flex size-11 items-center justify-center rounded-full transition-all duration-150 transform"
           :class="
             activeKey === keys[9] || pseudoActiveKey === keys[9]
-              ? 'bg-primary-900'
+              ? 'bg-primary-500 text-white scale-95'
               : ''
           "
         >

@@ -53,4 +53,41 @@ describe('apiClient', () => {
       'Bearer refreshed-access-token',
     )
   })
+
+  it('proactively refreshes the access token before request if token is expiring', async () => {
+    const expiringToken =
+      'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOjEsImV4cCI6MTAwMDAwMH0.signature'
+    tokenStorage.setTokens(expiringToken, 'refresh-token')
+    vi.mocked(refreshAccessToken).mockResolvedValue(
+      'proactively-refreshed-token',
+    )
+
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ success: true, data: { id: 1 }, message: null }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const responseSchema = z.object({
+      success: z.boolean(),
+      data: z.object({ id: z.number() }),
+      message: z.string().nullable(),
+    })
+
+    await expect(apiClient.get('/users/1', responseSchema)).resolves.toEqual({
+      success: true,
+      data: { id: 1 },
+      message: null,
+    })
+
+    expect(refreshAccessToken).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    const initialRequest = fetchMock.mock.calls[0]?.[0]
+    expect(initialRequest).toBeInstanceOf(Request)
+    expect((initialRequest as Request).headers.get('Authorization')).toBe(
+      'Bearer proactively-refreshed-token',
+    )
+  })
 })

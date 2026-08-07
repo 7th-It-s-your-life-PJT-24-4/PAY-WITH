@@ -8,7 +8,8 @@ import com.paywith.exception.BusinessException;
 import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.external.openbanking.OpenBankingClient;
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
-import com.paywith.fds.domain.RiskLevel;
+import com.paywith.fds.dto.FdsDecision;
+import com.paywith.fds.support.FdsDecisions;
 import com.paywith.fds.dto.FdsEvaluationRequest;
 import com.paywith.fds.service.FdsEvaluationService;
 import com.paywith.recipient.domain.Recipient;
@@ -176,8 +177,8 @@ class TransferServiceImplTest {
         given(valueOperations.setIfAbsent(eq(key), anyString(), eq(Duration.ofMinutes(5))))
                 .willReturn(true);
         given(transferPreparationService.prepare(userId, request)).willReturn(preparedTransfer);
-        given(fdsEvaluationService.evaluate(any(FdsEvaluationRequest.class))).willReturn(RiskLevel.SAFE);
-        given(transferFinalizationService.finalize(preparedTransfer, RiskLevel.SAFE, request))
+        given(fdsEvaluationService.evaluate(any(FdsEvaluationRequest.class))).willReturn(FdsDecisions.safe());
+        given(transferFinalizationService.finalize(eq(preparedTransfer), any(FdsDecision.class), eq(request)))
                 .willReturn(response);
 
         TransferResponse result = transferService.transfer(userId, idempotencyKey, request);
@@ -197,8 +198,8 @@ class TransferServiceImplTest {
         given(valueOperations.setIfAbsent(eq(key), anyString(), eq(Duration.ofMinutes(5))))
                 .willReturn(true);
         given(transferPreparationService.prepare(userId, request)).willReturn(preparedTransfer);
-        given(fdsEvaluationService.evaluate(any(FdsEvaluationRequest.class))).willReturn(RiskLevel.DANGER);
-        given(transferFinalizationService.finalize(preparedTransfer, RiskLevel.DANGER, request))
+        given(fdsEvaluationService.evaluate(any(FdsEvaluationRequest.class))).willReturn(FdsDecisions.held());
+        given(transferFinalizationService.finalize(eq(preparedTransfer), any(FdsDecision.class), eq(request)))
                 .willReturn(held);
 
         TransferResponse result = transferService.transfer(userId, idempotencyKey, request);
@@ -268,8 +269,8 @@ class TransferServiceImplTest {
         given(valueOperations.setIfAbsent(eq(key), anyString(), eq(Duration.ofMinutes(5))))
                 .willReturn(true);
         given(transferPreparationService.prepare(userId, request)).willReturn(preparedTransfer);
-        given(fdsEvaluationService.evaluate(any(FdsEvaluationRequest.class))).willReturn(RiskLevel.SAFE);
-        given(transferFinalizationService.finalize(preparedTransfer, RiskLevel.SAFE, request))
+        given(fdsEvaluationService.evaluate(any(FdsEvaluationRequest.class))).willReturn(FdsDecisions.safe());
+        given(transferFinalizationService.finalize(eq(preparedTransfer), any(FdsDecision.class), eq(request)))
                 .willThrow(new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "송금 가능한 잔액이 부족합니다."));
 
         assertThatThrownBy(() -> transferService.transfer(userId, idempotencyKey, request))
@@ -286,8 +287,8 @@ class TransferServiceImplTest {
         given(valueOperations.setIfAbsent(eq(key), anyString(), eq(Duration.ofMinutes(5))))
                 .willReturn(true);
         given(transferPreparationService.prepare(userId, request)).willReturn(preparedTransfer);
-        given(fdsEvaluationService.evaluate(any(FdsEvaluationRequest.class))).willReturn(RiskLevel.SAFE);
-        given(transferFinalizationService.finalize(preparedTransfer, RiskLevel.SAFE, request))
+        given(fdsEvaluationService.evaluate(any(FdsEvaluationRequest.class))).willReturn(FdsDecisions.safe());
+        given(transferFinalizationService.finalize(eq(preparedTransfer), any(FdsDecision.class), eq(request)))
                 .willThrow(new TransferIrrecoverableException("송금 처리 중 오류가 발생했습니다. transactionId=999"));
 
         assertThatThrownBy(() -> transferService.transfer(userId, idempotencyKey, request))

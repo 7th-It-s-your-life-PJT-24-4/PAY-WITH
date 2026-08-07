@@ -67,14 +67,12 @@ function inputValueFromEvent(event: unknown) {
       />
     </div>
     <p
-      v-if="phoneNumberError"
+      v-if="phoneNumberError || phoneRequestError"
       id="sign-up-phone-error"
       class="type-caption text-error"
+      role="alert"
     >
-      {{ phoneNumberError }}
-    </p>
-    <p v-if="phoneRequestError" class="type-caption text-error" role="alert">
-      {{ phoneRequestError }}
+      {{ phoneNumberError ?? phoneRequestError }}
     </p>
     <div v-if="codeRequested || verificationToken" class="flex flex-col gap-sm">
       <div class="flex gap-sm">

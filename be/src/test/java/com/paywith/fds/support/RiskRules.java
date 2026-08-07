@@ -12,7 +12,10 @@ public final class RiskRules {
     /** 배점 룰 (rule_code -> score). */
     public static final Map<String, Integer> SCORES = new LinkedHashMap<>();
 
-    /** 단축평가 전용 행. 점수 합산에 참여하지 않는다. */
+    /** 단축평가 전용 행. 룰 합산에는 참여하지 않고, 발동 시 이 배점이 총점이 된다. */
+    public static final int PREFILTER_SCORE = 100;
+
+    /** 단축평가 전용 행. */
     public static final List<String> PREFILTER_CODES = List.of("BL_REJECTED_RECIPIENT", "BL_FRAUD_ACCOUNT");
 
     static {
@@ -40,7 +43,7 @@ public final class RiskRules {
             rules.add(rule(id++, entry.getKey(), entry.getValue()));
         }
         for (String code : PREFILTER_CODES) {
-            rules.add(rule(id++, code, 0));
+            rules.add(rule(id++, code, PREFILTER_SCORE));
         }
         return rules;
     }
