@@ -4,9 +4,11 @@ import { Button, NumericKeypad, PinKeypad } from '@pay-with/ui'
 import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { getApiErrorMessage } from '@/api/error'
+import { getApiErrorCode, getApiErrorMessage } from '@/api/error'
 import { useRegisterChargeAccountMutation } from '@/composables/useRegisterChargeAccountMutation'
 import WardKeypadBottomSheet from '@/pages/ward/-components/WardKeypadBottomSheet.vue'
+
+import ChargeAccountNotOwnerModal from '@/pages/ward/charge/-components/ChargeAccountNotOwnerModal.vue'
 import ChargeBankSelect from '@/pages/ward/charge/-components/ChargeBankSelect.vue'
 import { useChargeStore } from '@/stores/charge.store'
 
@@ -27,6 +29,7 @@ const accountPassword = ref('')
 const keypad = ref<{ reset: () => void } | null>(null)
 const accountSheetOpen = ref(false)
 const passwordSheetOpen = ref(false)
+const isNotOwnerModalOpen = ref(false)
 const errorMessage = ref('')
 const accountNumberError = computed(() =>
   accountNumber.value.length > 0 && !/^\d{8,16}$/.test(accountNumber.value)
@@ -66,6 +69,26 @@ function completePassword(value: string) {
   passwordSheetOpen.value = false
 }
 
+function handleNotOwnerConfirm() {
+  accountPassword.value = ''
+  keypad.value?.reset()
+}
+
+async function isNotOwnerAccountError(error: unknown): Promise<boolean> {
+  const code = getApiErrorCode(error)
+  if (
+    code === 'NOT_OWNER_ACCOUNT' ||
+    code === 'ACCOUNT_NOT_OWNER' ||
+    code === 'SAFE_ACCOUNT_NOT_OWNER' ||
+    code === 'NOT_OWNER'
+  ) {
+    return true
+  }
+
+  const message = await getApiErrorMessage(error, '')
+  return message.includes('본인') || message.includes('명의')
+}
+
 async function registerAccount() {
   if (!canRegister.value) return
   errorMessage.value = ''
@@ -80,10 +103,14 @@ async function registerAccount() {
     keypad.value?.reset()
     await router.replace({ name: 'ward-charge-account-complete' })
   } catch (error) {
-    errorMessage.value = await getApiErrorMessage(
-      error,
-      '계좌를 등록하지 못했습니다.',
-    )
+    if (await isNotOwnerAccountError(error)) {
+      isNotOwnerModalOpen.value = true
+    } else {
+      errorMessage.value = await getApiErrorMessage(
+        error,
+        '계좌를 등록하지 못했습니다.',
+      )
+    }
   }
 }
 </script>
@@ -219,5 +246,10 @@ async function registerAccount() {
         @cancel="closePasswordSheet"
       />
     </WardKeypadBottomSheet>
+
+    <ChargeAccountNotOwnerModal
+      v-model:open="isNotOwnerModalOpen"
+      @confirm="handleNotOwnerConfirm"
+    />
   </div>
 </template>
