@@ -104,7 +104,16 @@ async function registerAccount() {
       accountNo: accountNumber.value,
       accountPassword: accountPassword.value,
     })
-    chargeStore.saveRegisteredAccount(account)
+    const selectedBank = banks.value.find((b) => b.code === bankCode.value)
+    const resolvedBankName =
+      account.bankName === '알 수 없는 은행' && selectedBank
+        ? selectedBank.name
+        : account.bankName
+
+    chargeStore.saveRegisteredAccount({
+      ...account,
+      bankName: resolvedBankName,
+    })
     accountPassword.value = ''
     keypad.value?.reset()
     await router.replace({ name: 'ward-charge-account-complete' })
