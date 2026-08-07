@@ -73,3 +73,67 @@ test('등록 계좌가 없으면 계좌를 추가한 뒤 충전을 이어간다'
   ).toBeVisible()
   await expect(page.getByText('KB국민은행 6781 에서')).toBeVisible()
 })
+
+test('보호자 충전 요청에 입력한 6자리 PIN을 포함한다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 820 })
+
+  await page.route('**/api/accounts', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: [
+          {
+            accountId: 7,
+            bankCode: '004',
+            bankName: 'KB국민은행',
+            accountNo: '11012300006781',
+          },
+        ],
+        message: null,
+      },
+    })
+  })
+
+  await page.route('**/api/guard/wards/13/charges', async (route) => {
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          transactionId: 44,
+          chargeAmount: 50_000,
+          balanceAfter: 200_000,
+          bankName: 'KB국민은행',
+          accountNo: '11012300006781',
+          createdAt: '2026-08-07T10:30:00',
+          wardId: 13,
+          wardName: '김시니어',
+        },
+        message: null,
+      },
+    })
+  })
+
+  await page.goto('/guard/charge/be?wardId=13')
+  await page.getByRole('button', { name: '+ 5만', exact: true }).click()
+  await page.getByRole('button', { name: '충전하기' }).click()
+
+  const chargeRequest = page.waitForRequest(
+    (request) =>
+      request.url().endsWith('/api/guard/wards/13/charges') &&
+      request.method() === 'POST',
+  )
+
+  for (const digit of '123456') {
+    await page.getByRole('button', { name: digit, exact: true }).click()
+  }
+
+  expect((await chargeRequest).postDataJSON()).toEqual({
+    accountId: 7,
+    amount: 50_000,
+    pin: '123456',
+  })
+  await expect(page).toHaveURL(/\/guard\/charge\/complete\?wardId=13$/)
+})

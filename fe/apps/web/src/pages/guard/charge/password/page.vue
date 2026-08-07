@@ -20,11 +20,13 @@ const chargeMutation = useMutation({
     wardId,
     accountId,
     amount,
+    pin,
   }: {
     wardId: number
     accountId: number
     amount: number
-  }) => createGuardCharge(wardId, { accountId, amount }),
+    pin: string
+  }) => createGuardCharge(wardId, { accountId, amount, pin }),
 })
 const formRef = ref<{ requestSubmit: () => void } | null>(null)
 const pin = ref('')
@@ -38,10 +40,11 @@ const pinDigits = computed(() => pin.value.length)
 const keypadOrder = ['1', '0', '4', '3', '2', '8', '5', '9', '7', '6']
 
 async function submitPassword() {
-  const result = passwordSchema.safeParse({ pin: pin.value })
-  if (!result.success) {
+  const validationResult = passwordSchema.safeParse({ pin: pin.value })
+  if (!validationResult.success) {
     errorMessage.value =
-      result.error.issues[0]?.message ?? '간편 비밀번호를 확인해주세요.'
+      validationResult.error.issues[0]?.message ??
+      '간편 비밀번호를 확인해주세요.'
     return
   }
 
@@ -55,12 +58,13 @@ async function submitPassword() {
   }
 
   try {
-    const result = await chargeMutation.mutateAsync({
+    const chargeResult = await chargeMutation.mutateAsync({
       wardId: guardStore.activeWardId,
       accountId: guardStore.selectedChargeAccountId,
       amount: guardStore.chargeAmount,
+      pin: validationResult.data.pin,
     })
-    guardStore.saveChargeResult(result)
+    guardStore.saveChargeResult(chargeResult)
     await queryClient.invalidateQueries({ queryKey: guardChargeKeys.all })
     errorMessage.value = ''
     await router.replace({
