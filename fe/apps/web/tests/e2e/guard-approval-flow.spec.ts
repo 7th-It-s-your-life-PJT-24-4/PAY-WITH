@@ -125,6 +125,13 @@ test('홈의 거래 확인하기에서 선택한 시니어의 이상 거래 목�
   await expect(
     page.getByRole('heading', { name: '위험 거래 3건 발생' }),
   ).toBeVisible()
+  await expect(page.getByText('김시니어님의 송금·거래 중')).toHaveCount(0)
+  await expect(
+    page
+      .getByRole('button', { name: '김시니어 이상 거래 있음' })
+      .locator('span')
+      .first(),
+  ).toHaveClass(/border-error/)
   await page.getByRole('button', { name: '거래 확인하기' }).click()
 
   await expect(page).toHaveURL(/\/guard\/approval-requests\?wardId=12$/)
