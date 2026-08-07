@@ -2,7 +2,6 @@ import { mount, type VueWrapper } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { mockGuardian } from '@/mocks/guardian.mock'
 import WardMyGuardianPage from '@/pages/ward/my/guardian/page.vue'
 import WardMyPage from '@/pages/ward/my/page.vue'
 import WardMyProfilePage from '@/pages/ward/my/profile/page.vue'
@@ -18,11 +17,28 @@ vi.mock('vue-router', () => ({
   }),
 }))
 
-vi.mock('@tanstack/vue-query', () => ({
-  useQueryClient: () => ({
-    clear: clearQueryClient,
-  }),
-}))
+vi.mock('@tanstack/vue-query', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/vue-query')>()
+  return {
+    ...actual,
+    useQueryClient: () => ({
+      clear: clearQueryClient,
+    }),
+    useQuery: () => ({
+      data: {
+        value: {
+          name: '김보호',
+          phone: '01012345678',
+          avatarId: 1,
+        },
+      },
+      isPending: { value: false },
+      isError: { value: false },
+      error: { value: null },
+      refetch: vi.fn(),
+    }),
+  }
+})
 
 vi.mock('@/api/auth-session', () => ({
   clearAuthenticationSession: vi.fn(),
@@ -96,8 +112,8 @@ describe('피보호자 마이페이지', () => {
   it('보호자 관리 화면에 현재 보호자 정보와 해제 불가 안내를 표시한다', async () => {
     const wrapper = mountPage(WardMyGuardianPage)
 
-    expect(wrapper.text()).toContain(`${mockGuardian.name}님`)
-    expect(wrapper.text()).toContain(mockGuardian.phoneNumber)
+    expect(wrapper.text()).toContain('김보호님')
+    expect(wrapper.text()).toContain('010-1234-5678')
 
     await getButtonByName(wrapper, '연결 해제').trigger('click')
     await nextTick()
