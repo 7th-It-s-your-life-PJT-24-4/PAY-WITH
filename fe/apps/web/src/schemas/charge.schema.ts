@@ -7,6 +7,10 @@ export const createChargeRequestSchema = z.object({
   amount: z.number().int().positive(),
 })
 
+export const createGuardChargeRequestSchema = createChargeRequestSchema.extend({
+  pin: z.string().regex(/^\d{6}$/),
+})
+
 export const chargeResultSchema = z.object({
   transactionId: z.number().int().positive(),
   chargeAmount: z.number().int().positive(),
@@ -61,6 +65,9 @@ export const guardChargeDetailResponseSchema = apiResponseSchema(
 )
 
 export type CreateChargeRequest = z.infer<typeof createChargeRequestSchema>
+export type CreateGuardChargeRequest = z.infer<
+  typeof createGuardChargeRequestSchema
+>
 export type ChargeResult = z.infer<typeof chargeResultSchema>
 export type GuardChargeResult = z.infer<typeof guardChargeResultSchema>
 export type GuardChargeHistoryItem = z.infer<

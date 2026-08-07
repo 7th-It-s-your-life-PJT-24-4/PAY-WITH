@@ -22,6 +22,23 @@ const refreshLeewayMs = 60_000
 const refreshRetryDelayMs = 30_000
 const periodicCheckIntervalMs = 30_000
 
+function getAdvancedSessionAccessToken(refreshToken: string): string | null {
+  const currentRefreshToken = tokenStorage.getRefreshToken()
+  const currentAccessToken = tokenStorage.getAccessToken()
+
+  if (
+    currentRefreshToken &&
+    currentRefreshToken !== refreshToken &&
+    currentAccessToken
+  ) {
+    markSessionActive()
+    scheduleAccessTokenRefresh()
+    return currentAccessToken
+  }
+
+  return null
+}
+
 function handleScheduledRefreshFailure(error: unknown): void {
   if (isUnauthorizedApiError(error)) {
     expireAuthenticationSession()
@@ -41,9 +58,29 @@ function handleScheduledRefreshFailure(error: unknown): void {
 async function requestNewAccessToken(refreshToken: string): Promise<string> {
   // 인증 훅이 걸린 apiClient 대신 순수 ky 인스턴스를 써서 재귀 호출을 막는다.
   const body = refreshTokenRequestSchema.parse({ refreshToken })
-  const response = await ky.post(`${API_BASE_URL}/auth/refresh`, { json: body })
-  const json: unknown = await response.json()
+  let json: unknown
+
+  try {
+    const response = await ky.post(`${API_BASE_URL}/auth/refresh`, {
+      json: body,
+      retry: 0,
+    })
+    json = await response.json()
+  } catch (error) {
+    // 다른 요청·탭이 먼저 토큰을 회전했다면 이전 refresh token의 실패로 새 세션을 만료시키지 않는다.
+    const advancedAccessToken = getAdvancedSessionAccessToken(refreshToken)
+    if (advancedAccessToken) return advancedAccessToken
+    throw error
+  }
+
   const { data } = tokenResponseSchema.parse(json)
+
+  // 로그아웃·재로그인 또는 다른 탭의 갱신 뒤 도착한 응답은 현재 세션을 덮어쓰지 않는다.
+  if (tokenStorage.getRefreshToken() !== refreshToken) {
+    const advancedAccessToken = getAdvancedSessionAccessToken(refreshToken)
+    if (advancedAccessToken) return advancedAccessToken
+    throw new Error('인증 세션이 변경되었습니다.')
+  }
 
   tokenStorage.setTokens(data.accessToken, data.refreshToken)
   markSessionActive()

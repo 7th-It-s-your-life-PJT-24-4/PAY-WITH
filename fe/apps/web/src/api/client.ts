@@ -7,7 +7,7 @@ import type { ZodType as ZodSchema } from 'zod'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
-const httpClient = ky.create({
+const authenticatedHttpClient = ky.create({
   retry: {
     limit: 1,
     statusCodes: [401],
@@ -24,6 +24,8 @@ const httpClient = ky.create({
             accessToken = await refreshAccessToken()
           } catch {
             // 사전 갱신 실패 시 기존 토큰으로 시도하고 401 수신 시 beforeRetry에 처리를 위임한다.
+            // 대기 중 로그아웃·재로그인이 발생했다면 바뀐 세션 상태를 따른다.
+            accessToken = tokenStorage.getAccessToken()
           }
         }
 
@@ -35,6 +37,17 @@ const httpClient = ky.create({
     beforeRetry: [
       async ({ request, error }) => {
         if (!(error instanceof HTTPError) || error.response.status !== 401) {
+          return
+        }
+
+        const currentAccessToken = tokenStorage.getAccessToken()
+        if (
+          currentAccessToken &&
+          request.headers.get('Authorization') !==
+            `Bearer ${currentAccessToken}`
+        ) {
+          // 다른 요청이 이미 토큰을 갱신했다면 회전된 refresh token을 다시 쓰지 않는다.
+          request.headers.set('Authorization', `Bearer ${currentAccessToken}`)
           return
         }
 
@@ -55,6 +68,8 @@ const httpClient = ky.create({
   },
 })
 
+const unauthenticatedHttpClient = ky.create({ retry: 0 })
+
 type RequestMethod = 'get' | 'post' | 'put' | 'delete'
 
 async function request<TResponse>(
@@ -64,11 +79,13 @@ async function request<TResponse>(
   body?: unknown,
   headers?: HeadersInit,
 ) {
+  const httpClient = path.startsWith('/auth/')
+    ? unauthenticatedHttpClient
+    : authenticatedHttpClient
   const response = await httpClient(`${API_BASE_URL}${path}`, {
     method,
     json: body,
     headers,
-    ...(path.startsWith('/auth/') ? { retry: 0 } : {}),
   })
 
   const data: unknown = await response.json()

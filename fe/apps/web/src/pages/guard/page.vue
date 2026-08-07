@@ -39,11 +39,14 @@ const {
 
 const selectedWard = computed(() => guardHome.value?.selectedWard ?? null)
 const seniors = computed<GuardSeniorAvatar[]>(() =>
-  (guardHome.value?.wards ?? []).map(({ wardId, name, avatarId }) => ({
-    id: String(wardId),
-    name,
-    imageUrl: `/images/avatar/avatar${avatarId}.png`,
-  })),
+  (guardHome.value?.wards ?? []).map(
+    ({ wardId, name, avatarId, hasPending }) => ({
+      id: String(wardId),
+      name,
+      imageUrl: `/images/avatar/avatar${avatarId}.png`,
+      hasPending,
+    }),
+  ),
 )
 const activeSeniorId = computed(() =>
   selectedWard.value ? String(selectedWard.value.wardId) : '',
@@ -54,7 +57,9 @@ const recentGuardTransactions = computed(() =>
 const pendingApproval = computed(
   () => selectedWard.value?.pendingApproval ?? null,
 )
-const dangerTransactionCount = computed(() => (pendingApproval.value ? 1 : 0))
+const dangerTransactionCount = computed(
+  () => selectedWard.value?.pendingApprovalCount ?? 0,
+)
 const formattedBalance = computed(() =>
   new Intl.NumberFormat('ko-KR').format(selectedWard.value?.balance ?? 0),
 )
@@ -221,7 +226,6 @@ async function startPairing() {
           pendingApproval
         "
         :count="dangerTransactionCount"
-        :senior-name="selectedWard?.name ?? ''"
         @close="isRiskTransactionAlertVisible = false"
         @confirm="
           router.push({

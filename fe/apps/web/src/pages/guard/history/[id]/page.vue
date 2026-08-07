@@ -110,22 +110,43 @@ const detailRows = computed(() => {
   if (!detail.value) return []
 
   const accountDigits = detail.value.accountNo?.replaceAll(/\D/g, '') ?? ''
+  const amountRow = {
+    label: '거래금액',
+    value: formatApprovalMoney(detail.value.amount),
+  }
+  const occurredAtRow = {
+    label: '이체일시',
+    value: formatApprovalDateTime(detail.value.occurredAt),
+  }
+
+  if (detail.value.type === 'CHARGE') {
+    const chargeAccount = [detail.value.bankName, accountDigits.slice(0, 4)]
+      .filter(Boolean)
+      .join('')
+    const chargeDescription = chargeAccount
+      ? `${detail.value.counterpartyName ?? '-'}(${chargeAccount})`
+      : (detail.value.counterpartyName ?? '-')
+
+    return [
+      amountRow,
+      { label: '충전', value: chargeDescription },
+      occurredAtRow,
+    ]
+  }
+
   const accountSuffix = accountDigits ? accountDigits.slice(-4) : ''
   const withdrawalAccount = [detail.value.bankName, accountSuffix]
     .filter(Boolean)
     .join(' ')
 
   return [
-    { label: '거래금액', value: formatApprovalMoney(detail.value.amount) },
+    amountRow,
     { label: '사용처', value: detail.value.counterpartyName ?? '-' },
     {
       label: '출금처',
       value: withdrawalAccount || '-',
     },
-    {
-      label: '이체일시',
-      value: formatApprovalDateTime(detail.value.occurredAt),
-    },
+    occurredAtRow,
   ]
 })
 const hasValidParams = computed(
