@@ -1,5 +1,6 @@
 package com.paywith.guard.service;
 
+import com.paywith.guard.dto.GuardInfoResponse;
 import com.paywith.guard.dto.GuardPairingCodeResponse;
 import com.paywith.guard.dto.WardPairingResponse;
 
@@ -14,4 +15,7 @@ public interface GuardService {
 
     /** 보호자가 본인과 연결된 피보호자 관계를 해제한다. */
     void unpairWard(Long guardId, Long wardId);
+
+    /** 피보호자가 자신과 연동된 보호자의 이름·전화번호·아바타를 조회한다. */
+    GuardInfoResponse findMyGuardian(Long wardId);
 }
