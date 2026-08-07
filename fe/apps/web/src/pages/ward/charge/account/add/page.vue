@@ -137,8 +137,13 @@ async function registerAccount() {
       </label>
       <input
         id="charge-account-number"
-        class="type-numeric-input-large font-number h-[72px] w-full cursor-pointer rounded-medium border bg-surface-card px-md text-body outline-none transition-colors placeholder:font-sans placeholder:text-[20px] placeholder:font-semibold placeholder:leading-tight placeholder:tracking-[-0.4px] placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
-        :class="accountNumberError ? 'border-error' : 'border-border-strong'"
+        class="h-[72px] w-full cursor-pointer rounded-medium border bg-surface-card px-md text-body outline-none transition-colors placeholder:font-sans placeholder:text-[20px] placeholder:font-semibold placeholder:leading-none placeholder:tracking-[-0.4px] placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
+        :class="[
+          accountNumberError ? 'border-error' : 'border-border-strong',
+          accountNumber
+            ? 'type-numeric-input-large font-number leading-none'
+            : '',
+        ]"
         type="text"
         inputmode="none"
         placeholder="계좌번호를 입력해주세요"
