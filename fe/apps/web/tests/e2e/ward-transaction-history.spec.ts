@@ -48,7 +48,6 @@ test.beforeEach(async ({ page }) => {
             memo: null,
             occurredAt: '2026-07-27T13:00:00',
             balanceAfter: transactionId === 104 ? 488_000 : null,
-            riskScore: null,
             riskAnalysis:
               transactionId === 104 || transactionId === 105
                 ? {
@@ -178,7 +177,7 @@ test('이루어지지 않은 거래는 목록에서 상태 뱃지로 표시한�
 test('차단된 위험 거래는 거절 카드로 표시한다', async ({ page }) => {
   await page.goto('/ward/history/104')
 
-  await expect(page.getByText('위험', { exact: true })).toBeVisible()
+  await expect(page.getByText('시스템 차단됨', { exact: true })).toBeVisible()
   await expect(page.getByText('위험한 결제 패턴이 감지됐어요.')).toBeVisible()
   await expect(page.getByText('시스템이 차단한 거래입니다.')).toBeVisible()
 })

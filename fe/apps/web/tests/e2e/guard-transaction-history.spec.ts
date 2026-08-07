@@ -50,7 +50,6 @@ const transactionDetail = {
   amount: 35000,
   memo: '생활비',
   balanceAfter: 120000,
-  riskScore: null,
   riskAnalysis: {
     riskScore: 87,
     summary: '평소와 다른 고액 송금이에요.',
@@ -71,7 +70,6 @@ const chargeTransactionDetail = {
   amount: 50000,
   memo: null,
   balanceAfter: 120000,
-  riskScore: null,
   riskAnalysis: null,
   occurredAt: '2026-07-28T10:00:00',
 }

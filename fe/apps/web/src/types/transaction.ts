@@ -5,7 +5,6 @@ export type TransactionDirection = 'IN' | 'OUT' | 'CREDIT' | 'DEBIT'
 export type TransactionRiskLevel = 'SAFE' | 'CAUTION' | 'DANGER'
 
 export type TransactionStatus =
-  | 'PENDING'
   | 'REQUESTED'
   | 'HELD'
   | 'APPROVED'
@@ -13,7 +12,6 @@ export type TransactionStatus =
   | 'REJECTED'
   | 'COMPLETED'
   | 'CANCELED'
-  | 'EXPIRED'
   | 'BLOCKED'
   | 'FAILED'
 
