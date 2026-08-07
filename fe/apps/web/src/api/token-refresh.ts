@@ -61,7 +61,12 @@ export function scheduleAccessTokenRefresh(): void {
   }
 
   const expiresAt = getAccessTokenExpiresAt(accessToken)
-  if (expiresAt === null) return
+  if (expiresAt === null) {
+    if (refreshTimer) globalThis.clearTimeout(refreshTimer)
+    refreshTimer = null
+    scheduledExpiresAt = null
+    return
+  }
 
   // 이미 동일한 만료 시각으로 스케줄링된 타이머가 유효하게 대기 중이면 무분별한 리셋을 무시한다.
   if (refreshTimer !== null && scheduledExpiresAt === expiresAt) {
