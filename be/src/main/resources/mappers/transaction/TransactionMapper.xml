@@ -359,7 +359,7 @@
         WHERE transaction_id = #{transactionId}
     </select>
 
-    <select id="findTransferStatusForCancel" resultType="java.lang.String">
+    <select id="findTransferStatusForCancel" resultType="com.paywith.transaction.domain.TransactionStatus">
         SELECT t.status
         FROM transactions t
         JOIN wallets w ON w.wallet_id = t.wallet_id

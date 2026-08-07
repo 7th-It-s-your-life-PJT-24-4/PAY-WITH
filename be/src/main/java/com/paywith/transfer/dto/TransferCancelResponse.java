@@ -1,5 +1,6 @@
 package com.paywith.transfer.dto;
 
+import com.paywith.transaction.domain.TransactionStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -18,5 +19,5 @@ public class TransferCancelResponse {
     private Long transactionId;
 
     @ApiModelProperty(value = "송금 처리 상태", example = "CANCELED", allowableValues = "CANCELED")
-    private String status;
+    private TransactionStatus status;
 }

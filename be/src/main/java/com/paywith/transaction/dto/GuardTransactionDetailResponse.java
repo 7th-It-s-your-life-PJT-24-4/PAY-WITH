@@ -1,5 +1,9 @@
 package com.paywith.transaction.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.paywith.fds.domain.RiskLevel;
+import com.paywith.transaction.domain.TransactionCategory;
+import com.paywith.transaction.domain.TransactionStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -17,10 +21,10 @@ import java.time.LocalDateTime;
 public class GuardTransactionDetailResponse {
 
     private Long transactionId;
-    private String type;
+    private TransactionCategory type;
     private String direction;
-    private String status;
-    private String riskLevel;
+    private TransactionStatus status;
+    private RiskLevel riskLevel;
     private String counterpartyName;
     private String bankName;
     private String accountNo;
@@ -28,6 +32,7 @@ public class GuardTransactionDetailResponse {
     private String memo;
     private Long balanceAfter;
 
+    @JsonIgnore
     private Integer riskScore;
 
     private RiskAnalysisResponse riskAnalysis;

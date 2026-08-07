@@ -3,6 +3,8 @@ package com.paywith.external.openbanking;
 import com.paywith.external.openbanking.dto.DepositResponse;
 import com.paywith.external.openbanking.dto.RealNameInquiryResponse;
 import com.paywith.external.openbanking.dto.WithdrawResponse;
+import com.paywith.recipient.mapper.BankMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -20,10 +22,13 @@ import java.util.Map;
 import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class OpenBankingClient {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private String clientUseCode;
+
+    private final BankMapper bankMapper;
 
     private static final DateTimeFormatter TRAN_DTIME_FORMAT =
             DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -118,24 +123,18 @@ public class OpenBankingClient {
     }
 
 
-// bankCode에 맞는 은행명을 대충 흉내내기 위한 임시 매핑 (실제로는 banks 테이블/join으로 이미 처리 중)
-private String resolveMockBankName(String bankCodeStd) {
-    return switch (bankCodeStd) {
-        case "004" -> "KB국민은행";
-        case "088" -> "신한은행";
-        case "020" -> "우리은행";
-        case "081" -> "하나은행";
-        case "090" -> "카카오뱅크";
-        default -> "알 수 없는 은행";
-    };
-}
+    // bankCode에 맞는 은행명을 대충 흉내내기 위한 임시 매핑 (실제로는 banks 테이블/join으로 이미 처리 중)
+    private String resolveMockBankName(String bankCodeStd) {
+        String bankName = bankMapper.findBankName(bankCodeStd);
+        return (bankName != null) ? bankName : "알 수 없는 은행"; // banks 테이블에 없는 코드일 때만 최후 fallback
+    }
 
-public WithdrawResponse withdraw(String bankCodeStd, String accountNum, Long amount) {
-    WithdrawResponse response = new WithdrawResponse();
-    response.setRspCode("A0000");
-    response.setTranAmt(amount);
-    return response;
-}
+    public WithdrawResponse withdraw(String bankCodeStd, String accountNum, Long amount) {
+        WithdrawResponse response = new WithdrawResponse();
+        response.setRspCode("A0000");
+        response.setTranAmt(amount);
+        return response;
+    }
 
 /**
  * 계좌실명조회 (예금주 확인)
@@ -177,39 +176,39 @@ public WithdrawResponse withdraw(String bankCodeStd, String accountNum, Long amo
 //        return response;
 //    }
 
-/**
- * 은행거래고유번호 생성 (이용기관코드 + 유니크값 조합이 표준이나, 테스트베드는 간단히 생성)
- */
-private String generateBankTranId() {
-    String serialNumber = UUID.randomUUID().toString().replace("-", "").substring(0, 9);
-    String bankTranId = clientUseCode + "U" + serialNumber;
+    /**
+     * 은행거래고유번호 생성 (이용기관코드 + 유니크값 조합이 표준이나, 테스트베드는 간단히 생성)
+     */
+    private String generateBankTranId() {
+        String serialNumber = UUID.randomUUID().toString().replace("-", "").substring(0, 9);
+        String bankTranId = clientUseCode + "U" + serialNumber;
 
-    return bankTranId.toUpperCase(); // 추가: 전체를 대문자로 변환
-}
+        return bankTranId.toUpperCase(); // 추가: 전체를 대문자로 변환
+    }
 
 
-public Map<String, Object> getRawTokenResponse() {
-    String url = baseUrl + "/oauth/2.0/token";
+    public Map<String, Object> getRawTokenResponse() {
+        String url = baseUrl + "/oauth/2.0/token";
 
-    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-    params.add("client_id", clientId);
-    params.add("client_secret", clientSecret);
-    params.add("scope", "oob");
-    params.add("grant_type", "client_credentials");
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("client_id", clientId);
+        params.add("client_secret", clientSecret);
+        params.add("scope", "oob");
+        params.add("grant_type", "client_credentials");
 
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-    HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
-    return restTemplate.postForObject(url, request, Map.class);
-}
+        return restTemplate.postForObject(url, request, Map.class);
+    }
 
-// 송금용 확인 메서드 (TODO: 입금 이체 api 연동)
-public DepositResponse deposit(String bankCodeStd, String accountNum, Long amount) {
-    DepositResponse response = new DepositResponse();
-    response.setRspCode("A0000");
-    response.setTranAmt(amount);
-    return response;
-}
+    // 송금용 확인 메서드 (TODO: 입금 이체 api 연동)
+    public DepositResponse deposit(String bankCodeStd, String accountNum, Long amount) {
+        DepositResponse response = new DepositResponse();
+        response.setRspCode("A0000");
+        response.setTranAmt(amount);
+        return response;
+    }
 }

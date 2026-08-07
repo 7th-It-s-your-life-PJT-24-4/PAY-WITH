@@ -1,5 +1,6 @@
 package com.paywith.safeaccount.dto;
 
+import com.paywith.safeaccount.domain.SafeAccountStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -17,5 +18,5 @@ public class SafeAccountDeleteResponse {
     private Long safeAccountId;
 
     @ApiModelProperty(value = "안전계좌 상태. 항상 INACTIVE", example = "INACTIVE", allowableValues = "INACTIVE")
-    private String status;
+    private SafeAccountStatus status;
 }

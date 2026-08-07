@@ -1,5 +1,9 @@
 package com.paywith.transaction.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.paywith.fds.domain.RiskLevel;
+import com.paywith.transaction.domain.TransactionCategory;
+import com.paywith.transaction.domain.TransactionStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -17,10 +21,10 @@ import java.time.LocalDateTime;
 public class TransactionDetailResponse {
 
     private Long transactionId;
-    private String type;
+    private TransactionCategory type;
     private String direction;
-    private String status;
-    private String riskLevel;
+    private TransactionStatus status;
+    private RiskLevel riskLevel;
     private String counterpartyName;
     private String bankName;
     private String accountNo;
@@ -31,6 +35,7 @@ public class TransactionDetailResponse {
 
     // Mapper 조회 시점엔 riskScore로 채워졌다가,
     // Service가 riskAnalysis 객체로 재조립하면서 이 필드는 버려짐
+    @JsonIgnore
     private Integer riskScore;
 
     private RiskAnalysisResponse riskAnalysis;

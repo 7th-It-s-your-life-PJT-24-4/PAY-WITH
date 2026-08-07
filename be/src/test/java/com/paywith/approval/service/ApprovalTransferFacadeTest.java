@@ -11,6 +11,7 @@ import com.paywith.approval.dto.ApprovalDecisionResponse;
 import com.paywith.approval.mapper.TransactionApprovalMapper;
 import com.paywith.exception.BusinessException;
 import com.paywith.exception.TransferIrrecoverableException;
+import com.paywith.transaction.domain.TransactionStatus;
 import com.paywith.transfer.dto.TransferResponse;
 import com.paywith.transfer.service.TransferFinalizationService;
 import java.time.LocalDateTime;
@@ -60,7 +61,7 @@ class ApprovalTransferFacadeTest {
         given(transferFinalizationService.finalizeApprovedTransfer(TRANSACTION_ID)).willReturn(
             TransferResponse.builder()
                 .transactionId(TRANSACTION_ID)
-                .status("COMPLETED")
+                .status(TransactionStatus.COMPLETED)
                 .completedAt(completedAt)
                 .balanceAfter(120_000L)
                 .build());

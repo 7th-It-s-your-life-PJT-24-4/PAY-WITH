@@ -1,6 +1,7 @@
 package com.paywith.safeaccount.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.paywith.safeaccount.domain.SafeAccountStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -41,7 +42,7 @@ public class SafeAccountResponse {
     private Boolean isVerified;
 
     @ApiModelProperty(value = "안전계좌 상태", example = "ACTIVE", allowableValues = "ACTIVE")
-    private String status;
+    private SafeAccountStatus status;
 
     @ApiModelProperty(value = "등록 처리 시각")
     private LocalDateTime createdAt;

@@ -2,8 +2,11 @@ package com.paywith.transaction.mapper;
 
 import com.paywith.charge.dto.ChargeDetailResponse;
 import com.paywith.charge.dto.ChargeHistoryItem;
+import com.paywith.fds.domain.RiskLevel;
 import com.paywith.guard.dto.RecentTransactionResponse;
 import com.paywith.transaction.domain.Transaction;
+import com.paywith.transaction.domain.TransactionStatus;
+import com.paywith.transaction.domain.TransactionType;
 import com.paywith.transaction.dto.GuardTransactionDetailResponse;
 import com.paywith.transaction.dto.GuardTransactionHistoryItem;
 import com.paywith.transaction.dto.TransactionDetailResponse;
@@ -21,7 +24,7 @@ public interface TransactionMapper {
     void insertTransaction(Transaction transaction);
 
     // 거래 상태 업데이트 (REQUESTED -> COMPLETED) TransferServiceImpl에서
-    int updateStatus(@Param("transactionId") Long transactionId, @Param("status") String status);
+    int updateStatus(@Param("transactionId") Long transactionId, @Param("status") TransactionStatus status);
 
     // 거래 실패 시 상태 업데이트 (REQUESTED -> FAILED) 잔액 부족 등 finalize 단계 실패
     // (HELD/APPROVED 등 다른 경로로 이미 진행된 거래는 건드리지 않음)
@@ -30,7 +33,7 @@ public interface TransactionMapper {
     // 거래 완료시 상태 업데이트
     int completeTransaction(
             @Param("transactionId") Long transactionId,
-            @Param("status") String status,
+            @Param("status") TransactionStatus status,
             @Param("balanceAfter") Long balanceAfter,
             @Param("completedAt") LocalDateTime completedAt
     );
@@ -50,7 +53,7 @@ public interface TransactionMapper {
     // 피보호자 본인의 거래 내역 목록
     List<TransactionHistoryItem> findMyTransactions(
             @Param("wardId") Long wardId,
-            @Param("type") String type,
+            @Param("type") TransactionType type,
             @Param("keyword") String keyword,
             @Param("offset") int offset,
             @Param("size") int size
@@ -59,7 +62,7 @@ public interface TransactionMapper {
     // 피보호자 목록 조회 총 건 count
     int countMyTransactions(
             @Param("wardId") Long wardId,
-            @Param("type") String type,
+            @Param("type") TransactionType type,
             @Param("keyword") String keyword
     );
 
@@ -85,8 +88,8 @@ public interface TransactionMapper {
     List<GuardTransactionHistoryItem> findWardTransactions(
             @Param("guardId") Long guardId,
             @Param("wardId") Long wardId,
-            @Param("type") String type,
-            @Param("riskLevel") String riskLevel,
+            @Param("type") TransactionType type,
+            @Param("riskLevel") RiskLevel riskLevel,
             @Param("offset") int offset,
             @Param("size") int size
     );
@@ -95,8 +98,8 @@ public interface TransactionMapper {
     int countWardTransactions(
             @Param("guardId") Long guardId,
             @Param("wardId") Long wardId,
-            @Param("type") String type,
-            @Param("riskLevel") String riskLevel
+            @Param("type") TransactionType type,
+            @Param("riskLevel") RiskLevel riskLevel
     );
 
     // 보호자 홈 화면용 최근 거래 목록(종결 상태만, 최신순)
@@ -106,6 +109,6 @@ public interface TransactionMapper {
     );
 
     // 취소 대상 조회 -> 승인 대기 중 피보호자가 직접 거래 취소 (Approval 도메인과 연관)
-    String findTransferStatusForCancel(@Param("transactionId") Long transactionId, @Param("wardId") Long wardId);
+    TransactionStatus findTransferStatusForCancel(@Param("transactionId") Long transactionId, @Param("wardId") Long wardId);
 
 }
