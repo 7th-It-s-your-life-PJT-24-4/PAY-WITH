@@ -70,7 +70,7 @@ function goToPairing() {
       class="flex flex-1 flex-col items-center justify-center px-lg py-2xl text-center"
     >
       <div
-        class="flex size-[96px] items-center justify-center rounded-full bg-gray-100 text-gray-400"
+        class="flex size-[96px] items-center justify-center rounded-full bg-primary-900 text-primary-500"
         aria-hidden="true"
       >
         <ShieldUser class="size-12" :stroke-width="2.2" />
@@ -82,7 +82,7 @@ function goToPairing() {
         서비스를 안전하게 이용하려면 보호자와 연결해 주세요.
       </p>
       <Button
-        class="mt-xl w-full"
+        class="mt-xl w-full whitespace-nowrap"
         label="보호자 연결하기"
         variant="primary"
         size="large"
