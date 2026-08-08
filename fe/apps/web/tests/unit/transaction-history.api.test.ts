@@ -5,7 +5,10 @@ import {
   getWardTransactionDetail,
   getWardTransactionHistory,
 } from '@/api/transaction-history'
-import { wardTransactionHistoryOptions } from '@/lib/query/transaction-history'
+import {
+  wardTransactionDetailOptions,
+  wardTransactionHistoryOptions,
+} from '@/lib/query/transaction-history'
 
 vi.mock('@/api/client', () => ({
   apiClient: { get: vi.fn() },
@@ -114,5 +117,43 @@ describe('transaction history API', () => {
       expect.anything(),
     )
     expect(detail.riskAnalysis?.riskScore).toBe(72)
+  })
+
+  it('FDS 룰 코드(송금 및 결제)를 올바른 한글 사유 문구로 변환한다', () => {
+    const options = wardTransactionDetailOptions(104)
+    const select = options.select!
+    const mapped = select({
+      transactionId: 104,
+      type: 'TRANSFER',
+      direction: 'OUT',
+      status: 'COMPLETED',
+      riskLevel: 'DANGER',
+      counterpartyName: '김철수',
+      bankName: '신한은행',
+      accountNo: '110123456789',
+      amount: 120_000,
+      memo: '생활비',
+      occurredAt: '2026-08-05T09:30:00',
+      balanceAfter: 380_000,
+      riskAnalysis: {
+        riskScore: 85,
+        summary: null,
+        reasons: [
+          'DIVISION_TRANSFER',
+          'REPEATED',
+          'PAY_HIGH_AMOUNT_L3',
+          'PAY_PENDING_APPROVAL',
+          'PAY_SPLIT_PAYMENT',
+        ],
+      },
+    })
+
+    expect(mapped.riskReasons).toEqual([
+      '짧은 시간 안에 여러 계좌로 나누어 송금했어요.',
+      '같은 계좌로 반복해서 송금했어요.',
+      '평소보다 매우 큰 금액을 결제했어요.',
+      '승인 대기 중인 송금이 있는 상태에서 결제했어요.',
+      '짧은 시간 안에 여러 번 나누어 결제했어요.',
+    ])
   })
 })

@@ -58,9 +58,19 @@ const riskReasonMessages: Record<string, string> = {
   NIGHT_TIME_LATE: '늦은 밤 시간대에 요청된 송금이에요.',
   PENDING_APPROVAL_EXISTS:
     '승인 대기 중인 송금이 있는 상태에서 추가 송금했어요.',
-  REPEATED: '짧은 시간 안에 반복해서 송금했어요.',
+  REPEATED: '같은 계좌로 반복해서 송금했어요.',
   SAFE_ACCOUNT_CHECK: '등록된 안전계좌 여부가 위험도 판단에 반영됐어요.',
   SUSPICIOUS_MEMO: '거래 메모에 주의가 필요한 단어가 포함됐어요.',
+  PAY_SPLIT_PAYMENT: '짧은 시간 안에 여러 번 나누어 결제했어요.',
+  PAY_HIGH_AMOUNT_L3: '평소보다 매우 큰 금액을 결제했어요.',
+  PAY_HIGH_AMOUNT_L2: '평소보다 큰 금액을 결제했어요.',
+  PAY_HIGH_AMOUNT_L1: '일반적인 생활 결제보다 큰 금액이에요.',
+  PAY_RISKY_CATEGORY: '환금성이 높은 위험 업종에서 결제했어요.',
+  PAY_PENDING_APPROVAL: '승인 대기 중인 송금이 있는 상태에서 결제했어요.',
+  PAY_GIFT_CARD_AMOUNT: '상품권 의심 단위 금액으로 결제했어요.',
+  PAY_NIGHT_DEEP: '자정 이후 늦은 시간에 결제했어요.',
+  PAY_NIGHT_LATE: '늦은 밤 시간대에 결제했어요.',
+  PAY_IMPOSSIBLE_TRAVEL: '물리적으로 이동하기 어려운 위치에서 결제했어요.',
 }
 
 function toWardTransaction(

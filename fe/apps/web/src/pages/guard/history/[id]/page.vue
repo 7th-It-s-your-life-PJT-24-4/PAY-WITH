@@ -62,6 +62,16 @@ const riskReasonLabels: Record<string, string> = {
   REPEATED: '짧은 시간에 반복된 송금이에요.',
   SAFE_ACCOUNT_CHECK: '등록한 안전계좌로 보내는 송금이에요.',
   SUSPICIOUS_MEMO: '메모에서 위험 키워드가 감지됐어요.',
+  PAY_SPLIT_PAYMENT: '짧은 시간 안에 여러 번 나누어 결제했어요.',
+  PAY_HIGH_AMOUNT_L3: '평소보다 매우 큰 금액의 결제예요.',
+  PAY_HIGH_AMOUNT_L2: '평소보다 큰 금액의 결제예요.',
+  PAY_HIGH_AMOUNT_L1: '일반적인 생활 결제보다 큰 금액이에요.',
+  PAY_RISKY_CATEGORY: '환금성이 높은 위험 업종에서 결제했어요.',
+  PAY_PENDING_APPROVAL: '승인 대기 중인 송금이 있는 상태에서 결제했어요.',
+  PAY_GIFT_CARD_AMOUNT: '상품권 의심 단위 금액으로 결제했어요.',
+  PAY_NIGHT_DEEP: '자정 이후 늦은 시간에 결제했어요.',
+  PAY_NIGHT_LATE: '늦은 밤 시간대에 결제했어요.',
+  PAY_IMPOSSIBLE_TRAVEL: '물리적으로 이동하기 어려운 위치에서 결제했어요.',
 }
 
 const route = useRoute()
