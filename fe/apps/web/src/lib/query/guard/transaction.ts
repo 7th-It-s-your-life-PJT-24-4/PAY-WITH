@@ -33,6 +33,10 @@ export function guardTransactionHistoryOptions(
       getGuardTransactionHistory(resolvedWardId.value!, resolvedParams.value),
     enabled: computed(() => resolvedWardId.value !== null),
     staleTime: 15_000,
+    select: (data) => ({
+      ...data,
+      transactions: data.transactions.filter((tx) => tx.status !== 'HELD'),
+    }),
   })
 }
 

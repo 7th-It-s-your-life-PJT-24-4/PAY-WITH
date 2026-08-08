@@ -24,6 +24,10 @@ export function wardTransactionHistoryOptions(
   return queryOptions({
     queryKey: computed(() => transactionHistoryKeys.ward(resolvedParams.value)),
     queryFn: () => getWardTransactionHistory(resolvedParams.value),
+    select: (data) => ({
+      ...data,
+      transactions: data.transactions.filter((tx) => tx.status !== 'HELD'),
+    }),
   })
 }
 

@@ -5,6 +5,7 @@ import {
   getGuardTransactionDetail,
   getGuardTransactionHistory,
 } from '@/api/transactions'
+import { guardTransactionHistoryOptions } from '@/lib/query/guard/transaction'
 
 vi.mock('@/api/client', () => ({
   apiClient: {
@@ -32,6 +33,44 @@ describe('guard transaction API', () => {
       '/guard/wards/12/transactions?riskLevel=DANGER&page=0&size=100',
       expect.anything(),
     )
+  })
+
+  it('guardTransactionHistoryOptions select에서 HELD 상태인 거래를 필터링하여 제외한다', () => {
+    const options = guardTransactionHistoryOptions(12, {})
+    const select = options.select!
+    const filtered = select({
+      transactions: [
+        {
+          transactionId: 101,
+          type: 'TRANSFER',
+          direction: 'OUT',
+          status: 'HELD',
+          riskLevel: 'DANGER',
+          amount: 50_000,
+          occurredAt: '2026-08-08T09:00:00',
+          title: '김철수',
+        },
+        {
+          transactionId: 102,
+          type: 'TRANSFER',
+          direction: 'OUT',
+          status: 'COMPLETED',
+          riskLevel: 'SAFE',
+          amount: 30_000,
+          occurredAt: '2026-08-08T09:30:00',
+          title: '이영희',
+        },
+      ],
+      page: 0,
+      size: 100,
+      totalElements: 2,
+      totalPages: 1,
+      hasNext: false,
+    } as never)
+
+    expect(filtered.transactions).toHaveLength(1)
+    expect(filtered.transactions[0]?.transactionId).toBe(102)
+    expect(filtered.transactions[0]?.status).toBe('COMPLETED')
   })
 
   it('피보호자와 거래 ID로 보호자용 거래 상세를 조회한다', async () => {
