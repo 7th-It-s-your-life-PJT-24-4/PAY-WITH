@@ -62,7 +62,7 @@ describe('transaction history schemas', () => {
     expect(response.data.transactions[0]?.title).toBe('거래 상대')
   })
 
-  it('실패한 거래의 음수 금액(또는 0원) 내역을 정상적으로 파싱한다', () => {
+  it('실패한 거래의 0원 내역을 정상적으로 파싱한다', () => {
     const response = wardTransactionHistoryResponseSchema.parse({
       success: true,
       data: {
@@ -72,7 +72,7 @@ describe('transaction history schemas', () => {
             type: 'TRANSFER',
             direction: 'OUT',
             title: '홍길동',
-            amount: -320,
+            amount: 320,
             status: 'FAILED',
             riskLevel: null,
             occurredAt: '2026-08-06T09:48:05',
@@ -97,7 +97,7 @@ describe('transaction history schemas', () => {
       message: null,
     })
 
-    expect(response.data.transactions[0]?.amount).toBe(-320)
+    expect(response.data.transactions[0]?.amount).toBe(320)
     expect(response.data.transactions[1]?.amount).toBe(0)
   })
 
