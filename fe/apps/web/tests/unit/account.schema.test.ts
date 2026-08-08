@@ -38,5 +38,12 @@ describe('account schemas', () => {
         accountPassword: '1004',
       }).success,
     ).toBe(false)
+    expect(
+      registerAccountRequestSchema.safeParse({
+        bankCode: '004',
+        accountNo: '12345678901234567',
+        accountPassword: '1004',
+      }).success,
+    ).toBe(false)
   })
 })

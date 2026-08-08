@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Button, NumericKeypad, WardToast } from '@pay-with/ui'
+import { Button, WardToast } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { useEnsureFocusedInputVisible } from '@/composables/useEnsureFocusedInputVisible'
 import { wardWalletOptions } from '@/lib/query/ward/wallet'
 import { useTransferStore } from '@/stores/transfer.store'
 
@@ -12,6 +13,9 @@ const transferStore = useTransferStore()
 const walletQuery = useQuery(wardWalletOptions())
 const toastOpen = ref(false)
 const toastMessage = ref('')
+const amountInput = ref<HTMLInputElement | null>(null)
+
+useEnsureFocusedInputVisible(amountInput)
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
@@ -23,6 +27,37 @@ watch(
   },
   { immediate: true },
 )
+
+function setCursorToEnd(el: HTMLInputElement | null) {
+  if (!el) return
+  nextTick(() => {
+    const len = el.value.length
+    try {
+      el.setSelectionRange(len, len)
+    } catch {
+      // ignore
+    }
+  })
+}
+
+function focusAmountInput() {
+  amountInput.value?.focus()
+  setCursorToEnd(amountInput.value)
+}
+
+function handleAmountInput(event: Event) {
+  const target = event.target as HTMLInputElement
+  const digits = target.value.replace(/\D/g, '')
+  const num = digits ? Number(digits) : 0
+  transferStore.amount = num
+  target.value = num ? String(num) : ''
+  setCursorToEnd(target)
+}
+
+function handleCursorFix(event: Event) {
+  const target = event.target as HTMLInputElement
+  setCursorToEnd(target)
+}
 
 function handleNextClick() {
   if (!transferStore.canTransfer) {
@@ -58,13 +93,27 @@ const quickAmountButtonClass =
     </section>
 
     <section
-      class="rounded-large border-2 bg-surface-card p-xl text-center shadow-card"
+      class="relative rounded-large border-2 bg-surface-card p-xl text-center shadow-card cursor-pointer"
       :class="
         transferStore.isAmountOverBalance
           ? 'border-error'
           : 'border-primary-500'
       "
+      @click="focusAmountInput"
     >
+      <input
+        ref="amountInput"
+        type="text"
+        inputmode="numeric"
+        class="absolute inset-0 size-full opacity-0 cursor-pointer"
+        :value="transferStore.amount ? String(transferStore.amount) : ''"
+        aria-label="송금 금액 입력"
+        @input="handleAmountInput"
+        @click="handleCursorFix"
+        @focus="handleCursorFix"
+        @select="handleCursorFix"
+        @keyup="handleCursorFix"
+      />
       <p
         class="type-amount"
         :class="
@@ -138,14 +187,6 @@ const quickAmountButtonClass =
         @click="transferStore.amount = transferStore.balance ?? 0"
       />
     </div>
-
-    <NumericKeypad
-      v-if="transferStore.balance !== null"
-      class="mx-auto"
-      @input="transferStore.appendAmountDigit"
-      @backspace="transferStore.removeAmountDigit"
-      @cancel="transferStore.amount = 0"
-    />
 
     <div @click="handleNextClick">
       <Button

@@ -150,13 +150,7 @@ test('새 계좌를 등록하고 충전 계좌로 사용한다', async ({ page }
   ).toBeHidden()
   await page.getByRole('option', { name: '우리은행' }).click()
 
-  await page.getByLabel('계좌번호').click()
-  const accountSheet = page.getByRole('dialog', { name: '계좌번호 입력' })
-  await expect(accountSheet).toBeVisible()
-  for (const digit of '1002123456789') {
-    await accountSheet.getByRole('button', { name: digit, exact: true }).click()
-  }
-  await accountSheet.getByRole('button', { name: '입력 완료' }).click()
+  await page.getByLabel('계좌번호').fill('1002123456789')
 
   await page.getByRole('textbox', { name: '계좌 비밀번호' }).click()
   const passwordSheet = page.getByRole('dialog', {

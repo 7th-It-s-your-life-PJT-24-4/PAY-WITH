@@ -95,16 +95,7 @@ test('미연결 시니어가 보호자 코드를 입력하고 연결을 완료�
   await page.getByRole('button', { name: '보호자와 연결하기' }).click()
   await expect(page).toHaveURL(/\/ward\/pairing$/)
 
-  await page.getByRole('button', { name: '인증 코드 0자리 입력됨' }).click()
-  await expect(
-    page.getByRole('dialog', { name: '인증 코드 입력' }),
-  ).toBeVisible()
-
-  for (const digit of ['7', '2', '9', '4', '1']) {
-    await page.getByRole('button', { name: digit, exact: true }).click()
-  }
-
-  await page.getByRole('button', { name: '입력 완료' }).click()
+  await page.getByLabel('인증 코드 5자리 입력').fill('72941')
   await page.getByRole('button', { name: '연결하기' }).click()
   await expect(page).toHaveURL(/\/ward\/pairing\/complete$/)
   await expect(page.getByRole('heading', { name: '연결 성공!' })).toBeVisible()

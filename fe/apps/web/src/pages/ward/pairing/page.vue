@@ -1,30 +1,33 @@
 <script setup lang="ts">
 import { ShieldCheck, Smartphone } from '@lucide/vue'
-import { Button, NumericKeypad } from '@pay-with/ui'
+import { Button } from '@pay-with/ui'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import WardKeypadBottomSheet from '@/pages/ward/-components/WardKeypadBottomSheet.vue'
+import { useEnsureFocusedInputVisible } from '@/composables/useEnsureFocusedInputVisible'
 import { usePairingStore } from '@/stores/pairing.store'
 
 const router = useRouter()
 const pairingStore = usePairingStore()
 const enteredCode = ref('')
 const errorMessage = ref('')
-const keypadOpen = ref(false)
+const inputRef = ref<HTMLInputElement | null>(null)
+
+useEnsureFocusedInputVisible(inputRef)
 
 const codeDigits = computed(() =>
   Array.from({ length: 5 }, (_, index) => enteredCode.value[index] ?? ''),
 )
 
-function inputDigit(value: string) {
-  if (enteredCode.value.length >= 5) return
-  enteredCode.value += value
-  errorMessage.value = ''
+function focusInput() {
+  inputRef.value?.focus()
 }
 
-function removeDigit() {
-  enteredCode.value = enteredCode.value.slice(0, -1)
+function handleInput(event: Event) {
+  const target = event.target as HTMLInputElement
+  const digits = target.value.replace(/\D/g, '')
+  enteredCode.value = digits.slice(0, 5)
+  target.value = enteredCode.value
   errorMessage.value = ''
 }
 
@@ -56,15 +59,19 @@ async function connectGuardian() {
       보호자가 보내준 5자리 코드를 입력해 주세요.
     </p>
 
-    <button
-      class="mt-xl flex w-full justify-center gap-sm rounded-medium outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-4"
-      type="button"
-      aria-haspopup="dialog"
-      :aria-expanded="keypadOpen"
-      :aria-label="`인증 코드 ${enteredCode.length}자리 입력됨`"
-      @focus="keypadOpen = true"
-      @click="keypadOpen = true"
+    <div
+      class="relative mt-xl flex w-full justify-center gap-sm cursor-pointer"
+      @click="focusInput"
     >
+      <input
+        ref="inputRef"
+        type="text"
+        inputmode="numeric"
+        class="absolute inset-0 size-full opacity-0 cursor-pointer"
+        :value="enteredCode"
+        aria-label="인증 코드 5자리 입력"
+        @input="handleInput"
+      />
       <span
         v-for="(digit, index) in codeDigits"
         :key="index"
@@ -77,7 +84,7 @@ async function connectGuardian() {
       >
         {{ digit }}
       </span>
-    </button>
+    </div>
 
     <p v-if="errorMessage" class="type-body mt-sm text-error" role="alert">
       {{ errorMessage }}
@@ -104,27 +111,5 @@ async function connectGuardian() {
         <strong class="text-primary-500">5자리 숫자를 확인하세요.</strong>
       </p>
     </aside>
-
-    <WardKeypadBottomSheet
-      v-model:open="keypadOpen"
-      title="인증 코드 입력"
-      description="보호자의 폰에 표시된 5자리 숫자를 입력해주세요."
-      mode="input"
-    >
-      <NumericKeypad
-        cancel-label="닫기"
-        :disabled="pairingStore.isVerifyingCode"
-        @input="inputDigit"
-        @backspace="removeDigit"
-        @cancel="keypadOpen = false"
-      />
-      <Button
-        class="mt-lg w-full"
-        label="입력 완료"
-        size="large"
-        :disabled="enteredCode.length !== 5"
-        @click="keypadOpen = false"
-      />
-    </WardKeypadBottomSheet>
   </div>
 </template>

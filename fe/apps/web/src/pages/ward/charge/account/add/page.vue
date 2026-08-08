@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ArrowRight } from '@lucide/vue'
-import { Button, NumericKeypad, PinKeypad, WardToast } from '@pay-with/ui'
+import { Button, PinKeypad, WardToast } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
 import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { getApiErrorMessage } from '@/api/error'
+import { useEnsureFocusedInputVisible } from '@/composables/useEnsureFocusedInputVisible'
 import { useRegisterChargeAccountMutation } from '@/composables/useRegisterChargeAccountMutation'
 import { banksOptions } from '@/lib/query/bank'
 import WardKeypadBottomSheet from '@/pages/ward/-components/WardKeypadBottomSheet.vue'
@@ -26,12 +27,15 @@ const banks = computed(() =>
 const bankCode = ref('')
 const accountNumber = ref('')
 const accountPassword = ref('')
+const accountNumberInput = ref<HTMLElement | null>(null)
 const keypad = ref<{ reset: () => void } | null>(null)
-const accountSheetOpen = ref(false)
 const passwordSheetOpen = ref(false)
 const errorMessage = ref('')
 const toastOpen = ref(false)
 const toastMessage = ref('')
+
+useEnsureFocusedInputVisible(accountNumberInput)
+
 const accountNumberError = computed(() =>
   accountNumber.value.length > 0 && !/^\d{8,16}$/.test(accountNumber.value)
     ? '계좌번호는 숫자 8~16자리로 입력해주세요.'
@@ -45,12 +49,11 @@ const canRegister = computed(
     !registerAccountMutation.isPending.value,
 )
 
-function appendAccountDigit(value: string) {
-  if (accountNumber.value.length < 16) accountNumber.value += value
-}
-
-function removeAccountDigit() {
-  accountNumber.value = accountNumber.value.slice(0, -1)
+function handleAccountInput(event: Event) {
+  const target = event.target as HTMLInputElement
+  const digits = target.value.replace(/\D/g, '')
+  accountNumber.value = digits.slice(0, 16)
+  target.value = accountNumber.value
 }
 
 function openPasswordSheet() {
@@ -68,15 +71,6 @@ function closePasswordSheet() {
 function completePassword(value: string) {
   accountPassword.value = value
   passwordSheetOpen.value = false
-}
-
-function handleAccountCompleteClick() {
-  if (!/^\d{8,16}$/.test(accountNumber.value)) {
-    toastMessage.value = '계좌번호 8자리 이상을 입력해 주세요'
-    toastOpen.value = true
-    return
-  }
-  accountSheetOpen.value = false
 }
 
 function handleRegisterClick() {
@@ -146,7 +140,8 @@ async function registerAccount() {
       </label>
       <input
         id="charge-account-number"
-        class="h-[72px] w-full cursor-pointer rounded-medium border bg-surface-card px-md text-body outline-none transition-colors placeholder:font-sans placeholder:text-[20px] placeholder:font-semibold placeholder:leading-none placeholder:tracking-[-0.4px] placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
+        ref="accountNumberInput"
+        class="h-[72px] w-full rounded-medium border bg-surface-card px-md text-body outline-none transition-colors placeholder:font-sans placeholder:text-[20px] placeholder:font-semibold placeholder:leading-none placeholder:tracking-[-0.4px] placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
         :class="[
           accountNumberError ? 'border-error' : 'border-border-strong',
           accountNumber
@@ -154,18 +149,15 @@ async function registerAccount() {
             : '',
         ]"
         type="text"
-        inputmode="none"
+        inputmode="numeric"
+        maxlength="16"
         placeholder="계좌번호를 입력해주세요"
         :value="accountNumber"
-        readonly
-        aria-haspopup="dialog"
-        :aria-expanded="accountSheetOpen"
         :aria-invalid="accountNumberError ? 'true' : undefined"
         :aria-describedby="
           accountNumberError ? 'charge-account-number-error' : undefined
         "
-        @focus="accountSheetOpen = true"
-        @click="accountSheetOpen = true"
+        @input="handleAccountInput"
       />
       <p
         v-if="accountNumberError"
@@ -221,31 +213,6 @@ async function registerAccount() {
         </template>
       </Button>
     </div>
-
-    <WardKeypadBottomSheet
-      v-model:open="accountSheetOpen"
-      title="계좌번호 입력"
-      description="숫자 키패드로 계좌번호를 입력해주세요."
-      mode="input"
-    >
-      <NumericKeypad
-        cancel-label="닫기"
-        @input="appendAccountDigit"
-        @backspace="removeAccountDigit"
-        @cancel="accountSheetOpen = false"
-      />
-      <div @click="handleAccountCompleteClick">
-        <Button
-          class="mt-lg w-full"
-          :class="{
-            'opacity-50 cursor-not-allowed': !/^\d{8,16}$/.test(accountNumber),
-          }"
-          label="입력 완료"
-          size="large"
-          :aria-disabled="!/^\d{8,16}$/.test(accountNumber)"
-        />
-      </div>
-    </WardKeypadBottomSheet>
 
     <WardKeypadBottomSheet
       v-model:open="passwordSheetOpen"
