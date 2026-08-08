@@ -1,6 +1,6 @@
 -- =====================================================================
 -- PAY-WITH 시드 데이터 (ERD v2.6)
--- banks / risk_rules / payment_anomaly_rules / merchants
+-- banks / risk_rules / merchants
 --
 -- Repeatable 마이그레이션(R__)이라 버전이 없고, 모든 V 파일이 끝난 뒤에 실행된다.
 -- 이 파일의 내용이 바뀌면 다음 기동 때 자동으로 다시 실행된다 — FDS 룰 배점처럼
@@ -60,17 +60,17 @@ INSERT INTO banks (bank_code, bank_name, is_active) VALUES
 --    [변경] SAFE_ACCOUNT_CHECK 는 시니어 본인이 등록한 계좌에만 적용(-40 → -20).
 --          보호자가 등록한 안전계좌는 감점이 아니라 화이트리스트 단축평가로 처리한다.
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
-                                                                      ('HIGH_AMOUNT_L3',       '고액 송금 3구간(L3 기준액 초과)',                    35, TRUE),
-                                                                      ('DIVISION_TRANSFER',    '단시간 내 서로 다른 여러 계좌로 분할 송금',           28, TRUE),
-                                                                      ('SUSPICIOUS_MEMO',      '메모에 위험 키워드 포함(검찰·수사·대출 등)',          25, TRUE),
-                                                                      ('HIGH_AMOUNT_L2',       '고액 송금 2구간(L2~L3)',                             18, TRUE),
-                                                                      ('PENDING_APPROVAL_EXISTS', '승인 대기 중인 송금이 있는 상태에서 추가 송금',    20, TRUE),
-                                                                      ('NEW_RECIPIENT',        '처음 송금하는 신규 수취인(send_count=0)',             15, TRUE),
-                                                                      ('REPEATED',             '단기간 내 반복 송금',                                14, TRUE),
-                                                                      ('NIGHT_TIME_DEEP',      '심야 송금(자정~새벽)',                               14, TRUE),
-                                                                      ('HIGH_AMOUNT_L1',       '고액 송금 1구간(L1~L2)',                             10, TRUE),
-                                                                      ('NIGHT_TIME_LATE',      '야간 송금(밤~자정)',                                  6, TRUE),
-                                                                      ('SAFE_ACCOUNT_CHECK',   '시니어 본인이 안전계좌로 등록한 수취인 감점',        -20, TRUE)
+                                                                      ('HIGH_AMOUNT_L3',       '매우 큰 금액을 송금했어요.',                         35, TRUE),
+                                                                      ('DIVISION_TRANSFER',    '짧은 시간 동안 여러 계좌로 나누어 송금했어요.',      28, TRUE),
+                                                                      ('SUSPICIOUS_MEMO',      '송금 메모에 검찰·수사·대출 등 주의가 필요한 표현이 있어요.', 25, TRUE),
+                                                                      ('HIGH_AMOUNT_L2',       '큰 금액을 송금했어요.',                              18, TRUE),
+                                                                      ('PENDING_APPROVAL_EXISTS', '이미 승인을 기다리는 송금이 있는데 추가로 송금했어요.', 20, TRUE),
+                                                                      ('NEW_RECIPIENT',        '처음 송금하는 계좌예요.',                            15, TRUE),
+                                                                      ('REPEATED',             '짧은 시간에 송금을 여러 번 했어요.',                 14, TRUE),
+                                                                      ('NIGHT_TIME_DEEP',      '자정 이후 새벽 시간에 송금했어요.',                  14, TRUE),
+                                                                      ('HIGH_AMOUNT_L1',       '비교적 큰 금액을 송금했어요.',                       10, TRUE),
+                                                                      ('NIGHT_TIME_LATE',      '늦은 밤 시간에 송금했어요.',                          6, TRUE),
+                                                                      ('SAFE_ACCOUNT_CHECK',   '본인이 안전계좌로 등록한 계좌에 송금했어요.',       -20, TRUE)
     AS new
     ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 
@@ -85,8 +85,8 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
 --      확정적으로 위험한 경우만 둔다. 애매한 신호는 점수 룰로 처리해 조합으로 걸러낸다.
 --      화이트리스트는 폐지. 안전계좌는 무조건 통과가 아니라 SAFE_ACCOUNT_CHECK 감점으로만 반영한다.
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
-                                                                      ('BL_REJECTED_RECIPIENT', '보호자가 거절한 이력이 있는 계좌로 재송금 시도', 100, TRUE),
-                                                                      ('BL_FRAUD_ACCOUNT',      '사기계좌로 신고된 계좌에 송금',                  100, TRUE)
+                                                                      ('BL_REJECTED_RECIPIENT', '보호자가 이전에 거절한 계좌로 다시 송금하려고 했어요.', 100, TRUE),
+                                                                      ('BL_FRAUD_ACCOUNT',      '사기 계좌로 신고된 계좌에 송금하려고 했어요.',          100, TRUE)
     AS new
     ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 
@@ -103,15 +103,15 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
 --      SPLIT 40 은 분할(40+L1=50 차단)이 일괄 구매(L3+GIFT=45 알림)보다 불리하도록 정한 값,
 --      RISKY 25 는 단독 발동이 정확히 주의 문턱이 되도록 정한 값 — 임의 조정 금지(설계서 §4-2).
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
-                                                                      ('PAY_SPLIT_PAYMENT',    '상품권 의심 결제의 단기간 반복(고액 FDS 회피 분할 의심)',      40, TRUE),
-                                                                      ('PAY_HIGH_AMOUNT_L3',   '고액 결제 3구간(L3 기준액 이상)',                              35, TRUE),
-                                                                      ('PAY_RISKY_CATEGORY',   '위험 업종 결제(귀금속·전자제품 등 현금 교환 용이 물품)',       25, TRUE),
-                                                                      ('PAY_PENDING_APPROVAL', '승인 대기 송금이 있는 상태의 결제',                            20, TRUE),
-                                                                      ('PAY_HIGH_AMOUNT_L2',   '고액 결제 2구간(L2~L3)',                                       18, TRUE),
-                                                                      ('PAY_NIGHT_DEEP',       '심야 결제(자정~새벽)',                                         14, TRUE),
-                                                                      ('PAY_HIGH_AMOUNT_L1',   '고액 결제 1구간(L1~L2)',                                       10, TRUE),
-                                                                      ('PAY_GIFT_CARD_AMOUNT', '상품권 취급 업종에서 단위 배수 금액 결제(상품권 의심)',        10, TRUE),
-                                                                      ('PAY_NIGHT_LATE',       '야간 결제(밤~자정)',                                            6, TRUE)
+                                                                      ('PAY_SPLIT_PAYMENT',    '짧은 시간에 상품권으로 의심되는 결제를 여러 번 했어요.', 40, TRUE),
+                                                                      ('PAY_HIGH_AMOUNT_L3',   '매우 큰 금액을 결제했어요.',                              35, TRUE),
+                                                                      ('PAY_RISKY_CATEGORY',   '현금화하기 쉬운 귀금속·전자제품 등을 결제했어요.',       25, TRUE),
+                                                                      ('PAY_PENDING_APPROVAL', '승인을 기다리는 송금이 있는데 추가로 결제했어요.',        20, TRUE),
+                                                                      ('PAY_HIGH_AMOUNT_L2',   '큰 금액을 결제했어요.',                                  18, TRUE),
+                                                                      ('PAY_NIGHT_DEEP',       '자정 이후 새벽 시간에 결제했어요.',                      14, TRUE),
+                                                                      ('PAY_HIGH_AMOUNT_L1',   '비교적 큰 금액을 결제했어요.',                           10, TRUE),
+                                                                      ('PAY_GIFT_CARD_AMOUNT', '상품권 구매로 의심되는 결제예요.',                       10, TRUE),
+                                                                      ('PAY_NIGHT_LATE',       '늦은 밤 시간에 결제했어요.',                              6, TRUE)
     AS new
     ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 
@@ -120,26 +120,27 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
 --        송금 BL_* 는 score 0 → 100 으로 올렸으나 여기는 결제 담당 판단이 필요해 0 으로 둔다.
 --        PaymentFdsEvaluationServiceImpl.evaluateShortcut 도 총점을 0 으로 하드코딩한 상태다.
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
-                                                                      ('PAY_IMPOSSIBLE_TRAVEL', '직전 결제 대비 물리적으로 불가능한 이동 속도', 0, TRUE)
+                                                                      ('PAY_IMPOSSIBLE_TRAVEL', '직전 결제 위치에서 이동하기 어려운 장소에서 결제했어요.', 0, TRUE)
     AS new
     ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 
--- 3) 결제 이상 규칙 카탈로그 (IMPOSSIBLE_TRAVEL만 즉시 차단)  [변경 없음]
-INSERT INTO payment_anomaly_rules (rule_code, description, default_action, is_active) VALUES
-                                                                                          ('HIGH_AMOUNT_PAYMENT',  '평소 대비 고액 결제',       'NOTIFY', TRUE),
-                                                                                          ('OUT_OF_ZONE',          '생활 반경 밖 결제',         'NOTIFY', TRUE),
-                                                                                          ('IMPOSSIBLE_TRAVEL',    '물리적으로 불가능한 이동',  'BLOCK',  TRUE),
-                                                                                          ('MISSED_ROUTINE_VISIT', '루틴 방문 이탈',            'NOTIFY', TRUE)
-    AS new
-    ON DUPLICATE KEY UPDATE description = new.description, default_action = new.default_action, is_active = new.is_active;
-
--- 4) 시연용 더미 가맹점 (좌표는 서울 기준 예시)  [변경 없음]
+-- 3) 시연용 더미 가맹점
+--    1~5 는 서울권(종로·중구) — 평상시 생활 반경 결제를 만드는 용도.
+--    9001~ 은 제주권. 서울 결제 직후 여기서 결제하면 PAY_IMPOSSIBLE_TRAVEL 이 발동한다.
+--    종로-제주시 대권거리가 약 454km 이고 임계가 300km/h(fds.payment.impossible-speed-kmh)라,
+--    직전 COMPLETED 결제와 90분 이내면 걸린다. 기준 결제는 24시간 안에 있어야 한다.
+--    번호대를 9001 부터 띄운 것은 서울 더미(1~5)가 뒤에 늘어나도 겹치지 않게 하기 위함이다.
+--    created_at 은 컬럼 DEFAULT(CURRENT_TIMESTAMP)에 맡긴다 — UPDATE 절에 없으므로
+--    이미 들어가 있는 행의 값은 재실행해도 그대로 남는다.
 INSERT INTO merchants (merchant_id, name, category_code, region, latitude, longitude) VALUES
                                                                                           (1, '행복마트 종로점',   'MART',       '서울 종로구',  37.5729000, 126.9793000),
                                                                                           (2, '정든약국',          'PHARMACY',   '서울 종로구',  37.5710000, 126.9820000),
                                                                                           (3, '한마음경로식당',    'RESTAURANT', '서울 종로구',  37.5735000, 126.9768000),
                                                                                           (4, '우리동네편의점',    'CVS',        '서울 중구',    37.5636000, 126.9976000),
-                                                                                          (5, '서울대병원 원무과', 'HOSPITAL',   '서울 종로구',  37.5799000, 126.9987000)
+                                                                                          (5, '서울대병원 원무과', 'HOSPITAL',   '서울 종로구',  37.5799000, 126.9987000),
+                                                                                          (9001, '한라식당',          'RESTAURANT', '제주 제주시',   33.4996000, 126.5312000),
+                                                                                          (9002, '탐라마트 서귀포점', 'MART',       '제주 서귀포시', 33.2541000, 126.5601000),
+                                                                                          (9003, '성산일출봉편의점',  'CVS',        '제주 서귀포시', 33.4581000, 126.9425000)
     AS new
     ON DUPLICATE KEY UPDATE name = new.name, category_code = new.category_code, region = new.region,
     latitude = new.latitude, longitude = new.longitude;
