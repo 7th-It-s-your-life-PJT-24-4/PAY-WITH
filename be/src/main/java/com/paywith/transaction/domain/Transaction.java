@@ -25,7 +25,6 @@ public class Transaction {
     private TransactionStatus status;         // REQUESTED, HELD, APPROVED, REJECTED, COMPLETED, CANCELED, BLOCKED
     private Double latitude;
     private Double longitude;
-    private String pgPaymentKey;
     private Integer riskScore;
     private LocalDateTime createdAt;
     private LocalDateTime completedAt;

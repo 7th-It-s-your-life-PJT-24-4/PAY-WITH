@@ -12,12 +12,12 @@
         INSERT INTO transactions (
         wallet_id, recipient_id, merchant_id, account_id,
         type, initiated_by, amount, memo, balance_after, status,
-        latitude, longitude, pg_payment_key, risk_score,
+        latitude, longitude, risk_score,
         created_at, completed_at
         ) VALUES (
         #{walletId}, #{recipientId}, #{merchantId}, #{accountId},
         #{type}, #{initiatedBy}, #{amount}, #{memo}, #{balanceAfter}, #{status},
-        #{latitude}, #{longitude}, #{pgPaymentKey}, #{riskScore},
+        #{latitude}, #{longitude}, #{riskScore},
         #{createdAt}, #{completedAt}
         )
     </insert>
