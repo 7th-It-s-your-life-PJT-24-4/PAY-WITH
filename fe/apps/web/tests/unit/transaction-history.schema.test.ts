@@ -62,6 +62,45 @@ describe('transaction history schemas', () => {
     expect(response.data.transactions[0]?.title).toBe('거래 상대')
   })
 
+  it('실패한 거래의 0원 내역을 정상적으로 파싱한다', () => {
+    const response = wardTransactionHistoryResponseSchema.parse({
+      success: true,
+      data: {
+        transactions: [
+          {
+            transactionId: 10,
+            type: 'TRANSFER',
+            direction: 'OUT',
+            title: '홍길동',
+            amount: 320,
+            status: 'FAILED',
+            riskLevel: null,
+            occurredAt: '2026-08-06T09:48:05',
+          },
+          {
+            transactionId: 11,
+            type: 'TRANSFER',
+            direction: 'OUT',
+            title: '홍길동',
+            amount: 0,
+            status: 'FAILED',
+            riskLevel: null,
+            occurredAt: '2026-08-06T09:48:15',
+          },
+        ],
+        page: 0,
+        size: 20,
+        totalElements: 2,
+        totalPages: 1,
+        hasNext: false,
+      },
+      message: null,
+    })
+
+    expect(response.data.transactions[0]?.amount).toBe(320)
+    expect(response.data.transactions[1]?.amount).toBe(0)
+  })
+
   it('최신 BE 거래 enum 값을 그대로 파싱한다', () => {
     const response = wardTransactionHistoryResponseSchema.parse({
       success: true,

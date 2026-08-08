@@ -5,6 +5,7 @@ import {
   getWardTransactionDetail,
   getWardTransactionHistory,
 } from '@/api/transaction-history'
+import { wardTransactionHistoryOptions } from '@/lib/query/transaction-history'
 
 vi.mock('@/api/client', () => ({
   apiClient: { get: vi.fn() },
@@ -41,6 +42,44 @@ describe('transaction history API', () => {
       '/ward/transactions?category=TRANSFER&keyword=%ED%99%8D%EA%B8%B8%EB%8F%99&page=1&size=20',
       expect.anything(),
     )
+  })
+
+  it('wardTransactionHistoryOptions select에서 HELD 상태인 거래를 필터링하여 제외한다', () => {
+    const options = wardTransactionHistoryOptions({})
+    const select = options.select!
+    const filtered = select({
+      transactions: [
+        {
+          transactionId: 1,
+          type: 'TRANSFER',
+          direction: 'OUT',
+          title: '김철수',
+          amount: 50_000,
+          status: 'HELD',
+          riskLevel: 'DANGER',
+          occurredAt: '2026-08-08T09:00:00',
+        },
+        {
+          transactionId: 2,
+          type: 'TRANSFER',
+          direction: 'OUT',
+          title: '이영희',
+          amount: 30_000,
+          status: 'COMPLETED',
+          riskLevel: 'SAFE',
+          occurredAt: '2026-08-08T09:30:00',
+        },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 2,
+      totalPages: 1,
+      hasNext: false,
+    } as never)
+
+    expect(filtered.transactions).toHaveLength(1)
+    expect(filtered.transactions[0]?.transactionId).toBe(2)
+    expect(filtered.transactions[0]?.status).toBe('COMPLETED')
   })
 
   it('피보호자 거래 상세를 요청한다', async () => {
