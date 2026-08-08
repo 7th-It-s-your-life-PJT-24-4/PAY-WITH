@@ -156,4 +156,28 @@ describe('transaction history API', () => {
       '짧은 시간 안에 여러 번 나누어 결제했어요.',
     ])
   })
+
+  it('FAILED 및 CANCELED 상태의 거래에 적절한 기본 안내 요약 문구를 생성한다', () => {
+    const options = wardTransactionDetailOptions(105)
+    const select = options.select!
+    const failedMapped = select({
+      transactionId: 105,
+      type: 'TRANSFER',
+      direction: 'OUT',
+      status: 'FAILED',
+      riskLevel: null,
+      counterpartyName: '김철수',
+      bankName: '신한은행',
+      accountNo: '110123456789',
+      amount: 120_000,
+      memo: null,
+      occurredAt: '2026-08-05T09:30:00',
+      balanceAfter: null,
+      riskAnalysis: null,
+    })
+
+    expect(failedMapped.riskSummary).toBe(
+      '잔액 부족 등으로 거래가 완료되지 않았어요.',
+    )
+  })
 })
