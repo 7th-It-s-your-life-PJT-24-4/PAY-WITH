@@ -55,8 +55,8 @@ INSERT INTO banks (bank_code, bank_name, is_active) VALUES
 --          안전 0~24 / 주의 25~49 / 위험 50 이상.
 --          총점은 0~100 으로 자른다(RiskGrader.MAX_SCORE). 배점 합은 상한을 넘을 수 있으나
 --          (여러 룰 동시 발동 시 최대 151) 그 구간은 이미 전부 위험이라 등급은 영향받지 않는다.
---          배점 합을 100 에 맞추려 재배점하지 않는다. 룰을 추가할 때마다 전 항목을 다시
---          튜닝해야 하고, 결제 룰과 공유하는 척도(주의 25 / 위험 50)까지 어긋난다.
+--          배점 합을 100 에 맞추려 재배점하지 않는다. 룰을 추가할 때마다 전 항목을 다시 튜닝해야 한다.
+--          결제 룰(2-2)은 임계값과 배점을 따로 쓴다 — 여기 값을 바꿔도 결제 판정은 움직이지 않는다.
 --    [변경] SAFE_ACCOUNT_CHECK 는 시니어 본인이 등록한 계좌에만 적용(-40 → -20).
 --          보호자가 등록한 안전계좌는 감점이 아니라 화이트리스트 단축평가로 처리한다.
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
@@ -97,30 +97,36 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
 -- (폐지)   BL_RAPID_NEW_RECIPIENT — DIVISION_TRANSFER 와 판정 소스가 겹쳐 이중 계산이 되므로 제거.
 -- (미도입) UNREGISTERED_ACCOUNT — SAFE_ACCOUNT_CHECK 와 판정 소스 중복
 
--- 2-2) 결제 FDS 룰 (PR#4) — 배점은 송금과 같은 스케일(주의 25 / 위험 50), 임계값·목록은
---      properties(fds.payment.*)로 외부화. 송금 판정 서비스는 평가기 빈이 없는 rule_code 를
---      건너뛰므로 PAY_* 행 추가는 송금 판정에 영향이 없다(결제 서비스도 대칭으로 무해).
---      SPLIT 40 은 분할(40+L1=50 차단)이 일괄 구매(L3+GIFT=45 알림)보다 불리하도록 정한 값,
---      RISKY 25 는 단독 발동이 정확히 주의 문턱이 되도록 정한 값 — 임의 조정 금지(설계서 §4-2).
+-- 2-2) 결제 FDS 룰 (PR#4) — 임계값·목록은 properties(fds.payment.*)로 외부화. 송금 판정 서비스는
+--      평가기 빈이 없는 rule_code 를 건너뛰므로 PAY_* 행 추가는 송금 판정에 영향이 없다
+--      (결제 서비스도 대칭으로 무해).
+--      [변경] 배점 일괄 2배 + 결제 전용 임계값(주의 50 / 위험 100)으로 분리. 차단된 결제가 100점
+--            만점에 50점으로 보여 "절반만 위험한 거래"로 읽힌다는 QA 지적을 반영한 것이며, 전 항목을
+--            같은 비율로 올려 설계서 §4-2 의 조합 관계는 그대로 유지된다. 송금은 배점이 그대로라
+--            임계값을 공유할 수 없어 fds.payment.threshold.* 를 따로 뒀다(PaymentRiskGrader).
+--      SPLIT 80 은 분할(80+L1=100 차단)이 일괄 구매(L3+GIFT=90 알림)보다 불리하도록 정한 값,
+--      RISKY 50 은 단독 발동이 정확히 주의 문턱이 되도록 정한 값 — 임의 조정 금지(설계서 §4-2).
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
-                                                                      ('PAY_SPLIT_PAYMENT',    '상품권 의심 결제의 단기간 반복(고액 FDS 회피 분할 의심)',      40, TRUE),
-                                                                      ('PAY_HIGH_AMOUNT_L3',   '고액 결제 3구간(L3 기준액 이상)',                              35, TRUE),
-                                                                      ('PAY_RISKY_CATEGORY',   '위험 업종 결제(귀금속·전자제품 등 현금 교환 용이 물품)',       25, TRUE),
-                                                                      ('PAY_PENDING_APPROVAL', '승인 대기 송금이 있는 상태의 결제',                            20, TRUE),
-                                                                      ('PAY_HIGH_AMOUNT_L2',   '고액 결제 2구간(L2~L3)',                                       18, TRUE),
-                                                                      ('PAY_NIGHT_DEEP',       '심야 결제(자정~새벽)',                                         14, TRUE),
-                                                                      ('PAY_HIGH_AMOUNT_L1',   '고액 결제 1구간(L1~L2)',                                       10, TRUE),
-                                                                      ('PAY_GIFT_CARD_AMOUNT', '상품권 취급 업종에서 단위 배수 금액 결제(상품권 의심)',        10, TRUE),
-                                                                      ('PAY_NIGHT_LATE',       '야간 결제(밤~자정)',                                            6, TRUE)
+                                                                      ('PAY_SPLIT_PAYMENT',    '상품권 의심 결제의 단기간 반복(고액 FDS 회피 분할 의심)',      80, TRUE),
+                                                                      ('PAY_HIGH_AMOUNT_L3',   '고액 결제 3구간(L3 기준액 이상)',                              70, TRUE),
+                                                                      ('PAY_RISKY_CATEGORY',   '위험 업종 결제(귀금속·전자제품 등 현금 교환 용이 물품)',       50, TRUE),
+                                                                      ('PAY_PENDING_APPROVAL', '승인 대기 송금이 있는 상태의 결제',                            40, TRUE),
+                                                                      ('PAY_HIGH_AMOUNT_L2',   '고액 결제 2구간(L2~L3)',                                       36, TRUE),
+                                                                      ('PAY_NIGHT_DEEP',       '심야 결제(자정~새벽)',                                         28, TRUE),
+                                                                      ('PAY_HIGH_AMOUNT_L1',   '고액 결제 1구간(L1~L2)',                                       20, TRUE),
+                                                                      ('PAY_GIFT_CARD_AMOUNT', '상품권 취급 업종에서 단위 배수 금액 결제(상품권 의심)',        20, TRUE),
+                                                                      ('PAY_NIGHT_LATE',       '야간 결제(밤~자정)',                                           12, TRUE)
     AS new
     ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 
 -- 2-2-1) 결제 단축평가 — 송금 BL_* 와 같은 위상(발동 즉시 DANGER, details 에 근거 기록).
 --        결제 DANGER 는 승인 보류가 아니라 즉시 거절(BLOCKED)로 처리된다.
---        송금 BL_* 는 score 0 → 100 으로 올렸으나 여기는 결제 담당 판단이 필요해 0 으로 둔다.
---        PaymentFdsEvaluationServiceImpl.evaluateShortcut 도 총점을 0 으로 하드코딩한 상태다.
+--        [변경] score 0 → 100. 송금 BL_* 와 같은 이유다 — 차단해 놓고 조회 화면에는 0점으로 뜨고,
+--              risk_score 로 정렬·비교하면 안전 거래와 구분되지 않았다(QA 지적).
+--              PaymentFdsEvaluationServiceImpl.evaluateShortcut 도 이 배점을 그대로 총점으로 쓴다
+--              (하드코딩 0 제거). 결제 위험 임계값이 100 이라 만점이 곧 차단이다.
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
-                                                                      ('PAY_IMPOSSIBLE_TRAVEL', '직전 결제 대비 물리적으로 불가능한 이동 속도', 0, TRUE)
+                                                                      ('PAY_IMPOSSIBLE_TRAVEL', '직전 결제 대비 물리적으로 불가능한 이동 속도', 100, TRUE)
     AS new
     ON DUPLICATE KEY UPDATE description = new.description, score = new.score, is_active = new.is_active;
 

@@ -2,6 +2,7 @@ package com.paywith.payment.fds.support;
 
 import com.paywith.fds.service.RiskGrader;
 import com.paywith.payment.fds.rule.PaymentRiskRuleEvaluator;
+import com.paywith.payment.fds.service.PaymentRiskGrader;
 import com.paywith.payment.fds.rule.impl.PaymentGiftCardAmountRuleEvaluator;
 import com.paywith.payment.fds.rule.impl.PaymentHighAmountL1RuleEvaluator;
 import com.paywith.payment.fds.rule.impl.PaymentHighAmountL2RuleEvaluator;
@@ -17,9 +18,13 @@ import java.util.List;
 /** application-local.properties 기본값으로 조립한다. 설정이 바뀌면 함께 고쳐야 한다. */
 public final class PaymentFdsTestWiring {
 
-    /** 등급 임계값은 송금과 공유(D6). */
-    public static final int CAUTION_THRESHOLD = 25;
-    public static final int DANGER_THRESHOLD = 50;
+    /** 등급 임계값은 결제 전용(fds.payment.threshold.*) — 차단이 곧 만점이 되도록 상한과 맞춰 둔다. */
+    public static final int CAUTION_THRESHOLD = 50;
+    public static final int DANGER_THRESHOLD = 100;
+
+    /** 송금 임계값. 공용 RiskGrader 를 조립할 때만 쓴다(클램프는 여기서 온다). */
+    private static final int TRANSFER_CAUTION_THRESHOLD = 25;
+    private static final int TRANSFER_DANGER_THRESHOLD = 50;
 
     public static final long L1 = 100_000L;
     public static final long L2 = 300_000L;
@@ -32,8 +37,12 @@ public final class PaymentFdsTestWiring {
     private PaymentFdsTestWiring() {
     }
 
-    public static RiskGrader grader() {
-        return new RiskGrader(CAUTION_THRESHOLD, DANGER_THRESHOLD);
+    public static PaymentRiskGrader grader() {
+        return new PaymentRiskGrader(
+            new RiskGrader(TRANSFER_CAUTION_THRESHOLD, TRANSFER_DANGER_THRESHOLD),
+            CAUTION_THRESHOLD,
+            DANGER_THRESHOLD
+        );
     }
 
     public static PaymentImpossibleTravelEvaluator travelEvaluator() {

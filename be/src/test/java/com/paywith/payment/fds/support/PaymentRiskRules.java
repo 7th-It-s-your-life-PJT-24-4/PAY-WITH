@@ -12,22 +12,25 @@ public final class PaymentRiskRules {
     /** 배점 룰 (rule_code -> score). */
     public static final Map<String, Integer> SCORES = new LinkedHashMap<>();
 
-    /** 단축평가 전용 행. 점수 합산에 참여하지 않는다. */
+    /** 단축평가 전용 행. 점수 합산에는 참여하지 않지만, 발동 시 이 배점이 그대로 총점이 된다. */
     public static final List<String> PREFILTER_CODES = List.of("PAY_IMPOSSIBLE_TRAVEL");
+
+    /** 단축평가 배점 — 확정 위험이라 만점. */
+    public static final int PREFILTER_SCORE = 100;
 
     /** 송금 룰(rule_id 1~)과 구분되는 대역 — 혼합 카탈로그 테스트에서 충돌을 피한다. */
     private static final long RULE_ID_BASE = 100L;
 
     static {
-        SCORES.put("PAY_SPLIT_PAYMENT", 40);
-        SCORES.put("PAY_HIGH_AMOUNT_L3", 35);
-        SCORES.put("PAY_RISKY_CATEGORY", 25);
-        SCORES.put("PAY_PENDING_APPROVAL", 20);
-        SCORES.put("PAY_HIGH_AMOUNT_L2", 18);
-        SCORES.put("PAY_NIGHT_DEEP", 14);
-        SCORES.put("PAY_HIGH_AMOUNT_L1", 10);
-        SCORES.put("PAY_GIFT_CARD_AMOUNT", 10);
-        SCORES.put("PAY_NIGHT_LATE", 6);
+        SCORES.put("PAY_SPLIT_PAYMENT", 80);
+        SCORES.put("PAY_HIGH_AMOUNT_L3", 70);
+        SCORES.put("PAY_RISKY_CATEGORY", 50);
+        SCORES.put("PAY_PENDING_APPROVAL", 40);
+        SCORES.put("PAY_HIGH_AMOUNT_L2", 36);
+        SCORES.put("PAY_NIGHT_DEEP", 28);
+        SCORES.put("PAY_HIGH_AMOUNT_L1", 20);
+        SCORES.put("PAY_GIFT_CARD_AMOUNT", 20);
+        SCORES.put("PAY_NIGHT_LATE", 12);
     }
 
     private PaymentRiskRules() {
@@ -41,7 +44,7 @@ public final class PaymentRiskRules {
             rules.add(rule(id++, entry.getKey(), entry.getValue()));
         }
         for (String code : PREFILTER_CODES) {
-            rules.add(rule(id++, code, 0));
+            rules.add(rule(id++, code, PREFILTER_SCORE));
         }
         return rules;
     }

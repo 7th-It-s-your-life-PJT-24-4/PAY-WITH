@@ -682,6 +682,6 @@ class PaymentExecuteServiceTest {
     }
 
     private static FdsDecision decision(RiskLevel riskLevel) {
-        return new FdsDecision(riskLevel, DecidedBy.RULE, 60, 25, 50, Collections.emptyList());
+        return new FdsDecision(riskLevel, DecidedBy.RULE, 100, 50, 100, Collections.emptyList());
     }
 }
