@@ -166,7 +166,7 @@ test('보호자 승인 대기 거래 목록을 거쳐 승인 상세 화면을 �
   })
   await expect(pendingSummary).toBeVisible()
   await expect(
-    pendingSummary.getByText(/승인을 기다리는 거래가\s*1건 있습니다/),
+    pendingSummary.getByText(/승인 대기 거래가\s*1건\s*있습니다/),
   ).toBeVisible()
   await pendingSummary.click()
 
