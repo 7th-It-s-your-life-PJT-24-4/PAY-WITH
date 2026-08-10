@@ -41,7 +41,7 @@ const initialPage = computed(() => {
 const searchQuery = ref(initialKeyword.value)
 const activeFilter = ref<TransactionFilter>(initialCategory.value)
 const page = ref(initialPage.value)
-const size = 20
+const size = 10
 
 const filters: Array<{ label: string; value: TransactionFilter }> = [
   { label: '전체', value: 'ALL' },
@@ -141,7 +141,7 @@ const transactionGroups = computed(() => {
           v-model="searchQuery"
           type="search"
           class="type-body-medium h-[56px] w-full rounded-medium border border-border bg-surface-card pr-md pl-14 text-body shadow-card outline-none placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
-          placeholder="상점명, 받는 분 또는 금액 검색"
+          placeholder="가맹점 또는 수취인 검색"
         />
       </label>
 
