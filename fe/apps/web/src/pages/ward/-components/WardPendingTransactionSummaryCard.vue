@@ -27,13 +27,10 @@ const emit = defineEmits<{
       <span class="min-w-0 flex-1">
         <strong
           id="pending-transaction-summary-title"
-          class="type-h3 block text-body"
+          class="type-h2 block leading-tight text-body break-keep"
         >
-          보호자 승인을 기다리고 있어요
+          승인을 기다리는 거래가<br />{{ count }}건 있습니다
         </strong>
-        <span class="type-body-medium mt-xs block text-body-secondary">
-          확인이 필요한 거래 {{ count }}건이 있습니다.
-        </span>
       </span>
       <ChevronRight
         class="size-6 shrink-0 text-body-muted"
