@@ -38,9 +38,7 @@ let filterRequestId = 0
 
 useEnsureFocusedInputVisible(accountNumberInput)
 
-const banks = computed(() =>
-  prioritizeBanks(banksQuery.data.value ?? [], filteredBanks.value),
-)
+const banks = computed(() => prioritizeBanks(banksQuery.data.value ?? [], []))
 const pageCount = computed(() =>
   Math.max(1, Math.ceil(banks.value.length / banksPerPage)),
 )
@@ -142,12 +140,9 @@ async function proceed() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-xl">
+  <div class="flex flex-col gap-lg">
     <section class="text-center">
       <h2 class="type-h1">계좌 번호 입력</h2>
-      <p class="type-h4 mt-xs text-body-secondary">
-        계좌번호를 입력하고 은행을 선택해 주세요
-      </p>
     </section>
 
     <div class="flex flex-col gap-xs">
@@ -177,6 +172,47 @@ async function proceed() {
     >
       {{ filterErrorMessage }}
     </p>
+
+    <section
+      v-if="canValidateAccount"
+      class="h-14"
+      aria-label="계좌번호로 찾은 추천 은행"
+    >
+      <div class="flex h-full snap-x items-center gap-sm overflow-x-auto pb-xs">
+        <button
+          v-for="bank in filteredBanks"
+          :key="bank.bankCode"
+          class="type-body-medium flex min-h-touch-target shrink-0 snap-start items-center gap-xs rounded-full border bg-surface-card px-md py-sm"
+          :class="
+            selectedBankCode === bank.bankCode
+              ? 'border-primary-500 bg-primary-900 text-primary-500 ring-2 ring-primary-500/20'
+              : 'border-border text-body-secondary'
+          "
+          type="button"
+          :aria-label="`${bank.bankName} 추천 은행`"
+          @click="selectedBankCode = bank.bankCode"
+        >
+          <span
+            :class="[
+              'flex size-6 items-center justify-center overflow-hidden rounded-full',
+              getBankPresentation(bank).brandClass,
+            ]"
+            aria-hidden="true"
+          >
+            <img
+              v-if="getBankPresentation(bank).iconUrl"
+              class="size-4 object-contain"
+              :src="getBankPresentation(bank).iconUrl"
+              alt=""
+            />
+            <span v-else class="type-caption text-white">
+              {{ bank.bankName.slice(0, 1) }}
+            </span>
+          </span>
+          {{ bank.bankName }}
+        </button>
+      </div>
+    </section>
 
     <section v-if="canValidateAccount" aria-label="은행 목록">
       <div
