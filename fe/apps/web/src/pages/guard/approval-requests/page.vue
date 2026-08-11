@@ -138,7 +138,7 @@ function openApproval(approval: ApprovalRequestSummary) {
     params: { id: approval.transactionId },
     query: {
       wardId: approval.wardId,
-      status: approval.status.toLowerCase(),
+      approvalStatus: approval.status.toLowerCase(),
       source: 'approval',
     },
   })

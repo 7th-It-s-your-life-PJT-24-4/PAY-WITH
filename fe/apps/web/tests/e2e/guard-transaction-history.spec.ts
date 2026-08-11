@@ -36,6 +36,16 @@ const transactions = [
     riskReason: '메모에 위험 키워드 포함',
     createdAt: '2026-07-25T09:20:01',
   },
+  {
+    transactionId: 42,
+    type: 'TRANSFER',
+    status: 'FAILED',
+    counterpartyName: '이실패',
+    amount: 20000,
+    riskLevel: 'DANGER',
+    riskReason: '처음 송금하는 수취인',
+    createdAt: '2026-07-24T09:20:01',
+  },
 ]
 
 const transactionDetail = {
@@ -64,7 +74,7 @@ const chargeTransactionDetail = {
   direction: 'IN',
   status: 'COMPLETED',
   riskLevel: null,
-  counterpartyName: '수이',
+  counterpartyName: '194 테스트 피보호자',
   bankName: 'KB국민은행',
   accountNo: '12345678901234',
   amount: 50000,
@@ -138,7 +148,9 @@ test('보호자가 위험도별 거래 목록을 조회하고 상세를 확인�
 
   await expect(page).toHaveURL(/\/guard\/history\/41\?wardId=12$/)
   await expect(
-    page.getByRole('heading', { name: '이상 거래가 발생했어요' }),
+    page.getByRole('heading', {
+      name: '승인되어 송금이 완료된 거래에요',
+    }),
   ).toBeVisible()
   await expect(page.getByText('87점')).toBeVisible()
   await expect(page.getByText('평소와 다른 고액 송금이에요.')).toBeVisible()
@@ -157,7 +169,24 @@ test('보호자가 피보호자의 직접 충전 상세에서 충전 계좌 정�
   await expect(page).toHaveURL(/\/guard\/history\/40\?wardId=12$/)
   await expect(page.getByText('거래금액')).toBeVisible()
   await expect(page.getByText('충전', { exact: true })).toBeVisible()
-  await expect(page.getByText('수이(KB국민은행1234)')).toBeVisible()
+  await expect(page.getByText('194 테스트 피보호자님')).toBeVisible()
+  await expect(page.getByText('KB국민은행')).toBeVisible()
+  await expect(page.getByText('12345678901234')).toBeVisible()
+  await expect(page.getByText('***')).toBeHidden()
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    )
+    .toBe(true)
+  await expect
+    .poll(() =>
+      page
+        .getByTestId('charge-account-number')
+        .evaluate((element) => element.scrollWidth > element.clientWidth),
+    )
+    .toBe(true)
   await expect(page.getByText('사용처')).toBeHidden()
   await expect(page.getByText('출금처')).toBeHidden()
   await expect(
@@ -165,4 +194,13 @@ test('보호자가 피보호자의 직접 충전 상세에서 충전 계좌 정�
   ).toBeHidden()
   await expect(page.getByText('이상거래 의심도')).toBeHidden()
   await expect(page.getByText('0점')).toBeHidden()
+})
+
+test('거래 내역에는 COMPLETED 상태의 거래만 표시한다', async ({ page }) => {
+  await page.goto('/guard/history?wardId=12')
+
+  await expect(page.getByText('KB국민은행 충전')).toBeVisible()
+  await expect(page.getByText('박수취')).toBeVisible()
+  await expect(page.getByText('이실패')).toBeHidden()
+  await expect(page.getByText('송금 실패')).toBeHidden()
 })
