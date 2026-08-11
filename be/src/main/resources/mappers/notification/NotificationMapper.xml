@@ -18,4 +18,29 @@
     WHERE senior_id = #{seniorId}
       AND status = 'ACTIVE'
   </select>
+
+  <!-- 위 findActiveGuardIds 와 대상이 같아야 한다. 토큰 미등록(NULL)만 빠진다 -->
+  <select id="findActiveGuardTokens" resultType="string">
+    SELECT u.fcm_token
+    FROM guard_senior gs
+           JOIN users u ON u.user_id = gs.guard_id
+    WHERE gs.senior_id = #{seniorId}
+      AND gs.status = 'ACTIVE'
+      AND u.fcm_token IS NOT NULL
+  </select>
+
+  <select id="findFcmTokenByUserId" resultType="string">
+    SELECT fcm_token
+    FROM users
+    WHERE user_id = #{userId}
+      AND fcm_token IS NOT NULL
+  </select>
+
+  <!-- 거래 -> 지갑 -> 소유자. wallets 는 1인 1지갑(uk_wallets_user)이라 결과가 하나로 정해진다 -->
+  <select id="findWardIdByTransactionId" resultType="long">
+    SELECT w.user_id
+    FROM transactions t
+           JOIN wallets w ON w.wallet_id = t.wallet_id
+    WHERE t.transaction_id = #{transactionId}
+  </select>
 </mapper>

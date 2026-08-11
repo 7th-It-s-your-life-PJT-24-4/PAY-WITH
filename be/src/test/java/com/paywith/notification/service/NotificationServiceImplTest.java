@@ -23,10 +23,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("보호자 알림 저장")
+@DisplayName("알림 저장")
 class NotificationServiceImplTest {
 
     private static final Long SENIOR_ID = 10L;
+    private static final Long WARD_ID = 11L;
     private static final Long TRANSACTION_ID = 200L;
 
     @Mock
@@ -76,6 +77,33 @@ class NotificationServiceImplTest {
 
         assertThatCode(() -> service.notifyGuardians(SENIOR_ID, NotificationType.ANOMALY,
             "결제 차단", "위험 결제가 차단되었습니다.", "TRANSACTION", TRANSACTION_ID))
+            .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("지정한 한 명에게만 행을 남긴다 — 승인 결과는 페어링을 거슬러 올라갈 필요가 없다")
+    void notifyUser_savesSingleRowForGivenUser() {
+        service.notifyUser(WARD_ID, NotificationType.APPROVAL_RESULT,
+            "송금 완료", "보호자가 승인해 송금이 완료되었습니다.", "TRANSACTION", TRANSACTION_ID);
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        then(notificationMapper).should(times(1)).insert(captor.capture());
+        then(notificationMapper).should(never()).findActiveGuardIds(any());
+
+        Notification saved = captor.getValue();
+        assertThat(saved.getUserId()).isEqualTo(WARD_ID);
+        assertThat(saved.getType()).isEqualTo(NotificationType.APPROVAL_RESULT);
+        assertThat(saved.getTitle()).isEqualTo("송금 완료");
+        assertThat(saved.getRefId()).isEqualTo(TRANSACTION_ID);
+    }
+
+    @Test
+    @DisplayName("단건 저장이 실패해도 예외를 내보내지 않는다 — 승인 흐름을 뒤집으면 안 된다")
+    void notifyUser_doesNotThrowWhenInsertFails() {
+        willThrow(new RuntimeException("insert 실패")).given(notificationMapper).insert(any());
+
+        assertThatCode(() -> service.notifyUser(WARD_ID, NotificationType.APPROVAL_RESULT,
+            "송금 완료", "보호자가 승인해 송금이 완료되었습니다.", "TRANSACTION", TRANSACTION_ID))
             .doesNotThrowAnyException();
     }
 

@@ -14,4 +14,11 @@ public interface NotificationService {
      */
     void notifyGuardians(Long seniorId, NotificationType type, String title, String body,
         String refType, Long refId);
+
+    /**
+     * 수신자가 한 명으로 정해진 알림. 보호자의 승인·거절 결과를 피보호자에게 알릴 때처럼
+     * 페어링을 거슬러 올라갈 필요가 없는 경우에 쓴다.
+     */
+    void notifyUser(Long userId, NotificationType type, String title, String body,
+        String refType, Long refId);
 }

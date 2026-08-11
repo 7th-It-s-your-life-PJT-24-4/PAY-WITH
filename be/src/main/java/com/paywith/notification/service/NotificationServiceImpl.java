@@ -33,17 +33,34 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             List<Long> guardIds = notificationMapper.findActiveGuardIds(seniorId);
             for (Long guardId : guardIds) {
-                Notification notification = new Notification();
-                notification.setUserId(guardId);
-                notification.setType(type);
-                notification.setTitle(title);
-                notification.setBody(body);
-                notification.setRefType(refType);
-                notification.setRefId(refId);
-                notificationMapper.insert(notification);
+                insert(guardId, type, title, body, refType, refId);
             }
         } catch (RuntimeException e) {
             log.error("보호자 알림 저장 실패 — 호출 흐름은 유지. seniorId={}, type={}", seniorId, type, e);
         }
+    }
+
+    /** 실패를 삼키는 이유는 {@link #notifyGuardians} 와 같다. */
+    @Override
+    @Transactional
+    public void notifyUser(Long userId, NotificationType type, String title, String body,
+        String refType, Long refId) {
+        try {
+            insert(userId, type, title, body, refType, refId);
+        } catch (RuntimeException e) {
+            log.error("알림 저장 실패 — 호출 흐름은 유지. userId={}, type={}", userId, type, e);
+        }
+    }
+
+    private void insert(Long userId, NotificationType type, String title, String body,
+        String refType, Long refId) {
+        Notification notification = new Notification();
+        notification.setUserId(userId);
+        notification.setType(type);
+        notification.setTitle(title);
+        notification.setBody(body);
+        notification.setRefType(refType);
+        notification.setRefId(refId);
+        notificationMapper.insert(notification);
     }
 }

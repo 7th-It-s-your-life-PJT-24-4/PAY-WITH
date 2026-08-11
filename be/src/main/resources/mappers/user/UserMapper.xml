@@ -57,6 +57,15 @@
     WHERE user_id = #{id}
   </update>
 
+  <update id="clearFcmTokens">
+    UPDATE users
+    SET fcm_token = NULL
+    WHERE fcm_token IN
+    <foreach item="token" collection="tokens" open="(" separator="," close=")">
+      #{token}
+    </foreach>
+  </update>
+
   <update id="delete">
     UPDATE users
     SET status = 'WITHDRAWN'
