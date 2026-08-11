@@ -122,6 +122,8 @@ function getDefaultMethodLabel(type: string) {
 function getDefaultRiskSummary(riskLevel: string | null, status: string) {
   if (status === 'BLOCKED') return '시스템이 차단한 거래입니다.'
   if (status === 'REJECTED') return '보호자가 거절한 거래입니다.'
+  if (status === 'FAILED') return '잔액 부족 등으로 거래가 완료되지 않았어요.'
+  if (status === 'CANCELED') return '취소된 거래입니다.'
   if (riskLevel === 'DANGER')
     return '위험한 거래로 판단되었으나 진행된 거래입니다.'
   if (riskLevel === 'CAUTION') return '주의가 필요한 거래로 분류됐어요.'
