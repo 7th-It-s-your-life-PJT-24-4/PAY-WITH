@@ -14,11 +14,11 @@ public final class PaymentRuleContexts {
     public static final List<String> GIFT_CARD_CATEGORIES = List.of("CVS", "MART");
     public static final long GIFT_CARD_AMOUNT_UNIT = 5_000L;
 
-    /** dev-payment-seed 9002(금은방)와 같은 서울 종로 좌표. */
+    /** dev-payment-seed 9902(금은방)와 같은 서울 종로 좌표. */
     public static final BigDecimal SEOUL_LAT = new BigDecimal("37.5700000");
     public static final BigDecimal SEOUL_LNG = new BigDecimal("126.9850000");
 
-    /** dev-payment-seed 9004(부산식당) 좌표 — 서울과 약 325km 거리. */
+    /** dev-payment-seed 9904(부산식당) 좌표 — 서울과 약 325km 거리. */
     public static final BigDecimal BUSAN_LAT = new BigDecimal("35.1587000");
     public static final BigDecimal BUSAN_LNG = new BigDecimal("129.1604000");
 
