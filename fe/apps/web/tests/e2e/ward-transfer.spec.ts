@@ -371,7 +371,7 @@ test.beforeEach(async ({ page }) => {
           accountNo: request.accountNo,
           amount: request.amount,
           memo: request.memo,
-          completedAt: '2026-07-31T12:00:00',
+          completedAt: '2026-07-24T14:32:01+09:00',
           balanceAfter: 1_200_000,
         },
         message: null,
@@ -650,9 +650,12 @@ test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다',
   await expect(page.getByText('1,200,000원')).toBeVisible()
   await expect(page).toHaveURL(/\/ward\/transfer\/73\/complete$/)
   await expect(page.getByText('김민수')).toBeVisible()
+  await expect(page.getByText('송금 일시')).toBeVisible()
+  await expect(page.getByText('2026.07.24 14:32')).toBeVisible()
   await page.reload()
   await expect(page).toHaveURL(/\/ward\/transfer\/73\/complete$/)
   await expect(page.getByText('김민수')).toBeVisible()
+  await expect(page.getByText('2026.07.24 14:32')).toBeVisible()
 
   await page.goBack()
   await expect(page).toHaveURL(/\/ward$/)

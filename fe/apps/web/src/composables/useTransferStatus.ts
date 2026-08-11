@@ -37,8 +37,9 @@ export function useTransferStatus(transactionId: MaybeRefOrGetter<number>) {
         memo: queryData.memo,
         requestedAt: queryData.occurredAt,
         expiredAt: null,
-        respondedAt: null,
-        completedAt: null,
+        respondedAt: queryData.occurredAt,
+        completedAt:
+          queryData.status === 'COMPLETED' ? queryData.occurredAt : null,
         balanceAfter: queryData.balanceAfter,
         riskAnalysis: null,
         failureCode: null,

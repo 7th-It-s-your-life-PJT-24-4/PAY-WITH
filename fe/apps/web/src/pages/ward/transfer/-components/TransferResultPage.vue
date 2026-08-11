@@ -65,8 +65,9 @@ const presentation = computed(() => {
 const occurredAt = computed(() => {
   const detail = transferDetail.value
   if (!detail) return null
-  if (props.status === 'COMPLETED') return detail.completedAt
-  if (props.status === 'EXPIRED') return detail.expiredAt
+  if (props.status === 'COMPLETED')
+    return detail.completedAt ?? detail.requestedAt
+  if (props.status === 'EXPIRED') return detail.expiredAt ?? detail.requestedAt
   return detail.respondedAt ?? detail.requestedAt
 })
 
