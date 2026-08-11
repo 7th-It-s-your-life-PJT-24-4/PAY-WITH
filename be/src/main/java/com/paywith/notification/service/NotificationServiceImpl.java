@@ -3,11 +3,15 @@ package com.paywith.notification.service;
 import com.paywith.notification.domain.Notification;
 import com.paywith.notification.domain.NotificationType;
 import com.paywith.notification.mapper.NotificationMapper;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 public class NotificationServiceImpl implements NotificationService {
@@ -15,9 +19,12 @@ public class NotificationServiceImpl implements NotificationService {
     private static final Logger log = LoggerFactory.getLogger(NotificationServiceImpl.class);
 
     private final NotificationMapper notificationMapper;
+    private final PushDispatcher pushDispatcher;
 
-    public NotificationServiceImpl(NotificationMapper notificationMapper) {
+    public NotificationServiceImpl(NotificationMapper notificationMapper,
+        PushDispatcher pushDispatcher) {
         this.notificationMapper = notificationMapper;
+        this.pushDispatcher = pushDispatcher;
     }
 
     /**
@@ -35,6 +42,8 @@ public class NotificationServiceImpl implements NotificationService {
             for (Long guardId : guardIds) {
                 insert(guardId, type, title, body, refType, refId);
             }
+            sendAfterCommit(notificationMapper.findActiveGuardTokens(seniorId),
+                type, title, body, refType, refId);
         } catch (RuntimeException e) {
             log.error("보호자 알림 저장 실패 — 호출 흐름은 유지. seniorId={}, type={}", seniorId, type, e);
         }
@@ -47,9 +56,56 @@ public class NotificationServiceImpl implements NotificationService {
         String refType, Long refId) {
         try {
             insert(userId, type, title, body, refType, refId);
+
+            String token = notificationMapper.findFcmTokenByUserId(userId);
+            sendAfterCommit(token == null ? List.of() : List.of(token),
+                type, title, body, refType, refId);
         } catch (RuntimeException e) {
             log.error("알림 저장 실패 — 호출 흐름은 유지. userId={}, type={}", userId, type, e);
         }
+    }
+
+    /**
+     * 발송은 반드시 커밋 이후여야 한다. 트랜잭션 안에서 보내면 롤백된 거래에도 푸시가 나가고,
+     * 사용자는 일어나지 않은 일을 알림으로 받는다. 되돌릴 방법도 없다.
+     *
+     * <p>{@code afterCommit} 안에서는 발송을 스레드풀에 넘기기만 한다 — 이 콜백은 아직 요청
+     * 스레드 위에서 돌기 때문에, 여기서 FCM 응답을 기다리면 트랜잭션만 짧아지고 응답 시간은
+     * 그대로다.
+     */
+    private void sendAfterCommit(List<String> tokens, NotificationType type, String title,
+        String body, String refType, Long refId) {
+        if (tokens.isEmpty()) {
+            return;
+        }
+        Map<String, String> data = buildData(type, refType, refId);
+
+        // 트랜잭션 없이 불린 경우(스케줄러 등 호출 경로가 바뀌었을 때) 그대로 보낸다. 되돌릴
+        // 트랜잭션이 없으니 커밋을 기다릴 것도 없다.
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            pushDispatcher.dispatch(tokens, title, body, data);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                pushDispatcher.dispatch(tokens, title, body, data);
+            }
+        });
+    }
+
+    /** 앱이 알림을 눌렀을 때 어디로 보낼지 정하는 값. 값이 없는 키는 넣지 않는다. */
+    private Map<String, String> buildData(NotificationType type, String refType, Long refId) {
+        Map<String, String> data = new HashMap<>();
+        data.put("type", type.name());
+        if (refType != null) {
+            data.put("refType", refType);
+        }
+        if (refId != null) {
+            data.put("refId", String.valueOf(refId));
+        }
+        return data;
     }
 
     private void insert(Long userId, NotificationType type, String title, String body,
