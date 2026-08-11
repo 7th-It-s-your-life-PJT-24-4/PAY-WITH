@@ -7,7 +7,9 @@ import { resolveTransferStatusRoute } from '@/pages/ward/transfer/-utils/transfe
 import { useTransferStore } from '@/stores/transfer.store'
 import type { TransferDetail, TransferStatus } from '@/types/transfer'
 
-export function useTransferStatus(transactionId: MaybeRefOrGetter<number>) {
+export function useTransferStatus(
+  transactionId: MaybeRefOrGetter<number | null | undefined>,
+) {
   const route = useRoute()
   const router = useRouter()
   const transferStore = useTransferStore()
@@ -19,7 +21,7 @@ export function useTransferStatus(transactionId: MaybeRefOrGetter<number>) {
     ...wardTransactionDetailOptions(resolvedId),
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      return status === 'HELD' ? 3000 : false
+      return !status || status === 'HELD' ? 3000 : false
     },
   })
 
