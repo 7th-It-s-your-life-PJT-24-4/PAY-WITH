@@ -567,7 +567,7 @@ test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ 
   const addContactButton = page.getByRole('button', {
     name: '박지연 안심계좌 추가',
   })
-  await expect(addContactButton).toContainText('안심계좌 추가')
+  await expect(addContactButton).toContainText('안심계좌')
   const buttonBox = await addContactButton.boundingBox()
   expect(buttonBox?.height).toBeGreaterThanOrEqual(40)
   await addContactButton.click()

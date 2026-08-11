@@ -83,13 +83,17 @@ const bankPresentation = computed(() =>
     <div class="shrink-0 pr-md">
       <button
         v-if="showAddContact"
-        class="type-caption flex min-h-touch-target items-center gap-xxs rounded-full border border-primary-500 bg-surface-card px-md py-xs font-bold text-primary-500 transition-colors hover:bg-primary-900 focus-visible:outline-2 focus-visible:outline-focus"
+        class="flex min-h-touch-target items-center gap-xxs rounded-full border border-primary-500/40 bg-primary-900/60 px-md py-xs text-[14px] font-bold text-primary-300 transition-colors hover:bg-primary-900 focus-visible:outline-2 focus-visible:outline-focus"
         type="button"
         :aria-label="`${recipient.name} 안심계좌 추가`"
         @click="emit('addContact', recipient)"
       >
-        <Plus class="size-4" :stroke-width="2.5" aria-hidden="true" />
-        안심계좌 추가
+        <Plus
+          class="size-4 shrink-0 text-primary-500"
+          :stroke-width="2.5"
+          aria-hidden="true"
+        />
+        <span>안심계좌</span>
       </button>
       <button
         v-else
