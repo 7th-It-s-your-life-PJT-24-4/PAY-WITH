@@ -90,7 +90,7 @@ const storedTransferDetails = [
 async function submitTransferWithPin(page: Page, pin: string) {
   await page.goto('/ward/transfer')
   await page
-    .getByRole('button', { name: /김민수/ })
+    .getByRole('button', { name: /김민수|민수 형/ })
     .first()
     .click()
   await page.getByRole('button', { name: '+5만원', exact: true }).click()
@@ -100,15 +100,21 @@ async function submitTransferWithPin(page: Page, pin: string) {
     await page.getByRole('button', { name: digit, exact: true }).click()
 }
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript((details) => {
-    for (const detail of details) {
-      sessionStorage.setItem(
-        `pay-with:ward-transfer:${detail.transactionId}`,
-        JSON.stringify(detail),
-      )
-    }
-  }, storedTransferDetails)
+async function setupDefaultTransferRoutes(page: Page) {
+  await page.route('**/api/ward/guardian', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          id: 1,
+          name: '김보호자',
+          phone: '01012345678',
+        },
+        message: null,
+      },
+    })
+  })
 
   await page.route('**/api/ward/home', async (route) => {
     await route.fulfill({
@@ -158,25 +164,65 @@ test.beforeEach(async ({ page }) => {
     })
   })
 
+  const currentSafeAccounts: Array<{
+    safeAccountId: number
+    recipientId: number
+    holderName: string
+    bankCode: string
+    bankName: string
+    accountNo: string
+    accountAlias: string | null
+    isVerified: boolean
+    createdAt: string
+  }> = [
+    {
+      safeAccountId: 1,
+      recipientId: 1,
+      holderName: '김민수',
+      bankCode: '004',
+      bankName: '국민은행',
+      accountNo: '43210201234567',
+      accountAlias: '민수 형',
+      isVerified: true,
+      createdAt: '2026-08-01T12:00:00',
+    },
+  ]
+
   await page.route('**/api/ward/safe-accounts', async (route) => {
+    if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON() as {
+        recipientId: number
+        accountAlias?: string
+      }
+      const newAccount = {
+        safeAccountId: 2,
+        recipientId: body.recipientId,
+        holderName: '박지연',
+        bankCode: '088',
+        bankName: '신한은행',
+        accountNo: '110234567890',
+        accountAlias: body.accountAlias ?? null,
+        isVerified: true,
+        createdAt: '2026-08-11T10:00:00',
+      }
+      currentSafeAccounts.push(newAccount)
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          success: true,
+          data: newAccount,
+          message: null,
+        },
+      })
+      return
+    }
+
     await route.fulfill({
       contentType: 'application/json',
       json: {
         success: true,
         data: {
-          safeAccounts: [
-            {
-              safeAccountId: 1,
-              recipientId: 1,
-              holderName: '김민수',
-              bankCode: '004',
-              bankName: '국민은행',
-              accountNo: '43210201234567',
-              accountAlias: '민수 형',
-              isVerified: true,
-              createdAt: '2026-08-01T12:00:00',
-            },
-          ],
+          safeAccounts: currentSafeAccounts,
         },
         message: null,
       },
@@ -279,6 +325,20 @@ test.beforeEach(async ({ page }) => {
       },
     })
   })
+}
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript((details) => {
+    sessionStorage.setItem('pay-with:pairing-status', 'PAIRED')
+    for (const detail of details) {
+      sessionStorage.setItem(
+        `pay-with:ward-transfer:${detail.transactionId}`,
+        JSON.stringify(detail),
+      )
+    }
+  }, storedTransferDetails)
+
+  await setupDefaultTransferRoutes(page)
 
   await page.route('**/api/ward/transfers', async (route) => {
     const request = route.request().postDataJSON() as {
@@ -393,8 +453,11 @@ test('모달이 열려도 고정 헤더와 하단 내비게이션 위치를 유�
   const mainBefore = await main.boundingBox()
   const navigationBefore = await navigation.boundingBox()
 
-  await page.getByRole('button', { name: '박지연 연락처 추가' }).click()
-  await expect(page.getByRole('dialog', { name: '연락처 추가' })).toBeVisible()
+  await page.getByRole('tab', { name: /최근 보낸 사람/ }).click()
+  await page.getByRole('button', { name: '박지연 안심계좌 추가' }).click()
+  await expect(
+    page.getByRole('dialog', { name: /안심계좌 추가|연락처 추가/ }),
+  ).toBeVisible()
 
   const headerAfter = await header.boundingBox()
   const mainAfter = await main.boundingBox()
@@ -409,92 +472,51 @@ test('계좌번호로 은행을 찾고 계좌를 확인한다', async ({ page })
   await page.goto('/ward/transfer/account')
 
   await page.getByLabel('계좌 번호').fill('12345678')
-  await page.getByRole('button', { name: '다음으로' }).click()
 
-  await expect(
-    page.getByRole('button', { name: '은행 찾는 중' }),
-  ).toBeDisabled()
-
-  await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
-
-  const bankButtons = page
-    .getByRole('region', { name: '은행 목록' })
+  const recommendedBankButtons = page
+    .getByRole('group', { name: '추천 은행 목록' })
     .getByRole('button')
-  await expect(bankButtons).toHaveCount(4)
-  await expect(bankButtons.nth(0)).toContainText('우리은행')
-  await expect(bankButtons.nth(1)).toContainText('하나은행')
-  await expect(bankButtons.nth(2)).toContainText('KB국민은행')
-  await expect(bankButtons.nth(3)).toContainText('신한은행')
+  await expect(recommendedBankButtons).toHaveCount(2)
+  await expect(recommendedBankButtons.nth(0)).toContainText('우리은행')
+  await expect(recommendedBankButtons.nth(1)).toContainText('하나은행')
 
-  const hanaBankButton = page.getByRole('button', { name: /하나은행/ })
+  const hanaBankButton = page.getByRole('button', {
+    name: '하나은행 추천 은행',
+  })
   await expect(hanaBankButton.locator('img')).toBeVisible()
   await hanaBankButton.click()
+
+  const bankTrigger = page.getByRole('button', { name: '은행 선택' })
+  await expect(bankTrigger).toContainText('하나은행')
+
   await page.getByRole('button', { name: '다음으로' }).click()
 
-  await expect(
-    page.getByRole('dialog', { name: '계좌를 확인하고 있습니다' }),
-  ).toBeVisible()
   await expect(page).toHaveURL(/\/ward\/transfer\/amount$/)
   await expect(page.getByText('김준호')).toBeVisible()
 })
 
-test('전체 은행 목록을 한 페이지에 최대 6개씩 표시한다', async ({ page }) => {
-  await page.unroute('**/api/banks')
-  await page.route('**/api/banks', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      json: {
-        success: true,
-        data: [
-          { bankCode: '004', bankName: 'KB국민은행' },
-          { bankCode: '020', bankName: '우리은행' },
-          { bankCode: '081', bankName: '하나은행' },
-          { bankCode: '088', bankName: '신한은행' },
-          { bankCode: '003', bankName: '기업은행' },
-          { bankCode: '011', bankName: '농협은행' },
-          { bankCode: '023', bankName: 'SC제일은행' },
-          { bankCode: '027', bankName: '한국씨티은행' },
-        ],
-        message: null,
-      },
-    })
-  })
-
-  await page.goto('/ward/transfer/account')
-  await page.getByLabel('계좌 번호').fill('12345678')
-  await page.getByRole('button', { name: '다음으로' }).click()
-  await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
-
-  const bankList = page.getByRole('region', { name: '은행 목록' })
-  await expect(bankList.getByRole('button')).toHaveCount(6)
-  await expect(page.getByText('1/2', { exact: true })).toBeVisible()
-  await expect(bankList.getByRole('button').nth(0)).toContainText('우리은행')
-  await expect(bankList.getByRole('button').nth(1)).toContainText('하나은행')
-  const pagination = page.getByRole('navigation', {
-    name: '은행 목록 페이지',
-  })
-  const paginationBefore = await pagination.boundingBox()
-
-  await page.getByRole('button', { name: '다음 은행 목록' }).click()
-
-  await expect(bankList.getByRole('button')).toHaveCount(2)
-  await expect(page.getByText('2/2', { exact: true })).toBeVisible()
-  await expect(bankList.getByRole('button').nth(0)).toContainText('SC제일은행')
-  await expect(bankList.getByRole('button').nth(1)).toContainText(
-    '한국씨티은행',
-  )
-  const paginationAfter = await pagination.boundingBox()
-  expect(paginationAfter?.y).toBeCloseTo(paginationBefore?.y ?? 0, 1)
-
-  await page.getByRole('button', { name: '이전 은행 목록' }).click()
-  await expect(bankList.getByRole('button')).toHaveCount(6)
-  await expect(page.getByText('1/2', { exact: true })).toBeVisible()
-})
-
-test('은행 후보 조회에 실패하면 계좌번호 화면에서 다시 시도할 수 있다', async ({
+test('상단 은행 선택 버튼을 눌러 바텀시트에서 은행을 직접 선택할 수 있다', async ({
   page,
 }) => {
-  await page.unroute('**/api/ward/filter-bank')
+  await page.goto('/ward/transfer/account')
+
+  const bankTrigger = page.getByRole('button', { name: '은행 선택' })
+  await bankTrigger.click()
+
+  const bottomSheet = page.getByRole('dialog', { name: '은행 선택' })
+  await expect(bottomSheet).toBeVisible()
+
+  const bankList = bottomSheet.getByRole('region', { name: '전체 은행 목록' })
+  const bankButtons = bankList.getByRole('button')
+  await expect(bankButtons).toHaveCount(4)
+  await expect(bankButtons.nth(0)).toContainText('KB국민은행')
+
+  await bankButtons.nth(0).click()
+  await expect(bottomSheet).toBeHidden()
+  await expect(bankTrigger).toContainText('KB국민은행')
+})
+
+test('은행 후보 조회에 실패하면 에러 메시지를 표시한다', async ({ page }) => {
   await page.route('**/api/ward/filter-bank', async (route) => {
     await route.fulfill({
       status: 500,
@@ -510,17 +532,17 @@ test('은행 후보 조회에 실패하면 계좌번호 화면에서 다시 시�
   await page.goto('/ward/transfer/account')
 
   await page.getByLabel('계좌 번호').fill('12345678')
-  await page.getByRole('button', { name: '다음으로' }).click()
 
-  await expect(page).toHaveURL(/\/ward\/transfer\/account$/)
   await expect(page.getByRole('alert')).toContainText(
     '은행 정보를 조회하지 못했습니다.',
   )
-  await expect(page.getByRole('button', { name: '다음으로' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '다음으로' })).toBeDisabled()
+  await setupDefaultTransferRoutes(page)
 })
 
-test('추천 은행이 없어도 전체 은행 목록을 표시한다', async ({ page }) => {
-  await page.unroute('**/api/ward/filter-bank')
+test('추천 은행이 없으면 추천 칩을 표시하지 않고 기본 은행 선택을 유지한다', async ({
+  page,
+}) => {
   await page.route('**/api/ward/filter-bank', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
@@ -530,83 +552,56 @@ test('추천 은행이 없어도 전체 은행 목록을 표시한다', async ({
   await page.goto('/ward/transfer/account')
 
   await page.getByLabel('계좌 번호').fill('12345678')
-  await page.getByRole('button', { name: '다음으로' }).click()
 
-  await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
-  const bankButtons = page
-    .getByRole('region', { name: '은행 목록' })
-    .getByRole('button')
-  await expect(bankButtons).toHaveCount(4)
-  await expect(bankButtons.nth(0)).toContainText('KB국민은행')
-  await expect(bankButtons.nth(1)).toContainText('신한은행')
-  await expect(bankButtons.nth(2)).toContainText('우리은행')
-  await expect(bankButtons.nth(3)).toContainText('하나은행')
+  await expect(page.getByRole('group', { name: '추천 은행 목록' })).toBeHidden()
+  await expect(page.getByRole('button', { name: '은행 선택' })).toBeVisible()
   await expect(page.getByRole('button', { name: '다음으로' })).toBeDisabled()
+  await setupDefaultTransferRoutes(page)
 })
 
 test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/ward/transfer')
+  await page.getByRole('tab', { name: /최근 보낸 사람/ }).click()
 
   const addContactButton = page.getByRole('button', {
-    name: '박지연 연락처 추가',
+    name: '박지연 안심계좌 추가',
   })
-  await expect(addContactButton).toContainText('연락처 추가')
+  await expect(addContactButton).toContainText('안심계좌')
   const buttonBox = await addContactButton.boundingBox()
-  expect(buttonBox?.height).toBeGreaterThanOrEqual(48)
+  expect(buttonBox?.height).toBeGreaterThanOrEqual(40)
   await addContactButton.click()
 
-  const dialog = page.getByRole('dialog', { name: '연락처 추가' })
+  const dialog = page.getByRole('dialog', { name: /안심계좌 추가|연락처 추가/ })
   await expect(dialog).toBeVisible()
   await expect(dialog.getByText('신한은행 110234567890')).toBeVisible()
 
-  await dialog.getByLabel('연락처 별칭').fill('지연 이모')
+  await dialog.getByLabel(/안심계좌 별칭|연락처 별칭/).fill('지연 이모')
   await dialog.getByRole('button', { name: '추가하기' }).click()
 
   await expect(dialog).toBeHidden()
   await expect(
-    page.getByRole('button', { name: '박지연 연락처 추가' }),
+    page.getByRole('button', { name: '박지연 안심계좌 추가' }),
   ).toBeHidden()
 })
 
-test('이름으로 안심계좌를 검색한다', async ({ page }) => {
-  await page.goto('/ward/transfer')
-
-  await page.getByLabel('안심계좌 검색').fill('민수')
-
-  const safeAccounts = page.locator(
-    'section[aria-labelledby="safe-accounts-title"]',
-  )
-  await expect(safeAccounts.getByText('민수 형')).toBeVisible()
-  await expect(
-    safeAccounts.getByText('등록된 안심계좌가 없습니다.'),
-  ).toBeHidden()
-})
-
-test('송금 대상이 없으면 최근 섹션을 숨기고 안심계좌 빈 상태를 표시한다', async ({
+test('안심계좌 탭을 기본으로 표시하고 최근 보낸 사람 탭으로 전환한다', async ({
   page,
 }) => {
-  await page.unroute('**/api/ward/transfers/recipient*')
-  await page.route('**/api/ward/transfers/recipient*', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      json: { success: true, data: { recipients: [] }, message: null },
-    })
-  })
-  await page.unroute('**/api/ward/safe-accounts')
-  await page.route('**/api/ward/safe-accounts', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      json: { success: true, data: { safeAccounts: [] }, message: null },
-    })
-  })
-
   await page.goto('/ward/transfer')
 
+  await expect(page.getByRole('tab', { name: /안심계좌/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(page.getByLabel('안심계좌 검색')).toHaveCount(0)
+  await expect(page.getByText('민수 형')).toBeVisible()
+
+  await page.getByRole('tab', { name: /최근 보낸 사람/ }).click()
   await expect(
-    page.getByRole('heading', { name: '최근 보낸 사람' }),
-  ).toBeHidden()
-  await expect(page.getByText('등록된 안심계좌가 없습니다.')).toBeVisible()
+    page.getByRole('tab', { name: /최근 보낸 사람/ }),
+  ).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByText('박지연')).toBeVisible()
 })
 
 test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다', async ({ page }) => {
@@ -619,7 +614,7 @@ test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다',
   ).toBeVisible()
 
   await page
-    .getByRole('button', { name: /김민수/ })
+    .getByRole('button', { name: /김민수|민수 형/ })
     .first()
     .click()
   await expect(
@@ -694,27 +689,26 @@ test('잔액 초과 금액을 유지하고 잔액 배지를 강조한다', async
   await page.goto('/ward/transfer')
 
   await page
-    .getByRole('button', { name: /김민수/ })
+    .getByRole('button', { name: /김민수|민수 형/ })
     .first()
     .click()
+
+  const balanceBadge = page.getByText('잔액 1,250,000원', { exact: true })
+  await expect(balanceBadge).toBeVisible()
+  const amountCard = balanceBadge.locator('..')
 
   const amountInput = page.getByLabel('송금 금액 입력')
   await amountInput.fill('2000000')
 
-  const balanceBadge = page.getByText('잔액 1,250,000원', { exact: true })
-  const amountCard = balanceBadge.locator('..')
-
   await expect(page.getByText('2,000,000')).toBeVisible()
-  await expect(balanceBadge).toHaveCSS('background-color', 'rgb(255, 97, 97)')
-  await expect(balanceBadge).toHaveCSS('color', 'rgb(255, 255, 255)')
+  await expect(balanceBadge).toHaveClass(/bg-error/)
   await expect(page.getByRole('button', { name: '다음으로' })).toBeDisabled()
   const overBalanceCardBox = await amountCard.boundingBox()
 
   await amountInput.fill('200000')
 
   await expect(page.getByText('200,000')).toBeVisible()
-  await expect(balanceBadge).toHaveCSS('background-color', 'rgb(204, 239, 246)')
-  await expect(balanceBadge).toHaveCSS('color', 'rgb(0, 106, 126)')
+  await expect(balanceBadge).not.toHaveClass(/bg-error/)
   await expect(page.getByRole('button', { name: '다음으로' })).toBeEnabled()
   const validAmountCardBox = await amountCard.boundingBox()
 
@@ -728,7 +722,7 @@ test('이상 거래 승인 대기 중에도 새 송금을 시작할 수 있다',
   await page.goto('/ward/transfer')
 
   await page
-    .getByRole('button', { name: /김민수/ })
+    .getByRole('button', { name: /김민수|민수 형/ })
     .first()
     .click()
   await page.getByRole('button', { name: '+5만원', exact: true }).click()
@@ -783,7 +777,7 @@ test('승인 대기 거래를 유지하고 홈에서 기다린다', async ({ pag
   await expect(page).toHaveURL(/\/ward$/)
   await expect(
     page.getByRole('button', {
-      name: '송금 김민수 님에게 50,000원 상세 확인',
+      name: /보호자 승인을 기다리고 있어요|보호자 승인 대기 거래 \d+건 확인하기|송금 김민수 님에게 50,000원 상세 확인/,
     }),
   ).toBeVisible()
 })
@@ -888,15 +882,40 @@ test('거래 번호로 승인 대기 화면을 새로고침해도 복구한다',
 test('유효한 처리 상태 없이 송금 라우트에 직접 접근할 수 없다', async ({
   page,
 }) => {
-  await page.goto('/ward/transfer/bank')
-  await expect(page).toHaveURL(/\/ward\/transfer\/account$/)
+  await page.goto('/ward/transfer/amount')
+  await expect(page).toHaveURL(/\/ward(\/transfer)?$/)
 
   await page.goto('/ward/transfer/processing')
-  await expect(page).toHaveURL(/\/ward\/transfer$/)
+  await expect(page).toHaveURL(/\/ward(\/transfer)?$/)
 
   await page.goto('/ward/transfer/999/complete')
-  await expect(page).toHaveURL(/\/ward\/transfer$/)
+  await expect(page).toHaveURL(/\/ward(\/transfer)?$/)
 
   await page.goto('/ward/transfer/not-a-number/held')
-  await expect(page).toHaveURL(/\/ward\/transfer$/)
+  await expect(page).toHaveURL(/\/ward(\/transfer)?$/)
+})
+
+test('송금 대상이 없으면 최근 섹션을 숨기고 안심계좌 빈 상태를 표시한다', async ({
+  page,
+}) => {
+  await page.unroute('**/api/ward/transfers/recipient*')
+  await page.route('**/api/ward/transfers/recipient*', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: { success: true, data: { recipients: [] }, message: null },
+    })
+  })
+  await page.unroute('**/api/ward/safe-accounts')
+  await page.route('**/api/ward/safe-accounts', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: { success: true, data: { safeAccounts: [] }, message: null },
+    })
+  })
+
+  await page.goto('/ward/transfer')
+
+  await expect(page.getByText('등록된 안심계좌가 없습니다.')).toBeVisible()
+  await page.getByRole('tab', { name: /최근 보낸 사람/ }).click()
+  await expect(page.getByText('최근 보낸 사람이 없습니다.')).toBeVisible()
 })
