@@ -30,18 +30,17 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FirebaseConfig {
 
+    // FirebaseConfig에서 로그 출력하기 위한 slf4j 로거
     private static final Logger log = LoggerFactory.getLogger(FirebaseConfig.class);
 
-    /** FirebaseApp 은 JVM 전역 상태다. WAR 재배포 때 정리하려고 참조를 들고 있는다. */
+    // 초기화된 Firebase Admin SDK 애플리케이션을 보관하는 필드
     private FirebaseApp firebaseApp;
 
+    // Spring 설정에서 fcm.enabled 값을 주입받음
     @Value("${fcm.enabled:false}")
     private boolean enabled;
 
-    /**
-     * 서비스 계정 JSON 경로. 비워두면 GOOGLE_APPLICATION_CREDENTIALS 환경변수를 따른다.
-     * 키 파일은 절대 이미지에 굽지 않고 배포 시 마운트한다.
-     */
+    // Firebase 서비스 계정 JSON 파일의 경로를 주입받음
     @Value("${fcm.credentials-path:}")
     private String credentialsPath;
 
