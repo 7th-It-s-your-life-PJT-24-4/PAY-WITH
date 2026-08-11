@@ -145,9 +145,6 @@ async function proceed() {
   <div class="flex flex-1 flex-col justify-between gap-lg">
     <section class="text-center">
       <h2 class="type-h1">계좌 번호 입력</h2>
-      <p class="type-body-medium mt-xs text-body-secondary">
-        보내실 계좌번호와 은행을 입력해 주세요.
-      </p>
     </section>
 
     <!-- 입력 섹션 (계좌번호 입력 -> 은행 선택 버튼 -> 추천 은행 칩) -->

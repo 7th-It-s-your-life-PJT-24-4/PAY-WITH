@@ -43,9 +43,6 @@ async function createQrCode(pin: string) {
       <h2 class="type-h1 text-body">
         안전한 결제를 위해<br />비밀번호를 입력해주세요
       </h2>
-      <p class="type-body-medium mt-sm text-body-secondary">
-        비밀번호 확인 후 결제 QR 코드를 만들어드립니다.
-      </p>
     </section>
 
     <p
