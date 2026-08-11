@@ -35,7 +35,7 @@ describe('guard transaction API', () => {
     )
   })
 
-  it('guardTransactionHistoryOptions select에서 HELD 상태인 거래를 필터링하여 제외한다', () => {
+  it('guardTransactionHistoryOptions select에서 완료된 거래만 남긴다', () => {
     const options = guardTransactionHistoryOptions(12, {})
     const select = options.select!
     const filtered = select({
@@ -60,10 +60,30 @@ describe('guard transaction API', () => {
           occurredAt: '2026-08-08T09:30:00',
           title: '이영희',
         },
+        {
+          transactionId: 103,
+          type: 'TRANSFER',
+          direction: 'OUT',
+          status: 'FAILED',
+          riskLevel: 'DANGER',
+          amount: 20_000,
+          occurredAt: '2026-08-08T10:00:00',
+          title: '박실패',
+        },
+        {
+          transactionId: 104,
+          type: 'TRANSFER',
+          direction: 'OUT',
+          status: 'CANCELED',
+          riskLevel: 'CAUTION',
+          amount: 10_000,
+          occurredAt: '2026-08-08T10:30:00',
+          title: '최취소',
+        },
       ],
       page: 0,
       size: 100,
-      totalElements: 2,
+      totalElements: 4,
       totalPages: 1,
       hasNext: false,
     } as never)

@@ -15,8 +15,9 @@ import {
   guardApprovalDetailOptions,
   guardApprovalKeys,
 } from '@/lib/query/guard/approval'
+import GuardTransactionDetailContent from '@/pages/guard/-components/GuardTransactionDetailContent.vue'
 import { parsePositiveRouteId } from '@/pages/guard/-utils/guard-route'
-import GuardApprovalDetailContent from '@/pages/guard/approval-requests/-components/GuardApprovalDetailContent.vue'
+import { createApprovalTransactionDetailView } from '@/pages/guard/-utils/guard-transaction-detail'
 import GuardApprovalHeader from '@/pages/guard/approval-requests/-components/GuardApprovalHeader.vue'
 
 type TransactionDecision = 'approved' | 'rejected'
@@ -50,6 +51,10 @@ const approvalNotFound = computed(
     (approvalQuery.error.value.response.status === 404 ||
       approvalQuery.error.value.response.status === 409),
 )
+const detailContent = computed(() => {
+  const detail = approvalQuery.data.value
+  return detail ? createApprovalTransactionDetailView(detail) : null
+})
 
 function goToList() {
   router.replace({
@@ -89,6 +94,8 @@ async function confirmDecision() {
         wardId: detail.wardId,
         transactionId: decision.transactionId,
         decision: decision.status.toLowerCase(),
+        transferStatus: decision.transfer?.status.toLowerCase(),
+        failureReason: decision.transfer?.failureReason ?? undefined,
       },
     })
   } catch (error) {
@@ -169,7 +176,10 @@ async function confirmDecision() {
     </section>
 
     <template v-else>
-      <GuardApprovalDetailContent :detail="approvalQuery.data.value" />
+      <GuardTransactionDetailContent
+        v-if="detailContent"
+        :detail="detailContent"
+      />
 
       <p
         v-if="errorMessage"
