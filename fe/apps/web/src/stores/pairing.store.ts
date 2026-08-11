@@ -11,8 +11,16 @@ import type {
 } from '@/schemas/pairing.schema'
 import { pairingErrorCodeSchema } from '@/schemas/pairing.schema'
 
+const PAIRING_STORAGE_KEY = 'pay-with:pairing-status'
+
+function getInitialStatus(): PairingStatus {
+  if (typeof window === 'undefined') return 'UNPAIRED'
+  const stored = window.sessionStorage.getItem(PAIRING_STORAGE_KEY)
+  return stored === 'PAIRED' || stored === 'CODE_ISSUED' ? stored : 'UNPAIRED'
+}
+
 export const usePairingStore = defineStore('pairing', () => {
-  const status = ref<PairingStatus>('UNPAIRED')
+  const status = ref<PairingStatus>(getInitialStatus())
   const codeResponse = ref<GuardianPairingCode | null>(null)
   const pairingResult = ref<WardPairing | null>(null)
   const errorCode = ref<PairingErrorCode | null>(null)
@@ -41,6 +49,9 @@ export const usePairingStore = defineStore('pairing', () => {
     try {
       codeResponse.value = await issueGuardianPairingCode()
       status.value = 'CODE_ISSUED'
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(PAIRING_STORAGE_KEY, 'CODE_ISSUED')
+      }
       return true
     } catch (error) {
       codeResponse.value = null
@@ -63,6 +74,9 @@ export const usePairingStore = defineStore('pairing', () => {
       pairingResult.value = await pairWardWithGuardian({ pairingCode })
       codeResponse.value = null
       status.value = 'PAIRED'
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(PAIRING_STORAGE_KEY, 'PAIRED')
+      }
       return true
     } catch (error) {
       const code = pairingErrorCodeSchema.safeParse(getApiErrorCode(error))
@@ -79,12 +93,18 @@ export const usePairingStore = defineStore('pairing', () => {
 
   function markPaired() {
     status.value = 'PAIRED'
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(PAIRING_STORAGE_KEY, 'PAIRED')
+    }
     errorCode.value = null
     errorMessage.value = ''
   }
 
   function reset() {
     status.value = 'UNPAIRED'
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(PAIRING_STORAGE_KEY)
+    }
     codeResponse.value = null
     pairingResult.value = null
     errorCode.value = null
