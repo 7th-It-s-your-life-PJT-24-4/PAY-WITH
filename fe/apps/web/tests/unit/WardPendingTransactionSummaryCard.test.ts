@@ -17,7 +17,7 @@ describe('WardPendingTransactionSummaryCard', () => {
       props: { count: 2 },
     })
 
-    expect(wrapper.text()).toContain('확인이 필요한 거래 2건이 있습니다.')
+    expect(wrapper.text()).toContain('승인 대기 거래가 2건 있습니다')
 
     await wrapper.get('button').trigger('click')
 
