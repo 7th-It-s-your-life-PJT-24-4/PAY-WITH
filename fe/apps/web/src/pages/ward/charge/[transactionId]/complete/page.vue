@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useChargeStore } from '@/stores/charge.store'
+import { formatCompactAccount } from '@/pages/ward/charge/-utils/account-format'
 
 const router = useRouter()
 const chargeStore = useChargeStore()
@@ -28,9 +29,6 @@ function goHome() {
         <CircleCheckBig class="size-12" :stroke-width="2.5" />
       </span>
       <h2 class="type-h1 mt-xl">충전이 완료되었습니다</h2>
-      <p class="type-body-medium mt-sm text-body-secondary">
-        지갑 잔액에 충전 금액이 반영되었습니다.
-      </p>
     </section>
 
     <article
@@ -46,12 +44,9 @@ function goHome() {
       </div>
       <div class="flex items-center justify-between gap-md py-lg">
         <span class="type-h4 text-body-muted">충전 수단</span>
-        <span class="text-right">
-          <strong class="type-h4 block">{{ result.bankName }}</strong>
-          <span class="type-body-medium font-number text-body-secondary">
-            {{ result.accountNo }}
-          </span>
-        </span>
+        <strong class="type-h2">
+          {{ formatCompactAccount(result.bankName, result.accountNo) }}
+        </strong>
       </div>
       <div class="flex items-center justify-between gap-md py-lg">
         <span class="type-h4 text-body-muted">최종 잔액</span>

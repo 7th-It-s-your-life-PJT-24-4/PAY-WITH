@@ -124,9 +124,6 @@ async function registerAccount() {
   <div class="flex flex-col gap-xl">
     <section>
       <h2 class="type-h1">충전에 사용할 계좌를<br />등록해주세요</h2>
-      <p class="type-body-medium mt-sm text-body-secondary">
-        본인 명의의 은행 계좌를 등록할 수 있습니다.
-      </p>
     </section>
 
     <div class="flex flex-col gap-xs">
@@ -170,9 +167,6 @@ async function registerAccount() {
 
     <section aria-labelledby="account-password-title">
       <h3 id="account-password-title" class="type-h4">계좌 비밀번호</h3>
-      <p class="type-body-medium mt-xs text-body-secondary">
-        모의 은행 계좌 비밀번호 4자리를 입력해주세요.
-      </p>
       <input
         class="type-h3 mt-sm h-[72px] w-full cursor-pointer rounded-medium border border-border-strong bg-surface-card px-md text-center tracking-[0.75em] text-primary-500 outline-none transition-colors placeholder:tracking-normal placeholder:text-body-muted focus:border-focus focus:ring-2 focus:ring-focus/20"
         type="text"
