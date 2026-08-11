@@ -125,17 +125,17 @@ class BankFilterServiceImplTest {
         }
 
         @Test
-        @DisplayName("13자리 + 3355 prefix → 카카오뱅크 포함")
+        @DisplayName("13자리 + 3355 prefix → 카카오뱅크 제외")
         void kakaoSaving_included() {
             BankFilterResponse result = bankFilterService.filterBanks(WARD_ID, "3355012345678");
-            assertThat(codesOf(result)).contains("090");
+            assertThat(codesOf(result)).doesNotContain("090");
         }
 
         @Test
-        @DisplayName("13자리 + 7777 prefix → 카카오뱅크 포함")
+        @DisplayName("13자리 + 7777 prefix → 카카오뱅크 제외")
         void kakaoMini_included() {
             BankFilterResponse result = bankFilterService.filterBanks(WARD_ID, "7777012345678");
-            assertThat(codesOf(result)).contains("090");
+            assertThat(codesOf(result)).doesNotContain("090");
         }
 
         @Test
@@ -195,6 +195,13 @@ class BankFilterServiceImplTest {
         @DisplayName("12자리 + 1000 prefix → 토스뱅크 포함")
         void validToss_included() {
             BankFilterResponse result = bankFilterService.filterBanks(WARD_ID, "100012345678");
+            assertThat(codesOf(result)).contains("092");
+        }
+
+        @Test
+        @DisplayName("12자리 + 1001 prefix → 토스뱅크 포함")
+        void tossSecondaryPrefix_included() {
+            BankFilterResponse result = bankFilterService.filterBanks(WARD_ID, "100112345678");
             assertThat(codesOf(result)).contains("092");
         }
 
