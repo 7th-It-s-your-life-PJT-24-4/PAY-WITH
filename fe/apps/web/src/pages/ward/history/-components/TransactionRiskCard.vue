@@ -63,7 +63,7 @@ const theme = computed(
     <div class="p-xl">
       <div class="flex items-center justify-between gap-lg">
         <div>
-          <p class="type-body-medium text-body-muted">거래 안전 점수</p>
+          <p class="type-body-medium text-body-muted">이상거래 의심도</p>
           <p class="mt-xs flex items-end gap-xs" :class="theme.text">
             <strong class="text-[40px] leading-none font-number font-bold">
               {{ transaction.riskScore }}
