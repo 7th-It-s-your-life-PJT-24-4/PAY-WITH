@@ -18,6 +18,7 @@ import com.paywith.exception.BusinessException;
 import com.paywith.fds.domain.DecidedBy;
 import com.paywith.fds.domain.RiskEvaluation;
 import com.paywith.fds.domain.RiskEvaluationDetail;
+import com.paywith.approval.domain.ApprovalRequest;
 import com.paywith.fds.domain.RiskLevel;
 import com.paywith.fds.domain.RiskRule;
 import com.paywith.fds.dto.FdsDecision;
@@ -42,6 +43,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("FDS 판정 결과 저장")
 class FdsEvaluationResultServiceImplTest {
 
+    private static final Long APPROVAL_ID = 500L;
     private static final Long TRANSACTION_ID = 100L;
 
     @Mock
@@ -124,10 +126,33 @@ class FdsEvaluationResultServiceImplTest {
         FdsDecision decision =
             decider.decide(normal().recipientSendCount(0).amount(won("3000000")).build());
         assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.DANGER);
+        given(approvalRequestService.create(TRANSACTION_ID)).willReturn(approvalRequest(APPROVAL_ID));
 
         service.save(TRANSACTION_ID, decision);
 
         then(approvalRequestService).should().create(TRANSACTION_ID);
+    }
+
+    /**
+     * 보호자가 알림을 누르면 승인 화면으로 가야 하는데 그 화면은 approvalId 로 열린다.
+     * 방금 만든 승인요청의 ID 를 그대로 넘겨야 하고, 다시 조회해서는 안 된다.
+     */
+    @Test
+    void save_passesCreatedApprovalIdToNotification() {
+        FdsDecision decision =
+            decider.decide(normal().recipientSendCount(0).amount(won("3000000")).build());
+        given(approvalRequestService.create(TRANSACTION_ID)).willReturn(approvalRequest(APPROVAL_ID));
+
+        service.save(TRANSACTION_ID, decision);
+
+        then(transferNotifier).should().notifyApprovalRequested(TRANSACTION_ID, APPROVAL_ID);
+        then(transferNotifier).should(never()).notifyRiskDetected(anyLong(), any());
+    }
+
+    private ApprovalRequest approvalRequest(Long approvalId) {
+        ApprovalRequest approvalRequest = new ApprovalRequest();
+        approvalRequest.setApprovalId(approvalId);
+        return approvalRequest;
     }
 
     // 블랙리스트는 즉시 차단이라 보호자 승인 경로를 타지 않는다.

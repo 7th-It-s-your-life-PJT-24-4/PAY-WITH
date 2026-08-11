@@ -28,6 +28,7 @@ class TransferNotifierTest {
 
     private static final Long TRANSACTION_ID = 300L;
     private static final Long WARD_ID = 7L;
+    private static final Long APPROVAL_ID = 500L;
 
     @Mock
     private NotificationMapper notificationMapper;
@@ -62,16 +63,30 @@ class TransferNotifierTest {
         then(notificationService).shouldHaveNoInteractions();
     }
 
+    /**
+     * 알림을 누르면 승인 화면으로 가야 하는데 그 화면은 approvalId 로 열린다. 거래 ID 를 실어
+     * 보내면 앱이 목적지를 찾지 못하므로 참조 대상 자체가 다르다.
+     */
     @Test
-    @DisplayName("보류(HELD)는 승인 요청 종류로 보호자에게 간다")
-    void notifyRiskDetected_sendsApprovalRequestWhenHeld() {
+    @DisplayName("승인 요청은 거래가 아니라 승인요청을 참조로 싣는다")
+    void notifyApprovalRequested_referencesApprovalNotTransaction() {
         givenTransfer();
 
-        notifier.notifyRiskDetected(TRANSACTION_ID, FdsDecisions.held());
+        notifier.notifyApprovalRequested(TRANSACTION_ID, APPROVAL_ID);
 
         then(notificationService).should().notifyGuardians(eq(WARD_ID),
             eq(NotificationType.APPROVAL_REQUEST), anyString(), anyString(),
-            eq("TRANSACTION"), eq(TRANSACTION_ID));
+            eq("APPROVAL"), eq(APPROVAL_ID));
+    }
+
+    @Test
+    @DisplayName("승인 요청도 거래를 찾지 못하면 건너뛴다")
+    void notifyApprovalRequested_skipsWhenTransactionMissing() {
+        given(notificationMapper.findTransferNotificationInfo(TRANSACTION_ID)).willReturn(null);
+
+        notifier.notifyApprovalRequested(TRANSACTION_ID, APPROVAL_ID);
+
+        then(notificationService).shouldHaveNoInteractions();
     }
 
     @Test

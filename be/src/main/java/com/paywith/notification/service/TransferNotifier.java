@@ -22,6 +22,11 @@ public class TransferNotifier {
     private static final Logger log = LoggerFactory.getLogger(TransferNotifier.class);
 
     private static final String REF_TYPE_TRANSACTION = "TRANSACTION";
+    /**
+     * 승인 요청 알림만 참조 대상이 다르다. 보호자가 알림을 누르면 승인 화면으로 가야 하는데 그
+     * 화면은 approvalId 로 열리고, 거래 ID 로는 열 수 없다.
+     */
+    private static final String REF_TYPE_APPROVAL = "APPROVAL";
     private static final String UNKNOWN_RECIPIENT = "수취인";
 
     private static final String TITLE_BLOCKED = "송금 차단 알림";
@@ -53,7 +58,12 @@ public class TransferNotifier {
         this.notificationService = notificationService;
     }
 
-    /** FDS 판정 결과를 보호자에게 알린다. SAFE 면 아무것도 하지 않는다. */
+    /**
+     * FDS 판정 결과를 보호자에게 알린다. SAFE 면 아무것도 하지 않는다.
+     *
+     * <p>보류(HELD)는 여기서 다루지 않는다. 승인 화면으로 보내려면 approvalId 가 필요해
+     * {@link #notifyApprovalRequested} 로 분리했다.
+     */
     public void notifyRiskDetected(Long transactionId, FdsDecision decision) {
         if (!decision.requiresGuardNotification()) {
             return;
@@ -66,14 +76,29 @@ public class TransferNotifier {
         String recipient = recipientNameOf(info);
         if (decision.isBlocked()) {
             notifyGuardians(info, NotificationType.ANOMALY, TITLE_BLOCKED,
-                String.format(BODY_BLOCKED, recipient, info.getAmount()), transactionId);
-        } else if (decision.isHeld()) {
-            notifyGuardians(info, NotificationType.APPROVAL_REQUEST, TITLE_APPROVAL_REQUEST,
-                String.format(BODY_APPROVAL_REQUEST, recipient, info.getAmount()), transactionId);
+                String.format(BODY_BLOCKED, recipient, info.getAmount()),
+                REF_TYPE_TRANSACTION, transactionId);
         } else {
             notifyGuardians(info, NotificationType.ANOMALY, TITLE_CAUTION,
-                String.format(BODY_CAUTION, recipient, info.getAmount()), transactionId);
+                String.format(BODY_CAUTION, recipient, info.getAmount()),
+                REF_TYPE_TRANSACTION, transactionId);
         }
+    }
+
+    /**
+     * 보류된 송금의 승인을 보호자에게 요청한다.
+     *
+     * <p>참조를 거래가 아니라 승인요청으로 싣는다. 알림을 누르면 승인 화면으로 가야 하는데 그
+     * 화면은 approvalId 로 열리므로, 거래 ID 만 보내면 앱이 목적지를 찾지 못한다.
+     */
+    public void notifyApprovalRequested(Long transactionId, Long approvalId) {
+        TransferNotificationInfo info = findInfo(transactionId);
+        if (info == null) {
+            return;
+        }
+        notifyGuardians(info, NotificationType.APPROVAL_REQUEST, TITLE_APPROVAL_REQUEST,
+            String.format(BODY_APPROVAL_REQUEST, recipientNameOf(info), info.getAmount()),
+            REF_TYPE_APPROVAL, approvalId);
     }
 
     /** 보호자가 거절했음을 피보호자에게 알린다. */
@@ -132,9 +157,8 @@ public class TransferNotifier {
     }
 
     private void notifyGuardians(TransferNotificationInfo info, NotificationType type,
-        String title, String body, Long transactionId) {
-        notificationService.notifyGuardians(
-            info.getWardId(), type, title, body, REF_TYPE_TRANSACTION, transactionId);
+        String title, String body, String refType, Long refId) {
+        notificationService.notifyGuardians(info.getWardId(), type, title, body, refType, refId);
     }
 
     private void notifyWard(TransferNotificationInfo info, String title, String body,

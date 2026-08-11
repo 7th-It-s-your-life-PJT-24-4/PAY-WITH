@@ -1,5 +1,6 @@
 package com.paywith.fds.service;
 
+import com.paywith.approval.domain.ApprovalRequest;
 import com.paywith.approval.service.ApprovalRequestService;
 import com.paywith.exception.BusinessException;
 import com.paywith.fds.domain.RiskEvaluation;
@@ -66,12 +67,15 @@ public class FdsEvaluationResultServiceImpl implements FdsEvaluationResultServic
                 "위험도를 반영할 거래를 찾을 수 없습니다. transactionId=" + transactionId);
         }
 
-        if (decision.isHeld()) {
-            approvalRequestService.create(transactionId);
-        }
-
         // 알림 행은 이 트랜잭션에서 남기고 발송은 커밋 이후에 나간다(NotificationServiceImpl).
         // 판정이 롤백되면 알림도 함께 사라져야 하기 때문이다.
-        transferNotifier.notifyRiskDetected(transactionId, decision);
+        if (decision.isHeld()) {
+            // 승인 요청 알림은 보호자를 승인 화면으로 보내야 해서 approvalId 가 필요하다.
+            // insert 가 useGeneratedKeys 로 PK 를 채워 주므로 다시 조회하지 않는다.
+            ApprovalRequest approvalRequest = approvalRequestService.create(transactionId);
+            transferNotifier.notifyApprovalRequested(transactionId, approvalRequest.getApprovalId());
+        } else {
+            transferNotifier.notifyRiskDetected(transactionId, decision);
+        }
     }
 }
