@@ -38,6 +38,11 @@ public class TransferNotifier {
     private static final String TITLE_COMPLETED = "송금이 완료되었습니다";
     private static final String BODY_COMPLETED = "%s님께 %,d원을 보냈습니다.";
     private static final String TITLE_FAILED = "송금이 실패했습니다";
+    // 입금 호출을 통과한 뒤의 실패에 쓴다. "실패"라고 쓰지 않는 이유는 그 시점엔 이미 잔액이
+    // 차감됐고 수취인에게 돈이 갔는지도 모르기 때문이다. 실패로 읽으면 다시 보내 이중 송금이 된다.
+    private static final String TITLE_UNRESOLVED = "송금 결과를 확인해 주세요";
+    private static final String BODY_UNRESOLVED =
+        "%s님께 %,d원 송금이 정상 처리되지 않았습니다. 다시 보내지 마시고 고객센터로 문의해 주세요.";
 
     private final NotificationMapper notificationMapper;
     private final NotificationService notificationService;
@@ -96,13 +101,34 @@ public class TransferNotifier {
             String.format(BODY_COMPLETED, recipientNameOf(info), info.getAmount()), transactionId);
     }
 
-    /** @param reason 이미 사용자에게 보여줄 수 있는 문구여야 한다(내부 메시지 금지). */
+    /**
+     * 돈이 나가기 전에 끝난 실패에만 쓴다(잔액 부족 등). 잔액이 그대로라 다시 시도해도 안전하다.
+     *
+     * @param reason 이미 사용자에게 보여줄 수 있는 문구여야 한다(내부 메시지 금지).
+     */
     public void notifyTransferFailed(Long transactionId, String reason) {
         TransferNotificationInfo info = findInfo(transactionId);
         if (info == null) {
             return;
         }
         notifyWard(info, TITLE_FAILED, reason, transactionId);
+    }
+
+    /**
+     * 입금 호출을 통과한 뒤 끝나지 못한 송금에 쓴다. 이 시점엔 잔액이 이미 차감됐고, 수취인에게
+     * 도달했는지는 알 수 없다(호출 자체가 실패했거나, 입금은 됐는데 완료 기록만 실패했거나).
+     *
+     * <p>사유를 받지 않고 문구를 고정한다. 이 경로의 예외 메시지에는 transactionId 가 붙어 있어
+     * 푸시에 그대로 쓰기에 맞지 않고, 무엇보다 사용자가 알아야 할 것은 원인이 아니라 "다시 보내면
+     * 안 된다"는 사실이다. 보호자에게 가는 API 응답에는 원래 사유가 그대로 실린다.
+     */
+    public void notifyTransferUnresolved(Long transactionId) {
+        TransferNotificationInfo info = findInfo(transactionId);
+        if (info == null) {
+            return;
+        }
+        notifyWard(info, TITLE_UNRESOLVED,
+            String.format(BODY_UNRESOLVED, recipientNameOf(info), info.getAmount()), transactionId);
     }
 
     private void notifyGuardians(TransferNotificationInfo info, NotificationType type,

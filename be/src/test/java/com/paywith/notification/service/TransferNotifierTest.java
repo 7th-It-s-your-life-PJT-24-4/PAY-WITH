@@ -157,6 +157,38 @@ class TransferNotifierTest {
             eq("송금이 실패했습니다"), eq("송금 가능한 잔액이 부족합니다."), anyString(), anyLong());
     }
 
+    /**
+     * 이 경로는 잔액이 이미 차감된 뒤다. "실패"로 읽히면 다시 보내 이중 송금이 되므로 문구에
+     * 그 단어가 들어가면 안 된다.
+     */
+    @Test
+    @DisplayName("결과 불명은 실패로 단정하지 않고 재송금을 막는다")
+    void notifyTransferUnresolved_avoidsFailureWordingAndWarnsAgainstRetry() {
+        givenTransfer();
+
+        notifier.notifyTransferUnresolved(TRANSACTION_ID);
+
+        ArgumentCaptor<String> title = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        then(notificationService).should().notifyUser(eq(WARD_ID), eq(NotificationType.APPROVAL_RESULT),
+            title.capture(), body.capture(), eq("TRANSACTION"), eq(TRANSACTION_ID));
+
+        assertThat(title.getValue()).doesNotContain("실패");
+        assertThat(body.getValue()).doesNotContain("실패");
+        assertThat(body.getValue()).contains("다시 보내지 마시고");
+        assertThat(body.getValue()).contains("김철수", "150,000");
+    }
+
+    @Test
+    @DisplayName("결과 불명도 거래를 찾지 못하면 건너뛴다")
+    void notifyTransferUnresolved_skipsWhenTransactionMissing() {
+        given(notificationMapper.findTransferNotificationInfo(TRANSACTION_ID)).willReturn(null);
+
+        notifier.notifyTransferUnresolved(TRANSACTION_ID);
+
+        then(notificationService).shouldHaveNoInteractions();
+    }
+
     @Test
     @DisplayName("수취인이 없는 거래도 문구를 만들 수 있어야 한다")
     void notifyRiskDetected_fallsBackWhenRecipientMissing() {

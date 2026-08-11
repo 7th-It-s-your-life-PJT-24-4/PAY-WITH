@@ -71,7 +71,7 @@ public class ApprovalTransferFacade {
             // 입금 호출을 통과한 뒤의 실패라 실제로 돈이 나갔을 수 있다. 자동 재시도 대상이
             // 아니며 사람이 확인해야 하므로 error 로 남긴다.
             log.error("승인 후 송금 실패(복구 불가). transactionId={}", transactionId, e);
-            return failed(transactionId, e.getMessage());
+            return unresolved(transactionId, e.getMessage());
 
         } catch (BusinessException e) {
             // 잔액 부족 등 입금 이전 단계의 실패. 외부에 영향이 없고 원인도 분명하므로 여기서
@@ -83,18 +83,33 @@ public class ApprovalTransferFacade {
 
         } catch (RuntimeException e) {
             // 원인을 모르는 실패. 거래를 APPROVED 로 남겨 보정 대상이 되게 한다. 내부 메시지는
-            // 그대로 내보내지 않는다.
+            // 그대로 내보내지 않는다. 어느 단계에서 터졌는지 모르므로 실패로 단정하지 않는다.
             log.error("승인 후 송금 중 예기치 못한 오류. transactionId={}", transactionId, e);
-            return failed(transactionId, "송금 처리 중 오류가 발생했습니다. 잠시 후 다시 확인해주세요.");
+            return unresolved(transactionId, "송금 처리 중 오류가 발생했습니다. 잠시 후 다시 확인해주세요.");
         }
     }
 
     /**
-     * 실패 응답과 실패 알림을 한 자리에서 만든다. 따로 두면 응답에는 잔액 부족이라고 나오는데
-     * 알림 문구는 다른 말을 하는 식으로 어긋나기 쉽다.
+     * 돈이 나가기 전에 끝난 실패. 잔액이 그대로라 피보호자에게 "실패했다"고 알려도 되고,
+     * 다시 시도해도 안전하다.
+     *
+     * <p>응답과 알림을 한 자리에서 만드는 이유는, 따로 두면 응답에는 잔액 부족이라고 나오는데
+     * 알림은 다른 말을 하는 식으로 어긋나기 쉬워서다.
      */
     private TransferResultResponse failed(Long transactionId, String reason) {
         transferNotifier.notifyTransferFailed(transactionId, reason);
+        return TransferResultResponse.failed(reason);
+    }
+
+    /**
+     * 성패를 단정할 수 없는 종료. 입금 호출을 통과한 뒤라 잔액은 이미 차감됐고 수취인 도달 여부는
+     * 모른다. 여기서 피보호자에게 "실패했다"고 알리면 다시 보내 이중 송금이 된다.
+     *
+     * <p>응답은 그대로 실패로 둔다 — 이건 승인을 누른 보호자가 받는 값이고, 원래 사유에 이미
+     * "잔액을 확인 후 고객센터로 문의" 안내가 들어 있다. 알림만 문구를 달리한다.
+     */
+    private TransferResultResponse unresolved(Long transactionId, String reason) {
+        transferNotifier.notifyTransferUnresolved(transactionId);
         return TransferResultResponse.failed(reason);
     }
 
