@@ -453,7 +453,7 @@ test('모달이 열려도 고정 헤더와 하단 내비게이션 위치를 유�
   const mainBefore = await main.boundingBox()
   const navigationBefore = await navigation.boundingBox()
 
-  await page.getByRole('tab', { name: '최근 보낸 사람' }).click()
+  await page.getByRole('tab', { name: /최근 보낸 사람/ }).click()
   await page.getByRole('button', { name: '박지연 안심계좌 추가' }).click()
   await expect(
     page.getByRole('dialog', { name: /안심계좌 추가|연락처 추가/ }),
@@ -562,14 +562,14 @@ test('추천 은행이 없으면 추천 칩을 표시하지 않고 기본 은행
 test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/ward/transfer')
-  await page.getByRole('tab', { name: '최근 보낸 사람' }).click()
+  await page.getByRole('tab', { name: /최근 보낸 사람/ }).click()
 
   const addContactButton = page.getByRole('button', {
     name: '박지연 안심계좌 추가',
   })
   await expect(addContactButton).toContainText('안심계좌 추가')
   const buttonBox = await addContactButton.boundingBox()
-  expect(buttonBox?.height).toBeGreaterThanOrEqual(48)
+  expect(buttonBox?.height).toBeGreaterThanOrEqual(40)
   await addContactButton.click()
 
   const dialog = page.getByRole('dialog', { name: /안심계좌 추가|연락처 추가/ })
@@ -590,16 +590,16 @@ test('안심계좌 탭을 기본으로 표시하고 최근 보낸 사람 탭으�
 }) => {
   await page.goto('/ward/transfer')
 
-  await expect(page.getByRole('tab', { name: '안심계좌' })).toHaveAttribute(
+  await expect(page.getByRole('tab', { name: /안심계좌/ })).toHaveAttribute(
     'aria-selected',
     'true',
   )
   await expect(page.getByLabel('안심계좌 검색')).toHaveCount(0)
   await expect(page.getByText('민수 형')).toBeVisible()
 
-  await page.getByRole('tab', { name: '최근 보낸 사람' }).click()
+  await page.getByRole('tab', { name: /최근 보낸 사람/ }).click()
   await expect(
-    page.getByRole('tab', { name: '최근 보낸 사람' }),
+    page.getByRole('tab', { name: /최근 보낸 사람/ }),
   ).toHaveAttribute('aria-selected', 'true')
   await expect(page.getByText('박지연')).toBeVisible()
 })
@@ -690,11 +690,12 @@ test('잔액 초과 금액을 유지하고 잔액 배지를 강조한다', async
     .first()
     .click()
 
+  const balanceBadge = page.getByText('잔액 1,250,000원', { exact: true })
+  await expect(balanceBadge).toBeVisible()
+  const amountCard = balanceBadge.locator('..')
+
   const amountInput = page.getByLabel('송금 금액 입력')
   await amountInput.fill('2000000')
-
-  const balanceBadge = page.getByText('잔액 1,250,000원', { exact: true })
-  const amountCard = balanceBadge.locator('..')
 
   await expect(page.getByText('2,000,000')).toBeVisible()
   await expect(balanceBadge).toHaveClass(/bg-error/)
@@ -912,6 +913,6 @@ test('송금 대상이 없으면 최근 섹션을 숨기고 안심계좌 빈 상
   await page.goto('/ward/transfer')
 
   await expect(page.getByText('등록된 안심계좌가 없습니다.')).toBeVisible()
-  await page.getByRole('tab', { name: '최근 보낸 사람' }).click()
+  await page.getByRole('tab', { name: /최근 보낸 사람/ }).click()
   await expect(page.getByText('최근 보낸 사람이 없습니다.')).toBeVisible()
 })

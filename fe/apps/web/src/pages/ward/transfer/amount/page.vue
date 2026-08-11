@@ -80,14 +80,9 @@ const quickAmountButtonClass =
 
 <template>
   <div class="flex flex-col gap-lg">
-    <section class="text-center">
-      <div
-        class="type-h2 mx-auto flex size-20 items-center justify-center rounded-full bg-primary-900 text-primary-300"
-      >
-        {{ transferStore.recipient?.name.slice(0, 1) }}
-      </div>
-      <h2 class="type-h2 mt-sm">{{ transferStore.recipient?.name }}</h2>
-      <p class="type-body-medium text-body-muted">
+    <section class="text-center pt-xs">
+      <h2 class="type-h1 text-body">{{ transferStore.recipient?.name }}</h2>
+      <p class="type-h4 mt-xs text-body-secondary">
         {{ transferStore.bank }} {{ transferStore.accountNumber }}
       </p>
     </section>
