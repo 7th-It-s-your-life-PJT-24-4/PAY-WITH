@@ -30,7 +30,7 @@ const emit = defineEmits<{
     <ToastRoot
       :open="open"
       :duration="duration"
-      class="fixed left-1/2 z-[70] flex max-w-[90vw] -translate-x-1/2 items-center gap-sm rounded-full border border-gray-300/60 bg-gray-100 px-lg py-md text-[18px] font-semibold leading-tight text-gray-900 shadow-2xl"
+      class="fixed left-1/2 z-[70] flex max-w-[90vw] -translate-x-1/2 items-center gap-sm rounded-[22px] border border-gray-300/60 bg-gray-100 px-lg py-md text-[18px] font-semibold leading-snug text-gray-900 shadow-2xl"
       :style="{ bottom: 'calc(96px + env(safe-area-inset-bottom))' }"
       role="status"
       aria-live="polite"
@@ -54,7 +54,9 @@ const emit = defineEmits<{
         :stroke-width="2.5"
         aria-hidden="true"
       />
-      <ToastDescription class="truncate">{{ message }}</ToastDescription>
+      <ToastDescription class="line-clamp-2 break-keep">{{
+        message
+      }}</ToastDescription>
     </ToastRoot>
     <ToastViewport class="fixed inset-x-0 bottom-0 z-[70]" />
   </ToastProvider>
