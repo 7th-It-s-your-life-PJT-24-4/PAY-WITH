@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
 
 import com.paywith.bank.domain.Bank;
+import com.paywith.bank.domain.BankAccountRule;
 import com.paywith.bank.dto.BankCandidateResponse;
 import com.paywith.bank.dto.BankFilterResponse;
 import com.paywith.bank.mapper.BankFilterMapper;
@@ -47,8 +48,8 @@ class BankFilterServiceImplTest {
         // 활성 사용자(WARD)
         User ward = new User();
         ward.setRole(Role.WARD);
-        given(userMapper.findById(WARD_ID)).willReturn(ward);
-        given(bankMapper.existsActivePairing(WARD_ID)).willReturn(true);
+        lenient().when(userMapper.findById(WARD_ID)).thenReturn(ward);
+        lenient().when(bankMapper.existsActivePairing(WARD_ID)).thenReturn(true);
 
         // 모든 은행 활성
         allActiveBanks = List.of(
@@ -57,7 +58,7 @@ class BankFilterServiceImplTest {
             bank("031"), bank("032"), bank("034"), bank("035"),
             bank("037"), bank("039"), bank("045"), bank("048"),
             bank("071"), bank("081"), bank("088"), bank("089"),
-            bank("090"), bank("092")
+            bank("090"), bank("092"), bank("999")
         );
         // InputValidation 테스트에서는 호출되지 않으므로 lenient stub으로 설정
         lenient().when(bankMapper.findAllActive()).thenReturn(allActiveBanks);
@@ -263,5 +264,20 @@ class BankFilterServiceImplTest {
             BankFilterResponse result = bankFilterService.filterBanks(WARD_ID, "100234567890");
             assertThat(codesOf(result)).doesNotContain("020");
         }
+    }
+
+    @Test
+    @DisplayName("규칙이 없는 은행은 후보에서 제외")
+    void bankWithoutRule_excluded() {
+        BankFilterResponse result = bankFilterService.filterBanks(WARD_ID, "100012345678");
+
+        assertThat(codesOf(result)).doesNotContain("999");
+    }
+
+    @Test
+    @DisplayName("문자열 계좌번호는 규칙 매칭에서 제외")
+    void nonDigitAccountNo_excludedByRule() {
+        assertThat(BankAccountRule.KDB.matches("ABCDEFGHIJK"))
+            .isFalse();
     }
 }

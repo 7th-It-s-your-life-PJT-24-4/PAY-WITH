@@ -136,6 +136,7 @@ public enum BankAccountRule {
      */
     public boolean matches(String accountNo) {
         if (accountNo == null) return false;
+        if (!accountNo.matches("\\d+")) return false;
         int len = accountNo.length();
         if (len < minLength || len > maxLength) return false;
         if (prefixPattern != null && !prefixPattern.matcher(accountNo).find()) return false;

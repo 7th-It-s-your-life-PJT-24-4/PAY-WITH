@@ -36,11 +36,11 @@ public class BankFilterServiceImpl implements BankFilterService {
         }
 
         // BankAccountRule 에 등록된 은행은 자릿수 범위 + prefix 조건으로 필터링한다.
-        // Rule 이 없는 은행코드(향후 추가 은행 등)는 pass-through 로 항상 포함한다.
+        // 규칙이 없는 은행코드는 계좌번호 형식을 검증할 수 없으므로 후보에서 제외한다.
         List<BankCandidateResponse> matched = bankMapper.findAllActive().stream()
             .filter(bank -> BankAccountRule.findByBankCode(bank.getBankCode())
                 .map(rule -> rule.matches(accountNo))
-                .orElse(true))
+                .orElse(false))
             .map(bank -> new BankCandidateResponse(bank.getBankCode(), bank.getBankName()))
             .collect(Collectors.toList());
 
