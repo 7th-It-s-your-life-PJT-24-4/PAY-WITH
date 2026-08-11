@@ -393,7 +393,8 @@ test('모달이 열려도 고정 헤더와 하단 내비게이션 위치를 유�
   const mainBefore = await main.boundingBox()
   const navigationBefore = await navigation.boundingBox()
 
-  await page.getByRole('button', { name: '박지연 연락처 추가' }).click()
+  await page.getByRole('tab', { name: '최근 보낸 사람' }).click()
+  await page.getByRole('button', { name: '박지연 안심계좌 추가' }).click()
   await expect(page.getByRole('dialog', { name: '연락처 추가' })).toBeVisible()
 
   const headerAfter = await header.boundingBox()
@@ -409,13 +410,6 @@ test('계좌번호로 은행을 찾고 계좌를 확인한다', async ({ page })
   await page.goto('/ward/transfer/account')
 
   await page.getByLabel('계좌 번호').fill('12345678')
-  await page.getByRole('button', { name: '다음으로' }).click()
-
-  await expect(
-    page.getByRole('button', { name: '은행 찾는 중' }),
-  ).toBeDisabled()
-
-  await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
 
   const bankButtons = page
     .getByRole('region', { name: '은행 목록' })
@@ -462,8 +456,6 @@ test('전체 은행 목록을 한 페이지에 최대 6개씩 표시한다', asy
 
   await page.goto('/ward/transfer/account')
   await page.getByLabel('계좌 번호').fill('12345678')
-  await page.getByRole('button', { name: '다음으로' }).click()
-  await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
 
   const bankList = page.getByRole('region', { name: '은행 목록' })
   await expect(bankList.getByRole('button')).toHaveCount(6)
@@ -510,13 +502,11 @@ test('은행 후보 조회에 실패하면 계좌번호 화면에서 다시 시�
   await page.goto('/ward/transfer/account')
 
   await page.getByLabel('계좌 번호').fill('12345678')
-  await page.getByRole('button', { name: '다음으로' }).click()
 
-  await expect(page).toHaveURL(/\/ward\/transfer\/account$/)
   await expect(page.getByRole('alert')).toContainText(
     '은행 정보를 조회하지 못했습니다.',
   )
-  await expect(page.getByRole('button', { name: '다음으로' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '다음으로' })).toBeDisabled()
 })
 
 test('추천 은행이 없어도 전체 은행 목록을 표시한다', async ({ page }) => {
@@ -530,9 +520,7 @@ test('추천 은행이 없어도 전체 은행 목록을 표시한다', async ({
   await page.goto('/ward/transfer/account')
 
   await page.getByLabel('계좌 번호').fill('12345678')
-  await page.getByRole('button', { name: '다음으로' }).click()
 
-  await expect(page).toHaveURL(/\/ward\/transfer\/bank$/)
   const bankButtons = page
     .getByRole('region', { name: '은행 목록' })
     .getByRole('button')
@@ -547,11 +535,12 @@ test('추천 은행이 없어도 전체 은행 목록을 표시한다', async ({
 test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/ward/transfer')
+  await page.getByRole('tab', { name: '최근 보낸 사람' }).click()
 
   const addContactButton = page.getByRole('button', {
-    name: '박지연 연락처 추가',
+    name: '박지연 안심계좌 추가',
   })
-  await expect(addContactButton).toContainText('연락처 추가')
+  await expect(addContactButton).toContainText('안심계좌 추가')
   const buttonBox = await addContactButton.boundingBox()
   expect(buttonBox?.height).toBeGreaterThanOrEqual(48)
   await addContactButton.click()
@@ -565,22 +554,27 @@ test('최근 수취인을 별칭과 함께 연락처에 추가한다', async ({ 
 
   await expect(dialog).toBeHidden()
   await expect(
-    page.getByRole('button', { name: '박지연 연락처 추가' }),
+    page.getByRole('button', { name: '박지연 안심계좌 추가' }),
   ).toBeHidden()
 })
 
-test('이름으로 안심계좌를 검색한다', async ({ page }) => {
+test('안심계좌 탭을 기본으로 표시하고 최근 보낸 사람 탭으로 전환한다', async ({
+  page,
+}) => {
   await page.goto('/ward/transfer')
 
-  await page.getByLabel('안심계좌 검색').fill('민수')
-
-  const safeAccounts = page.locator(
-    'section[aria-labelledby="safe-accounts-title"]',
+  await expect(page.getByRole('tab', { name: '안심계좌' })).toHaveAttribute(
+    'aria-selected',
+    'true',
   )
-  await expect(safeAccounts.getByText('민수 형')).toBeVisible()
+  await expect(page.getByLabel('안심계좌 검색')).toHaveCount(0)
+  await expect(page.getByText('민수 형')).toBeVisible()
+
+  await page.getByRole('tab', { name: '최근 보낸 사람' }).click()
   await expect(
-    safeAccounts.getByText('등록된 안심계좌가 없습니다.'),
-  ).toBeHidden()
+    page.getByRole('tab', { name: '최근 보낸 사람' }),
+  ).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByText('박지연')).toBeVisible()
 })
 
 test('송금 대상이 없으면 최근 섹션을 숨기고 안심계좌 빈 상태를 표시한다', async ({
@@ -603,10 +597,9 @@ test('송금 대상이 없으면 최근 섹션을 숨기고 안심계좌 빈 상
 
   await page.goto('/ward/transfer')
 
-  await expect(
-    page.getByRole('heading', { name: '최근 보낸 사람' }),
-  ).toBeHidden()
   await expect(page.getByText('등록된 안심계좌가 없습니다.')).toBeVisible()
+  await page.getByRole('tab', { name: '최근 보낸 사람' }).click()
+  await expect(page.getByText('최근 보낸 사람이 없습니다.')).toBeVisible()
 })
 
 test('최근 수취인을 선택해 시니어 송금 플로우를 완료한다', async ({ page }) => {

@@ -66,7 +66,6 @@ import {
 } from '@/pages/ward/payment/-utils/payment-route-guard'
 import WardTransferAccountPage from '@/pages/ward/transfer/account/page.vue'
 import WardTransferAmountPage from '@/pages/ward/transfer/amount/page.vue'
-import WardTransferBankPage from '@/pages/ward/transfer/bank/page.vue'
 import WardTransferCanceledPage from '@/pages/ward/transfer/[transactionId]/canceled/page.vue'
 import WardTransferCompletePage from '@/pages/ward/transfer/[transactionId]/complete/page.vue'
 import WardTransferConfirmPage from '@/pages/ward/transfer/confirm/page.vue'
@@ -92,7 +91,6 @@ import {
   requirePendingTransfer,
   requireProcessingTransfer,
   requireRejectedTransfer,
-  requireTransferAccount,
   requireTransferDraft,
   requireTransferIntent,
   requireTransferRecipient,
@@ -511,17 +509,6 @@ const router = createRouter({
           component: WardTransferAccountPage,
           meta: {
             title: '계좌 번호 입력',
-            activeNavigation: 'transfer',
-            showBottomNavigation: false,
-          },
-        },
-        {
-          path: 'transfer/bank',
-          name: 'ward-transfer-bank',
-          component: WardTransferBankPage,
-          beforeEnter: requireTransferAccount,
-          meta: {
-            title: '은행 선택',
             activeNavigation: 'transfer',
             showBottomNavigation: false,
           },

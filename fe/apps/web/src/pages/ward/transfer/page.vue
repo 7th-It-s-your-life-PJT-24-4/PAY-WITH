@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronRight, Landmark, Plus } from '@lucide/vue'
-import { Button, Input } from '@pay-with/ui'
+import { Button } from '@pay-with/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -33,7 +33,7 @@ const transferStore = useTransferStore()
 onMounted(() => {
   transferStore.reset()
 })
-const search = ref('')
+const activeTab = ref<'safe-accounts' | 'recent'>('safe-accounts')
 const contactModalOpen = ref(false)
 const pendingContact = ref<TransferRecipient | null>(null)
 const contactErrorMessage = ref<string | null>(null)
@@ -56,15 +56,7 @@ const recentRecipients = computed(
 const allSafeAccounts = computed(
   () => safeAccountsQuery.data.value?.map(toSafeAccountTransferRecipient) ?? [],
 )
-const safeAccounts = computed(() =>
-  allSafeAccounts.value.filter((recipient) => {
-    const keyword = search.value.trim()
-    if (!keyword) return true
-    return `${recipient.name}${recipient.holderName ?? ''}${recipient.accountNumber}`.includes(
-      keyword,
-    )
-  }),
-)
+const safeAccounts = computed(() => allSafeAccounts.value)
 function isContact(recipient: TransferRecipient) {
   return allSafeAccounts.value.some(
     (contact) => contact.id === recipient.id && contact.isContact,
@@ -112,77 +104,6 @@ function selectRecipient(recipient: TransferRecipient) {
       </p>
     </section>
 
-    <section
-      v-if="
-        recentQuery.isPending.value ||
-        recentQuery.isError.value ||
-        recentRecipients.length
-      "
-      aria-labelledby="recent-transfer-title"
-    >
-      <h3 id="recent-transfer-title" class="type-h4 mb-md">최근 보낸 사람</h3>
-      <div
-        v-if="recentRecipients.length"
-        class="flex snap-x gap-md overflow-x-auto pb-xs"
-      >
-        <div
-          v-for="recipient in recentRecipients"
-          :key="recipient.id"
-          class="flex w-36 shrink-0 snap-start flex-col items-center gap-sm"
-        >
-          <button
-            class="flex w-full flex-col items-center gap-xs rounded-medium outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            type="button"
-            :aria-label="`${recipient.name}에게 송금`"
-            @click="selectRecipient(recipient)"
-          >
-            <span
-              class="type-h2 flex size-20 items-center justify-center rounded-full border-2 border-primary-500 bg-surface-card"
-            >
-              {{ recipient.name.slice(0, 1) }}
-            </span>
-            <span class="type-h4">{{ recipient.name }}</span>
-          </button>
-          <button
-            v-if="!isContact(recipient)"
-            class="type-h4 flex min-h-touch-target w-full items-center justify-center gap-xs whitespace-nowrap rounded-full border-2 border-primary-500 bg-surface-card px-xs text-primary-500 outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            type="button"
-            :aria-label="`${recipient.name} 안심계좌 추가`"
-            @click="openContactModal(recipient)"
-          >
-            <Plus
-              class="size-lg shrink-0"
-              :stroke-width="2.5"
-              aria-hidden="true"
-            />
-            <span class="whitespace-nowrap">안심계좌 추가</span>
-          </button>
-          <span v-else class="min-h-touch-target" aria-hidden="true" />
-        </div>
-      </div>
-      <p
-        v-if="recentQuery.isPending.value"
-        class="type-body-medium text-body-muted"
-        role="status"
-      >
-        최근 송금 대상을 불러오고 있습니다.
-      </p>
-      <p
-        v-else-if="recentQuery.isError.value"
-        class="type-body-medium text-error"
-        role="alert"
-      >
-        최근 송금 대상을 불러오지 못했습니다.
-      </p>
-    </section>
-
-    <Input
-      v-model="search"
-      label="안심계좌 검색"
-      placeholder="이름 또는 계좌번호 입력"
-      large
-    />
-
     <Button
       class="type-h2 w-full whitespace-nowrap"
       label="계좌 번호 직접 입력하기"
@@ -197,47 +118,124 @@ function selectRecipient(recipient: TransferRecipient) {
       </template>
     </Button>
 
-    <section aria-labelledby="safe-accounts-title">
-      <h3 id="safe-accounts-title" class="type-h4 mb-md">안심계좌</h3>
-      <p
-        v-if="safeAccountsQuery.isPending.value"
-        class="type-body-medium text-body-muted"
-        role="status"
-      >
-        안심계좌를 불러오고 있습니다.
-      </p>
+    <section aria-label="송금 대상 목록">
       <div
-        v-else-if="safeAccountsQuery.isError.value"
-        class="rounded-large bg-surface-card p-lg text-center shadow-card"
+        class="grid grid-cols-2 rounded-large bg-surface-card p-xs shadow-card"
+        role="tablist"
+        aria-label="송금 대상 종류"
       >
-        <p class="type-body-medium text-error" role="alert">
-          안심계좌를 불러오지 못했습니다.
+        <button
+          class="type-h4 rounded-medium px-md py-sm"
+          :class="
+            activeTab === 'safe-accounts'
+              ? 'bg-primary-900 text-primary-500'
+              : 'text-body-secondary'
+          "
+          type="button"
+          role="tab"
+          :aria-selected="activeTab === 'safe-accounts'"
+          @click="activeTab = 'safe-accounts'"
+        >
+          안심계좌
+        </button>
+        <button
+          class="type-h4 rounded-medium px-md py-sm"
+          :class="
+            activeTab === 'recent'
+              ? 'bg-primary-900 text-primary-500'
+              : 'text-body-secondary'
+          "
+          type="button"
+          role="tab"
+          :aria-selected="activeTab === 'recent'"
+          @click="activeTab = 'recent'"
+        >
+          최근 보낸 사람
+        </button>
+      </div>
+
+      <div v-if="activeTab === 'safe-accounts'" class="mt-md">
+        <p
+          v-if="safeAccountsQuery.isPending.value"
+          class="type-body-medium text-body-muted"
+          role="status"
+        >
+          안심계좌를 불러오고 있습니다.
         </p>
-        <Button
-          class="mt-md"
-          label="다시 시도"
-          variant="outline-primary"
-          @click="safeAccountsQuery.refetch()"
-        />
+        <div
+          v-else-if="safeAccountsQuery.isError.value"
+          class="rounded-large bg-surface-card p-lg text-center shadow-card"
+        >
+          <p class="type-body-medium text-error" role="alert">
+            안심계좌를 불러오지 못했습니다.
+          </p>
+          <Button
+            class="mt-md"
+            label="다시 시도"
+            variant="outline-primary"
+            @click="safeAccountsQuery.refetch()"
+          />
+        </div>
+        <div
+          v-else-if="safeAccounts.length"
+          class="overflow-hidden rounded-large bg-surface-card shadow-card"
+        >
+          <TransferRecipientCard
+            v-for="recipient in safeAccounts"
+            :key="recipient.id"
+            :recipient="recipient"
+            @select="selectRecipient"
+          />
+        </div>
+        <p v-else class="type-body-medium text-center text-body-muted">
+          등록된 안심계좌가 없습니다.
+        </p>
       </div>
-      <div
-        v-else-if="safeAccounts.length"
-        class="overflow-hidden rounded-large bg-surface-card shadow-card"
-      >
-        <TransferRecipientCard
-          v-for="recipient in safeAccounts"
-          :key="recipient.id"
-          :recipient="recipient"
-          @select="selectRecipient"
-        />
+
+      <div v-else class="mt-md">
+        <p
+          v-if="recentQuery.isPending.value"
+          class="type-body-medium text-body-muted"
+          role="status"
+        >
+          최근 송금 대상을 불러오고 있습니다.
+        </p>
+        <p
+          v-else-if="recentQuery.isError.value"
+          class="type-body-medium text-error"
+          role="alert"
+        >
+          최근 송금 대상을 불러오지 못했습니다.
+        </p>
+        <div
+          v-else-if="recentRecipients.length"
+          class="overflow-hidden rounded-large bg-surface-card shadow-card"
+        >
+          <div v-for="recipient in recentRecipients" :key="recipient.id">
+            <TransferRecipientCard
+              :recipient="recipient"
+              @select="selectRecipient"
+            />
+            <button
+              v-if="!isContact(recipient)"
+              class="type-body-medium flex min-h-touch-target w-full items-center justify-center gap-xs border-b border-border px-md py-sm text-primary-500"
+              type="button"
+              :aria-label="`${recipient.name} 안심계좌 추가`"
+              @click="openContactModal(recipient)"
+            >
+              <Plus
+                class="size-lg shrink-0"
+                :stroke-width="2.5"
+                aria-hidden="true"
+              />
+              안심계좌 추가
+            </button>
+          </div>
+        </div>
+        <p v-else class="type-body-medium text-center text-body-muted">
+          최근 보낸 사람이 없습니다.
+        </p>
       </div>
-      <p v-else class="type-body-medium text-center text-body-muted">
-        {{
-          search.trim()
-            ? '검색 결과가 없습니다.'
-            : '등록된 안심계좌가 없습니다.'
-        }}
-      </p>
     </section>
 
     <AddTransferContactModal

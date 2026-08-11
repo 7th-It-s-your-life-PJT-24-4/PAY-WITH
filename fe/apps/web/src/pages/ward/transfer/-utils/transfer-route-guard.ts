@@ -4,17 +4,10 @@ import { resolveTransferStatusRoute } from '@/pages/ward/transfer/-utils/transfe
 import { useTransferStore } from '@/stores/transfer.store'
 import type { TransferStatus } from '@/types/transfer'
 
-const transferStart = { name: 'ward-transfer' }
-
 export const isValidTransferAccountNumber = (accountNumber: string) =>
   /^\d{8,16}$/.test(accountNumber)
 
-export const requireTransferAccount: NavigationGuard = () => {
-  const store = useTransferStore()
-  return isValidTransferAccountNumber(store.accountNumber)
-    ? true
-    : { name: 'ward-transfer-account' }
-}
+const transferStart = { name: 'ward-transfer' }
 
 export const requireTransferDraft: NavigationGuard = () => {
   const store = useTransferStore()

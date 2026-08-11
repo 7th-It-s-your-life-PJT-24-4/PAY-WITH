@@ -18,12 +18,6 @@ const emit = defineEmits<{
     type="button"
     @click="emit('select', recipient)"
   >
-    <span
-      class="type-h4 flex size-14 shrink-0 items-center justify-center rounded-full bg-primary-900 text-primary-300"
-      aria-hidden="true"
-    >
-      {{ recipient.name.slice(0, 1) }}
-    </span>
     <span class="min-w-0 flex-1">
       <strong class="type-h2 block">{{ recipient.name }}</strong>
       <span class="type-body-medium block truncate text-body-muted">
