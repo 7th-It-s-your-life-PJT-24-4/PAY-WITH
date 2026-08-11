@@ -99,12 +99,19 @@ public class FirebasePushClient implements PushClient {
     }
 
     /**
-     * 다시 보내도 영영 실패하는 것들만 고른다. UNAVAILABLE·INTERNAL 같은 일시적 오류를 여기
-     * 넣으면 멀쩡한 토큰을 지워 그 기기로 다시는 알림이 가지 않는다.
+     * 토큰이 죽었다고 확신할 수 있는 코드만 고른다. UNREGISTERED 는 앱이 지워졌거나 토큰이
+     * 만료됐다는 뜻이라 다시 보내도 영영 실패한다.
+     *
+     * <p>INVALID_ARGUMENT 는 뺐다. 토큰 형식 오류뿐 아니라 payload 크기 초과·예약된 data 키·
+     * 잘못된 옵션에서도 같은 코드가 온다. sendEachForMulticast 는 토큰마다 같은 payload 를
+     * 보내므로, payload 쪽 버그 한 번이면 모든 토큰이 이 코드를 받아 전부 지워진다. 형식이
+     * 깨진 토큰은 남겨둬도 발송 실패 로그로 드러나고 다음 등록 때 덮인다.
+     *
+     * <p>UNAVAILABLE·INTERNAL 같은 일시적 오류도 당연히 제외한다 — 넣으면 멀쩡한 토큰을 지워
+     * 그 기기로 다시는 알림이 가지 않는다.
      */
     private boolean isTokenDead(MessagingErrorCode errorCode) {
-        return errorCode == MessagingErrorCode.UNREGISTERED
-            || errorCode == MessagingErrorCode.INVALID_ARGUMENT;
+        return errorCode == MessagingErrorCode.UNREGISTERED;
     }
 
     /** 토큰은 기기 식별자라 통째로 로그에 남기지 않는다. */

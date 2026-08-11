@@ -57,6 +57,20 @@
     WHERE user_id = #{id}
   </update>
 
+  <update id="clearFcmTokenFromOtherUsers">
+    UPDATE users
+    SET fcm_token = NULL
+    WHERE fcm_token = #{fcmToken}
+      AND user_id != #{id}
+  </update>
+
+  <update id="clearFcmTokenIfMatches">
+    UPDATE users
+    SET fcm_token = NULL
+    WHERE user_id = #{id}
+      AND fcm_token = #{fcmToken}
+  </update>
+
   <update id="clearFcmTokens">
     UPDATE users
     SET fcm_token = NULL
@@ -66,9 +80,11 @@
     </foreach>
   </update>
 
+  <!-- 토큰도 함께 지운다. 남겨두면 탈퇴한 보호자가 피보호자의 거래 알림을 계속 받는다. -->
   <update id="delete">
     UPDATE users
-    SET status = 'WITHDRAWN'
+    SET status = 'WITHDRAWN',
+        fcm_token = NULL
     WHERE user_id = #{id}
     AND status != 'WITHDRAWN'
   </update>

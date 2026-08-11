@@ -83,10 +83,17 @@ public class UserController {
         return ApiResponse.success(null);
     }
 
-    @ApiOperation(value = "FCM 토큰 해제", notes = "로그아웃 시 호출해 발송 대상에서 제외한다.")
+    @ApiOperation(
+        value = "FCM 토큰 해제",
+        notes = "로그아웃 시 호출해 발송 대상에서 제외한다. 해제할 토큰을 함께 보내야 하며, "
+            + "현재 등록된 토큰과 같을 때만 지운다. 다른 기기에서 이미 새 토큰이 등록된 뒤라면 "
+            + "아무것도 지우지 않고 성공으로 응답한다 — 지금 쓰는 기기의 알림이 끊기면 안 된다.")
     @DeleteMapping("/me/fcm-token")
-    public ApiResponse<Void> deleteFcmToken(Authentication authentication) {
-        userService.deleteFcmToken(currentUserId(authentication));
+    public ApiResponse<Void> deleteFcmToken(
+        @Valid @RequestBody FcmTokenUpdateRequest request,
+        Authentication authentication
+    ) {
+        userService.deleteFcmToken(currentUserId(authentication), request.getFcmToken());
         return ApiResponse.success(null);
     }
 
