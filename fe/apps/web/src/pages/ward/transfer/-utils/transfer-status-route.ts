@@ -18,7 +18,8 @@ export function resolveTransferStatusRoute(
   if (
     status === 'HELD' &&
     (currentRouteName === 'ward-transfer-held' ||
-      currentRouteName === 'ward-transfer-restricted')
+      currentRouteName === 'ward-transfer-restricted' ||
+      currentRouteName === 'ward-approval-request-detail')
   )
     return null
 

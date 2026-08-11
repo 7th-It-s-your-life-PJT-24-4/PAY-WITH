@@ -32,16 +32,21 @@ export function wardTransactionHistoryOptions(
 }
 
 export function wardTransactionDetailOptions(
-  transactionId: MaybeRefOrGetter<number>,
+  transactionId: MaybeRefOrGetter<number | null | undefined>,
 ) {
   const resolvedTransactionId = computed(() => toValue(transactionId))
 
   return queryOptions({
     queryKey: computed(() =>
-      transactionHistoryKeys.wardDetail(resolvedTransactionId.value),
+      transactionHistoryKeys.wardDetail(resolvedTransactionId.value ?? 0),
     ),
-    queryFn: () => getWardTransactionDetail(resolvedTransactionId.value),
-    enabled: computed(() => Number.isSafeInteger(resolvedTransactionId.value)),
+    queryFn: () => getWardTransactionDetail(resolvedTransactionId.value!),
+    enabled: computed(
+      () =>
+        typeof resolvedTransactionId.value === 'number' &&
+        Number.isSafeInteger(resolvedTransactionId.value) &&
+        resolvedTransactionId.value > 0,
+    ),
     select: toWardTransaction,
   })
 }
