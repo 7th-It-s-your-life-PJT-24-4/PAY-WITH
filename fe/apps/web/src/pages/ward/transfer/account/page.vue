@@ -142,7 +142,7 @@ async function proceed() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-lg">
+  <div class="flex flex-1 flex-col justify-between gap-lg">
     <section class="text-center">
       <h2 class="type-h1">계좌 번호 입력</h2>
       <p class="type-body-medium mt-xs text-body-secondary">
