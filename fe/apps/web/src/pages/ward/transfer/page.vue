@@ -121,16 +121,16 @@ function selectRecipient(recipient: TransferRecipient) {
     <section aria-label="송금 대상 목록">
       <!-- 세그먼트 탭 헤더 (건수 포함) -->
       <div
-        class="grid grid-cols-2 rounded-large bg-surface-card p-xs shadow-card"
+        class="grid grid-cols-2 rounded-large border border-border bg-surface-card p-xxs shadow-card"
         role="tablist"
         aria-label="송금 대상 종류"
       >
         <button
-          class="type-h4 flex items-center justify-center gap-xs rounded-medium px-md py-sm transition-colors"
+          class="flex min-h-[50px] items-center justify-center gap-xs rounded-medium px-md py-sm text-[18px] leading-tight transition-all"
           :class="
             activeTab === 'safe-accounts'
-              ? 'bg-primary-900 text-primary-500 font-bold'
-              : 'text-body-secondary font-medium hover:text-body'
+              ? 'bg-action text-on-action font-bold shadow-sm'
+              : 'text-body-muted font-medium hover:text-body'
           "
           type="button"
           role="tab"
@@ -140,17 +140,22 @@ function selectRecipient(recipient: TransferRecipient) {
           <span>안심계좌</span>
           <span
             v-if="safeAccounts.length"
-            class="rounded-full bg-primary-500/15 px-xs py-[2px] text-xs font-bold text-primary-500"
+            class="rounded-full px-xs py-[2px] text-xs font-bold"
+            :class="
+              activeTab === 'safe-accounts'
+                ? 'bg-white/25 text-white'
+                : 'bg-disabled/40 text-body-secondary'
+            "
           >
             {{ safeAccounts.length }}
           </span>
         </button>
         <button
-          class="type-h4 flex items-center justify-center gap-xs rounded-medium px-md py-sm transition-colors"
+          class="flex min-h-[50px] items-center justify-center gap-xs rounded-medium px-md py-sm text-[18px] leading-tight transition-all"
           :class="
             activeTab === 'recent'
-              ? 'bg-primary-900 text-primary-500 font-bold'
-              : 'text-body-secondary font-medium hover:text-body'
+              ? 'bg-action text-on-action font-bold shadow-sm'
+              : 'text-body-muted font-medium hover:text-body'
           "
           type="button"
           role="tab"
@@ -160,7 +165,12 @@ function selectRecipient(recipient: TransferRecipient) {
           <span>최근 보낸 사람</span>
           <span
             v-if="recentRecipients.length"
-            class="rounded-full bg-primary-500/15 px-xs py-[2px] text-xs font-bold text-primary-500"
+            class="rounded-full px-xs py-[2px] text-xs font-bold"
+            :class="
+              activeTab === 'recent'
+                ? 'bg-white/25 text-white'
+                : 'bg-disabled/40 text-body-secondary'
+            "
           >
             {{ recentRecipients.length }}
           </span>
