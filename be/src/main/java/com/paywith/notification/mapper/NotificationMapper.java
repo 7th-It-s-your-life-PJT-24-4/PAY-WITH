@@ -1,6 +1,7 @@
 package com.paywith.notification.mapper;
 
 import com.paywith.notification.domain.Notification;
+import com.paywith.notification.domain.TransferNotificationInfo;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -24,8 +25,9 @@ public interface NotificationMapper {
     String findFcmTokenByUserId(@Param("userId") Long userId);
 
     /**
-     * 거래의 주인(피보호자)을 찾는다. 송금 FDS·승인 흐름은 transactionId 만 들고 있어서
-     * 보호자든 본인이든 수신자를 정하려면 이 조회가 먼저 필요하다.
+     * 송금 알림에 필요한 정보를 한 번에 가져온다. 수신자 해석과 문구에 넣을 값을 따로 조회하면
+     * 같은 거래를 두 번 읽게 된다. 거래가 없으면 null.
      */
-    Long findWardIdByTransactionId(@Param("transactionId") Long transactionId);
+    TransferNotificationInfo findTransferNotificationInfo(
+        @Param("transactionId") Long transactionId);
 }

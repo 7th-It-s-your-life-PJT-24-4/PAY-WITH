@@ -24,6 +24,7 @@ import com.paywith.fds.dto.FdsDecision;
 import com.paywith.fds.mapper.RiskEvaluationDetailMapper;
 import com.paywith.fds.mapper.RiskEvaluationMapper;
 import com.paywith.fds.mapper.TransactionRiskMapper;
+import com.paywith.notification.service.TransferNotifier;
 import com.paywith.fds.service.rule.RiskRuleCache;
 import com.paywith.fds.support.FdsTestWiring;
 import com.paywith.fds.support.RiskRules;
@@ -52,6 +53,8 @@ class FdsEvaluationResultServiceImplTest {
     @Mock
     private TransactionRiskMapper transactionRiskMapper;
     @Mock
+    private TransferNotifier transferNotifier;
+    @Mock
     private ApprovalRequestService approvalRequestService;
 
     private FdsEvaluationResultServiceImpl service;
@@ -73,7 +76,8 @@ class FdsEvaluationResultServiceImplTest {
             riskEvaluationMapper,
             riskEvaluationDetailMapper,
             transactionRiskMapper,
-            approvalRequestService
+            approvalRequestService,
+            transferNotifier
         );
         decider = new FdsEvaluationServiceImpl(
             null, null, riskRuleCache, FdsTestWiring.grader(), FdsTestWiring.evaluators()

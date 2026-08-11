@@ -13,6 +13,7 @@ import static org.mockito.Mockito.never;
 import com.paywith.approval.dto.ApprovalDecisionResponse;
 import com.paywith.approval.mapper.ApprovalRequestMapper;
 import com.paywith.approval.mapper.TransactionApprovalMapper;
+import com.paywith.notification.service.TransferNotifier;
 import com.paywith.exception.BusinessException;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,12 +39,15 @@ class ApprovalRequestDecisionTest {
     @Mock
     private TransactionApprovalMapper transactionApprovalMapper;
 
+    @Mock
+    private TransferNotifier transferNotifier;
+
     private ApprovalRequestService service;
 
     @BeforeEach
     void setUp() {
         service = new ApprovalRequestServiceImpl(
-            approvalRequestMapper, transactionApprovalMapper, 30);
+            approvalRequestMapper, transactionApprovalMapper, transferNotifier, 30);
     }
 
     private void givenPendingRequestFound() {

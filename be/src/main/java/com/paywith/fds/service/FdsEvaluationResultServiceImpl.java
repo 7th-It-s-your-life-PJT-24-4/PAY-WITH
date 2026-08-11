@@ -9,6 +9,7 @@ import com.paywith.fds.dto.TriggeredRule;
 import com.paywith.fds.mapper.RiskEvaluationDetailMapper;
 import com.paywith.fds.mapper.RiskEvaluationMapper;
 import com.paywith.fds.mapper.TransactionRiskMapper;
+import com.paywith.notification.service.TransferNotifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,17 +21,20 @@ public class FdsEvaluationResultServiceImpl implements FdsEvaluationResultServic
     private final RiskEvaluationDetailMapper riskEvaluationDetailMapper;
     private final TransactionRiskMapper transactionRiskMapper;
     private final ApprovalRequestService approvalRequestService;
+    private final TransferNotifier transferNotifier;
 
     public FdsEvaluationResultServiceImpl(
         RiskEvaluationMapper riskEvaluationMapper,
         RiskEvaluationDetailMapper riskEvaluationDetailMapper,
         TransactionRiskMapper transactionRiskMapper,
-        ApprovalRequestService approvalRequestService
+        ApprovalRequestService approvalRequestService,
+        TransferNotifier transferNotifier
     ) {
         this.riskEvaluationMapper = riskEvaluationMapper;
         this.riskEvaluationDetailMapper = riskEvaluationDetailMapper;
         this.transactionRiskMapper = transactionRiskMapper;
         this.approvalRequestService = approvalRequestService;
+        this.transferNotifier = transferNotifier;
     }
 
     @Override
@@ -65,6 +69,9 @@ public class FdsEvaluationResultServiceImpl implements FdsEvaluationResultServic
         if (decision.isHeld()) {
             approvalRequestService.create(transactionId);
         }
-        // TODO CAUTION 알림. notifications 행은 이 트랜잭션에서, 발송은 커밋 이후에.
+
+        // 알림 행은 이 트랜잭션에서 남기고 발송은 커밋 이후에 나간다(NotificationServiceImpl).
+        // 판정이 롤백되면 알림도 함께 사라져야 하기 때문이다.
+        transferNotifier.notifyRiskDetected(transactionId, decision);
     }
 }

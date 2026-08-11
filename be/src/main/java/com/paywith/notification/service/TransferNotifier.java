@@ -1,0 +1,137 @@
+package com.paywith.notification.service;
+
+import com.paywith.fds.dto.FdsDecision;
+import com.paywith.notification.domain.NotificationType;
+import com.paywith.notification.domain.TransferNotificationInfo;
+import com.paywith.notification.mapper.NotificationMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+/**
+ * 송금 관련 알림의 문구와 수신자 결정을 한곳에 모은다. 호출부(FDS 판정, 승인/거절, 승인 후
+ * 송금 실행)가 세 군데로 흩어져 있어, 각자 조회하고 각자 문구를 만들면 같은 코드가 세 번
+ * 생기고 표현도 서로 어긋난다.
+ *
+ * <p>모든 메서드가 예외를 삼킨다. 호출부가 전부 {@code @Transactional} 안이라 여기서 예외가
+ * 새면 진행 중인 트랜잭션이 rollback-only 로 표시돼, 알림 때문에 송금이 뒤집힌다.
+ */
+@Component
+public class TransferNotifier {
+
+    private static final Logger log = LoggerFactory.getLogger(TransferNotifier.class);
+
+    private static final String REF_TYPE_TRANSACTION = "TRANSACTION";
+    private static final String UNKNOWN_RECIPIENT = "수취인";
+
+    private static final String TITLE_BLOCKED = "송금 차단 알림";
+    private static final String BODY_BLOCKED = "위험 거래가 감지되어 %s님께 %,d원 송금을 차단했습니다.";
+    private static final String TITLE_APPROVAL_REQUEST = "송금 승인 요청";
+    private static final String BODY_APPROVAL_REQUEST = "%s님께 %,d원 송금에 확인이 필요합니다.";
+    private static final String TITLE_CAUTION = "송금 주의 알림";
+    // 이 알림은 송금이 실행되기 전(FDS 판정 시점)에 나간다. 뒤에서 잔액 부족 등으로 실패할 수
+    // 있으므로 "완료됐다"고 단정하지 않는다 — 결제 쪽 문구와 달라 보이는 이유다.
+    private static final String BODY_CAUTION = "주의가 필요한 송금이 감지되었습니다. %s님께 %,d원 송금이 요청되었습니다.";
+
+    private static final String TITLE_REJECTED = "송금이 거절되었습니다";
+    private static final String BODY_REJECTED = "보호자가 %s님께 %,d원 송금을 거절했습니다.";
+    private static final String TITLE_COMPLETED = "송금이 완료되었습니다";
+    private static final String BODY_COMPLETED = "%s님께 %,d원을 보냈습니다.";
+    private static final String TITLE_FAILED = "송금이 실패했습니다";
+
+    private final NotificationMapper notificationMapper;
+    private final NotificationService notificationService;
+
+    public TransferNotifier(NotificationMapper notificationMapper,
+        NotificationService notificationService) {
+        this.notificationMapper = notificationMapper;
+        this.notificationService = notificationService;
+    }
+
+    /** FDS 판정 결과를 보호자에게 알린다. SAFE 면 아무것도 하지 않는다. */
+    public void notifyRiskDetected(Long transactionId, FdsDecision decision) {
+        if (!decision.requiresGuardNotification()) {
+            return;
+        }
+        TransferNotificationInfo info = findInfo(transactionId);
+        if (info == null) {
+            return;
+        }
+
+        String recipient = recipientNameOf(info);
+        if (decision.isBlocked()) {
+            notifyGuardians(info, NotificationType.ANOMALY, TITLE_BLOCKED,
+                String.format(BODY_BLOCKED, recipient, info.getAmount()), transactionId);
+        } else if (decision.isHeld()) {
+            notifyGuardians(info, NotificationType.APPROVAL_REQUEST, TITLE_APPROVAL_REQUEST,
+                String.format(BODY_APPROVAL_REQUEST, recipient, info.getAmount()), transactionId);
+        } else {
+            notifyGuardians(info, NotificationType.ANOMALY, TITLE_CAUTION,
+                String.format(BODY_CAUTION, recipient, info.getAmount()), transactionId);
+        }
+    }
+
+    /** 보호자가 거절했음을 피보호자에게 알린다. */
+    public void notifyRejected(Long transactionId) {
+        TransferNotificationInfo info = findInfo(transactionId);
+        if (info == null) {
+            return;
+        }
+        notifyWard(info, TITLE_REJECTED,
+            String.format(BODY_REJECTED, recipientNameOf(info), info.getAmount()), transactionId);
+    }
+
+    /**
+     * 승인 뒤 송금까지 끝났음을 피보호자에게 알린다.
+     *
+     * <p>"승인됨"과 "완료됨"을 따로 보내지 않는다. 피보호자에게 필요한 건 승인 여부가 아니라
+     * 결과이고, 승인 직후에 알리면 뒤이은 송금이 실패했을 때 돈이 나간 것처럼 읽힌다.
+     */
+    public void notifyTransferCompleted(Long transactionId) {
+        TransferNotificationInfo info = findInfo(transactionId);
+        if (info == null) {
+            return;
+        }
+        notifyWard(info, TITLE_COMPLETED,
+            String.format(BODY_COMPLETED, recipientNameOf(info), info.getAmount()), transactionId);
+    }
+
+    /** @param reason 이미 사용자에게 보여줄 수 있는 문구여야 한다(내부 메시지 금지). */
+    public void notifyTransferFailed(Long transactionId, String reason) {
+        TransferNotificationInfo info = findInfo(transactionId);
+        if (info == null) {
+            return;
+        }
+        notifyWard(info, TITLE_FAILED, reason, transactionId);
+    }
+
+    private void notifyGuardians(TransferNotificationInfo info, NotificationType type,
+        String title, String body, Long transactionId) {
+        notificationService.notifyGuardians(
+            info.getWardId(), type, title, body, REF_TYPE_TRANSACTION, transactionId);
+    }
+
+    private void notifyWard(TransferNotificationInfo info, String title, String body,
+        Long transactionId) {
+        notificationService.notifyUser(info.getWardId(), NotificationType.APPROVAL_RESULT,
+            title, body, REF_TYPE_TRANSACTION, transactionId);
+    }
+
+    private TransferNotificationInfo findInfo(Long transactionId) {
+        try {
+            TransferNotificationInfo info =
+                notificationMapper.findTransferNotificationInfo(transactionId);
+            if (info == null) {
+                log.warn("알림 대상 거래를 찾지 못해 알림을 건너뜀. transactionId={}", transactionId);
+            }
+            return info;
+        } catch (RuntimeException e) {
+            log.error("알림 대상 조회 실패 — 호출 흐름은 유지. transactionId={}", transactionId, e);
+            return null;
+        }
+    }
+
+    private String recipientNameOf(TransferNotificationInfo info) {
+        return info.getRecipientName() == null ? UNKNOWN_RECIPIENT : info.getRecipientName();
+    }
+}

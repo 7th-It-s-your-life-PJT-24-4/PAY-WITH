@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 
 import com.paywith.approval.dto.ApprovalDecisionResponse;
 import com.paywith.approval.mapper.TransactionApprovalMapper;
+import com.paywith.notification.service.TransferNotifier;
 import com.paywith.exception.BusinessException;
 import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.transaction.domain.TransactionStatus;
@@ -41,12 +42,16 @@ class ApprovalTransferFacadeTest {
     @Mock
     private TransactionApprovalMapper transactionApprovalMapper;
 
+    @Mock
+    private TransferNotifier transferNotifier;
+
     private ApprovalTransferFacade facade;
 
     @BeforeEach
     void setUp() {
         facade = new ApprovalTransferFacade(
-            approvalRequestService, transferFinalizationService, transactionApprovalMapper);
+            approvalRequestService, transferFinalizationService, transactionApprovalMapper,
+            transferNotifier);
     }
 
     private void givenApprovalSucceeds() {
