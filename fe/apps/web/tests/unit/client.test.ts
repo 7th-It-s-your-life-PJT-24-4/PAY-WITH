@@ -207,4 +207,31 @@ describe('apiClient', () => {
     expect(request).toBeInstanceOf(Request)
     expect((request as Request).headers.get('Authorization')).toBeNull()
   })
+
+  it('sends an optional JSON body with DELETE requests', async () => {
+    tokenStorage.setTokens('access-token', 'refresh-token')
+    let capturedRequest: Request | null = null
+    const fetchMock = vi.fn<typeof fetch>().mockImplementationOnce((input) => {
+      capturedRequest = (input as Request).clone()
+      return Promise.resolve(
+        Response.json({ success: true, data: null, message: null }),
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const responseSchema = z.object({
+      success: z.literal(true),
+      data: z.null(),
+      message: z.null(),
+    })
+    await apiClient.delete('/users/me/fcm-token', responseSchema, {
+      fcmToken: 'device-token',
+    })
+
+    expect(capturedRequest).toBeInstanceOf(Request)
+    expect((capturedRequest as Request | null)?.method).toBe('DELETE')
+    await expect(capturedRequest?.json()).resolves.toEqual({
+      fcmToken: 'device-token',
+    })
+  })
 })

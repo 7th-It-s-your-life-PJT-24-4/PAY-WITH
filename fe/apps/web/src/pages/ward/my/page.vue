@@ -7,6 +7,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { clearAuthenticationSession } from '@/api/auth-session'
+import { unregisterPushNotifications } from '@/api/push-session'
 
 const router = useRouter()
 const queryClient = useQueryClient()
@@ -62,6 +63,7 @@ const menuItems: Array<{
 
 async function logout() {
   isLogoutConfirmOpen.value = false
+  await unregisterPushNotifications()
   clearAuthenticationSession()
   queryClient.clear()
   await router.replace({ name: 'auth-sign-in' })
