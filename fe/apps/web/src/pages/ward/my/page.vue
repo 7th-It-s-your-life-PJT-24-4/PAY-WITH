@@ -7,6 +7,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { clearAuthenticationSession } from '@/api/auth-session'
+import { unregisterPushNotifications } from '@/api/push-session'
+import PushNotificationPermissionCard from '@/components/PushNotificationPermissionCard.vue'
 
 const router = useRouter()
 const queryClient = useQueryClient()
@@ -62,6 +64,7 @@ const menuItems: Array<{
 
 async function logout() {
   isLogoutConfirmOpen.value = false
+  await unregisterPushNotifications()
   clearAuthenticationSession()
   queryClient.clear()
   await router.replace({ name: 'auth-sign-in' })
@@ -70,6 +73,8 @@ async function logout() {
 
 <template>
   <section class="flex flex-1 flex-col" aria-label="마이페이지 메뉴">
+    <PushNotificationPermissionCard />
+
     <div class="grid gap-md">
       <Button
         v-for="item in menuItems"

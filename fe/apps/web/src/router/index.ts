@@ -717,7 +717,29 @@ router.beforeEach(async (to) => {
     }
   }
 
-  if (!isAuthRoute) return true
+  if (!isAuthRoute) {
+    if (to.query.source !== 'push') return true
+
+    try {
+      const user = await getUser(userId)
+      const expectedRole = to.path.startsWith('/guard/')
+        ? 'GUARD'
+        : to.path.startsWith('/ward/')
+          ? 'WARD'
+          : null
+      return expectedRole && user.role !== expectedRole
+        ? getRoleHomePath(user.role)
+        : true
+    } catch (error) {
+      if (!isUnauthorizedApiError(error)) return true
+
+      clearAuthenticationSession()
+      return {
+        name: 'auth-sign-in',
+        query: { reason: 'session-expired', redirect: to.fullPath },
+      }
+    }
+  }
 
   try {
     const user = await getUser(userId)

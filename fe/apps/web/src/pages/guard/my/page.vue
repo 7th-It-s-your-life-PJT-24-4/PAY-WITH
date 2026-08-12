@@ -7,7 +7,12 @@ import { useRouter } from 'vue-router'
 
 import { clearAuthenticationSession } from '@/api/auth-session'
 import { getApiErrorMessage } from '@/api/error'
+import {
+  clearLocalPushSubscription,
+  unregisterPushNotifications,
+} from '@/api/push-session'
 import { getUserIdFromAccessToken, tokenStorage } from '@/api/token-storage'
+import PushNotificationPermissionCard from '@/components/PushNotificationPermissionCard.vue'
 import { useDeleteUserMutation } from '@/composables/useDeleteUserMutation'
 import GuardMyHeader from '@/pages/guard/my/-components/GuardMyHeader.vue'
 
@@ -43,7 +48,9 @@ function moveToMenu(routeName: string, termId?: string) {
   })
 }
 
-async function finishAuthenticationSession() {
+async function finishAuthenticationSession(unregisterPush = true) {
+  if (unregisterPush) await unregisterPushNotifications()
+  else await clearLocalPushSubscription()
   clearAuthenticationSession()
   queryClient.clear()
   await router.replace({ name: 'auth-sign-in' })
@@ -61,7 +68,7 @@ async function withdraw() {
   try {
     await deleteUserMutation.mutateAsync(currentUserId)
     isDeleteConfirmOpen.value = false
-    await finishAuthenticationSession()
+    await finishAuthenticationSession(false)
   } catch (error) {
     isDeleteConfirmOpen.value = false
     errorMessage.value = await getApiErrorMessage(
@@ -75,6 +82,8 @@ async function withdraw() {
 <template>
   <main class="min-h-screen pb-[calc(66px+env(safe-area-inset-bottom))]">
     <GuardMyHeader title="마이페이지" />
+
+    <PushNotificationPermissionCard />
 
     <section aria-label="마이페이지 메뉴">
       <div class="px-mobile-gutter">
