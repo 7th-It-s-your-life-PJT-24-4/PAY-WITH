@@ -127,16 +127,17 @@ class NotificationServiceImplTest {
         given(notificationMapper.findActiveGuardIds(SENIOR_ID)).willReturn(List.of(1L));
         given(notificationMapper.findActiveGuardTokens(SENIOR_ID)).willReturn(List.of("TOKEN_A"));
 
-        service.notifyGuardians(SENIOR_ID, NotificationType.APPROVAL_REQUEST,
-            "승인 요청", "확인이 필요한 송금이 있습니다.", "TRANSACTION", TRANSACTION_ID);
+        service.notifyGuardians(SENIOR_ID, NotificationType.ANOMALY,
+            "이상 거래", "확인이 필요한 거래가 있습니다.", "TRANSACTION", TRANSACTION_ID);
         commit();
 
         ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.forClass(Map.class);
         then(pushDispatcher).should().dispatch(any(), any(), any(), captor.capture());
         assertThat(captor.getValue())
-            .containsEntry("type", "APPROVAL_REQUEST")
+            .containsEntry("type", "ANOMALY")
             .containsEntry("refType", "TRANSACTION")
-            .containsEntry("refId", String.valueOf(TRANSACTION_ID));
+            .containsEntry("refId", String.valueOf(TRANSACTION_ID))
+            .containsEntry("wardId", String.valueOf(SENIOR_ID));
     }
 
     @Test
