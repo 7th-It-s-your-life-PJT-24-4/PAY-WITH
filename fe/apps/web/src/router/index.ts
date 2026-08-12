@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import { clearAuthenticationSession } from '@/api/auth-session'
+import { expireAuthenticationSession } from '@/api/auth-session'
 import { isUnauthorizedApiError } from '@/api/error'
 import {
   refreshAccessToken,
@@ -95,7 +95,10 @@ import {
   requireTransferIntent,
   requireTransferRecipient,
 } from '@/pages/ward/transfer/-utils/transfer-route-guard'
-import { getRoleHomePath } from '@/router/auth-navigation'
+import {
+  getRoleHomePath,
+  getUnauthenticatedSignInQuery,
+} from '@/router/auth-navigation'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -706,18 +709,43 @@ router.beforeEach(async (to) => {
   const { userId, sessionExpired } = await resolveAuthentication()
 
   if (!userId) {
-    if (sessionExpired) clearAuthenticationSession()
+    if (sessionExpired) expireAuthenticationSession()
     if (isAuthRoute) return true
 
     return {
       name: 'auth-sign-in',
-      query: sessionExpired
-        ? { reason: 'session-expired', redirect: to.fullPath }
-        : undefined,
+      query: getUnauthenticatedSignInQuery(
+        to.fullPath,
+        to.query.source,
+        sessionExpired,
+      ),
     }
   }
 
-  if (!isAuthRoute) return true
+  if (!isAuthRoute) {
+    if (to.query.source !== 'push') return true
+
+    try {
+      const user = await getUser(userId)
+      const expectedRole =
+        to.path === '/guard' || to.path.startsWith('/guard/')
+          ? 'GUARD'
+          : to.path === '/ward' || to.path.startsWith('/ward/')
+            ? 'WARD'
+            : null
+      return expectedRole && user.role !== expectedRole
+        ? getRoleHomePath(user.role)
+        : true
+    } catch (error) {
+      if (!isUnauthorizedApiError(error)) return true
+
+      expireAuthenticationSession()
+      return {
+        name: 'auth-sign-in',
+        query: { reason: 'session-expired', redirect: to.fullPath },
+      }
+    }
+  }
 
   try {
     const user = await getUser(userId)
@@ -725,7 +753,7 @@ router.beforeEach(async (to) => {
   } catch (error) {
     if (!isUnauthorizedApiError(error)) return true
 
-    clearAuthenticationSession()
+    expireAuthenticationSession()
     return {
       name: 'auth-sign-in',
       query: { reason: 'session-expired' },

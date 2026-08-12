@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronLeft } from '@lucide/vue'
-import { Button } from '@pay-with/ui'
+import { BottomSheet, Button, PinKeypad } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { getApiErrorMessage } from '@/api/error'
@@ -23,6 +23,8 @@ const registerAccountMutation = useRegisterChargeAccountMutation()
 const selectedBank = ref<Bank | null>(null)
 const accountNumber = ref('')
 const accountPassword = ref('')
+const keypad = ref<{ reset: () => void } | null>(null)
+const isPasswordSheetOpen = ref(false)
 const errorMessage = ref('')
 const banks = computed(() => banksQuery.data.value ?? [])
 const selectedBankPresentation = computed(() =>
@@ -46,8 +48,25 @@ function updateAccountNumber(value: string) {
   accountNumber.value = value.replace(/\D/g, '').slice(0, 16)
 }
 
-function updateAccountPassword(value: string) {
-  accountPassword.value = value.replace(/\D/g, '').slice(0, 4)
+function openPasswordSheet() {
+  accountPassword.value = ''
+  isPasswordSheetOpen.value = true
+  nextTick(() => keypad.value?.reset())
+}
+
+function closePasswordSheet() {
+  accountPassword.value = ''
+  keypad.value?.reset()
+  isPasswordSheetOpen.value = false
+}
+
+function completePassword(value: string) {
+  accountPassword.value = value
+  isPasswordSheetOpen.value = false
+}
+
+function handlePasswordSheetOpenChange(open: boolean) {
+  if (!open && accountPassword.value.length < 4) closePasswordSheet()
 }
 
 async function connectAccount() {
@@ -63,6 +82,7 @@ async function connectAccount() {
     })
     guardStore.selectChargeAccount(account.accountId)
     accountPassword.value = ''
+    keypad.value?.reset()
     await router.replace({
       name: 'guard-charge-be',
       query: withGuardWardId({}, guardStore.activeWardId),
@@ -158,17 +178,17 @@ async function connectAccount() {
           계좌 비밀번호
         </span>
         <input
-          class="mt-xs h-[60px] w-full rounded-[14px] bg-[#F0F3F8] px-md text-[18px] font-semibold leading-[1.2] tracking-[-0.36px] text-black outline-none placeholder:text-gray-700"
-          inputmode="numeric"
-          maxlength="4"
+          class="mt-xs h-[60px] w-full cursor-pointer rounded-[14px] bg-[#F0F3F8] px-md text-center text-[18px] font-semibold leading-[1.2] tracking-[0.75em] text-primary-500 outline-none placeholder:tracking-[-0.36px] placeholder:text-gray-700 focus:ring-2 focus:ring-focus/20"
+          inputmode="none"
           placeholder="4자리"
-          type="password"
-          :value="accountPassword"
-          @input="
-            updateAccountPassword(
-              ($event.target as { value: string } | null)?.value ?? '',
-            )
-          "
+          type="text"
+          :value="accountPassword ? '●●●●' : ''"
+          readonly
+          aria-haspopup="dialog"
+          :aria-expanded="isPasswordSheetOpen"
+          @click="openPasswordSheet"
+          @keydown.enter.prevent="openPasswordSheet"
+          @keydown.space.prevent="openPasswordSheet"
         />
       </label>
 
@@ -203,5 +223,25 @@ async function connectAccount() {
       :banks="banks"
       @select="selectBank"
     />
+
+    <BottomSheet
+      v-model:open="isPasswordSheetOpen"
+      title="계좌 비밀번호 입력"
+      description="보안을 위해 숫자 위치가 바뀔 수 있습니다."
+      @update:open="handlePasswordSheetOpenChange"
+    >
+      <PinKeypad
+        ref="keypad"
+        class="[&_[role=group]]:!mt-xl"
+        :length="4"
+        variant="minimal"
+        randomize
+        pseudo-click
+        :disabled="registerAccountMutation.isPending.value"
+        @complete="completePassword"
+        @change="accountPassword = ''"
+        @cancel="closePasswordSheet"
+      />
+    </BottomSheet>
   </main>
 </template>

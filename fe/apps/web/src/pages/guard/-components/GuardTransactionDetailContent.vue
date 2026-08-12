@@ -30,9 +30,10 @@ type DetailRow =
       value: string
     }
   | {
-      kind: 'charge-account'
+      kind: 'account'
       label: string
-      holderName: string
+      testIdPrefix: 'charge' | 'recipient'
+      holderName: string | null
       bankName: string | null
       accountNo: string | null
     }
@@ -116,8 +117,9 @@ const detailRows = computed<DetailRow[]>(() => {
     return [
       amountRow,
       {
-        kind: 'charge-account',
+        kind: 'account',
         label: '충전',
+        testIdPrefix: 'charge',
         holderName: formatHolderName(props.detail.counterpartyName),
         bankName: props.detail.bankName,
         accountNo: props.detail.accountNo,
@@ -138,13 +140,6 @@ const detailRows = computed<DetailRow[]>(() => {
     ]
   }
 
-  const recipientAccount = [
-    props.detail.bankName,
-    maskGuardAccountNumber(props.detail.accountNo),
-  ]
-    .filter((value) => value && value !== '-')
-    .join(' ')
-
   return [
     amountRow,
     {
@@ -153,9 +148,14 @@ const detailRows = computed<DetailRow[]>(() => {
       value: props.detail.counterpartyName ?? '-',
     },
     {
-      kind: 'text',
+      kind: 'account',
       label: '받는 계좌',
-      value: recipientAccount || '-',
+      testIdPrefix: 'recipient',
+      holderName: null,
+      bankName: props.detail.bankName,
+      accountNo: props.detail.accountNo
+        ? maskGuardAccountNumber(props.detail.accountNo)
+        : null,
     },
     occurredAtRow,
   ]
@@ -200,28 +200,35 @@ const detailRows = computed<DetailRow[]>(() => {
       >
         <dt class="shrink-0 font-medium text-gray-700">{{ row.label }}</dt>
         <dd
-          v-if="row.kind === 'charge-account'"
+          v-if="row.kind === 'account'"
           class="flex min-w-0 flex-1 items-center justify-end gap-xxs overflow-hidden text-right font-semibold text-black"
         >
           <span
-            data-testid="charge-holder-name"
+            v-if="row.holderName"
+            :data-testid="`${row.testIdPrefix}-holder-name`"
             class="shrink-0 whitespace-nowrap"
           >
             {{ row.holderName }}
           </span>
           <span
             v-if="row.bankName"
-            data-testid="charge-bank-name"
+            :data-testid="`${row.testIdPrefix}-bank-name`"
             class="shrink-0 whitespace-nowrap"
           >
             {{ row.bankName }}
           </span>
           <span
             v-if="row.accountNo"
-            data-testid="charge-account-number"
+            :data-testid="`${row.testIdPrefix}-account-number`"
             class="min-w-0 truncate"
           >
             {{ row.accountNo }}
+          </span>
+          <span
+            v-if="!row.holderName && !row.bankName && !row.accountNo"
+            class="shrink-0 whitespace-nowrap"
+          >
+            -
           </span>
         </dd>
         <dd

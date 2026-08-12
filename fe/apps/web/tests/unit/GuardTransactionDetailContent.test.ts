@@ -32,7 +32,7 @@ const completedDangerDetail: GuardTransactionDetail = {
 }
 
 describe('GuardTransactionDetailContent', () => {
-  it('송금 상세의 라벨과 계좌 마스킹, AI 분석을 한 형식으로 표시한다', () => {
+  it('송금 상세의 은행은 유지하고 마스킹한 계좌번호에만 말줄임을 적용한다', () => {
     const wrapper = mount(GuardTransactionDetailContent, {
       props: {
         detail: createGuardTransactionDetailView(completedDangerDetail),
@@ -43,7 +43,16 @@ describe('GuardTransactionDetailContent', () => {
     expect(wrapper.text()).toContain('받는 분')
     expect(wrapper.text()).toContain('박수취')
     expect(wrapper.text()).toContain('받는 계좌')
-    expect(wrapper.text()).toContain('신한은행 110-***-7890')
+    const bankName = wrapper.get('[data-testid="recipient-bank-name"]')
+    const accountNo = wrapper.get('[data-testid="recipient-account-number"]')
+    const accountDetail = accountNo.element.parentElement
+
+    expect(bankName.text()).toBe('신한은행')
+    expect(accountNo.text()).toBe('110-***-7890')
+    expect(bankName.classes()).not.toContain('truncate')
+    expect(accountNo.classes()).toContain('truncate')
+    expect(accountDetail?.classList.contains('flex-1')).toBe(true)
+    expect(accountDetail?.classList.contains('overflow-hidden')).toBe(true)
     expect(wrapper.text()).not.toContain('출금처')
     expect(wrapper.text()).toContain('평소와 다른 고액 송금이에요.')
     expect(wrapper.text()).toContain('메모에서 위험 키워드가 감지됐어요.')

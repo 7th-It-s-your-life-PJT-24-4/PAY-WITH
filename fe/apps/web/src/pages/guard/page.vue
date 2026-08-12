@@ -6,7 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { guardHomeOptions } from '@/lib/query/guard/home'
 import GuardAssetCard from '@/pages/guard/-components/GuardAssetCard.vue'
-import GuardRiskTransactionAlert from '@/pages/guard/-components/GuardRiskTransactionAlert.vue'
+import GuardRiskTransactionSection from '@/pages/guard/-components/GuardRiskTransactionSection.vue'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
 import GuardTransactionList from '@/pages/guard/-components/GuardTransactionList.vue'
 import {
@@ -26,7 +26,6 @@ const router = useRouter()
 const pairingStore = usePairingStore()
 const guardStore = useGuardStore()
 const isPairingConfirmOpen = ref(false)
-const isRiskTransactionAlertVisible = ref(true)
 const selectedWardId = computed(
   () => parsePositiveRouteId(route.query.wardId) ?? guardStore.activeWardId,
 )
@@ -57,16 +56,9 @@ const recentGuardTransactions = computed(() =>
 const pendingApproval = computed(
   () => selectedWard.value?.pendingApproval ?? null,
 )
-const dangerTransactionCount = computed(
-  () => selectedWard.value?.pendingApprovalCount ?? 0,
-)
 const formattedBalance = computed(() =>
   new Intl.NumberFormat('ko-KR').format(selectedWard.value?.balance ?? 0),
 )
-
-watch(activeSeniorId, () => {
-  isRiskTransactionAlertVisible.value = true
-})
 
 watch(
   () => selectedWard.value?.wardId,
@@ -137,6 +129,13 @@ function goToCharge() {
   router.push({
     name: 'guard-charge-be',
     query: withGuardWardId({}, selectedWard.value.wardId),
+  })
+}
+
+function goToApprovalRequests() {
+  router.push({
+    name: 'guard-approval-requests',
+    query: withGuardWardId({}, selectedWard.value?.wardId ?? null),
   })
 }
 
@@ -219,24 +218,13 @@ async function startPairing() {
         "
       />
 
-      <GuardRiskTransactionAlert
-        v-if="
-          isRiskTransactionAlertVisible &&
-          dangerTransactionCount > 0 &&
-          pendingApproval
-        "
-        :count="dangerTransactionCount"
-        @close="isRiskTransactionAlertVisible = false"
-        @confirm="
-          router.push({
-            name: 'guard-approval-requests',
-            query: { wardId: selectedWard?.wardId },
-          })
-        "
+      <GuardRiskTransactionSection
+        class="mt-md"
+        :pending-approval="pendingApproval"
+        @more="goToApprovalRequests"
       />
 
       <GuardTransactionList
-        class="mt-md"
         :transactions="recentGuardTransactions"
         :ward-id="selectedWard?.wardId ?? null"
         @more="

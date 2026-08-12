@@ -4,6 +4,20 @@ export function getRoleHomePath(role: User['role']) {
   return role === 'GUARD' ? '/guard' : '/ward'
 }
 
+export function getUnauthenticatedSignInQuery(
+  fullPath: string,
+  source: unknown,
+  sessionExpired: boolean,
+): { reason?: string; redirect?: string } | undefined {
+  const shouldRestoreDestination = sessionExpired || source === 'push'
+  if (!shouldRestoreDestination) return undefined
+
+  return {
+    ...(sessionExpired ? { reason: 'session-expired' } : {}),
+    redirect: fullPath,
+  }
+}
+
 export function getSafePostLoginPath(
   value: unknown,
   role: User['role'],

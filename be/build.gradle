@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'war'
+    id 'jacoco'
 }
 
 group = 'com.paywith'
@@ -131,4 +132,34 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+// 커버리지 측정. 리포트는 build/reports/jacoco/test/ 아래에 XML·HTML 두 형태로 남는다.
+// XML 은 CI 에서 기계가 읽는 형식이고, HTML 은 사람이 열어 보는 쪽이다.
+jacocoTestReport {
+    dependsOn test
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+
+    // 로직이 없는 코드는 분모에서 뺀다. 남겨두면 커버리지 숫자가 실제 검증 수준이 아니라
+    // DTO 를 몇 개 만들었는지에 따라 움직여서, 기준값을 정하는 의미가 없어진다.
+    //   - dto/domain: 대부분 Lombok 이 생성한 getter·builder 라 우리가 쓴 코드가 아니다
+    //   - config: 스프링 조립 코드. RootContextSmokeTest 가 조립 성공 여부로 검증한다
+    //   - exception: 예외 클래스 정의뿐이고, 던지고 받는 동작은 각 서비스 테스트가 덮는다
+    // classDirectories 는 설정 시점에 아직 확정되지 않아 afterEvaluate 안에서 걸러야 한다.
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    '**/dto/**',
+                    '**/domain/**',
+                    '**/config/**',
+                    '**/exception/**',
+            ])
+        }))
+    }
 }
