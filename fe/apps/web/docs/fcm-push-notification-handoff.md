@@ -8,19 +8,11 @@
 
 ## 1. 현재 상태 요약
 
-FCM 공통 기반, 토큰 등록·해제, 포그라운드 수신 UI, 백그라운드 서비스 워커, 알림 클릭 경로 계산, 역할 검증, 빌드·배포 환경 변수 전달까지 구현되어 있다.
+FCM 공통 기반, 토큰 등록·해제, 포그라운드 수신 UI, 백그라운드 서비스 워커, 알림 클릭 경로 계산, 역할 검증, 로그인 후 목적지 복구, 빌드·배포 환경 변수 전달까지 구현되어 있다.
 
-다만 다음 두 항목은 실제 사용자 흐름을 완성하려면 후속 구현이 필요하다.
+보호자 `ANOMALY` payload에는 `wardId`를 추가해 앱 콜드 스타트에서도 Pinia 선택 상태 없이 거래 상세 API를 호출할 수 있다. `wardId` 추가 전에 발송되어 FCM에 남아 있는 알림은 보호자 홈으로 안전하게 이동한다.
 
-1. **로그아웃 상태에서 알림을 눌렀을 때 로그인 후 원래 목적지 복원**
-   - 현재 서비스 워커는 목적지 URL을 열지만, 인증 정보가 전혀 없는 경우 라우터가 로그인 페이지로 이동하면서 목적지 정보를 보존하지 않는다.
-   - 세션 만료로 이동하는 경우에는 기존 인증 흐름의 `redirect` 쿼리가 동작하지만, 일반적인 비로그인 콜드 스타트에는 적용되지 않는다.
-2. **보호자 이상거래(`ANOMALY`) 상세의 `wardId` 확보**
-   - 푸시 payload는 거래 ID인 `refId`만 제공한다.
-   - 현재 보호자 거래 상세 API는 `wardId`와 `transactionId`를 모두 요구한다.
-   - 앱이 완전히 종료된 뒤 알림으로 진입하면 Pinia의 `activeWardId`가 없으므로 `/guard/history/:id?source=push`만으로 상세 조회를 시작할 수 없다.
-
-위 두 항목 외에도 실제 Firebase 프로젝트 값을 적용한 기기 스모크 테스트는 아직 수행하지 않았다.
+코드 기반 공통 흐름은 완료됐으며, 실제 Firebase 프로젝트 값을 적용한 기기 스모크 테스트는 아직 수행하지 않았다.
 
 ---
 
@@ -156,11 +148,11 @@ DELETE 요청에도 토큰 본문이 필요하다. 다른 기기에서 새 토�
 
 백엔드는 `notification`에 제목·본문을, `data`에 클릭 대상 식별자를 보낸다. `refId`는 문자열이며 반드시 `refType`과 함께 해석해야 한다.
 
-| `type`             | `refType`     | `refId` 의미 | 대상 역할 | 현재 FE 목적지                                | 실제 페이지 연동 상태                   |
-| ------------------ | ------------- | ------------ | --------- | --------------------------------------------- | --------------------------------------- |
-| `APPROVAL_REQUEST` | `APPROVAL`    | 승인 요청 ID | `GUARD`   | `/guard/approval-requests/:refId?source=push` | API 조회와 승인·거절까지 연결됨         |
-| `ANOMALY`          | `TRANSACTION` | 거래 ID      | `GUARD`   | `/guard/history/:refId?source=push`           | `wardId`가 없으면 콜드 스타트 조회 불가 |
-| `APPROVAL_RESULT`  | `TRANSACTION` | 거래 ID      | `WARD`    | `/ward/history/:refId?source=push`            | 거래 ID만으로 API 조회 가능             |
+| `type`             | `refType`     | `refId` 의미 | 대상 역할 | 현재 FE 목적지                                     | 실제 페이지 연동 상태                 |
+| ------------------ | ------------- | ------------ | --------- | -------------------------------------------------- | ------------------------------------- |
+| `APPROVAL_REQUEST` | `APPROVAL`    | 승인 요청 ID | `GUARD`   | `/guard/approval-requests/:refId?source=push`      | API 조회와 승인·거절까지 연결됨       |
+| `ANOMALY`          | `TRANSACTION` | 거래 ID      | `GUARD`   | `/guard/history/:refId?source=push&wardId=:wardId` | `wardId`와 함께 콜드 스타트 조회 가능 |
+| `APPROVAL_RESULT`  | `TRANSACTION` | 거래 ID      | `WARD`    | `/ward/history/:refId?source=push`                 | 거래 ID만으로 API 조회 가능           |
 
 `src/schemas/push-notification.schema.ts`는 위 세 조합만 허용한다. 다음 payload는 화면 이동 없이 무시한다.
 
@@ -168,6 +160,8 @@ DELETE 요청에도 토큰 본문이 필요하다. 다른 기기에서 새 토�
 - `type`과 맞지 않는 `refType`
 - 누락된 `refId`
 - 0, 음수, 숫자가 아닌 `refId`
+
+`ANOMALY`에는 피보호자 ID인 `wardId`가 추가로 포함된다. 새 알림은 양의 정수 문자열인 `wardId`를 요구하며, 이 필드가 없는 이전 알림은 상세를 잘못 추정하지 않고 `/guard?source=push`로 이동한다.
 
 `src/lib/push-notification.ts`의 `resolvePushNotificationDestination()`가 payload 검증, 역할, 목적지 경로 계산을 담당한다. 포그라운드와 서비스 워커가 같은 함수를 사용하므로 새 알림 유형을 추가할 때 이 파일을 단일 기준으로 유지해야 한다.
 
@@ -246,29 +240,24 @@ iOS Web Push는 Safari 16.4 이상에서 홈 화면에 추가한 PWA로 실행�
 - 사용자 조회가 401이면 세션을 정리하고 로그인 페이지로 이동
 - 일반 페이지 이동에는 추가 사용자 조회를 만들지 않음
 
-### 미완료: 비로그인 목적지 복원
+### 비로그인 목적지 복원
 
-Issue #206의 “로그인 전 알림 클릭을 위한 pending destination 저장 및 로그인 후 복구”는 완전히 구현되지 않았다.
+Issue #206의 “로그인 전 알림 클릭을 위한 pending destination 저장 및 로그인 후 복구”는 기존 로그인 `redirect` 흐름을 재사용해 구현했다.
 
-현재 전역 인증 가드는 세션 만료인 경우에만 다음과 같이 목적지를 보존한다.
+세션이 만료된 경우에는 다음과 같이 사유와 목적지를 함께 보존한다.
 
 ```text
 /auth/sign-in?reason=session-expired&redirect=<원래 푸시 URL>
 ```
 
-Access Token 자체가 없는 일반 비로그인 상태에서는 `redirect` 없이 로그인 페이지로 이동한다. 후속 구현은 다음 중 한 방식으로 통일해야 한다.
+일반 비로그인 상태에서도 `source=push`이면 `/auth/sign-in?redirect=<원래 푸시 URL>`로 이동한다. 로그인 성공 후 `getSafePostLoginPath()`가 다음을 검증한 뒤 목적지를 복구한다.
 
-1. 인증 가드가 `source=push` 목적지에 대해 항상 `redirect: to.fullPath`를 로그인 페이지에 전달
-2. 검증된 목적지를 `sessionStorage`에 pending destination으로 저장하고 로그인 성공 후 한 번 소비
+- 현재 사용자 역할과 같은 `/guard` 또는 `/ward` 내부 경로
+- 외부 URL이나 `//`로 시작하지 않는 경로
+- 인증 페이지가 아닌 경로
+- 결제·송금·충전의 중간 처리 단계가 아닌 경로
 
-권장 방식은 기존 로그인 페이지의 `redirect` 검증 로직을 재사용하는 1번이다. 단, 금융 중간 단계 경로는 기존 인증 정책대로 역할별 홈으로 제한하고, 이 문서의 세 가지 읽기·승인 상세 경로만 허용해야 한다.
-
-추가할 테스트:
-
-- 로그아웃 상태에서 세 가지 푸시 URL 진입 시 로그인 페이지에 안전한 `redirect`가 남는지
-- 로그인 성공 후 원래 푸시 상세로 돌아가는지
-- 다른 역할로 로그인하면 해당 역할 홈으로 이동하는지
-- 외부 URL 또는 허용하지 않은 경로를 `redirect`로 넣어도 이동하지 않는지
+다른 역할로 로그인하거나 허용하지 않은 경로이면 역할별 홈으로 이동한다.
 
 ---
 
@@ -304,21 +293,15 @@ Access Token 자체가 없는 일반 비로그인 상태에서는 `redirect` 없
 GET /api/guard/wards/:wardId/transactions/:transactionId
 ```
 
-하지만 FCM payload에는 `transactionId`만 있고 `wardId`가 없다. 페이지는 쿼리의 `wardId` 또는 `guardStore.activeWardId`를 사용하므로 콜드 스타트에서 조회가 막힌다.
+BE의 보호자 `ANOMALY` data payload에 `wardId`를 추가했고 FE 목적지에도 query로 전달한다.
 
-이 문제는 FE에서 임의로 ward를 추정하지 말고 API 계약을 확정해 해결해야 한다. 선택지는 다음과 같다.
+```text
+/guard/history/:transactionId?source=push&wardId=:wardId
+```
 
-1. 백엔드가 보호자 본인 소유권을 검사하는 `GET /api/guard/transactions/:transactionId` 상세 API 제공
-2. FCM payload에 `wardId`를 추가하고 Zod 스키마·목적지 URL도 함께 확장
-3. 거래 ID로 소속 ward를 조회하는 별도 API 제공
+따라서 페이지는 Pinia의 `activeWardId` 없이도 기존 상세 API를 호출할 수 있다. 다른 보호자의 거래나 잘못된 ward 조합에 대한 소유권 검증은 기존 BE `TransactionHistoryService`가 계속 담당한다.
 
-가장 단순한 사용자 흐름은 1번이다. 2번을 선택하면 PR #204의 payload 계약 변경이 필요하고 기존 알림과의 하위 호환 정책도 정해야 한다.
-
-해결 후 다음을 추가해야 한다.
-
-- 콜드 스타트에서도 상세 API가 호출되는 단위·E2E 테스트
-- 보호자에게 속하지 않은 거래 ID 접근 차단 검증
-- 거래가 삭제되거나 조회 불가능할 때 목록 또는 홈 fallback
+이전 버전 BE가 발송해 `wardId`가 없는 알림은 잘못된 피보호자를 추정하지 않고 보호자 홈으로 이동한다.
 
 ### `APPROVAL_RESULT` → 피보호자 거래 상세
 
@@ -392,9 +375,11 @@ Firebase Web config와 VAPID 공개키는 브라우저 번들에 포함되는 �
   - `injectManifest`가 `dist/sw.js`를 생성하는 것 확인
   - Workbox precache manifest 주입 확인
 - `pnpm test`: 통과
-  - web 248개
+  - web 262개
   - UI 30개
-  - 합계 278개
+  - 합계 292개
+- `pnpm audit --prod`: 알려진 취약점 없음
+- BE `NotificationServiceImplTest`: 통과
 - `git diff --check`: 통과
 
 추가된 주요 단위 테스트:
@@ -402,7 +387,11 @@ Firebase Web config와 VAPID 공개키는 브라우저 번들에 포함되는 �
 - FCM 토큰 요청·응답 스키마와 최대 길이
 - DELETE JSON body 전달
 - payload 조합 및 역할별 경로 계산
+- 로그인 전 푸시 목적지 보존
 - 로그아웃 시 서버 토큰 해제와 로컬 정리 순서
+- Firebase 토큰 삭제 실패 후 동기화 상태 초기화
+- 서비스 워커 등록 실패 후 재시도
+- 직접 data 및 `FCM_MSG.data` 클릭 payload 추출
 - 권한 상태별 토큰 발급·등록
 - 권한 안내 카드 상태별 렌더링
 
@@ -442,8 +431,8 @@ FCM 변경으로 영향을 받았던 마이페이지 관련 실패는 개발 환
 - [ ] 백그라운드 알림이 중복 표시되지 않는가
 - [ ] 잘못된 payload가 라우팅을 일으키지 않는가
 - [ ] 다른 역할의 푸시 목적지를 열면 역할별 홈으로 이동하는가
-- [ ] 앱 종료 상태에서 로그인 후 원래 목적지가 복원되는가
-- [ ] 보호자 `ANOMALY` 상세가 Pinia 상태 없이도 열리는가
+- [x] 로그인 전 푸시 목적지를 안전한 `redirect`로 보존하는가
+- [x] 보호자 `ANOMALY` 목적지에 BE가 제공한 `wardId`를 포함하는가
 - [ ] `/sw.js`가 `no-cache`로 응답하는가
 - [ ] Firebase 변수를 변경한 뒤 FE 이미지를 재빌드했는가
 
@@ -451,12 +440,10 @@ FCM 변경으로 영향을 받았던 마이페이지 관련 실패는 개발 환
 
 ## 14. 권장 후속 작업 순서
 
-1. 비로그인 푸시 목적지의 안전한 `redirect` 보존 및 로그인 후 복구
-2. 보호자 `ANOMALY` 상세의 `wardId` 의존성 제거 또는 payload/API 계약 확장
-3. 위 두 흐름의 라우터 단위 테스트와 Playwright 직접 진입 테스트 추가
-4. GitHub Repository Variables에 실제 Firebase Web config와 VAPID 공개키 등록
-5. 개발용 Firebase 프로젝트에서 Android Chrome 실기기 스모크 테스트
-6. iOS Safari 16.4 이상 홈 화면 PWA 스모크 테스트
-7. 운영 배포 후 `/sw.js` 캐시 헤더, 토큰 PUT/DELETE, 세 가지 실제 발송 경로 확인
+1. GitHub Repository Variables에 실제 Firebase Web config와 VAPID 공개키 등록
+2. 개발용 Firebase 프로젝트에서 Android Chrome 실기기 스모크 테스트
+3. iOS Safari 16.4 이상 홈 화면 PWA 스모크 테스트
+4. Playwright로 비로그인·역할 불일치·콜드 스타트 직접 진입 검증
+5. 운영 배포 후 `/sw.js` 캐시 헤더, 토큰 PUT/DELETE, 세 가지 실제 발송 경로 확인
 
-이 순서를 완료해야 Issue #206의 “로그인 전 클릭 복구”와 “HTTPS/PWA 환경 실제 동작”까지 포함해 공통 기반을 최종 완료로 판단할 수 있다.
+코드 기반 로그인 전 클릭 복구와 `ANOMALY` 직접 진입 계약은 완료됐다. 위 실기기·운영 검증까지 마쳐야 Issue #206의 “HTTPS/PWA 환경 실제 동작”을 최종 완료로 판단할 수 있다.
