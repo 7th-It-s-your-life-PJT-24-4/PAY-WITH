@@ -64,16 +64,6 @@ const riskReasonLabels: Record<string, string> = {
   PAY_IMPOSSIBLE_TRAVEL: '물리적으로 이동하기 어려운 위치에서 결제했어요.',
 }
 
-export function maskGuardAccountNumber(accountNo: string | null) {
-  if (!accountNo) return '-'
-
-  const digits = accountNo.replaceAll(/\D/g, '')
-  if (digits.length <= 4) return digits || accountNo
-
-  const prefixLength = digits.length >= 7 ? 3 : Math.max(1, digits.length - 4)
-  return `${digits.slice(0, prefixLength)}-***-${digits.slice(-4)}`
-}
-
 export function createGuardTransactionDetailView(
   detail: GuardTransactionDetail,
   failureReason: string | null = null,

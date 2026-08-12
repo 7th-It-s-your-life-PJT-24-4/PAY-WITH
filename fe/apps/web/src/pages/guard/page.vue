@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ConfirmModal } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
+import { HTTPError } from 'ky'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -26,12 +27,14 @@ const router = useRouter()
 const pairingStore = usePairingStore()
 const guardStore = useGuardStore()
 const isPairingConfirmOpen = ref(false)
+const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
 const selectedWardId = computed(
-  () => parsePositiveRouteId(route.query.wardId) ?? guardStore.activeWardId,
+  () => routeWardId.value ?? guardStore.activeWardId,
 )
 
 const {
   data: guardHome,
+  error: guardHomeError,
   isPending,
   isError,
 } = useQuery(guardHomeOptions(selectedWardId))
@@ -53,19 +56,36 @@ const activeSeniorId = computed(() =>
 const recentGuardTransactions = computed(() =>
   (selectedWard.value?.recentTransactions ?? []).map(toGuardTransaction),
 )
-const pendingApproval = computed(
-  () => selectedWard.value?.pendingApproval ?? null,
+const pendingApprovals = computed(
+  () => selectedWard.value?.pendingApprovals ?? [],
 )
 const formattedBalance = computed(() =>
   new Intl.NumberFormat('ko-KR').format(selectedWard.value?.balance ?? 0),
 )
+
+watch(guardHomeError, (error) => {
+  if (
+    !(error instanceof HTTPError) ||
+    error.response.status !== 404 ||
+    selectedWardId.value === null
+  ) {
+    return
+  }
+
+  guardStore.clearWardSelection()
+  if (routeWardId.value !== null) {
+    void router.replace({
+      query: withGuardWardId(route.query, null),
+    })
+  }
+})
 
 watch(
   () => selectedWard.value?.wardId,
   (wardId) => {
     if (!wardId) return
     guardStore.selectWard(wardId)
-    if (parsePositiveRouteId(route.query.wardId) !== wardId)
+    if (routeWardId.value !== wardId)
       void router.replace({
         query: withGuardWardId(route.query, wardId),
       })
@@ -220,7 +240,7 @@ async function startPairing() {
 
       <GuardRiskTransactionSection
         class="mt-md"
-        :pending-approval="pendingApproval"
+        :pending-approvals="pendingApprovals"
         @more="goToApprovalRequests"
       />
 

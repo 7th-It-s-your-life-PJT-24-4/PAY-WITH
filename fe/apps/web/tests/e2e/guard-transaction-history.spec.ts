@@ -9,7 +9,7 @@ const guardHome = {
     wardId: 12,
     name: '수이',
     balance: 120000,
-    pendingApproval: null,
+    pendingApprovals: [],
     pendingApprovalCount: 0,
     recentTransactions: [],
   },

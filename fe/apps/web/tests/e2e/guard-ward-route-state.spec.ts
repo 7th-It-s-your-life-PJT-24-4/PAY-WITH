@@ -10,7 +10,7 @@ const selectedWards = {
     wardId: 12,
     name: '수이',
     balance: 120000,
-    pendingApproval: null,
+    pendingApprovals: [],
     pendingApprovalCount: 0,
     recentTransactions: [],
   },
@@ -18,7 +18,7 @@ const selectedWards = {
     wardId: 13,
     name: '원이',
     balance: 230000,
-    pendingApproval: null,
+    pendingApprovals: [],
     pendingApprovalCount: 0,
     recentTransactions: [],
   },
@@ -34,9 +34,22 @@ const chargeHistory = {
 
 async function mockGuardApis(page: Page) {
   await page.route(/\/api\/guard(?:\?.*)?$/, (route) => {
-    const requestedWardId = Number(
-      new URL(route.request().url()).searchParams.get('wardId'),
-    )
+    const requestedWardIdParam = new URL(
+      route.request().url(),
+    ).searchParams.get('wardId')
+    const requestedWardId = Number(requestedWardIdParam)
+
+    if (requestedWardIdParam && !(requestedWardId in selectedWards)) {
+      return route.fulfill({
+        status: 404,
+        json: {
+          success: false,
+          data: null,
+          message: '연동된 피보호자를 찾을 수 없습니다.',
+        },
+      })
+    }
+
     const wardId = requestedWardId === 13 ? 13 : 12
 
     return route.fulfill({
@@ -97,6 +110,18 @@ async function mockGuardApis(page: Page) {
       }),
   )
 }
+
+test('다른 계정의 시니어 ID가 남아 있으면 기본 시니어로 복구한다', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 820 })
+  await mockGuardApis(page)
+
+  await page.goto('/guard?wardId=9302')
+
+  await expect(page).toHaveURL(/\/guard\?wardId=12$/)
+  await expect(page.getByRole('region', { name: '수이 자산' })).toBeVisible()
+})
 
 test('선택한 시니어를 홈·충전·거래내역 URL에서 계속 유지한다', async ({
   page,
