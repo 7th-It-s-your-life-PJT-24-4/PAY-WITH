@@ -1,17 +1,13 @@
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
-import { registerSW } from 'virtual:pwa-register'
 
 import App from '@/App.vue'
 import { configureSessionExpiredHandler } from '@/api/auth-session'
 import { startAccessTokenRefreshScheduler } from '@/api/token-refresh'
+import { startPushNotifications } from '@/composables/usePushNotification'
 import router from '@/router'
 import '@/style.css'
-
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  registerSW({ immediate: true })
-}
 
 const app = createApp(App)
 
@@ -45,3 +41,4 @@ app.use(VueQueryPlugin, {
 })
 
 app.mount('#app')
+void startPushNotifications(router)
