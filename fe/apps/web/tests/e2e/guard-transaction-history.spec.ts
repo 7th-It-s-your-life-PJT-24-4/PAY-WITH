@@ -152,7 +152,12 @@ test('보호자가 위험도별 거래 목록을 조회하고 상세를 확인�
       name: '승인되어 송금이 완료된 거래에요',
     }),
   ).toBeVisible()
-  await expect(page.getByText('87점')).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: '거래 안전 확인' }),
+  ).toBeVisible()
+  await expect(page.getByText('87', { exact: true })).toBeVisible()
+  await expect(page.getByText('/ 100', { exact: true })).toBeVisible()
+  await expect(page.getByText('확인할 내용')).toBeVisible()
   await expect(page.getByText('평소와 다른 고액 송금이에요.')).toBeVisible()
   await expect(page.getByRole('button', { name: '연락하기' })).toBeVisible()
 })

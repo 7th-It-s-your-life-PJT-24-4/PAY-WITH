@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { Sparkles } from '@lucide/vue'
-import { Progress } from '@pay-with/ui'
 import { computed } from 'vue'
 
+import TransactionRiskCard from '@/components/TransactionRiskCard.vue'
 import {
   getGuardTransactionTitlePresentation,
   maskGuardAccountNumber,
@@ -53,39 +52,6 @@ const failureDescription = computed(() => {
   if (props.detail.type === 'PAYMENT') return '실제 결제는 완료되지 않았어요.'
   return '승인된 거래지만 실제 송금은 완료되지 않았어요.'
 })
-const riskPresentation = computed(() => {
-  if (props.detail.riskLevel === 'SAFE') {
-    return {
-      label: '안전',
-      color: '#2fa737',
-      textClass: 'text-success',
-      cardClass: 'bg-[#f1fff2]',
-    }
-  }
-  if (props.detail.riskLevel === 'CAUTION') {
-    return {
-      label: '주의',
-      color: '#ff9f3f',
-      textClass: 'text-warning',
-      cardClass: 'bg-[#fff7ef]',
-    }
-  }
-  if (props.detail.riskLevel === null) {
-    return {
-      label: '미분류',
-      color: '#6b7280',
-      textClass: 'text-gray-700',
-      cardClass: 'bg-gray-100',
-    }
-  }
-  return {
-    label: '위험',
-    color: '#ff6161',
-    textClass: 'text-error',
-    cardClass: 'bg-[#fff0f0]',
-  }
-})
-
 function formatDateTime(value: string) {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? value : dateTimeFormatter.format(date)
@@ -240,63 +206,15 @@ const detailRows = computed<DetailRow[]>(() => {
       </div>
     </dl>
 
-    <section
-      v-if="!isCharge"
-      class="relative mt-10 rounded-[12px] px-xl pt-lg pb-lg"
-      :class="riskPresentation.cardClass"
-      aria-labelledby="guard-transaction-analysis-title"
-    >
-      <span
-        class="absolute top-sm right-sm flex h-[30px] min-w-[60px] items-center justify-center rounded-full px-sm text-[16px] font-bold leading-[1.2] tracking-[-0.32px] text-white"
-        :style="{ backgroundColor: riskPresentation.color }"
-      >
-        {{ riskPresentation.label }}
-      </span>
-      <h3
-        id="guard-transaction-analysis-title"
-        class="text-[16px] font-semibold leading-[1.2] tracking-[-0.32px] text-black"
-      >
-        이상거래 의심도
-      </h3>
-      <p
-        class="mt-xxs text-[40px] font-semibold leading-[1.2] tracking-[-0.8px]"
-        :class="riskPresentation.textClass"
-      >
-        {{ detail.riskScore }}점
-      </p>
-
-      <Progress
-        class="mt-md w-full"
-        :indicator-color="riskPresentation.color"
-        label="이상거래 의심도 게이지"
-        :value="detail.riskScore"
-      />
-
-      <h3
-        class="mt-xl flex items-center gap-xxs text-[16px] font-semibold leading-[1.2] tracking-[-0.32px] text-black"
-      >
-        <Sparkles class="size-5" :stroke-width="2" aria-hidden="true" />
-        AI 분석 결과
-      </h3>
-      <p
-        v-if="detail.summary"
-        class="mt-sm text-[16px] font-medium leading-[1.32] tracking-[-0.32px] text-black"
-      >
-        {{ detail.summary }}
-      </p>
-      <ul
-        v-if="detail.reasons.length"
-        class="mt-sm list-disc pl-xl text-[16px] font-medium leading-[1.32] tracking-[-0.32px] text-black"
-      >
-        <li v-for="reason in detail.reasons" :key="reason">{{ reason }}</li>
-      </ul>
-      <p
-        v-else-if="!detail.summary"
-        class="mt-sm text-[16px] font-medium leading-[1.32] tracking-[-0.32px] text-gray-700"
-      >
-        세부 분석 결과가 없어요.
-      </p>
-    </section>
+    <TransactionRiskCard
+      v-if="!isCharge && detail.riskLevel"
+      class="mt-10"
+      :risk-level="detail.riskLevel"
+      :risk-score="detail.riskScore"
+      :risk-summary="detail.summary"
+      :risk-reasons="detail.reasons"
+      :status="detail.status"
+    />
 
     <section
       v-if="isFailed"

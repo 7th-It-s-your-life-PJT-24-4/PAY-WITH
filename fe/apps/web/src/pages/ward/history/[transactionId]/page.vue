@@ -4,9 +4,9 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import TransactionRiskCard from '@/components/TransactionRiskCard.vue'
 import { wardTransactionDetailOptions } from '@/lib/query/transaction-history'
 import TransactionBlockedCard from '@/pages/ward/history/-components/TransactionBlockedCard.vue'
-import TransactionRiskCard from '@/pages/ward/history/-components/TransactionRiskCard.vue'
 import TransactionSummaryCard from '@/pages/ward/history/-components/TransactionSummaryCard.vue'
 
 const route = useRoute()
@@ -92,7 +92,11 @@ function goToHistory() {
     <!-- 위험 분석 카드 (충전이 아니고 위험 평가가 있는 경우) -->
     <TransactionRiskCard
       v-if="transaction.type !== 'CHARGE' && transaction.riskLevel"
-      :transaction="transaction"
+      :risk-level="transaction.riskLevel"
+      :risk-score="transaction.riskScore"
+      :risk-summary="transaction.riskSummary"
+      :risk-reasons="transaction.riskReasons"
+      :status="transaction.status"
     />
 
     <!-- 하단 전체 너비 목록 버튼 -->
