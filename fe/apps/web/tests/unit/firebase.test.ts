@@ -28,6 +28,7 @@ describe('Firebase Messaging 초기화', () => {
     vi.resetModules()
     vi.resetAllMocks()
     vi.stubEnv('VITE_FIREBASE_API_KEY', 'api-key')
+    vi.stubEnv('VITE_FIREBASE_AUTH_DOMAIN', 'project-id.firebaseapp.com')
     vi.stubEnv('VITE_FIREBASE_PROJECT_ID', 'project-id')
     vi.stubEnv('VITE_FIREBASE_MESSAGING_SENDER_ID', 'sender-id')
     vi.stubEnv('VITE_FIREBASE_APP_ID', 'app-id')
@@ -41,7 +42,7 @@ describe('Firebase Messaging 초기화', () => {
     mocks.getMessaging.mockReturnValue({ app: { name: 'pay-with' } })
   })
 
-  it('FCM에 필요한 공개 설정만으로 초기화한다', async () => {
+  it('전달받은 Firebase Web config로 초기화한다', async () => {
     mocks.isSupported.mockResolvedValue(true)
     const { getFirebaseMessaging, hasFirebaseConfig } =
       await import('@/lib/firebase')
@@ -52,6 +53,7 @@ describe('Firebase Messaging 초기화', () => {
     expect(mocks.initializeApp).toHaveBeenCalledWith({
       apiKey: 'api-key',
       appId: 'app-id',
+      authDomain: 'project-id.firebaseapp.com',
       messagingSenderId: 'sender-id',
       projectId: 'project-id',
     })
