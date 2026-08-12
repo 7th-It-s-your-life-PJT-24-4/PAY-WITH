@@ -3,6 +3,7 @@ import { computed, ref, shallowRef } from 'vue'
 import type { Router } from 'vue-router'
 
 import { registerFcmToken } from '@/api/fcm-token'
+import { unregisterPushNotifications } from '@/api/push-session'
 import { getUserIdFromAccessToken, tokenStorage } from '@/api/token-storage'
 import {
   getCurrentFcmToken,
@@ -13,10 +14,12 @@ import {
   resolvePushNotificationDestination,
   type PushNotificationDestination,
 } from '@/lib/push-notification'
+import { pushNotificationPreference } from '@/lib/push-notification-preference'
 import { pushTokenStorage } from '@/lib/push-token-storage'
 import {
   isPushTokenSessionSynced,
   markPushTokenSessionSynced,
+  resetPushTokenSyncState,
 } from '@/lib/push-token-sync-state'
 import { ensureServiceWorkerRegistration } from '@/lib/service-worker'
 
@@ -29,6 +32,7 @@ export type ForegroundPushNotification = PushNotificationDestination & {
 
 const availability = ref<PushAvailability>('checking')
 const permission = ref<NotificationPermission>('default')
+const isEnabled = ref(false)
 const isSyncing = ref(false)
 const errorMessage = ref('')
 const foregroundNotification = shallowRef<ForegroundPushNotification | null>(
@@ -37,9 +41,24 @@ const foregroundNotification = shallowRef<ForegroundPushNotification | null>(
 
 let started = false
 
+function getCurrentUserId(): number | null {
+  const accessToken = tokenStorage.getAccessToken()
+  return accessToken ? getUserIdFromAccessToken(accessToken) : null
+}
+
+function refreshEnabledState(userId = getCurrentUserId()): void {
+  isEnabled.value = Boolean(
+    userId &&
+    pushNotificationPreference.isEnabled(userId) &&
+    availability.value === 'available' &&
+    permission.value === 'granted',
+  )
+}
+
 function updatePermission(): void {
   if (typeof Notification !== 'undefined')
     permission.value = Notification.permission
+  refreshEnabledState()
 }
 
 function publishNotification(
@@ -59,14 +78,15 @@ function publishNotification(
 
 export async function syncPushNotificationToken(): Promise<void> {
   updatePermission()
-  const accessToken = tokenStorage.getAccessToken()
-  const userId = accessToken ? getUserIdFromAccessToken(accessToken) : null
+  const userId = getCurrentUserId()
   if (
     availability.value !== 'available' ||
     permission.value !== 'granted' ||
     !userId ||
+    !pushNotificationPreference.isEnabled(userId) ||
     isSyncing.value
   ) {
+    refreshEnabledState(userId)
     return
   }
 
@@ -79,14 +99,19 @@ export async function syncPushNotificationToken(): Promise<void> {
     if (!fcmToken) return
 
     const sessionKey = `${userId}:${fcmToken}`
-    if (isPushTokenSessionSynced(sessionKey)) return
+    if (isPushTokenSessionSynced(sessionKey)) {
+      refreshEnabledState(userId)
+      return
+    }
 
     await registerFcmToken(fcmToken)
     pushTokenStorage.set({ token: fcmToken, userId })
     markPushTokenSessionSynced(sessionKey)
+    isEnabled.value = true
   } catch (error) {
     console.warn('FCM 토큰을 등록하지 못했습니다.', error)
     errorMessage.value = '알림을 연결하지 못했어요. 잠시 후 다시 시도해 주세요.'
+    refreshEnabledState(userId)
   } finally {
     isSyncing.value = false
   }
@@ -133,6 +158,7 @@ export async function startPushNotifications(router: Router): Promise<void> {
   }
 
   availability.value = 'available'
+  refreshEnabledState()
   onMessage(messaging, (payload) => {
     publishNotification(
       payload.data,
@@ -168,18 +194,59 @@ export function usePushNotification() {
         Boolean(errorMessage.value)),
   )
 
-  async function requestPermission(): Promise<void> {
-    if (availability.value !== 'available' || permission.value === 'denied') {
-      return
+  async function enablePushNotifications(): Promise<boolean> {
+    const userId = getCurrentUserId()
+    errorMessage.value = ''
+
+    if (!userId) {
+      errorMessage.value = '로그인 정보를 확인하지 못했어요.'
+      return false
+    }
+    if (availability.value !== 'available') {
+      errorMessage.value =
+        availability.value === 'unsupported'
+          ? '이 브라우저에서는 푸시 알림을 사용할 수 없어요.'
+          : '푸시 알림을 사용할 수 있는 환경인지 확인해 주세요.'
+      return false
+    }
+    if (permission.value === 'denied') {
+      errorMessage.value =
+        '브라우저 또는 기기 설정에서 PayWith 알림을 허용해 주세요.'
+      return false
     }
 
     try {
-      permission.value = await Notification.requestPermission()
-      if (permission.value === 'granted') await syncPushNotificationToken()
+      if (permission.value !== 'granted') {
+        permission.value = await Notification.requestPermission()
+      }
+      if (permission.value !== 'granted') {
+        pushNotificationPreference.setEnabled(userId, false)
+        refreshEnabledState(userId)
+        return false
+      }
+
+      pushNotificationPreference.setEnabled(userId, true)
+      resetPushTokenSyncState()
+      await syncPushNotificationToken()
+      return isEnabled.value
     } catch (error) {
       console.warn('알림 권한을 요청하지 못했습니다.', error)
       errorMessage.value = '알림 권한을 확인하지 못했어요.'
+      refreshEnabledState(userId)
+      return false
     }
+  }
+
+  async function disablePushNotifications(): Promise<void> {
+    const userId = getCurrentUserId()
+    errorMessage.value = ''
+    if (userId) pushNotificationPreference.setEnabled(userId, false)
+    isEnabled.value = false
+    await unregisterPushNotifications()
+  }
+
+  async function requestPermission(): Promise<void> {
+    await enablePushNotifications()
   }
 
   function dismissForegroundNotification(): void {
@@ -191,6 +258,9 @@ export function usePushNotification() {
     dismissForegroundNotification,
     errorMessage,
     foregroundNotification,
+    disablePushNotifications,
+    enablePushNotifications,
+    isEnabled,
     isSyncing,
     permission,
     requestPermission,

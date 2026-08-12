@@ -38,6 +38,7 @@ const menuItems = [
     routeName: 'guard-my-terms',
     termId: 'privacyTerms',
   },
+  { label: '푸시알림설정', routeName: 'guard-my-push-notifications' },
 ] as const
 
 function moveToMenu(routeName: string, termId?: string) {
