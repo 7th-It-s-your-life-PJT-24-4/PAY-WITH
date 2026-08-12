@@ -1,6 +1,8 @@
 package com.paywith.guard.controller;
 
 import com.paywith.common.ApiResponse;
+import com.paywith.guard.dto.PairingRequestResponse;
+import com.paywith.guard.dto.PairingStatusResponse;
 import com.paywith.guard.dto.WardPairingRequest;
 import com.paywith.guard.dto.WardPairingResponse;
 import com.paywith.guard.service.GuardService;
@@ -9,11 +11,7 @@ import io.swagger.annotations.ApiOperation;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import springfox.documentation.annotations.ApiIgnore;
 
 @Api(tags = "피보호자 페어링")
@@ -38,5 +36,22 @@ public class WardPairingController {
         @Valid @RequestBody WardPairingRequest request
     ) {
         return ApiResponse.success(guardService.pairWithCode(wardId, request.getPairingCode()));
+    }
+
+    @PostMapping("/request")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<PairingRequestResponse> requestPairing(
+            @ApiIgnore @AuthenticationPrincipal Long wardId,
+            @Valid @RequestBody WardPairingRequest request
+    ) {
+        return ApiResponse.success(guardService.createPairingRequest(wardId, request.getPairingCode()));
+    }
+
+    @GetMapping("/request/{requestId}/status")
+    public ApiResponse<PairingStatusResponse> checkStatus(
+            @ApiIgnore @AuthenticationPrincipal Long wardId,
+            @PathVariable String requestId
+    ) {
+        return ApiResponse.success(guardService.checkPairingStatus(wardId, requestId));
     }
 }

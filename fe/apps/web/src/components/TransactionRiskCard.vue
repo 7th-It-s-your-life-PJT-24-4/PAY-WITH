@@ -2,23 +2,32 @@
 import { CircleAlert, ShieldCheck } from '@lucide/vue'
 import { computed } from 'vue'
 
-import { getTransactionRiskLabel } from '@/pages/ward/history/-utils/transaction-format'
-import type { WardTransaction } from '@/types/transaction'
+import type {
+  TransactionRiskLevel,
+  TransactionStatus,
+} from '@/types/transaction'
 
 const props = defineProps<{
-  transaction: WardTransaction
+  riskLevel: TransactionRiskLevel
+  riskScore: number
+  riskSummary: string | null
+  riskReasons: string[]
+  status: TransactionStatus
 }>()
+
+const riskLabel = computed(() => {
+  if (props.status === 'BLOCKED') return '시스템 차단됨'
+
+  return {
+    SAFE: '안전',
+    CAUTION: '주의',
+    DANGER: '위험',
+  }[props.riskLevel]
+})
 
 const theme = computed(
   () =>
     ({
-      null: {
-        border: 'border-border',
-        header: 'bg-primary-900 text-body',
-        text: 'text-body-muted',
-        note: 'border-border bg-primary-900',
-        icon: ShieldCheck,
-      },
       SAFE: {
         border: 'border-success',
         header: 'bg-success text-on-semantic',
@@ -40,7 +49,7 @@ const theme = computed(
         note: 'border-error bg-error/10',
         icon: CircleAlert,
       },
-    })[props.transaction.riskLevel ?? 'null'],
+    })[props.riskLevel],
 )
 </script>
 
@@ -54,46 +63,47 @@ const theme = computed(
       class="flex min-h-16 items-center justify-between gap-md px-xl py-md"
       :class="theme.header"
     >
-      <h2 id="transaction-risk-title" class="type-h3">거래 안전 확인</h2>
-      <strong class="type-h3">{{
-        getTransactionRiskLabel(transaction.riskLevel, transaction.status)
-      }}</strong>
+      <h2 id="transaction-risk-title" class="text-[20px] font-bold">
+        거래 안전 확인
+      </h2>
+      <strong class="text-[20px] font-bold">{{ riskLabel }}</strong>
     </header>
 
     <div class="p-xl">
       <div class="flex items-center justify-between gap-lg">
         <div>
-          <p class="type-body-medium text-body-muted">이상거래 의심도</p>
+          <p class="text-[16px] font-medium text-body-muted">이상거래 의심도</p>
           <p class="mt-xs flex items-end gap-xs" :class="theme.text">
-            <strong class="text-[40px] leading-none font-number font-bold">
-              {{ transaction.riskScore }}
+            <strong class="font-number text-[40px] font-bold leading-none">
+              {{ riskScore }}
             </strong>
-            <span class="type-body-medium text-body-muted">/ 100</span>
+            <span class="text-[16px] font-medium text-body-muted">/ 100</span>
           </p>
         </div>
         <component :is="theme.icon" class="size-14" :class="theme.text" />
       </div>
 
       <p
-        class="type-body-medium mt-xl rounded-medium border-l-4 p-md text-body"
+        v-if="riskSummary"
+        class="mt-xl rounded-medium border-l-4 p-lg text-[16px] font-medium leading-relaxed text-body"
         :class="theme.note"
       >
-        {{ transaction.riskSummary }}
+        {{ riskSummary }}
       </p>
 
       <div class="mt-xl">
-        <h3 class="type-h4 text-body">확인할 내용</h3>
-        <ul v-if="transaction.riskReasons.length" class="mt-md grid gap-md">
+        <h3 class="text-[18px] font-semibold text-body">확인할 내용</h3>
+        <ul v-if="riskReasons.length" class="mt-md grid gap-md">
           <li
-            v-for="reason in transaction.riskReasons"
+            v-for="reason in riskReasons"
             :key="reason"
-            class="type-body-medium flex gap-sm text-body-secondary"
+            class="flex gap-sm text-[16px] font-medium leading-relaxed text-body-secondary"
           >
-            <CircleAlert class="mt-0.5 size-5 shrink-0" :class="theme.text" />
+            <CircleAlert class="mt-1 size-5 shrink-0" :class="theme.text" />
             <span>{{ reason }}</span>
           </li>
         </ul>
-        <p v-else class="type-body-medium mt-md text-body-secondary">
+        <p v-else class="mt-md text-[16px] font-medium text-body-secondary">
           특별히 확인할 내용이 없습니다.
         </p>
       </div>

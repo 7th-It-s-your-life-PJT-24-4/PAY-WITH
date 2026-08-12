@@ -103,6 +103,9 @@ export const apiClient = {
   ) => request(path, 'post', schema, body, headers),
   put: <TResponse>(path: string, schema: ZodSchema<TResponse>, body: unknown) =>
     request(path, 'put', schema, body),
-  delete: <TResponse>(path: string, schema: ZodSchema<TResponse>) =>
-    request(path, 'delete', schema),
+  delete: <TResponse>(
+    path: string,
+    schema: ZodSchema<TResponse>,
+    body?: unknown,
+  ) => request(path, 'delete', schema, body),
 }

@@ -156,6 +156,7 @@ test('결제 내역을 서버 조건으로 검색한다', async ({ page }) => {
     .click()
   await expect(page.getByText('김철수', { exact: true })).toBeHidden()
 
+  await expect(page.getByPlaceholder('가맹점 또는 수취인 검색')).toBeVisible()
   await page.getByRole('searchbox', { name: '거래 내역 검색' }).fill('제주')
   await expect(page.getByText('CU 제주공항점', { exact: true })).toBeVisible()
   await expect(page.getByText('시스템 차단됨', { exact: true })).toBeVisible()

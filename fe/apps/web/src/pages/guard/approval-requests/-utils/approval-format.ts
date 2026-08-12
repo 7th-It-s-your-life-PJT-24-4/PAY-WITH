@@ -29,10 +29,3 @@ export function formatApprovalDate(value: string) {
 export function formatApprovalDateTime(value: string) {
   return approvalDateTimeFormatter.format(new Date(value))
 }
-
-export function maskApprovalAccountNumber(accountNo: string | null) {
-  if (!accountNo) return '-'
-  const digits = accountNo.replaceAll(/\D/g, '')
-  if (digits.length <= 4) return accountNo
-  return `•••• ${digits.slice(-4)}`
-}

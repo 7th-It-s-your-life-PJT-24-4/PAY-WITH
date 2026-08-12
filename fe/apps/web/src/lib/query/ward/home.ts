@@ -34,7 +34,5 @@ export function wardApprovalDetailOptions(
       error instanceof HTTPError && error.response.status === 404
         ? false
         : failureCount < 1,
-    refetchInterval: (query) => (query.state.error ? false : 3_000),
-    refetchOnWindowFocus: true,
   })
 }

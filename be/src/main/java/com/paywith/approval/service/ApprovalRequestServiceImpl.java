@@ -8,6 +8,7 @@ import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import com.paywith.approval.mapper.ApprovalRequestMapper;
 import com.paywith.approval.mapper.TransactionApprovalMapper;
 import com.paywith.exception.BusinessException;
+import com.paywith.notification.service.TransferNotifier;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -21,20 +22,26 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ApprovalRequestServiceImpl implements ApprovalRequestService {
 
+    private static final String STATUS_APPROVED = "APPROVED";
+    private static final String STATUS_REJECTED = "REJECTED";
+
     private static final Set<String> HISTORY_STATUSES =
-        Set.of("APPROVED", "REJECTED", "CANCELED", "EXPIRED");
+        Set.of(STATUS_APPROVED, STATUS_REJECTED, "CANCELED", "EXPIRED");
 
     private final ApprovalRequestMapper approvalRequestMapper;
     private final TransactionApprovalMapper transactionApprovalMapper;
+    private final TransferNotifier transferNotifier;
     private final int expireMinutes;
 
     public ApprovalRequestServiceImpl(
         ApprovalRequestMapper approvalRequestMapper,
         TransactionApprovalMapper transactionApprovalMapper,
+        TransferNotifier transferNotifier,
         @Value("${fds.approval.expire-minutes}") int expireMinutes
     ) {
         this.approvalRequestMapper = approvalRequestMapper;
         this.transactionApprovalMapper = transactionApprovalMapper;
+        this.transferNotifier = transferNotifier;
         this.expireMinutes = expireMinutes;
     }
 
@@ -81,13 +88,13 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
     @Override
     @Transactional
     public ApprovalDecisionResponse approve(Long approvalId, Long guardId) {
-        return decide(approvalId, guardId, "APPROVED");
+        return decide(approvalId, guardId, STATUS_APPROVED);
     }
 
     @Override
     @Transactional
     public ApprovalDecisionResponse reject(Long approvalId, Long guardId) {
-        return decide(approvalId, guardId, "REJECTED");
+        return decide(approvalId, guardId, STATUS_REJECTED);
     }
 
     /**
@@ -113,6 +120,12 @@ public class ApprovalRequestServiceImpl implements ApprovalRequestService {
 
         // 같은 트랜잭션에서 비정규화 복사본을 맞춘다(V1__baseline.sql 의 single writer 규칙).
         transactionApprovalMapper.updateStatus(transactionId, status);
+
+        // 거절은 여기서 결과가 확정되지만, 승인은 뒤이어 송금이 실행되므로 아직 결과가 아니다.
+        // 승인 알림은 성패를 본 뒤 ApprovalTransferFacade 가 보낸다.
+        if (STATUS_REJECTED.equals(status)) {
+            transferNotifier.notifyRejected(transactionId);
+        }
 
         return new ApprovalDecisionResponse(approvalId, transactionId, status, respondedAt);
     }

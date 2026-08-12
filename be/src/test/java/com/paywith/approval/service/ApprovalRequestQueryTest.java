@@ -13,6 +13,7 @@ import com.paywith.approval.dto.ApprovalRequestSummaryResponse;
 import com.paywith.approval.dto.ApprovalRuleHitResponse;
 import com.paywith.approval.mapper.ApprovalRequestMapper;
 import com.paywith.approval.mapper.TransactionApprovalMapper;
+import com.paywith.notification.service.TransferNotifier;
 import com.paywith.exception.BusinessException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -40,12 +41,15 @@ class ApprovalRequestQueryTest {
     @Mock
     private TransactionApprovalMapper transactionApprovalMapper;
 
+    @Mock
+    private TransferNotifier transferNotifier;
+
     private ApprovalRequestService service;
 
     @BeforeEach
     void setUp() {
         service = new ApprovalRequestServiceImpl(
-            approvalRequestMapper, transactionApprovalMapper, 30);
+            approvalRequestMapper, transactionApprovalMapper, transferNotifier, 30);
     }
 
     private ApprovalRequestView view() {

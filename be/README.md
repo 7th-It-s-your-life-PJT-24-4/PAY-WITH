@@ -19,6 +19,20 @@ docker compose up --build
 - **이미 적용된 마이그레이션은 수정하지 않는다.** `V1__baseline.sql`을 포함해서다. 고치면 Flyway가 checksum 불일치로 기동을 막는다.
 - 시드 값(FDS 룰 배점, 은행 목록 등)은 새 파일 대신 `R__seed.sql`을 직접 고친다. 내용이 바뀌면 다음 기동 때 자동으로 다시 실행된다.
 
+## 테스트 커버리지
+
+JaCoCo로 측정한다. `test`가 끝나면 리포트가 자동으로 생성된다.
+
+```bash
+./gradlew test
+open build/reports/jacoco/test/html/index.html   # Windows: start, Linux: xdg-open
+```
+
+- **로컬 MySQL은 필요 없다.** 없으면 `RootContextSmokeTest`만 스킵되고, 그 클래스는 아래 제외 대상이다.
+- HTML 리포트는 소스에 줄 단위로 색을 칠한다 — 초록=실행됨, 빨강=미실행, **노랑=분기 일부만 실행됨**(`if`의 한쪽만 타는 경우라 제일 볼 값이 있다).
+- 분모에서 제외하는 패키지: `dto`, `domain`(대부분 Lombok 생성 코드), `config`(스프링 조립 코드로 스모크 테스트가 검증), `exception`. 제외 목록은 `build.gradle`의 `jacocoTestReport`에 있다.
+- PR을 올리면 전체·변경 파일 커버리지가 코멘트로 달린다. **기준 미달이어도 CI는 실패하지 않는다** — 차단이 아니라 리팩토링에서 테스트를 함께 옮기지 않은 경우를 드러내는 용도다.
+
 ## 기본 계정
 
 ```text

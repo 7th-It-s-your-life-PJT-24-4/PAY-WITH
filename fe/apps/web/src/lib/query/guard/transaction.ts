@@ -35,7 +35,7 @@ export function guardTransactionHistoryOptions(
     staleTime: 15_000,
     select: (data) => ({
       ...data,
-      transactions: data.transactions.filter((tx) => tx.status !== 'HELD'),
+      transactions: data.transactions.filter((tx) => tx.status === 'COMPLETED'),
     }),
   })
 }

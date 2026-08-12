@@ -3,12 +3,14 @@ package com.paywith.approval.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
 import com.paywith.approval.dto.ApprovalDecisionResponse;
 import com.paywith.approval.mapper.TransactionApprovalMapper;
+import com.paywith.notification.service.TransferNotifier;
 import com.paywith.exception.BusinessException;
 import com.paywith.exception.TransferIrrecoverableException;
 import com.paywith.transaction.domain.TransactionStatus;
@@ -41,12 +43,16 @@ class ApprovalTransferFacadeTest {
     @Mock
     private TransactionApprovalMapper transactionApprovalMapper;
 
+    @Mock
+    private TransferNotifier transferNotifier;
+
     private ApprovalTransferFacade facade;
 
     @BeforeEach
     void setUp() {
         facade = new ApprovalTransferFacade(
-            approvalRequestService, transferFinalizationService, transactionApprovalMapper);
+            approvalRequestService, transferFinalizationService, transactionApprovalMapper,
+            transferNotifier);
     }
 
     private void givenApprovalSucceeds() {
@@ -77,6 +83,24 @@ class ApprovalTransferFacadeTest {
     }
 
     @Test
+    void approveAndTransfer_notifiesCompletionOnlyWhenTransferSucceeds() {
+        givenApprovalSucceeds();
+        given(transferFinalizationService.finalizeApprovedTransfer(TRANSACTION_ID))
+            .willReturn(TransferResponse.builder()
+                .transactionId(TRANSACTION_ID)
+                .status(TransactionStatus.COMPLETED)
+                .completedAt(RESPONDED_AT.plusSeconds(2))
+                .balanceAfter(120_000L)
+                .build());
+
+        facade.approveAndTransfer(APPROVAL_ID, GUARD_ID);
+
+        then(transferNotifier).should().notifyTransferCompleted(TRANSACTION_ID);
+        then(transferNotifier).should(never()).notifyTransferFailed(anyLong(), anyString());
+        then(transferNotifier).should(never()).notifyTransferUnresolved(anyLong());
+    }
+
+    @Test
     void approveAndTransfer_keepsApprovalSuccessfulWhenBalanceIsInsufficient() {
         givenApprovalSucceeds();
         given(transferFinalizationService.finalizeApprovedTransfer(TRANSACTION_ID)).willThrow(
@@ -93,6 +117,10 @@ class ApprovalTransferFacadeTest {
         assertThat(result.getTransfer().getBalanceAfter()).isNull();
         // 입금 이전 실패라 원인이 분명하다 — APPROVED 에 방치하지 않고 거래를 종결한다
         then(transactionApprovalMapper).should().markFailedIfApproved(TRANSACTION_ID);
+        // 돈이 나가기 전이라 "실패"로 알려도 되고, 다시 시도해도 안전하다
+        then(transferNotifier).should()
+            .notifyTransferFailed(TRANSACTION_ID, "송금 가능한 잔액이 부족합니다.");
+        then(transferNotifier).should(never()).notifyTransferUnresolved(anyLong());
     }
 
     @Test
@@ -124,6 +152,9 @@ class ApprovalTransferFacadeTest {
             .isEqualTo("송금 처리 중 오류가 발생했습니다. 고객센터로 문의해주세요.");
         // 입금 이후 실패는 송금 쪽이 이미 FAILED 로 기록했다 — 여기서 또 건드리면 안 된다
         then(transactionApprovalMapper).should(never()).markFailedIfApproved(anyLong());
+        // 잔액은 이미 차감됐고 수취인 도달 여부를 모른다. "실패"로 알리면 다시 보내 이중 송금이 된다
+        then(transferNotifier).should().notifyTransferUnresolved(TRANSACTION_ID);
+        then(transferNotifier).should(never()).notifyTransferFailed(anyLong(), anyString());
     }
 
     @Test
@@ -140,6 +171,9 @@ class ApprovalTransferFacadeTest {
         assertThat(result.getTransfer().getFailureReason()).doesNotContain("connection pool");
         // 원인을 모르므로 APPROVED 로 남겨 보정 대상이 되게 한다
         then(transactionApprovalMapper).should(never()).markFailedIfApproved(anyLong());
+        // 어느 단계에서 터졌는지 모르므로 실패로 단정하지 않는다
+        then(transferNotifier).should().notifyTransferUnresolved(TRANSACTION_ID);
+        then(transferNotifier).should(never()).notifyTransferFailed(anyLong(), anyString());
     }
 
     @Test

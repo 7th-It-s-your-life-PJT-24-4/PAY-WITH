@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.then;
 import com.paywith.approval.domain.ApprovalRequest;
 import com.paywith.approval.mapper.ApprovalRequestMapper;
 import com.paywith.approval.mapper.TransactionApprovalMapper;
+import com.paywith.notification.service.TransferNotifier;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,11 +25,14 @@ class ApprovalRequestServiceTest {
     @Mock
     private TransactionApprovalMapper transactionApprovalMapper;
 
+    @Mock
+    private TransferNotifier transferNotifier;
+
     // PENDING 상태와 만료시각(생성 시점 + fds.approval.expire-minutes)이 설정되어 저장된다
     @Test
     void create_savesPendingRequestWithExpiryTime() {
         ApprovalRequestService service = new ApprovalRequestServiceImpl(
-            approvalRequestMapper, transactionApprovalMapper, EXPIRE_MINUTES);
+            approvalRequestMapper, transactionApprovalMapper, transferNotifier, EXPIRE_MINUTES);
         LocalDateTime before = LocalDateTime.now();
 
         ApprovalRequest created = service.create(100L);

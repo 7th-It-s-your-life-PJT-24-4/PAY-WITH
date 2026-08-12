@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'war'
+    id 'jacoco'
 }
 
 group = 'com.paywith'
@@ -34,6 +35,7 @@ ext {
     springfoxVersion = '3.0.0'
     springDataRedisVersion = '2.7.18'
     lettuceVersion = '6.1.10.RELEASE'
+    firebaseAdminVersion = '9.9.0'
     lombokVersion = '1.18.34'
     junitVersion = '5.10.2'
     junitPlatformVersion = '1.10.2'
@@ -43,6 +45,19 @@ ext {
 
 repositories {
     mavenCentral()
+}
+
+// firebase-admin 이 딸려오는 google-cloud-* 를 통해 jackson BOM(2.18.2)을 함께 들여온다.
+// ObjectMapper 설정(AppConfig)과 응답 직렬화가 2.17.3 기준으로 검증돼 있어, 푸시 알림을 붙였다는
+// 이유로 앱 전체의 JSON 처리 버전이 함께 움직이는 건 피한다. 모듈 간 버전이 섞이면 그것대로
+// 문제라 databind 만이 아니라 jackson 계열 전체를 같은 버전으로 맞춘다. 올릴 거라면
+// jacksonVersion 을 바꿔 별도로 검증하는 게 맞다.
+configurations.all {
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group.startsWith('com.fasterxml.jackson')) {
+            details.useVersion jacksonVersion
+        }
+    }
 }
 
 dependencies {
@@ -66,6 +81,28 @@ dependencies {
     implementation "io.springfox:springfox-swagger-ui:${springfoxVersion}"
     implementation "org.springframework.data:spring-data-redis:${springDataRedisVersion}"
     implementation "io.lettuce:lettuce-core:${lettuceVersion}"
+    // FCM 발송용. 제외 두 건은 기존 라이브러리와 충돌해서 넣은 것이고, 둘 다 FCM 발송 경로에는
+    // 쓰이지 않는 것들만 골랐다.
+    //   - netty: Lettuce(6.1.10)가 4.1.82 를 요구하는데 4.2.13 으로 밀린다. 4.2 는 codec 모듈이
+    //     쪼개진 비호환 버전이라 그대로 두면 Redis 연결이 런타임에 깨진다(송금 멱등성 키가 죽는다).
+    //     firebase-admin 의 netty 는 Realtime Database 웹소켓용이고 FCM 은 google-http-client 로
+    //     나가므로 무관하다. 나중에 RTDB 를 쓰게 되면 이 제외부터 풀어야 한다.
+    //   - commons-logging: spring-jcl 이 org.apache.commons.logging 패키지를 그대로 제공해 같은
+    //     클래스가 두 jar 에 겹친다. 빼도 httpclient 의 로깅은 spring-jcl 이 받아 SLF4J 로 넘긴다.
+    //
+    // google-cloud-firestore/storage 는 처음에 함께 제외했다가 되돌렸다. 안 쓰는 기능이라 안전해
+    // 보이지만 그 경유로 google-http-client-jackson2 가 들어오고, FirebaseOptions 생성자가 기본
+    // JsonFactory 로 JacksonFactory 를 무조건 참조해서 초기화가 NoClassDefFoundError 로 죽는다.
+    // (빌더에 setJsonFactory 를 줘도 생성자 참조라 우회되지 않는다.)
+    //   - jackson-dataformat-xml: 있기만 하면 Spring 이 기본 컨버터 목록에 XML 컨버터를 JSON 보다
+    //     앞에 등록해, Accept: */* 요청의 응답이 XML 로 나간다. WebConfig 가 목록을 통째로
+    //     대체하므로 실행 중인 앱은 무사하지만, standaloneSetup 을 쓰는 컨트롤러 테스트는 기본
+    //     목록을 그대로 타서 전부 깨진다. google-cloud-storage 용이고 우리는 쓰지 않는다.
+    implementation("com.google.firebase:firebase-admin:${firebaseAdminVersion}") {
+        exclude group: 'io.netty'
+        exclude group: 'commons-logging', module: 'commons-logging'
+        exclude group: 'com.fasterxml.jackson.dataformat', module: 'jackson-dataformat-xml'
+    }
     providedCompile 'javax.servlet:javax.servlet-api:4.0.1'
     implementation 'javax.validation:validation-api:2.0.1.Final'
     implementation 'org.hibernate.validator:hibernate-validator:6.2.5.Final'
@@ -95,4 +132,34 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+// 커버리지 측정. 리포트는 build/reports/jacoco/test/ 아래에 XML·HTML 두 형태로 남는다.
+// XML 은 CI 에서 기계가 읽는 형식이고, HTML 은 사람이 열어 보는 쪽이다.
+jacocoTestReport {
+    dependsOn test
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+
+    // 로직이 없는 코드는 분모에서 뺀다. 남겨두면 커버리지 숫자가 실제 검증 수준이 아니라
+    // DTO 를 몇 개 만들었는지에 따라 움직여서, 기준값을 정하는 의미가 없어진다.
+    //   - dto/domain: 대부분 Lombok 이 생성한 getter·builder 라 우리가 쓴 코드가 아니다
+    //   - config: 스프링 조립 코드. RootContextSmokeTest 가 조립 성공 여부로 검증한다
+    //   - exception: 예외 클래스 정의뿐이고, 던지고 받는 동작은 각 서비스 테스트가 덮는다
+    // classDirectories 는 설정 시점에 아직 확정되지 않아 afterEvaluate 안에서 걸러야 한다.
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    '**/dto/**',
+                    '**/domain/**',
+                    '**/config/**',
+                    '**/exception/**',
+            ])
+        }))
+    }
 }

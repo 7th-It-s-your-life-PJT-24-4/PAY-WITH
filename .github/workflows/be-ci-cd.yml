@@ -29,6 +29,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # 커버리지 코멘트를 PR 에 남기려면 pull-requests 쓰기 권한이 필요하다.
+    permissions:
+      contents: read
+      pull-requests: write
     defaults:
       run:
         working-directory: be
@@ -84,8 +88,29 @@ jobs:
       # 첫 실행에서 만들어진 스키마 위에 한 번 더 붙인다. 이미 적용된 DB 에서 migrate 가
       # checksum validate 를 통과하고 중복 적용하지 않는지 보는 것으로, 배포 때마다 벌어지는
       # 상황이다. 어느 쪽이 어긋나도 Flyway 가 예외를 던져 이 테스트가 실패한다.
+      # -x jacocoTestReport 를 빼면 안 된다. 이 스텝은 test 를 다시 돌리므로 커버리지 리포트가
+      # 스모크 테스트 1건 기준으로 덮여 쓰인다(78% → 5% 수준). 재실행의 목적은 마이그레이션
+      # 검증이고 커버리지는 앞선 clean build 의 것을 그대로 써야 한다. exec 파일은 어차피 덮이니
+      # 이 스텝 뒤에서 리포트를 새로 만들어도 같은 함정에 걸린다.
       - name: Verify migration re-run safety
-        run: ./gradlew test --tests 'com.paywith.config.RootContextSmokeTest' --rerun-tasks
+        run: ./gradlew test --tests 'com.paywith.config.RootContextSmokeTest' --rerun-tasks -x jacocoTestReport
+      # 임계값 미달은 코멘트에 ❌ 로만 표시되고 잡을 실패시키지 않는다(액션이 커버리지로는
+      # setFailed 를 호출하지 않는다). 목적은 차단이 아니라 리팩토링에서 테스트를 함께 옮기지
+      # 않은 경우를 드러내는 것이다 — 순수 리팩토링이면 커버리지가 평평해야 정상이고, 떨어지면
+      # 옮겨야 할 테스트가 남아 있다는 신호다.
+      # 기준값은 도입 시점 실측(INSTRUCTION 79%)보다 낮게 잡아, 평소에는 초록으로 두고 실제로
+      # 떨어졌을 때만 눈에 걸리게 한다.
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: madrapps/jacoco-report@v1.8.0
+        with:
+          paths: ${{ github.workspace }}/be/build/reports/jacoco/test/jacocoTestReport.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: '📊 백엔드 테스트 커버리지'
+          # 푸시마다 새 코멘트를 쌓지 않고 같은 코멘트를 갱신한다(title 이 있어야 동작한다).
+          update-comment: true
+          min-coverage-overall: 75
+          min-coverage-changed-lines: 70
       - name: Upload test report
         if: failure()
         uses: actions/upload-artifact@v4

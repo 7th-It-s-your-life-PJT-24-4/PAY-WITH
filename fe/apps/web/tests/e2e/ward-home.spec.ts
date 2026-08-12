@@ -5,6 +5,62 @@ function createAccessToken(expiresAt: number) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/ward/guardian', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          name: '김보호',
+          phone: '010-1234-5678',
+          avatarId: 1,
+        },
+        message: null,
+      },
+    })
+  })
+
+  await page.route('**/api/ward/pairing/status', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          paired: true,
+          status: 'CONNECTED',
+          guardianName: '김보호',
+          guardianPhone: '010-1234-5678',
+        },
+        message: null,
+      },
+    })
+  })
+
+  await page.route('**/api/ward/transactions/74', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          transactionId: 74,
+          type: 'TRANSFER',
+          direction: 'OUT',
+          status: 'HELD',
+          riskLevel: 'CAUTION',
+          counterpartyName: '김민수',
+          bankName: '국민은행',
+          accountNo: '43210201234567',
+          amount: 50_000,
+          memo: '생활비',
+          occurredAt: '2026-08-04T10:00:00',
+          balanceAfter: 450_000,
+          riskAnalysis: null,
+        },
+        message: null,
+      },
+    })
+  })
+
   await page.route('**/api/ward/home', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
@@ -220,12 +276,25 @@ test('refresh token도 만료되면 로그인 화면으로 이동한다', async 
     page.getByRole('status', { name: '로그인 시간이 만료되었어요' }),
   ).toBeVisible()
   await expect
-    .poll(() => page.evaluate(() => localStorage.getItem('accessToken')))
+    .poll(async () => {
+      try {
+        return await page.evaluate(() => localStorage.getItem('accessToken'))
+      } catch {
+        // 로컬 FCM 구독 정리 후 앱을 다시 시작하는 순간에는 실행 컨텍스트가 교체된다.
+        return 'navigating'
+      }
+    })
     .toBeNull()
   await expect
-    .poll(() =>
-      page.evaluate(() => sessionStorage.getItem('pay-with:ward-payment')),
-    )
+    .poll(async () => {
+      try {
+        return await page.evaluate(() =>
+          sessionStorage.getItem('pay-with:ward-payment'),
+        )
+      } catch {
+        return 'navigating'
+      }
+    })
     .toBeNull()
 })
 
@@ -342,4 +411,133 @@ test('승인 상세 일시 오류에는 재시도를 제공한다', async ({ pag
     }),
   ).toBeVisible()
   await expect(page.getByRole('button', { name: '다시 시도' })).toBeVisible()
+})
+
+test('승인 대기 상세 화면에서 거래가 승인(COMPLETED)되면 완료 화면으로 실시간 자동 이동한다', async ({
+  page,
+}) => {
+  let transactionStatus = 'HELD'
+  await page.addInitScript(() => {
+    sessionStorage.setItem(
+      'pay-with:ward-transfer:74',
+      JSON.stringify({
+        transactionId: 74,
+        status: 'HELD',
+        holderName: '김민수',
+        bankCode: '004',
+        bankName: '국민은행',
+        accountNo: '432102-01-234567',
+        amount: 50_000,
+        requestedAt: '2026-08-04T10:00:00',
+        expiredAt: '2026-08-04T10:10:00',
+      }),
+    )
+  })
+
+  await page.unroute('**/api/ward/transactions/74')
+  await page.route('**/api/ward/transactions/74', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          transactionId: 74,
+          type: 'TRANSFER',
+          direction: 'OUT',
+          status: transactionStatus,
+          riskLevel: 'CAUTION',
+          counterpartyName: '김민수',
+          bankName: '국민은행',
+          accountNo: '43210201234567',
+          amount: 50_000,
+          memo: '생활비',
+          occurredAt: '2026-08-04T10:00:00',
+          balanceAfter: 450_000,
+          riskAnalysis: null,
+        },
+        message: null,
+      },
+    })
+  })
+
+  await page.goto('/ward/approval-requests/7')
+  await expect(page).toHaveURL(/\/ward\/approval-requests\/7$/)
+  await expect(
+    page.getByRole('heading', { name: '잠깐 확인해 보세요!' }),
+  ).toBeVisible()
+
+  // 보호자가 승인하여 거래 상태가 COMPLETED로 변경됨
+  transactionStatus = 'COMPLETED'
+
+  // 실시간 폴링에 의해 완료 결과 화면으로 자동 전환 확인
+  await expect(page).toHaveURL(/\/ward\/transfer\/74\/complete$/, {
+    timeout: 10_000,
+  })
+  await expect(page.getByRole('heading', { name: '송금 완료' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /50,000/ })).toBeVisible()
+})
+
+test('승인 대기 상세 화면에서 거래가 거절(REJECTED)되면 거절 화면으로 실시간 자동 이동한다', async ({
+  page,
+}) => {
+  let transactionStatus = 'HELD'
+  await page.addInitScript(() => {
+    sessionStorage.setItem(
+      'pay-with:ward-transfer:74',
+      JSON.stringify({
+        transactionId: 74,
+        status: 'HELD',
+        holderName: '김민수',
+        bankCode: '004',
+        bankName: '국민은행',
+        accountNo: '432102-01-234567',
+        amount: 50_000,
+        requestedAt: '2026-08-04T10:00:00',
+        expiredAt: '2026-08-04T10:10:00',
+      }),
+    )
+  })
+
+  await page.unroute('**/api/ward/transactions/74')
+  await page.route('**/api/ward/transactions/74', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          transactionId: 74,
+          type: 'TRANSFER',
+          direction: 'OUT',
+          status: transactionStatus,
+          riskLevel: 'DANGER',
+          counterpartyName: '김민수',
+          bankName: '국민은행',
+          accountNo: '43210201234567',
+          amount: 50_000,
+          memo: '생활비',
+          occurredAt: '2026-08-04T10:00:00',
+          balanceAfter: 500_000,
+          riskAnalysis: null,
+        },
+        message: null,
+      },
+    })
+  })
+
+  await page.goto('/ward/approval-requests/7')
+  await expect(page).toHaveURL(/\/ward\/approval-requests\/7$/)
+  await expect(
+    page.getByRole('heading', { name: '잠깐 확인해 보세요!' }),
+  ).toBeVisible()
+
+  // 보호자가 거절하여 거래 상태가 REJECTED로 변경됨
+  transactionStatus = 'REJECTED'
+
+  // 실시간 폴링에 의해 거절 결과 화면으로 자동 전환 확인
+  await expect(page).toHaveURL(/\/ward\/transfer\/74\/rejected$/, {
+    timeout: 10_000,
+  })
+  await expect(
+    page.getByRole('heading', { name: /보호자가.*거래를 거절했습니다/ }),
+  ).toBeVisible()
 })

@@ -14,8 +14,7 @@ describe('ward home query options', () => {
 
     expect(toValue(wardHomeOptions().queryKey)).toEqual(wardHomeKeys.all)
     expect(toValue(approvalOptions.queryKey)).toEqual(wardHomeKeys.approval(7))
-    expect(approvalOptions.refetchOnWindowFocus).toBe(true)
-    expect(approvalOptions.refetchInterval).toBeTypeOf('function')
+    expect(approvalOptions.refetchInterval).toBeUndefined()
   })
 
   it('지갑 잔액에 공용 query key를 사용하고 진입 시 최신 값을 조회한다', () => {

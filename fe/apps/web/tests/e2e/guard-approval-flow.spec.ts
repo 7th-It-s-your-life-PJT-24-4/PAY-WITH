@@ -45,6 +45,8 @@ const transactionDetail = {
   occurredAt: '2026-08-05T09:20:01',
 }
 
+let transactionDetailResponse = transactionDetail
+
 async function mockApprovalApi(page: Page) {
   await page.route('**/api/approval-requests?wardId=12', (route) =>
     route.fulfill({
@@ -69,17 +71,61 @@ async function mockApprovalApi(page: Page) {
   })
   await page.route('**/api/guard/wards/12/transactions/41', (route) =>
     route.fulfill({
-      json: { success: true, data: transactionDetail, message: null },
+      json: { success: true, data: transactionDetailResponse, message: null },
     }),
   )
 }
 
 test.beforeEach(async ({ page }) => {
+  transactionDetailResponse = transactionDetail
   await page.setViewportSize({ width: 390, height: 844 })
   await mockApprovalApi(page)
 })
 
-test('홈의 거래 확인하기에서 선택한 시니어의 이상 거래 목록으로 이동한다', async ({
+test('대기 거래가 없어도 홈의 이상 거래 내역에서 목록으로 이동한다', async ({
+  page,
+}) => {
+  await page.route(/\/api\/guard(?:\?.*)?$/, (route) =>
+    route.fulfill({
+      json: {
+        success: true,
+        data: {
+          wards: [
+            {
+              wardId: 12,
+              name: '김시니어',
+              avatarId: 1,
+              hasPending: false,
+            },
+          ],
+          selectedWard: {
+            wardId: 12,
+            name: '김시니어',
+            balance: 120000,
+            pendingApproval: null,
+            pendingApprovalCount: 0,
+            recentTransactions: [],
+          },
+        },
+        message: null,
+      },
+    }),
+  )
+
+  await page.goto('/guard')
+  await expect(
+    page.getByRole('heading', { name: '이상 거래 내역' }),
+  ).toBeVisible()
+  await expect(page.getByText('대기중인 이상거래가 없어요.')).toBeVisible()
+  await page.getByRole('button', { name: '이상 거래 내역 더보기' }).click()
+
+  await expect(page).toHaveURL(/\/guard\/approval-requests\?wardId=12$/)
+  await expect(
+    page.getByRole('heading', { name: '이상 거래 목록' }),
+  ).toBeVisible()
+})
+
+test('대기 거래가 있으면 홈에 거래 요약을 표시하고 목록으로 이동한다', async ({
   page,
 }) => {
   await page.route(/\/api\/guard(?:\?.*)?$/, (route) =>
@@ -125,12 +171,12 @@ test('홈의 거래 확인하기에서 선택한 시니어의 이상 거래 목�
 
   await page.goto('/guard')
   await expect(
-    page.locator('[aria-labelledby="guard-risk-transaction-title"] img'),
-  ).toHaveAttribute('src', /data:image\/svg\+xml.*%2300B1D2/)
-  await expect(
-    page.getByRole('heading', { name: '위험 거래 3건 발생' }),
+    page.getByRole('heading', { name: '이상 거래 내역' }),
   ).toBeVisible()
-  await expect(page.getByText('김시니어님의 송금·거래 중')).toHaveCount(0)
+  await expect(page.getByText('8월 5일')).toBeVisible()
+  await expect(page.getByText('-35,000원')).toBeVisible()
+  await expect(page.getByText('박수취')).toBeVisible()
+  await expect(page.getByText('위험', { exact: true })).toBeVisible()
   await expect(
     page
       .getByRole('button', { name: '김시니어 이상 거래 있음' })
@@ -143,7 +189,7 @@ test('홈의 거래 확인하기에서 선택한 시니어의 이상 거래 목�
       .locator('span')
       .first(),
   ).toHaveClass(/border-error/)
-  await page.getByRole('button', { name: '거래 확인하기' }).click()
+  await page.getByRole('button', { name: '이상 거래 내역 더보기' }).click()
 
   await expect(page).toHaveURL(/\/guard\/approval-requests\?wardId=12$/)
   await expect(
@@ -187,15 +233,19 @@ test('보호자가 이상 거래를 승인하고 transaction API 상세를 확�
 
   await expect.poll(() => approveRequested).toBe(true)
   await expect(
-    page.getByRole('heading', { name: '이상 거래를 승인했어요' }),
+    page.getByRole('heading', {
+      name: '이상 거래를 승인하고 송금을 완료했어요',
+    }),
   ).toBeVisible()
   await page.getByRole('button', { name: '확인' }).click()
 
   await expect(page).toHaveURL(
-    /\/guard\/history\/41\?wardId=12&status=approved&source=approval$/,
+    /\/guard\/history\/41\?wardId=12&approvalStatus=approved&source=approval$/,
   )
   await expect(
-    page.getByRole('heading', { name: '승인된 이상 거래에요' }),
+    page.getByRole('heading', {
+      name: '승인되어 송금이 완료된 거래에요',
+    }),
   ).toBeVisible()
   await expect(page.getByText('평소와 다른 고액 송금이에요.')).toBeVisible()
 
@@ -214,6 +264,10 @@ test('보호자가 이상 거래를 승인하고 transaction API 상세를 확�
 test('보호자가 이상 거래를 거절하고 transaction API 상세를 확인한다', async ({
   page,
 }) => {
+  transactionDetailResponse = {
+    ...transactionDetail,
+    status: 'REJECTED',
+  }
   await page.route('**/api/approval-requests/3/reject', (route) =>
     route.fulfill({
       json: {
@@ -250,4 +304,68 @@ test('보호자가 이상 거래를 거절하고 transaction API 상세를 확�
   await expect(page).toHaveURL(
     /\/guard\/approval-requests\?wardId=12&status=rejected$/,
   )
+})
+
+test('보호자가 거래를 승인했지만 송금이 실패하면 사유와 후속 조치를 확인한다', async ({
+  page,
+}) => {
+  transactionDetailResponse = {
+    ...transactionDetail,
+    status: 'FAILED',
+  }
+  await page.route('**/api/approval-requests/3/approve', (route) =>
+    route.fulfill({
+      json: {
+        success: true,
+        data: {
+          approvalId: 3,
+          transactionId: 41,
+          status: 'APPROVED',
+          respondedAt: '2026-08-05T09:20:00',
+          transfer: {
+            status: 'FAILED',
+            failureReason: '송금 가능한 잔액이 부족합니다.',
+            completedAt: null,
+            balanceAfter: null,
+          },
+        },
+        message: null,
+      },
+    }),
+  )
+
+  await page.goto('/guard/approval-requests/3?wardId=12')
+  await page.getByRole('button', { name: '승인하기', exact: true }).click()
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: '승인', exact: true })
+    .click()
+
+  await expect(
+    page.getByRole('heading', {
+      name: '거래를 승인했지만 송금에 실패했어요',
+    }),
+  ).toBeVisible()
+  await expect(page.getByText('송금 가능한 잔액이 부족합니다.')).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '잔액 충전해주기' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '피보호자에게 연락하기' }),
+  ).toBeVisible()
+
+  await page.getByRole('button', { name: '거래 상세 확인' }).click()
+
+  await expect(page).toHaveURL(
+    /\/guard\/history\/41\?wardId=12&approvalStatus=approved&source=approval&failureReason=/,
+  )
+  await expect(
+    page.getByRole('heading', {
+      name: '거래를 승인했지만 송금에 실패했어요',
+    }),
+  ).toBeVisible()
+  await expect(page.getByText('송금 가능한 잔액이 부족합니다.')).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '지갑 충전해주기' }),
+  ).toBeVisible()
 })

@@ -54,10 +54,9 @@ async function connectGuardian() {
       <ShieldCheck class="size-8" :stroke-width="2" />
     </span>
 
-    <h1 class="type-h1 mt-lg text-body">인증 코드 입력</h1>
-    <p class="type-body mt-sm text-body-muted">
-      보호자가 보내준 5자리 코드를 입력해 주세요.
-    </p>
+    <h1 class="type-h1 mt-lg text-body">
+      보호자가 보낸 5자리 코드를 입력해주세요
+    </h1>
 
     <div
       class="relative mt-xl flex w-full justify-center gap-sm cursor-pointer"

@@ -111,6 +111,31 @@ test('마이페이지에서 기존 이용약관과 개인정보 페이지로 이
   ).toBeVisible()
 })
 
+test('마이페이지에서 푸시알림설정 화면으로 이동한다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 820 })
+  await page.goto('/guard/my')
+
+  await page.getByRole('button', { name: '푸시알림설정' }).click()
+
+  await expect(page).toHaveURL(/\/guard\/my\/push-notifications$/)
+  await expect(
+    page.getByRole('heading', { name: '푸시알림설정' }),
+  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: '알림 받기' })).toBeVisible()
+  const notificationSwitch = page.getByRole('switch', { name: '알림 받기' })
+  await expect(notificationSwitch).toBeVisible()
+  await expect(page.getByText('다양한 알림을 실시간으로 받아요.')).toBeVisible()
+
+  expect(await notificationSwitch.boundingBox()).toMatchObject({
+    width: 44,
+    height: 24,
+  })
+  expect(await notificationSwitch.locator('img').boundingBox()).toMatchObject({
+    width: 20,
+    height: 20,
+  })
+})
+
 test('내 정보에서 이름과 프로필을 수정한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 820 })
   await page.goto('/guard/my/profile')

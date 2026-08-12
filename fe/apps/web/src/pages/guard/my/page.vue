@@ -7,6 +7,10 @@ import { useRouter } from 'vue-router'
 
 import { clearAuthenticationSession } from '@/api/auth-session'
 import { getApiErrorMessage } from '@/api/error'
+import {
+  clearLocalPushSubscription,
+  unregisterPushNotifications,
+} from '@/api/push-session'
 import { getUserIdFromAccessToken, tokenStorage } from '@/api/token-storage'
 import { useDeleteUserMutation } from '@/composables/useDeleteUserMutation'
 import GuardMyHeader from '@/pages/guard/my/-components/GuardMyHeader.vue'
@@ -34,6 +38,7 @@ const menuItems = [
     routeName: 'guard-my-terms',
     termId: 'privacyTerms',
   },
+  { label: '푸시알림설정', routeName: 'guard-my-push-notifications' },
 ] as const
 
 function moveToMenu(routeName: string, termId?: string) {
@@ -43,7 +48,9 @@ function moveToMenu(routeName: string, termId?: string) {
   })
 }
 
-async function finishAuthenticationSession() {
+async function finishAuthenticationSession(unregisterPush = true) {
+  if (unregisterPush) await unregisterPushNotifications()
+  else await clearLocalPushSubscription()
   clearAuthenticationSession()
   queryClient.clear()
   await router.replace({ name: 'auth-sign-in' })
@@ -61,7 +68,7 @@ async function withdraw() {
   try {
     await deleteUserMutation.mutateAsync(currentUserId)
     isDeleteConfirmOpen.value = false
-    await finishAuthenticationSession()
+    await finishAuthenticationSession(false)
   } catch (error) {
     isDeleteConfirmOpen.value = false
     errorMessage.value = await getApiErrorMessage(

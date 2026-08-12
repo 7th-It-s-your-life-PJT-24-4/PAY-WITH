@@ -98,6 +98,7 @@ function getGuardTextStyle(value: string) {
             : 'hover:brightness-105',
       ]"
       data-center-action="true"
+      :aria-label="centerItem.label"
       :aria-current="active === centerItem.value ? 'page' : undefined"
       @click="!centerItem.disabled && emit('navigate', centerItem.value)"
     >
@@ -109,13 +110,10 @@ function getGuardTextStyle(value: string) {
         <component
           :is="centerItem.icon"
           v-if="centerItem.icon"
-          class="size-12 text-white drop-shadow-lg"
+          class="size-16 text-white drop-shadow-lg"
           aria-hidden="true"
         />
       </slot>
-      <span class="text-2xl font-semibold leading-none text-white">
-        {{ centerItem.label }}
-      </span>
     </button>
 
     <!-- 좌우 버튼 트랙 컨테이너 (높이 80px) -->

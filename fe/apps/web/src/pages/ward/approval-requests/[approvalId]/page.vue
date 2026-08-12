@@ -5,8 +5,9 @@ import { HTTPError } from 'ky'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { wardApprovalDetailOptions } from '@/lib/query/ward/home'
 import { getApiErrorMessage } from '@/api/error'
+import { useTransferStatus } from '@/composables/useTransferStatus'
+import { wardApprovalDetailOptions } from '@/lib/query/ward/home'
 import TransferHeldView from '@/pages/ward/transfer/-components/TransferHeldView.vue'
 import { formatTransferDateTime } from '@/pages/ward/transfer/-utils/transfer-status-route'
 
@@ -17,6 +18,16 @@ const approvalId = computed(() => {
   return Number.isSafeInteger(value) && value > 0 ? value : null
 })
 const approvalQuery = useQuery(wardApprovalDetailOptions(approvalId))
+const transactionId = computed(
+  () => approvalQuery.data.value?.transactionId ?? null,
+)
+const {
+  isCancelling,
+  errorMessage: cancelErrorMessage,
+  cancel: cancelTransfer,
+} = useTransferStatus(transactionId)
+
+const isCancelModalOpen = ref(false)
 const errorMessage = ref('')
 const approvalNotFound = computed(
   () =>
@@ -139,7 +150,12 @@ watch(
 
   <TransferHeldView
     v-else
+    v-model:is-cancel-modal-open="isCancelModalOpen"
     :rows="detailRows"
+    :can-cancel="false"
+    :is-cancelling="isCancelling"
+    :cancel-error-message="cancelErrorMessage"
+    @cancel="cancelTransfer"
     @wait-home="router.replace({ name: 'ward-home' })"
   />
 </template>

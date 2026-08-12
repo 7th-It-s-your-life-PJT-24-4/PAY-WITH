@@ -1,11 +1,13 @@
 package com.paywith.user.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 
@@ -13,6 +15,7 @@ import com.paywith.auth.service.PhoneVerificationService;
 import com.paywith.exception.BusinessException;
 import com.paywith.user.domain.Role;
 import com.paywith.user.domain.User;
+import com.paywith.user.domain.UserStatus;
 import com.paywith.user.dto.UserCreateRequest;
 import com.paywith.user.dto.UserResponse;
 import com.paywith.user.dto.UserUpdateRequest;
@@ -24,6 +27,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -288,6 +292,107 @@ class UserServiceTest {
             assertThatThrownBy(() -> userService.delete(1L))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                     assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND));
+        }
+    }
+
+    @Nested
+    @DisplayName("FCM 토큰")
+    class FcmToken {
+
+        private static final Long USER_ID = 1L;
+        private static final String NEW_TOKEN = "device-token-abc";
+
+        @Test
+        @DisplayName("기기 토큰을 덮어쓴다 — 재발급될 때마다 갱신되는 값이라 이력을 남기지 않는다")
+        void updateFcmToken_overwritesToken() {
+            given(userMapper.findById(USER_ID)).willReturn(new User());
+
+            userService.updateFcmToken(USER_ID, NEW_TOKEN);
+
+            then(userMapper).should().updateFcmToken(USER_ID, NEW_TOKEN);
+        }
+
+        /**
+         * 토큰은 앱 인스턴스 단위라, 앞선 사용자가 로그아웃하지 않고 떠난 브라우저에서 다음
+         * 사용자가 로그인하면 같은 토큰이 나온다. 정리하지 않으면 두 사용자 행에 같은 토큰이
+         * 남아 앞선 사용자의 거래 알림이 지금 기기를 쓰는 사람에게 간다.
+         */
+        @Test
+        @DisplayName("등록 전에 같은 토큰을 쓰던 다른 사용자를 먼저 해제한다")
+        void updateFcmToken_releasesTokenFromPreviousOwnerFirst() {
+            given(userMapper.findById(USER_ID)).willReturn(new User());
+            given(userMapper.clearFcmTokenFromOtherUsers(USER_ID, NEW_TOKEN)).willReturn(1);
+
+            userService.updateFcmToken(USER_ID, NEW_TOKEN);
+
+            InOrder inOrder = inOrder(userMapper);
+            inOrder.verify(userMapper).clearFcmTokenFromOtherUsers(USER_ID, NEW_TOKEN);
+            inOrder.verify(userMapper).updateFcmToken(USER_ID, NEW_TOKEN);
+        }
+
+        @Test
+        @DisplayName("해제는 요청한 토큰이 현재 값과 같을 때만 지운다")
+        void deleteFcmToken_clearsOnlyWhenTokenMatches() {
+            given(userMapper.findById(USER_ID)).willReturn(new User());
+            given(userMapper.clearFcmTokenIfMatches(USER_ID, NEW_TOKEN)).willReturn(1);
+
+            userService.deleteFcmToken(USER_ID, NEW_TOKEN);
+
+            then(userMapper).should().clearFcmTokenIfMatches(USER_ID, NEW_TOKEN);
+            // 사용자 ID 만으로 지우는 경로가 남아 있으면 안 된다
+            then(userMapper).should(never()).updateFcmToken(any(), any());
+        }
+
+        /**
+         * 다른 기기로 로그인해 토큰이 교체된 뒤 옛 기기의 로그아웃이 뒤늦게 도착한 경우다.
+         * 실패로 다루면 안 되고, 지금 쓰는 기기의 토큰을 지워서도 안 된다.
+         */
+        @Test
+        @DisplayName("이미 교체된 토큰의 해제 요청은 아무것도 지우지 않고 성공으로 끝난다")
+        void deleteFcmToken_succeedsWithoutClearingWhenTokenAlreadyReplaced() {
+            given(userMapper.findById(USER_ID)).willReturn(new User());
+            given(userMapper.clearFcmTokenIfMatches(USER_ID, "STALE_TOKEN")).willReturn(0);
+
+            assertThatCode(() -> userService.deleteFcmToken(USER_ID, "STALE_TOKEN"))
+                .doesNotThrowAnyException();
+
+            then(userMapper).should(never()).updateFcmToken(any(), any());
+        }
+
+        @Test
+        @DisplayName("탈퇴한 계정은 토큰을 등록하지 못한다 — 만료 전 JWT 로 다시 등록하는 경로를 막는다")
+        void updateFcmToken_rejectsWithdrawnUser() {
+            User withdrawn = new User();
+            withdrawn.setStatus(UserStatus.WITHDRAWN);
+            given(userMapper.findById(USER_ID)).willReturn(withdrawn);
+
+            assertThatThrownBy(() -> userService.updateFcmToken(USER_ID, NEW_TOKEN))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN));
+            then(userMapper).should(never()).updateFcmToken(any(), any());
+            then(userMapper).should(never()).clearFcmTokenFromOtherUsers(any(), any());
+        }
+
+        @Test
+        @DisplayName("없는 사용자면 NOT_FOUND 를 던지고 토큰을 건드리지 않는다")
+        void updateFcmToken_throwsWhenUserMissing() {
+            given(userMapper.findById(USER_ID)).willReturn(null);
+
+            assertThatThrownBy(() -> userService.updateFcmToken(USER_ID, NEW_TOKEN))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND));
+            then(userMapper).should(never()).updateFcmToken(any(), anyString());
+        }
+
+        @Test
+        @DisplayName("해제도 없는 사용자면 NOT_FOUND 를 던진다")
+        void deleteFcmToken_throwsWhenUserMissing() {
+            given(userMapper.findById(USER_ID)).willReturn(null);
+
+            assertThatThrownBy(() -> userService.deleteFcmToken(USER_ID, NEW_TOKEN))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.NOT_FOUND));
+            then(userMapper).should(never()).clearFcmTokenIfMatches(any(), any());
         }
     }
 }
