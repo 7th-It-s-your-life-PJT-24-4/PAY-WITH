@@ -14,6 +14,10 @@ import {
   type PushNotificationDestination,
 } from '@/lib/push-notification'
 import { pushTokenStorage } from '@/lib/push-token-storage'
+import {
+  isPushTokenSessionSynced,
+  markPushTokenSessionSynced,
+} from '@/lib/push-token-sync-state'
 import { ensureServiceWorkerRegistration } from '@/lib/service-worker'
 
 type PushAvailability = 'checking' | 'available' | 'unsupported' | 'disabled'
@@ -32,7 +36,6 @@ const foregroundNotification = shallowRef<ForegroundPushNotification | null>(
 )
 
 let started = false
-let syncedSessionKey = ''
 
 function updatePermission(): void {
   if (typeof Notification !== 'undefined')
@@ -76,11 +79,11 @@ export async function syncPushNotificationToken(): Promise<void> {
     if (!fcmToken) return
 
     const sessionKey = `${userId}:${fcmToken}`
-    if (syncedSessionKey === sessionKey) return
+    if (isPushTokenSessionSynced(sessionKey)) return
 
     await registerFcmToken(fcmToken)
     pushTokenStorage.set({ token: fcmToken, userId })
-    syncedSessionKey = sessionKey
+    markPushTokenSessionSynced(sessionKey)
   } catch (error) {
     console.warn('FCM 토큰을 등록하지 못했습니다.', error)
     errorMessage.value = '알림을 연결하지 못했어요. 잠시 후 다시 시도해 주세요.'
@@ -137,6 +140,12 @@ export async function startPushNotifications(router: Router): Promise<void> {
 
   router.afterEach(() => {
     void syncPushNotificationToken()
+  })
+  window.addEventListener('focus', () => {
+    void syncPushNotificationToken()
+  })
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void syncPushNotificationToken()
   })
   await syncPushNotificationToken()
 }

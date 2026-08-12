@@ -4,6 +4,8 @@ const mocks = vi.hoisted(() => ({
   ensureServiceWorkerRegistration: vi.fn(),
   getCurrentFcmToken: vi.fn(),
   getFirebaseMessaging: vi.fn(),
+  isPushTokenSessionSynced: vi.fn(),
+  markPushTokenSessionSynced: vi.fn(),
   onMessage: vi.fn(),
   registerFcmToken: vi.fn(),
   setStoredToken: vi.fn(),
@@ -36,6 +38,11 @@ vi.mock('@/lib/push-token-storage', () => ({
   },
 }))
 
+vi.mock('@/lib/push-token-sync-state', () => ({
+  isPushTokenSessionSynced: mocks.isPushTokenSessionSynced,
+  markPushTokenSessionSynced: mocks.markPushTokenSessionSynced,
+}))
+
 vi.mock('@/lib/service-worker', () => ({
   ensureServiceWorkerRegistration: mocks.ensureServiceWorkerRegistration,
 }))
@@ -64,9 +71,16 @@ describe('usePushNotification', () => {
     mocks.getFirebaseMessaging.mockResolvedValue({ app: {} })
     mocks.getCurrentFcmToken.mockResolvedValue('device-token')
     mocks.registerFcmToken.mockResolvedValue(undefined)
+    mocks.isPushTokenSessionSynced.mockReturnValue(false)
   })
 
-  it('사용자 허용 뒤 현재 사용자 토큰을 서버에 등록하고 로컬에 보관한다', async () => {
+  it('권한 허용 뒤 토큰을 등록하고 수신·재동기화 리스너를 연결한다', async () => {
+    let foregroundHandler: ((payload: unknown) => void) | undefined
+    mocks.onMessage.mockImplementation((_messaging, handler) => {
+      foregroundHandler = handler
+    })
+    const windowListenerSpy = vi.spyOn(window, 'addEventListener')
+    const documentListenerSpy = vi.spyOn(document, 'addEventListener')
     const router = {
       afterEach: vi.fn(),
       push: vi.fn(),
@@ -79,6 +93,33 @@ describe('usePushNotification', () => {
     expect(mocks.setStoredToken).toHaveBeenCalledWith({
       token: 'device-token',
       userId: 7,
+    })
+    expect(mocks.markPushTokenSessionSynced).toHaveBeenCalledWith(
+      '7:device-token',
+    )
+    expect(windowListenerSpy).toHaveBeenCalledWith(
+      'focus',
+      expect.any(Function),
+    )
+    expect(documentListenerSpy).toHaveBeenCalledWith(
+      'visibilitychange',
+      expect.any(Function),
+    )
+
+    foregroundHandler?.({
+      data: {
+        type: 'ANOMALY',
+        refType: 'TRANSACTION',
+        refId: '8',
+        wardId: '12',
+      },
+      notification: { title: '이상 거래', body: '확인이 필요합니다.' },
+    })
+
+    expect(usePushNotification().foregroundNotification.value).toMatchObject({
+      title: '이상 거래',
+      body: '확인이 필요합니다.',
+      path: '/guard/history/8?source=push&wardId=12',
     })
   })
 })
