@@ -150,3 +150,22 @@ INSERT INTO merchants (merchant_id, name, category_code, region, latitude, longi
     AS new
     ON DUPLICATE KEY UPDATE name = new.name, category_code = new.category_code, region = new.region,
     latitude = new.latitude, longitude = new.longitude;
+
+-- 3-1) 위험 업종 시연 가맹점 (9301~)
+--     공용 가맹점이 전부 생활 업종(MART·PHARMACY·RESTAURANT·CVS·HOSPITAL)이라 위험 업종 룰
+--     PAY_RISKY_CATEGORY(50점, 2위 배점)가 발동할 가맹점이 하나도 없었다 — 로컬 dev 시드에만
+--     있어서 팀원·운영 환경에서는 룰이 죽어 있던 것을 여기서 살린다.
+--     발동 산수(결제 임계 주의 50 / 차단 100):
+--       금은방  9만 원 = RISKY 50            → CAUTION (결제는 완료, 보호자 알림)
+--       금은방 50만 원 = RISKY 50 + L3 70 = 120 → 100 클램프, DANGER (403 차단)
+--     좌표는 서울 더미(1~5)와 도보권(종로)이라 어떤 순서로 시연해도 PAY_IMPOSSIBLE_TRAVEL 이
+--     끼어들지 않는다. 번호대 9301~ 은 9001~(제주)·9901~(결제 로컬 시드)과, 그리고 타 파트
+--     dev 시드의 user_id 대역(9101~ 승인·9200+ 송금·9401~ 보호자 홈)과도 겹치지 않는 빈 대역이다.
+--     카테고리 문자열은 properties(fds.payment.risky-categories) 목록과 정확히 일치해야 한다
+--     (카탈로그가 없어 오타 시 조용히 미발동).
+INSERT INTO merchants (merchant_id, name, category_code, region, latitude, longitude) VALUES
+                                                                                          (9301, '종로귀금속',   'JEWELRY',     '서울 종로구', 37.5710000, 126.9880000),
+                                                                                          (9302, '세운전자상가', 'ELECTRONICS', '서울 종로구', 37.5680000, 126.9940000)
+    AS new
+    ON DUPLICATE KEY UPDATE name = new.name, category_code = new.category_code, region = new.region,
+    latitude = new.latitude, longitude = new.longitude;
