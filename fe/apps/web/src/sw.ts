@@ -1,15 +1,13 @@
 /// <reference lib="webworker" />
 
-import { initializeApp, type FirebaseOptions } from 'firebase/app'
-import {
-  getMessaging,
-  isSupported,
-  onBackgroundMessage,
-} from 'firebase/messaging/sw'
+import type { FirebaseOptions } from 'firebase/app'
 import { clientsClaim } from 'workbox-core'
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 
-import { resolvePushNotificationDestination } from '@/lib/push-notification'
+import {
+  extractPushNotificationData,
+  resolvePushNotificationDestination,
+} from '@/lib/push-notification'
 
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{
@@ -41,19 +39,9 @@ clientsClaim()
 cleanupOutdatedCaches()
 precacheAndRoute(self.__WB_MANIFEST)
 
-function extractPushData(value: unknown): unknown {
-  if (!value || typeof value !== 'object') return null
-  const record = value as Record<string, unknown>
-  if ('type' in record) return record
-
-  const fcmMessage = record.FCM_MSG
-  if (!fcmMessage || typeof fcmMessage !== 'object') return null
-  return (fcmMessage as Record<string, unknown>).data
-}
-
 self.addEventListener('notificationclick', (event) => {
   const destination = resolvePushNotificationDestination(
-    extractPushData(event.notification.data),
+    extractPushNotificationData(event.notification.data),
   )
   if (!destination) return
 
@@ -79,30 +67,39 @@ self.addEventListener('notificationclick', (event) => {
   )
 })
 
+async function initializeFirebaseMessaging(): Promise<void> {
+  // Firebase 공식 권장사항대로 커스텀 notificationclick 리스너를 먼저 등록한 뒤
+  // Messaging 모듈을 불러온다. SDK 업데이트로 내부 리스너 등록 시점이 바뀌어도 안전하다.
+  const [
+    { initializeApp },
+    { getMessaging, isSupported, onBackgroundMessage },
+  ] = await Promise.all([
+    import('firebase/app'),
+    import('firebase/messaging/sw'),
+  ])
+  if (!(await isSupported())) return
+
+  const messaging = getMessaging(initializeApp(firebaseConfig))
+  onBackgroundMessage(messaging, async (payload) => {
+    // PR #204는 notification payload를 함께 보내므로 Firebase가 OS 알림을 자동 표시한다.
+    // data-only 메시지로 바뀐 경우에만 안전한 기본 알림을 한 번 표시한다.
+    if (payload.notification) return
+
+    const destination = resolvePushNotificationDestination(payload.data)
+    if (!destination) return
+    await self.registration.showNotification('PayWith 알림', {
+      body: '앱에서 새로운 알림을 확인해 주세요.',
+      data: destination.data,
+      icon: '/pwa-icon.svg',
+    })
+  })
+}
+
 if (hasFirebaseConfig) {
-  void isSupported()
-    .then((supported) => {
-      if (!supported) return
-
-      const messaging = getMessaging(initializeApp(firebaseConfig))
-      onBackgroundMessage(messaging, async (payload) => {
-        // PR #204는 notification payload를 함께 보내므로 Firebase가 OS 알림을 자동 표시한다.
-        // data-only 메시지로 바뀐 경우에만 안전한 기본 알림을 한 번 표시한다.
-        if (payload.notification) return
-
-        const destination = resolvePushNotificationDestination(payload.data)
-        if (!destination) return
-        await self.registration.showNotification('PayWith 알림', {
-          body: '앱에서 새로운 알림을 확인해 주세요.',
-          data: destination.data,
-          icon: '/pwa-icon.svg',
-        })
-      })
-    })
-    .catch((error: unknown) => {
-      console.warn(
-        '서비스 워커에서 Firebase Messaging을 초기화하지 못했습니다.',
-        error,
-      )
-    })
+  void initializeFirebaseMessaging().catch((error: unknown) => {
+    console.warn(
+      '서비스 워커에서 Firebase Messaging을 초기화하지 못했습니다.',
+      error,
+    )
+  })
 }
