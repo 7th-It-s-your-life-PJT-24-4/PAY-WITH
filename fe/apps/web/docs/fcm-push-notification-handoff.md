@@ -366,14 +366,12 @@ Firebase Web config와 VAPID 공개키는 브라우저 번들에 포함되는 �
 구현 후 확인한 결과:
 
 - `pnpm install --frozen-lockfile`: 통과
-- `pnpm lint`: 통과
-- `pnpm build`: 통과
+- 변경 파일 ESLint 및 pre-commit lint: 통과
+- Web `vite build`: 통과
   - `injectManifest`가 `dist/sw.js`를 생성하는 것 확인
   - Workbox precache manifest 주입 확인
-- `pnpm test`: 통과
+- Web `vitest run`: 통과
   - web 260개
-  - UI 30개
-  - 합계 290개
 - `pnpm audit --prod`: 알려진 취약점 없음
 - `git diff --check`: 통과
 
