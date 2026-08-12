@@ -3,6 +3,15 @@ import { BellRing, Settings } from '@lucide/vue'
 
 import { usePushNotification } from '@/composables/usePushNotification'
 
+withDefaults(
+  defineProps<{
+    description?: string
+  }>(),
+  {
+    description: '중요한 거래 상태를 놓치지 않도록 알림을 보내드려요.',
+  },
+)
+
 const {
   availability,
   errorMessage,
@@ -45,10 +54,11 @@ const {
             브라우저 또는 기기 설정에서 PayWith 알림 권한을 직접 허용해 주세요.
           </template>
           <template v-else-if="availability === 'unsupported'">
-            iPhone은 Safari에서 홈 화면에 추가한 뒤 알림을 사용할 수 있어요.
+            이 브라우저 또는 설치 환경에서는 푸시 알림을 지원하지 않아요.
+            지원되는 브라우저와 PWA 설치 상태를 확인해 주세요.
           </template>
           <template v-else>
-            승인 요청과 이상 거래를 놓치지 않도록 알림을 보내드려요.
+            {{ description }}
           </template>
         </p>
         <p v-if="errorMessage" class="mt-2 text-sm text-error" role="alert">

@@ -87,6 +87,8 @@ FCM 토큰을 얻은 뒤 `사용자 ID:FCM 토큰` 조합이 현재 세션에서
 
 백엔드 또는 Firebase 토큰 해제에 실패해도 로컬 로그아웃은 완료한다. 백엔드 DELETE는 Access Token이 필요한 요청이므로 반드시 인증 세션 삭제보다 먼저 호출한다.
 
+Access Token 만료나 API 401로 세션이 강제 종료될 때는 이미 인증 요청을 보낼 수 없으므로 서버 DELETE를 시도하지 않는다. 대신 로그인 페이지로 이동하기 전에 Firebase `deleteToken()`과 로컬 토큰·동기화 상태를 정리해 공용 기기에서 이전 사용자의 알림이 계속 노출되지 않게 한다.
+
 회원탈퇴는 사용자 삭제 API 성공 후 백엔드 FCM 토큰 해제 요청을 다시 보내지 않고 로컬 Firebase 구독만 정리한다. 백엔드가 사용자 삭제 과정에서 저장된 토큰을 함께 제거하기 때문이다.
 
 ---
@@ -333,7 +335,6 @@ GET /api/ward/transactions/:transactionId
 
 ```dotenv
 VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
 VITE_FIREBASE_PROJECT_ID=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
@@ -370,7 +371,7 @@ Firebase Web config와 VAPID 공개키는 브라우저 번들에 포함되는 �
   - `injectManifest`가 `dist/sw.js`를 생성하는 것 확인
   - Workbox precache manifest 주입 확인
 - Web `vitest run`: 통과
-  - web 262개
+  - web 267개
 - `pnpm audit --prod`: 알려진 취약점 없음
 - `git diff --check`: 통과
 
@@ -382,6 +383,7 @@ Firebase Web config와 VAPID 공개키는 브라우저 번들에 포함되는 �
 - 로그인 전 푸시 목적지 보존
 - 로그아웃 시 서버 토큰 해제와 로컬 정리 순서
 - Firebase 토큰 삭제 실패 후 동기화 상태 초기화
+- Firebase 초기화 실패 후 재시도
 - 서비스 워커 등록 실패 후 재시도
 - 직접 data 및 `FCM_MSG.data` 클릭 payload 추출
 - 권한 상태별 토큰 발급·등록
@@ -419,6 +421,7 @@ FCM 변경으로 영향을 받았던 마이페이지 관련 실패는 개발 환
 - [ ] 로그인 후 PUT 요청에 현재 사용자의 Access Token이 포함되는가
 - [ ] 로그아웃 시 DELETE가 인증 세션 삭제보다 먼저 실행되는가
 - [ ] DELETE 실패에도 로컬 로그아웃이 완료되는가
+- [ ] 세션 만료 시 로그인 페이지 이동 전에 로컬 Firebase 구독이 정리되는가
 - [ ] 포그라운드에서 검증된 제목·본문이 공통 상태에 저장되는가
 - [ ] 서비스 워커가 Firebase SDK의 자동 알림을 중복 생성하지 않는가
 - [ ] 잘못된 payload가 라우팅을 일으키지 않는가
