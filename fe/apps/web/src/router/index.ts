@@ -95,7 +95,10 @@ import {
   requireTransferIntent,
   requireTransferRecipient,
 } from '@/pages/ward/transfer/-utils/transfer-route-guard'
-import { getRoleHomePath } from '@/router/auth-navigation'
+import {
+  getRoleHomePath,
+  getUnauthenticatedSignInQuery,
+} from '@/router/auth-navigation'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -711,9 +714,11 @@ router.beforeEach(async (to) => {
 
     return {
       name: 'auth-sign-in',
-      query: sessionExpired
-        ? { reason: 'session-expired', redirect: to.fullPath }
-        : undefined,
+      query: getUnauthenticatedSignInQuery(
+        to.fullPath,
+        to.query.source,
+        sessionExpired,
+      ),
     }
   }
 
@@ -722,11 +727,12 @@ router.beforeEach(async (to) => {
 
     try {
       const user = await getUser(userId)
-      const expectedRole = to.path.startsWith('/guard/')
-        ? 'GUARD'
-        : to.path.startsWith('/ward/')
-          ? 'WARD'
-          : null
+      const expectedRole =
+        to.path === '/guard' || to.path.startsWith('/guard/')
+          ? 'GUARD'
+          : to.path === '/ward' || to.path.startsWith('/ward/')
+            ? 'WARD'
+            : null
       return expectedRole && user.role !== expectedRole
         ? getRoleHomePath(user.role)
         : true

@@ -48,4 +48,16 @@ describe('guard detail routes', () => {
   ])('%s는 상세 라우트와 매칭되지 않는다', (path) => {
     expect(router.resolve(path).matched).toHaveLength(0)
   })
+
+  it('비로그인 푸시 상세 진입은 로그인 후 복구할 목적지를 보존한다', async () => {
+    localStorage.clear()
+    const destination = '/guard/history/42?source=push&wardId=7'
+
+    await router.push(destination)
+
+    expect(router.currentRoute.value).toMatchObject({
+      name: 'auth-sign-in',
+      query: { redirect: destination },
+    })
+  })
 })

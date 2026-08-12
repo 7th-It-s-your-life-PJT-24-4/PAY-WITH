@@ -10,6 +10,16 @@ export type PushNotificationDestination = {
   path: string
 }
 
+export function extractPushNotificationData(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return null
+  const record = value as Record<string, unknown>
+  if ('type' in record) return record
+
+  const fcmMessage = record.FCM_MSG
+  if (!fcmMessage || typeof fcmMessage !== 'object') return null
+  return (fcmMessage as Record<string, unknown>).data
+}
+
 export function resolvePushNotificationDestination(
   value: unknown,
 ): PushNotificationDestination | null {
@@ -28,7 +38,9 @@ export function resolvePushNotificationDestination(
     return {
       data,
       expectedRole: 'GUARD',
-      path: `/guard/history/${data.refId}?source=push`,
+      path: data.wardId
+        ? `/guard/history/${data.refId}?source=push&wardId=${data.wardId}`
+        : '/guard?source=push',
     }
   }
   return {

@@ -12,6 +12,8 @@ export const pushNotificationDataSchema = z.discriminatedUnion('type', [
     type: z.literal('ANOMALY'),
     refType: z.literal('TRANSACTION'),
     refId: refIdSchema,
+    // wardId 추가 전 발송되어 FCM에 대기 중인 알림도 안전한 홈 fallback으로 처리한다.
+    wardId: refIdSchema.optional(),
   }),
   z.object({
     type: z.literal('APPROVAL_RESULT'),
