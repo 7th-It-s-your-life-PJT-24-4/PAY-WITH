@@ -4,6 +4,8 @@ packages:
 
 overrides:
   'glob@^10.4.2': ^13.0.6
+  'nanoid@<3.3.17': 3.3.18
+  'postcss@<=8.5.22': 8.5.26
 
 catalog:
   '@eslint/js': ^10.0.1
@@ -31,7 +33,7 @@ catalog:
   lefthook: ^2.1.10
   pinia: ^3.0.4
   playwright: ^1.61.1
-  postcss: ^8.5.18
+  postcss: ^8.5.23
   prettier: ^3.9.5
   reka-ui: ^2.10.1
   qrcode.vue: ^3.10.0
