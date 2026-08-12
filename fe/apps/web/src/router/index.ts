@@ -30,6 +30,7 @@ import GuardTransactionDetailPage from '@/pages/guard/history/[id]/page.vue'
 import GuardHistoryPage from '@/pages/guard/history/page.vue'
 import GuardLayout from '@/pages/guard/layout.vue'
 import GuardMyPage from '@/pages/guard/my/page.vue'
+import GuardMyPushNotificationsPage from '@/pages/guard/my/push-notifications/page.vue'
 import GuardMyProfileEditPage from '@/pages/guard/my/profile/edit.vue'
 import GuardMyProfilePage from '@/pages/guard/my/profile/page.vue'
 import GuardMySeniorsPage from '@/pages/guard/my/seniors/page.vue'
@@ -273,6 +274,12 @@ const router = createRouter({
           name: 'guard-my-seniors',
           component: GuardMySeniorsPage,
           meta: { activeNavigation: 'my', showBottomNavigation: false },
+        },
+        {
+          path: 'my/push-notifications',
+          name: 'guard-my-push-notifications',
+          component: GuardMyPushNotificationsPage,
+          meta: { activeNavigation: 'my' },
         },
         {
           path: 'my/terms/:termId',
