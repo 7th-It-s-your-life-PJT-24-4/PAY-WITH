@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getToken: vi.fn(),
   initializeApp: vi.fn(),
   isSupported: vi.fn(),
+  ensureServiceWorkerRegistration: vi.fn(),
 }))
 
 vi.mock('firebase/app', () => ({
@@ -21,6 +22,10 @@ vi.mock('firebase/messaging', () => ({
   getMessaging: mocks.getMessaging,
   getToken: mocks.getToken,
   isSupported: mocks.isSupported,
+}))
+
+vi.mock('@/lib/service-worker', () => ({
+  ensureServiceWorkerRegistration: mocks.ensureServiceWorkerRegistration,
 }))
 
 describe('Firebase Messaging 초기화', () => {
@@ -40,6 +45,9 @@ describe('Firebase Messaging 초기화', () => {
     mocks.getApps.mockReturnValue([])
     mocks.initializeApp.mockReturnValue({ name: 'pay-with' })
     mocks.getMessaging.mockReturnValue({ app: { name: 'pay-with' } })
+    mocks.getToken.mockResolvedValue('device-token')
+    mocks.deleteToken.mockResolvedValue(true)
+    mocks.ensureServiceWorkerRegistration.mockResolvedValue({ scope: '/' })
   })
 
   it('전달받은 Firebase Web config로 초기화한다', async () => {
@@ -69,5 +77,24 @@ describe('Firebase Messaging 초기화', () => {
     await expect(getFirebaseMessaging()).resolves.toBeTruthy()
 
     expect(mocks.isSupported).toHaveBeenCalledTimes(2)
+  })
+
+  it('커스텀 서비스 워커를 Messaging에 연결한 뒤 토큰을 삭제한다', async () => {
+    mocks.isSupported.mockResolvedValue(true)
+    const { deleteCurrentFcmToken } = await import('@/lib/firebase')
+
+    await deleteCurrentFcmToken()
+
+    expect(mocks.getToken).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        serviceWorkerRegistration: { scope: '/' },
+        vapidKey: 'vapid-key',
+      }),
+    )
+    expect(mocks.deleteToken).toHaveBeenCalledOnce()
+    expect(mocks.getToken.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.deleteToken.mock.invocationCallOrder[0] ?? 0,
+    )
   })
 })
