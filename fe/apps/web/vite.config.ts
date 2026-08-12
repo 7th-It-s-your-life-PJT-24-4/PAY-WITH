@@ -7,6 +7,9 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       injectRegister: false,
       includeAssets: ['pwa-icon.svg'],
@@ -28,10 +31,9 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
-        cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,svg,png,webp}'],
+        rollupFormat: 'iife',
       },
     }),
   ],
