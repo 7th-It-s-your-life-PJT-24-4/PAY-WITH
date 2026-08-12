@@ -54,7 +54,18 @@ test('등록 계좌가 없으면 계좌를 추가한 뒤 충전을 이어간다'
   await page.getByRole('button', { name: '은행/증권사를 선택해주세요' }).click()
   await page.getByRole('button', { name: /KB국민은행/ }).click()
   await page.getByLabel('계좌번호').fill('11012300006781')
-  await page.getByLabel('계좌 비밀번호').fill('1234')
+  await page.getByLabel('계좌 비밀번호').click()
+
+  const passwordSheet = page.getByRole('dialog', {
+    name: '계좌 비밀번호 입력',
+  })
+  await expect(passwordSheet).toBeVisible()
+  for (const digit of '1234') {
+    await passwordSheet
+      .getByRole('button', { name: digit, exact: true })
+      .click()
+  }
+  await expect(passwordSheet).toBeHidden()
 
   const registerRequest = page.waitForRequest(
     (request) =>
