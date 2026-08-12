@@ -97,11 +97,19 @@ export async function startPushNotifications(router: Router): Promise<void> {
   started = true
   updatePermission()
 
+  let registration: ServiceWorkerRegistration | null
   try {
-    await ensureServiceWorkerRegistration()
+    registration = await ensureServiceWorkerRegistration()
   } catch (error) {
     console.warn('서비스 워커를 등록하지 못했습니다.', error)
     availability.value = hasFirebaseConfig() ? 'unsupported' : 'disabled'
+    started = false
+    return
+  }
+
+  if (!registration) {
+    availability.value = 'disabled'
+    started = false
     return
   }
 
@@ -116,6 +124,7 @@ export async function startPushNotifications(router: Router): Promise<void> {
   } catch (error) {
     console.warn('Firebase Messaging을 초기화하지 못했습니다.', error)
     availability.value = 'unsupported'
+    started = false
     return
   }
   if (!messaging || typeof Notification === 'undefined') {

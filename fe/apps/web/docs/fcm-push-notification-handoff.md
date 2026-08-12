@@ -370,7 +370,7 @@ Firebase Web config와 VAPID 공개키는 브라우저 번들에 포함되는 �
   - `injectManifest`가 `dist/sw.js`를 생성하는 것 확인
   - Workbox precache manifest 주입 확인
 - Web `vitest run`: 통과
-  - web 260개
+  - web 262개
 - `pnpm audit --prod`: 알려진 취약점 없음
 - `git diff --check`: 통과
 
