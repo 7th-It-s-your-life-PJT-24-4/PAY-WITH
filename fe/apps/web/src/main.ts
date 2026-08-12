@@ -8,9 +8,11 @@ import { clearLocalPushSubscription } from '@/api/push-session'
 import { startAccessTokenRefreshScheduler } from '@/api/token-refresh'
 import { startPushNotifications } from '@/composables/usePushNotification'
 import router from '@/router'
+import { initializeSentry } from '@/lib/sentry'
 import '@/style.css'
 
 const app = createApp(App)
+initializeSentry(app, router)
 
 configureSessionExpiredHandler(async () => {
   const currentPath = router.currentRoute.value.fullPath
