@@ -50,9 +50,41 @@
     WHERE user_id = #{id}
   </update>
 
+  <update id="updateFcmToken">
+    UPDATE users
+    <!-- 해제는 null 을 넣는 경로라 jdbcType 을 명시한다 (null 은 타입 추론이 안 된다) -->
+    SET fcm_token = #{fcmToken, jdbcType=VARCHAR}
+    WHERE user_id = #{id}
+  </update>
+
+  <update id="clearFcmTokenFromOtherUsers">
+    UPDATE users
+    SET fcm_token = NULL
+    WHERE fcm_token = #{fcmToken}
+      AND user_id != #{id}
+  </update>
+
+  <update id="clearFcmTokenIfMatches">
+    UPDATE users
+    SET fcm_token = NULL
+    WHERE user_id = #{id}
+      AND fcm_token = #{fcmToken}
+  </update>
+
+  <update id="clearFcmTokens">
+    UPDATE users
+    SET fcm_token = NULL
+    WHERE fcm_token IN
+    <foreach item="token" collection="tokens" open="(" separator="," close=")">
+      #{token}
+    </foreach>
+  </update>
+
+  <!-- 토큰도 함께 지운다. 남겨두면 탈퇴한 보호자가 피보호자의 거래 알림을 계속 받는다. -->
   <update id="delete">
     UPDATE users
-    SET status = 'WITHDRAWN'
+    SET status = 'WITHDRAWN',
+        fcm_token = NULL
     WHERE user_id = #{id}
     AND status != 'WITHDRAWN'
   </update>

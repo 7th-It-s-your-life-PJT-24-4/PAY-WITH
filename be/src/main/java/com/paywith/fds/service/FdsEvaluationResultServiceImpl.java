@@ -1,5 +1,6 @@
 package com.paywith.fds.service;
 
+import com.paywith.approval.domain.ApprovalRequest;
 import com.paywith.approval.service.ApprovalRequestService;
 import com.paywith.exception.BusinessException;
 import com.paywith.fds.domain.RiskEvaluation;
@@ -9,6 +10,7 @@ import com.paywith.fds.dto.TriggeredRule;
 import com.paywith.fds.mapper.RiskEvaluationDetailMapper;
 import com.paywith.fds.mapper.RiskEvaluationMapper;
 import com.paywith.fds.mapper.TransactionRiskMapper;
+import com.paywith.notification.service.TransferNotifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,17 +22,20 @@ public class FdsEvaluationResultServiceImpl implements FdsEvaluationResultServic
     private final RiskEvaluationDetailMapper riskEvaluationDetailMapper;
     private final TransactionRiskMapper transactionRiskMapper;
     private final ApprovalRequestService approvalRequestService;
+    private final TransferNotifier transferNotifier;
 
     public FdsEvaluationResultServiceImpl(
         RiskEvaluationMapper riskEvaluationMapper,
         RiskEvaluationDetailMapper riskEvaluationDetailMapper,
         TransactionRiskMapper transactionRiskMapper,
-        ApprovalRequestService approvalRequestService
+        ApprovalRequestService approvalRequestService,
+        TransferNotifier transferNotifier
     ) {
         this.riskEvaluationMapper = riskEvaluationMapper;
         this.riskEvaluationDetailMapper = riskEvaluationDetailMapper;
         this.transactionRiskMapper = transactionRiskMapper;
         this.approvalRequestService = approvalRequestService;
+        this.transferNotifier = transferNotifier;
     }
 
     @Override
@@ -62,9 +67,15 @@ public class FdsEvaluationResultServiceImpl implements FdsEvaluationResultServic
                 "위험도를 반영할 거래를 찾을 수 없습니다. transactionId=" + transactionId);
         }
 
+        // 알림 행은 이 트랜잭션에서 남기고 발송은 커밋 이후에 나간다(NotificationServiceImpl).
+        // 판정이 롤백되면 알림도 함께 사라져야 하기 때문이다.
         if (decision.isHeld()) {
-            approvalRequestService.create(transactionId);
+            // 승인 요청 알림은 보호자를 승인 화면으로 보내야 해서 approvalId 가 필요하다.
+            // insert 가 useGeneratedKeys 로 PK 를 채워 주므로 다시 조회하지 않는다.
+            ApprovalRequest approvalRequest = approvalRequestService.create(transactionId);
+            transferNotifier.notifyApprovalRequested(transactionId, approvalRequest.getApprovalId());
+        } else {
+            transferNotifier.notifyRiskDetected(transactionId, decision);
         }
-        // TODO CAUTION 알림. notifications 행은 이 트랜잭션에서, 발송은 커밋 이후에.
     }
 }

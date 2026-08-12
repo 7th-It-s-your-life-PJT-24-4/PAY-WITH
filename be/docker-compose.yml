@@ -34,6 +34,12 @@ services:
     container_name: pay-with-api
     env_file:
       - .env
+    volumes:
+      # Firebase 서비스 계정 키. 이미지에 굽지 않고 마운트로만 넣는다(GHCR 에 올라가면 안 된다).
+      # 파일이 아니라 디렉터리를 마운트하는 이유는, 파일 경로를 지정했는데 호스트에 그 파일이
+      # 없으면 Docker 가 같은 이름의 빈 디렉터리를 만들어 버려 더 헷갈리기 때문이다.
+      # secrets/ 가 없으면 빈 디렉터리로 생성되는데, FCM_ENABLED 기본값이 false 라 읽지 않는다.
+      - ./secrets:/etc/paywith:ro
     depends_on:
       mysql:
         condition: service_healthy

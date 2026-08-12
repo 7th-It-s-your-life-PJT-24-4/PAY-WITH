@@ -11,11 +11,48 @@
     VALUES (#{userId}, #{type}, #{title}, #{body}, #{refType}, #{refId})
   </insert>
 
-  <!-- 수신자 기준은 승인 목록(ApprovalRequestMapper viewJoins)과 같은 의미다: ACTIVE 페어링 보호자만 -->
+  <!-- 수신자 기준은 승인 목록(ApprovalRequestMapper viewJoins)과 같은 의미다: ACTIVE 페어링 보호자만.
+       탈퇴자를 빼는 조건은 아래 findActiveGuardTokens 와 반드시 같이 움직여야 한다 — 한쪽만
+       걸러지면 알림 행은 남았는데 발송은 안 되는(또는 그 반대) 이유를 추적할 수 없다.
+       탈퇴 시 페어링(guard_senior)까지 REVOKED 로 정리하는 건 별도 과제라 여기서 막는다. -->
   <select id="findActiveGuardIds" resultType="long">
-    SELECT guard_id
-    FROM guard_senior
-    WHERE senior_id = #{seniorId}
-      AND status = 'ACTIVE'
+    SELECT gs.guard_id
+    FROM guard_senior gs
+           JOIN users u ON u.user_id = gs.guard_id
+    WHERE gs.senior_id = #{seniorId}
+      AND gs.status = 'ACTIVE'
+      AND u.status != 'WITHDRAWN'
+  </select>
+
+  <!-- 위 findActiveGuardIds 와 대상이 같아야 한다. 토큰 미등록(NULL)만 빠진다 -->
+  <select id="findActiveGuardTokens" resultType="string">
+    SELECT u.fcm_token
+    FROM guard_senior gs
+           JOIN users u ON u.user_id = gs.guard_id
+    WHERE gs.senior_id = #{seniorId}
+      AND gs.status = 'ACTIVE'
+      AND u.status != 'WITHDRAWN'
+      AND u.fcm_token IS NOT NULL
+  </select>
+
+  <select id="findFcmTokenByUserId" resultType="string">
+    SELECT fcm_token
+    FROM users
+    WHERE user_id = #{userId}
+      AND status != 'WITHDRAWN'
+      AND fcm_token IS NOT NULL
+  </select>
+
+  <!-- 거래 -> 지갑 -> 소유자. wallets 는 1인 1지갑(uk_wallets_user)이라 결과가 하나로 정해진다.
+       수취인은 LEFT JOIN 이다 — 충전처럼 recipient_id 가 NULL 인 거래에서도 소유자는 나와야 한다 -->
+  <select id="findTransferNotificationInfo"
+          resultType="com.paywith.notification.domain.TransferNotificationInfo">
+    SELECT w.user_id      AS wardId,
+           t.amount       AS amount,
+           r.holder_name  AS recipientName
+    FROM transactions t
+           JOIN wallets w ON w.wallet_id = t.wallet_id
+           LEFT JOIN recipients r ON r.recipient_id = t.recipient_id
+    WHERE t.transaction_id = #{transactionId}
   </select>
 </mapper>
