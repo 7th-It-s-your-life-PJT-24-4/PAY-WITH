@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import WardBottomNavigation from '@/pages/ward/-components/WardBottomNavigation.vue'
+import ForegroundPushNotification from '@/components/notifications/ForegroundPushNotification.vue'
 import { usePairingStore } from '@/stores/pairing.store'
 
 type WardNavigationValue = 'transfer' | 'home' | 'payment'
@@ -69,6 +70,7 @@ function handleNavigate(value: string) {
             : 'pb-xl'
         "
       >
+        <ForegroundPushNotification />
         <RouterView />
       </main>
 

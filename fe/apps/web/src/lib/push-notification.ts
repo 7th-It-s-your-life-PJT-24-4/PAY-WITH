@@ -44,6 +44,6 @@ export function resolvePushNotificationDestination(
   return {
     data,
     expectedRole: 'WARD',
-    path: '/ward?source=push',
+    path: `/ward/history/${data.refId}?source=push`,
   }
 }

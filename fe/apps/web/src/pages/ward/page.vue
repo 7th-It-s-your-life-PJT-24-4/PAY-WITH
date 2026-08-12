@@ -11,6 +11,7 @@ import { wardWalletOptions } from '@/lib/query/ward/wallet'
 import WardBalanceCard from '@/pages/ward/-components/WardBalanceCard.vue'
 import WardPendingTransactionList from '@/pages/ward/-components/WardPendingTransactionList.vue'
 import WardPendingTransactionSummaryCard from '@/pages/ward/-components/WardPendingTransactionSummaryCard.vue'
+import WardPushNotificationPermissionCard from '@/pages/ward/-components/WardPushNotificationPermissionCard.vue'
 import WardUnpairedHome from '@/pages/ward/-components/WardUnpairedHome.vue'
 import { useChargeStore } from '@/stores/charge.store'
 import { usePairingStore } from '@/stores/pairing.store'
@@ -137,6 +138,10 @@ watch(
         >님 안녕하세요
       </h1>
     </section>
+
+    <WardPushNotificationPermissionCard
+      description="송금 결과와 보호자 처리 결과를 놓치지 않도록 알려드려요."
+    />
 
     <WardBalanceCard :balance="balance ?? '0'" :locked="isWalletLocked" />
 
