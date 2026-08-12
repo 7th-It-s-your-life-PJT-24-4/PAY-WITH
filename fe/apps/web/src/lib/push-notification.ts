@@ -31,21 +31,19 @@ export function resolvePushNotificationDestination(
     return {
       data,
       expectedRole: 'GUARD',
-      path: `/guard/approval-requests/${data.refId}?source=push`,
+      path: '/guard?source=push',
     }
   }
   if (data.type === 'ANOMALY') {
     return {
       data,
       expectedRole: 'GUARD',
-      path: data.wardId
-        ? `/guard/history/${data.refId}?source=push&wardId=${data.wardId}`
-        : '/guard?source=push',
+      path: '/guard?source=push',
     }
   }
   return {
     data,
     expectedRole: 'WARD',
-    path: `/ward/history/${data.refId}?source=push`,
+    path: '/ward?source=push',
   }
 }

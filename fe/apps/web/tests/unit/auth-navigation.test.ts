@@ -39,7 +39,7 @@ describe('getSafePostLoginPath', () => {
 
 describe('getUnauthenticatedSignInQuery', () => {
   it('로그아웃 상태의 푸시 목적지를 로그인 후 복구하도록 보존한다', () => {
-    const destination = '/guard/history/8?source=push&wardId=12'
+    const destination = '/guard?source=push'
 
     expect(getUnauthenticatedSignInQuery(destination, 'push', false)).toEqual({
       redirect: destination,

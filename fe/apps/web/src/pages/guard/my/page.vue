@@ -12,7 +12,6 @@ import {
   unregisterPushNotifications,
 } from '@/api/push-session'
 import { getUserIdFromAccessToken, tokenStorage } from '@/api/token-storage'
-import PushNotificationPermissionCard from '@/components/PushNotificationPermissionCard.vue'
 import { useDeleteUserMutation } from '@/composables/useDeleteUserMutation'
 import GuardMyHeader from '@/pages/guard/my/-components/GuardMyHeader.vue'
 
@@ -82,8 +81,6 @@ async function withdraw() {
 <template>
   <main class="min-h-screen pb-[calc(66px+env(safe-area-inset-bottom))]">
     <GuardMyHeader title="마이페이지" />
-
-    <PushNotificationPermissionCard />
 
     <section aria-label="마이페이지 메뉴">
       <div class="px-mobile-gutter">

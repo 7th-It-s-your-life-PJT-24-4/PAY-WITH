@@ -8,11 +8,11 @@
 
 ## 1. 현재 상태 요약
 
-FCM 공통 기반, 토큰 등록·해제, 포그라운드 수신 UI, 백그라운드 서비스 워커, 알림 클릭 경로 계산, 역할 검증, 로그인 후 목적지 복구, 빌드·배포 환경 변수 전달까지 구현되어 있다.
+Issue #206 범위인 FCM 공통 기반, 토큰 등록·해제, 포그라운드 수신 상태, 백그라운드 서비스 워커, payload 검증, 역할 검증, 로그인 후 안전한 복구, 빌드·배포 환경 변수 전달까지 구현되어 있다.
 
-보호자 `ANOMALY` payload에는 `wardId`를 추가해 앱 콜드 스타트에서도 Pinia 선택 상태 없이 거래 상세 API를 호출할 수 있다. `wardId` 추가 전에 발송되어 FCM에 남아 있는 알림은 보호자 홈으로 안전하게 이동한다.
+Issue #207·#208의 책임인 사용자 노출용 포그라운드 알림 UI, 역할별 화면의 권한 UI 장착, 승인·거래 상세 직접 진입, 알림 유형별 UX는 구현하지 않았다. 클릭 시에는 검증된 대상 역할의 홈까지만 이동하며, 원본 `type`, `refType`, `refId`는 후속 라우팅 구현에서 사용할 수 있도록 공통 계층이 유지한다. 백엔드 payload 계약도 PR #204 상태에서 변경하지 않았다.
 
-코드 기반 공통 흐름은 완료됐으며, 실제 Firebase 프로젝트 값을 적용한 기기 스모크 테스트는 아직 수행하지 않았다.
+실제 Firebase 프로젝트 값을 적용한 기기 스모크 테스트는 아직 수행하지 않았다.
 
 ---
 
@@ -36,20 +36,19 @@ flowchart TD
     B --> C[서비스 워커 등록]
     B --> D[Firebase Messaging 지원 여부 확인]
     D --> E{알림 권한 granted?}
-    E -- 아니오 --> F[마이페이지 권한 안내 카드]
+    E -- 아니오 --> F[공통 권한 상태 제공]
     E -- 예 --> G[getToken]
     G --> H[PUT /users/me/fcm-token]
     H --> I[사용자 ID와 토큰을 localStorage에 저장]
 
     J[FCM 메시지] --> K{앱 상태}
     K -- 포그라운드 --> L[onMessage]
-    L --> M[앱 상단 알림 배너]
-    M --> N[역할별 상세 경로 이동]
+    L --> M[검증된 포그라운드 수신 상태 저장]
     K -- 백그라운드 또는 종료 --> O[Firebase/OS 알림]
     O --> P[notificationclick]
     P --> Q{열린 앱 창 존재?}
     Q -- 예 --> R[창 focus 후 postMessage]
-    Q -- 아니오 --> S[목적지 URL로 새 창 열기]
+    Q -- 아니오 --> S[대상 역할 홈으로 새 창 열기]
 
     T[명시적 로그아웃] --> U[DELETE /users/me/fcm-token]
     U --> V[Firebase 토큰 및 로컬 토큰 삭제]
@@ -144,15 +143,15 @@ DELETE 요청에도 토큰 본문이 필요하다. 다른 기기에서 새 토�
 
 ---
 
-## 5. 알림 payload와 현재 라우팅
+## 5. 알림 payload와 공통 라우팅
 
 백엔드는 `notification`에 제목·본문을, `data`에 클릭 대상 식별자를 보낸다. `refId`는 문자열이며 반드시 `refType`과 함께 해석해야 한다.
 
-| `type`             | `refType`     | `refId` 의미 | 대상 역할 | 현재 FE 목적지                                     | 실제 페이지 연동 상태                 |
-| ------------------ | ------------- | ------------ | --------- | -------------------------------------------------- | ------------------------------------- |
-| `APPROVAL_REQUEST` | `APPROVAL`    | 승인 요청 ID | `GUARD`   | `/guard/approval-requests/:refId?source=push`      | API 조회와 승인·거절까지 연결됨       |
-| `ANOMALY`          | `TRANSACTION` | 거래 ID      | `GUARD`   | `/guard/history/:refId?source=push&wardId=:wardId` | `wardId`와 함께 콜드 스타트 조회 가능 |
-| `APPROVAL_RESULT`  | `TRANSACTION` | 거래 ID      | `WARD`    | `/ward/history/:refId?source=push`                 | 거래 ID만으로 API 조회 가능           |
+| `type`             | `refType`     | `refId` 의미 | 대상 역할 | #206 현재 목적지     | 상세 연동 이슈 |
+| ------------------ | ------------- | ------------ | --------- | -------------------- | -------------- |
+| `APPROVAL_REQUEST` | `APPROVAL`    | 승인 요청 ID | `GUARD`   | `/guard?source=push` | #207           |
+| `ANOMALY`          | `TRANSACTION` | 거래 ID      | `GUARD`   | `/guard?source=push` | #207           |
+| `APPROVAL_RESULT`  | `TRANSACTION` | 거래 ID      | `WARD`    | `/ward?source=push`  | #208           |
 
 `src/schemas/push-notification.schema.ts`는 위 세 조합만 허용한다. 다음 payload는 화면 이동 없이 무시한다.
 
@@ -161,9 +160,7 @@ DELETE 요청에도 토큰 본문이 필요하다. 다른 기기에서 새 토�
 - 누락된 `refId`
 - 0, 음수, 숫자가 아닌 `refId`
 
-`ANOMALY`에는 피보호자 ID인 `wardId`가 추가로 포함된다. 새 알림은 양의 정수 문자열인 `wardId`를 요구하며, 이 필드가 없는 이전 알림은 상세를 잘못 추정하지 않고 `/guard?source=push`로 이동한다.
-
-`src/lib/push-notification.ts`의 `resolvePushNotificationDestination()`가 payload 검증, 역할, 목적지 경로 계산을 담당한다. 포그라운드와 서비스 워커가 같은 함수를 사용하므로 새 알림 유형을 추가할 때 이 파일을 단일 기준으로 유지해야 한다.
+`src/lib/push-notification.ts`의 `resolvePushNotificationDestination()`가 payload 검증과 대상 역할의 안전한 홈 경로 계산을 담당한다. 상세 경로는 #207·#208에서 연결한다. 포그라운드와 서비스 워커가 같은 함수를 사용하므로 새 알림 유형을 추가할 때 이 파일을 단일 기준으로 유지해야 한다.
 
 ---
 
@@ -172,13 +169,14 @@ DELETE 요청에도 토큰 본문이 필요하다. 다른 기기에서 새 토�
 앱이 열린 상태에서는 Firebase `onMessage()`가 메시지를 받는다.
 
 1. payload `data`를 공통 Zod 스키마로 검증한다.
-2. 유효하면 `foregroundNotification` 상태에 제목·본문·목적지를 저장한다.
-3. `App.vue`에 전역 배치된 `PushNotificationBanner.vue`가 상단 배너를 표시한다.
-4. 배너 본문을 누르면 목적지로 이동하고, 닫기 버튼을 누르면 배너만 제거한다.
+2. 유효하면 `foregroundNotification` 상태에 제목·본문·대상 역할 홈을 저장한다.
+3. 공통 composable이 이 상태를 제공한다.
+
+현재 `App.vue`나 역할별 페이지에는 이 상태를 표시하는 UI가 연결되어 있지 않다. #207은 보호자 승인 요청 CTA와 이상거래 UX를, #208은 피보호자 송금 결과 UI를 각각 구현해야 한다.
 
 서버가 보낸 제목·본문이 없을 때만 FE 기본 문구를 사용한다.
 
-현재 배너는 마지막 알림 한 건만 보관한다. 알림함이나 여러 알림 큐는 이번 범위가 아니다.
+공통 상태는 마지막 알림 한 건만 보관한다. 알림함이나 여러 알림 큐는 이번 범위가 아니다.
 
 ---
 
@@ -195,7 +193,7 @@ DELETE 요청에도 토큰 본문이 필요하다. 다른 기기에서 새 토�
 - 열린 앱 창 focus 및 `postMessage`
 - 열린 앱이 없으면 목적지 URL로 새 창 열기
 
-PR #204의 백엔드는 `notification` payload를 함께 보내므로 백그라운드에서는 Firebase/브라우저가 OS 알림을 자동 표시한다. `onBackgroundMessage()`에서 같은 알림을 다시 표시하면 중복되므로, 현재 코드는 `notification`이 없는 data-only 메시지일 때만 기본 알림을 직접 표시한다.
+PR #204의 백엔드는 `notification` payload를 함께 보내므로 권한이 허용된 브라우저에서는 Firebase SDK가 OS 알림을 처리한다. FE 서비스 워커는 Firebase Messaging 초기화와 클릭 전달 기반만 제공하며, data-only 메시지에 대한 커스텀 `showNotification()` UI는 구현하지 않았다.
 
 브라우저가 생성한 알림 클릭 데이터는 환경에 따라 최상위 데이터이거나 `FCM_MSG.data`에 들어올 수 있어 두 형태를 모두 해석한다.
 
@@ -213,7 +211,7 @@ Nginx는 `/sw.js`에 `Cache-Control: no-cache`를 붙인다. 서비스 워커를
 
 ## 8. 권한 UI와 브라우저별 처리
 
-`PushNotificationPermissionCard.vue`는 현재 보호자·피보호자 마이페이지에 배치되어 있다.
+`PushNotificationPermissionCard.vue`는 권한 상태별 공통 UI로 준비되어 있지만 보호자·피보호자 페이지에는 배치하지 않았다. 실제 노출 위치와 역할별 문구는 #207·#208에서 결정한다.
 
 | 상태               | UI 동작                                  |
 | ------------------ | ---------------------------------------- |
@@ -261,9 +259,9 @@ Issue #206의 “로그인 전 알림 클릭을 위한 pending destination 저�
 
 ---
 
-## 10. 실제 기능 페이지 연동 방법
+## 10. #207·#208 실제 기능 페이지 연동 방법
 
-푸시 공통 계층은 목적지까지만 계산한다. 상세 페이지는 URL만으로 새로고침·콜드 스타트가 가능해야 하며, Pinia의 일시 상태나 이전 목록 화면에 의존하면 안 된다.
+푸시 공통 계층은 payload를 검증하고 대상 역할 홈까지만 계산한다. #207·#208에서 상세 경로를 연결할 때 상세 페이지는 URL만으로 새로고침·콜드 스타트가 가능해야 하며, Pinia의 일시 상태나 이전 목록 화면에 의존하면 안 된다.
 
 ### 공통 구현 원칙
 
@@ -277,7 +275,7 @@ Issue #206의 “로그인 전 알림 클릭을 위한 pending destination 저�
 
 ### `APPROVAL_REQUEST` → 보호자 승인 상세
 
-현재 `/guard/approval-requests/:id` 페이지는 `approvalId`만으로 상세 API를 조회하고 승인·거절 mutation까지 수행한다. 푸시 직접 진입에 필요한 기본 연동은 완료되어 있다.
+후속 #207에서 `/guard/approval-requests/:id`로 연결한다. 현재 페이지는 `approvalId`만으로 상세 API를 조회하고 승인·거절 mutation을 수행할 수 있지만, 공통 푸시 계층은 아직 이 경로를 반환하지 않는다.
 
 후속 점검 사항:
 
@@ -293,15 +291,13 @@ Issue #206의 “로그인 전 알림 클릭을 위한 pending destination 저�
 GET /api/guard/wards/:wardId/transactions/:transactionId
 ```
 
-BE의 보호자 `ANOMALY` data payload에 `wardId`를 추가했고 FE 목적지에도 query로 전달한다.
+PR #204의 payload에는 `transactionId`만 있고 `wardId`가 없다. 공통 계층은 이를 임의로 추정하지 않고 보호자 홈으로 이동한다. 후속 #207에서는 다음 중 계약을 확정한 뒤 상세 경로를 연결해야 한다.
 
-```text
-/guard/history/:transactionId?source=push&wardId=:wardId
-```
+1. BE가 소유권을 검사하는 거래 ID 단독 상세 API 제공
+2. `ANOMALY` payload에 `wardId` 추가
+3. 거래 ID로 소속 피보호자를 조회하는 API 제공
 
-따라서 페이지는 Pinia의 `activeWardId` 없이도 기존 상세 API를 호출할 수 있다. 다른 보호자의 거래나 잘못된 ward 조합에 대한 소유권 검증은 기존 BE `TransactionHistoryService`가 계속 담당한다.
-
-이전 버전 BE가 발송해 `wardId`가 없는 알림은 잘못된 피보호자를 추정하지 않고 보호자 홈으로 이동한다.
+계약 확정 전에는 Pinia의 `activeWardId`를 콜드 스타트의 근거로 사용하지 않는다.
 
 ### `APPROVAL_RESULT` → 피보호자 거래 상세
 
@@ -311,7 +307,7 @@ BE의 보호자 `ANOMALY` data payload에 `wardId`를 추가했고 FE 목적지�
 GET /api/ward/transactions/:transactionId
 ```
 
-사용자 ID는 인증 토큰에서 판단하므로 URL의 거래 ID만으로 직접 조회할 수 있다. 푸시 연동에 적합한 구조다.
+사용자 ID는 인증 토큰에서 판단하므로 URL의 거래 ID만으로 직접 조회할 수 있다. 후속 #208에서 `/ward/history/:transactionId` 경로와 유형별 표시 UI를 연결한다.
 
 후속 점검 사항:
 
@@ -326,7 +322,7 @@ GET /api/ward/transactions/:transactionId
 3. `resolvePushNotificationDestination()`에 대상 역할과 직접 진입 가능한 경로를 추가한다.
 4. 상세 페이지가 URL 식별자만으로 API를 조회하는지 확인한다.
 5. payload 유효·무효 조합 단위 테스트를 추가한다.
-6. 포그라운드 배너 클릭, 열린 앱의 OS 알림 클릭, 앱 종료 상태 클릭을 각각 검증한다.
+6. 역할별 표시 UI 클릭, 열린 앱의 OS 알림 클릭, 앱 종료 상태 클릭을 각각 검증한다.
 7. 로그인·로그아웃 및 역할 불일치 상태를 함께 검증한다.
 
 ---
@@ -375,11 +371,10 @@ Firebase Web config와 VAPID 공개키는 브라우저 번들에 포함되는 �
   - `injectManifest`가 `dist/sw.js`를 생성하는 것 확인
   - Workbox precache manifest 주입 확인
 - `pnpm test`: 통과
-  - web 262개
+  - web 260개
   - UI 30개
-  - 합계 292개
+  - 합계 290개
 - `pnpm audit --prod`: 알려진 취약점 없음
-- BE `NotificationServiceImplTest`: 통과
 - `git diff --check`: 통과
 
 추가된 주요 단위 테스트:
@@ -410,9 +405,9 @@ FCM 변경으로 영향을 받았던 마이페이지 관련 실패는 개발 환
 아직 수행하지 않은 검증:
 
 - 실제 Firebase Web config와 VAPID 키를 적용한 토큰 발급
-- 실제 Android Chrome 백그라운드·종료 상태 알림
+- 실제 Android Chrome 백그라운드·종료 상태 수신 및 클릭 기반
 - 실제 iOS 홈 화면 PWA 알림
-- 앱이 열린 상태의 실제 FCM 포그라운드 배너
+- 앱이 열린 상태의 실제 FCM 포그라운드 수신
 - 서로 다른 역할·로그인 상태의 실제 알림 클릭
 - 토큰이 무효화·회전된 뒤 재등록되는 장시간 세션
 
@@ -427,12 +422,12 @@ FCM 변경으로 영향을 받았던 마이페이지 관련 실패는 개발 환
 - [ ] 로그인 후 PUT 요청에 현재 사용자의 Access Token이 포함되는가
 - [ ] 로그아웃 시 DELETE가 인증 세션 삭제보다 먼저 실행되는가
 - [ ] DELETE 실패에도 로컬 로그아웃이 완료되는가
-- [ ] 포그라운드에서 서버 제목·본문이 배너에 표시되는가
-- [ ] 백그라운드 알림이 중복 표시되지 않는가
+- [ ] 포그라운드에서 검증된 제목·본문이 공통 상태에 저장되는가
+- [ ] 서비스 워커가 Firebase SDK의 자동 알림을 중복 생성하지 않는가
 - [ ] 잘못된 payload가 라우팅을 일으키지 않는가
 - [ ] 다른 역할의 푸시 목적지를 열면 역할별 홈으로 이동하는가
 - [x] 로그인 전 푸시 목적지를 안전한 `redirect`로 보존하는가
-- [x] 보호자 `ANOMALY` 목적지에 BE가 제공한 `wardId`를 포함하는가
+- [x] 보호자 `ANOMALY`에서 알 수 없는 `wardId`를 추정하지 않는가
 - [ ] `/sw.js`가 `no-cache`로 응답하는가
 - [ ] Firebase 변수를 변경한 뒤 FE 이미지를 재빌드했는가
 
@@ -441,9 +436,10 @@ FCM 변경으로 영향을 받았던 마이페이지 관련 실패는 개발 환
 ## 14. 권장 후속 작업 순서
 
 1. GitHub Repository Variables에 실제 Firebase Web config와 VAPID 공개키 등록
-2. 개발용 Firebase 프로젝트에서 Android Chrome 실기기 스모크 테스트
-3. iOS Safari 16.4 이상 홈 화면 PWA 스모크 테스트
-4. Playwright로 비로그인·역할 불일치·콜드 스타트 직접 진입 검증
-5. 운영 배포 후 `/sw.js` 캐시 헤더, 토큰 PUT/DELETE, 세 가지 실제 발송 경로 확인
+2. 개발용 Firebase 프로젝트에서 #206 토큰 등록·해제와 수신 기반 스모크 테스트
+3. #207에서 보호자 권한 UI, 포그라운드 표시, 승인·이상거래 상세 라우팅 구현
+4. #208에서 피보호자 권한 UI, 송금 결과 표시, 거래 상세 라우팅 구현
+5. 역할별 구현 후 Android Chrome과 iOS 홈 화면 PWA E2E 검증
+6. 운영 배포 후 `/sw.js` 캐시 헤더와 토큰 PUT/DELETE 확인
 
-코드 기반 로그인 전 클릭 복구와 `ANOMALY` 직접 진입 계약은 완료됐다. 위 실기기·운영 검증까지 마쳐야 Issue #206의 “HTTPS/PWA 환경 실제 동작”을 최종 완료로 판단할 수 있다.
+Issue #206은 역할별 표시·상세 진입을 제공하지 않고 후속 이슈가 소비할 공통 기반까지만 책임진다.

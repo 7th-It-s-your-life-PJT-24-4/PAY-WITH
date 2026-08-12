@@ -51,7 +51,7 @@ describe('guard detail routes', () => {
 
   it('비로그인 푸시 상세 진입은 로그인 후 복구할 목적지를 보존한다', async () => {
     localStorage.clear()
-    const destination = '/guard/history/42?source=push&wardId=7'
+    const destination = '/guard?source=push'
 
     await router.push(destination)
 
