@@ -27,7 +27,10 @@ vi.mock('@/lib/push-token-sync-state', () => ({
   resetPushTokenSyncState: mocks.resetPushTokenSyncState,
 }))
 
-import { unregisterPushNotifications } from '@/api/push-session'
+import {
+  clearLocalPushSubscription,
+  unregisterPushNotifications,
+} from '@/api/push-session'
 
 describe('푸시 알림 로그아웃 정리', () => {
   beforeEach(() => {
@@ -73,6 +76,15 @@ describe('푸시 알림 로그아웃 정리', () => {
 
     await expect(unregisterPushNotifications()).resolves.toBeUndefined()
 
+    expect(mocks.clearStorage).toHaveBeenCalledOnce()
+    expect(mocks.resetPushTokenSyncState).toHaveBeenCalledOnce()
+  })
+
+  it('세션 만료 시 인증이 필요한 서버 요청 없이 로컬 구독만 정리한다', async () => {
+    await clearLocalPushSubscription()
+
+    expect(mocks.unregisterFcmToken).not.toHaveBeenCalled()
+    expect(mocks.deleteCurrentFcmToken).toHaveBeenCalledOnce()
     expect(mocks.clearStorage).toHaveBeenCalledOnce()
     expect(mocks.resetPushTokenSyncState).toHaveBeenCalledOnce()
   })

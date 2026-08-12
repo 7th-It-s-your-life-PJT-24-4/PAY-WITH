@@ -276,12 +276,25 @@ test('refresh token도 만료되면 로그인 화면으로 이동한다', async 
     page.getByRole('status', { name: '로그인 시간이 만료되었어요' }),
   ).toBeVisible()
   await expect
-    .poll(() => page.evaluate(() => localStorage.getItem('accessToken')))
+    .poll(async () => {
+      try {
+        return await page.evaluate(() => localStorage.getItem('accessToken'))
+      } catch {
+        // 로컬 FCM 구독 정리 후 앱을 다시 시작하는 순간에는 실행 컨텍스트가 교체된다.
+        return 'navigating'
+      }
+    })
     .toBeNull()
   await expect
-    .poll(() =>
-      page.evaluate(() => sessionStorage.getItem('pay-with:ward-payment')),
-    )
+    .poll(async () => {
+      try {
+        return await page.evaluate(() =>
+          sessionStorage.getItem('pay-with:ward-payment'),
+        )
+      } catch {
+        return 'navigating'
+      }
+    })
     .toBeNull()
 })
 

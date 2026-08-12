@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import { clearAuthenticationSession } from '@/api/auth-session'
+import { expireAuthenticationSession } from '@/api/auth-session'
 import { isUnauthorizedApiError } from '@/api/error'
 import {
   refreshAccessToken,
@@ -709,7 +709,7 @@ router.beforeEach(async (to) => {
   const { userId, sessionExpired } = await resolveAuthentication()
 
   if (!userId) {
-    if (sessionExpired) clearAuthenticationSession()
+    if (sessionExpired) expireAuthenticationSession()
     if (isAuthRoute) return true
 
     return {
@@ -739,7 +739,7 @@ router.beforeEach(async (to) => {
     } catch (error) {
       if (!isUnauthorizedApiError(error)) return true
 
-      clearAuthenticationSession()
+      expireAuthenticationSession()
       return {
         name: 'auth-sign-in',
         query: { reason: 'session-expired', redirect: to.fullPath },
@@ -753,7 +753,7 @@ router.beforeEach(async (to) => {
   } catch (error) {
     if (!isUnauthorizedApiError(error)) return true
 
-    clearAuthenticationSession()
+    expireAuthenticationSession()
     return {
       name: 'auth-sign-in',
       query: { reason: 'session-expired' },

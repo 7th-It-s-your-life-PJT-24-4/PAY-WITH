@@ -14,7 +14,6 @@ import {
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
@@ -22,7 +21,6 @@ const firebaseConfig: FirebaseOptions = {
 
 const requiredFirebaseConfig = [
   firebaseConfig.apiKey,
-  firebaseConfig.authDomain,
   firebaseConfig.projectId,
   firebaseConfig.messagingSenderId,
   firebaseConfig.appId,
@@ -52,7 +50,10 @@ export function getFirebaseMessaging(): Promise<Messaging | null> {
 
     const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
     return getMessaging(app)
-  })()
+  })().catch((error: unknown) => {
+    messagingPromise = null
+    throw error
+  })
 
   return messagingPromise
 }
@@ -72,6 +73,9 @@ export async function getCurrentFcmToken(
 }
 
 export async function deleteCurrentFcmToken(): Promise<void> {
+  // 개발 서버는 커스텀 PWA 서비스 워커를 등록하지 않으므로 Firebase의 기본 SW 탐색도 막는다.
+  if (!import.meta.env.PROD) return
+
   const messaging = await getFirebaseMessaging()
   if (messaging) await deleteToken(messaging)
 }
