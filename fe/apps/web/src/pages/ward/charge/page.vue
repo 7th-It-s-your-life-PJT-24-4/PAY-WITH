@@ -54,6 +54,22 @@ function updateAmount(value: string) {
   chargeStore.setAmount(Number(digits))
 }
 
+function handleAmountBeforeInput(event: InputEvent) {
+  if (
+    event.inputType.startsWith('delete') ||
+    event.inputType === 'historyUndo' ||
+    event.inputType === 'historyRedo'
+  )
+    return
+
+  if (event.data && /\D/.test(event.data)) event.preventDefault()
+}
+
+function handleAmountPaste(event: ClipboardEvent) {
+  event.preventDefault()
+  updateAmount(event.clipboardData?.getData('text') ?? '')
+}
+
 function handleSubmitChargeClick() {
   if (!selectedAccount.value) {
     toastMessage.value = '출금 계좌를 선택해 주세요'
@@ -145,6 +161,8 @@ async function submitCharge() {
           inputmode="numeric"
           placeholder="0"
           :value="amountText"
+          @beforeinput="handleAmountBeforeInput"
+          @paste="handleAmountPaste"
           @input="
             updateAmount(
               ($event.target as { value: string } | null)?.value ?? '',
