@@ -25,6 +25,15 @@ describe('guard route utilities', () => {
 })
 
 describe('guard detail routes', () => {
+  it('보호자 푸시 알림 온보딩 라우트를 제공한다', () => {
+    expect(
+      router.resolve('/guard/onboarding/push-notifications'),
+    ).toMatchObject({
+      name: 'guard-push-notification-onboarding',
+      meta: { showBottomNavigation: false },
+    })
+  })
+
   it.each([
     ['/guard/charge/41', 'guard-charge-detail'],
     ['/guard/history/42', 'guard-transaction-detail'],
@@ -51,7 +60,7 @@ describe('guard detail routes', () => {
 
   it('비로그인 푸시 상세 진입은 로그인 후 복구할 목적지를 보존한다', async () => {
     localStorage.clear()
-    const destination = '/guard?source=push'
+    const destination = '/guard/history/42?wardId=12&source=push'
 
     await router.push(destination)
 

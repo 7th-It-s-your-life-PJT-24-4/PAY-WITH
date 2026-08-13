@@ -1,4 +1,9 @@
 import type { User } from '@/schemas/user.schema'
+import type { SignUpRole } from '@/schemas/sign-up.schema'
+
+export function getPostSignUpPath(role: SignUpRole) {
+  return role === 'guardian' ? '/guard/onboarding/push-notifications' : '/ward'
+}
 
 export function getRoleHomePath(role: User['role']) {
   return role === 'GUARD' ? '/guard' : '/ward'

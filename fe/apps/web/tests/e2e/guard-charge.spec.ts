@@ -1,5 +1,32 @@
 import { expect, test } from './fixtures'
 
+test('연결된 시니어가 없으면 상단 시니어 선택 영역을 숨긴다', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 820 })
+  await page.route('**/api/guard', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: { wards: [], selectedWard: null },
+        message: null,
+      },
+    }),
+  )
+  await page.route('**/api/guard/charges', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      json: { success: true, data: { charges: [] }, message: null },
+    }),
+  )
+
+  await page.goto('/guard/charge')
+
+  await expect(page.getByRole('heading', { name: '충전 내역' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '시니어 추가' })).toHaveCount(0)
+})
+
 test('등록 계좌가 없으면 계좌를 추가한 뒤 충전을 이어간다', async ({
   page,
 }) => {

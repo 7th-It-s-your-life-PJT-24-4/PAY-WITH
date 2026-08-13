@@ -96,6 +96,7 @@ async function startPairing() {
   >
     <div class="px-mobile-gutter pt-md">
       <GuardSeniorAvatarList
+        v-if="seniors.length > 0"
         :seniors="seniors"
         :active-senior-id="activeSeniorId"
         @add="isPairingConfirmOpen = true"

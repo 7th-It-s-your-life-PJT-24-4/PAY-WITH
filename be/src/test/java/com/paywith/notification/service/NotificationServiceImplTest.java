@@ -121,22 +121,43 @@ class NotificationServiceImplTest {
     }
 
     @Test
-    @DisplayName("알림을 누르면 이동할 수 있도록 종류와 참조를 data 로 함께 보낸다")
-    void notifyGuardians_includesRefsInDataPayload() {
+    @DisplayName("보호자 이상거래 상세를 열 수 있도록 거래와 피보호자 식별자를 함께 보낸다")
+    void notifyGuardians_includesWardIdForAnomaly() {
+        TransactionSynchronizationManager.initSynchronization();
+        given(notificationMapper.findActiveGuardIds(SENIOR_ID)).willReturn(List.of(1L));
+        given(notificationMapper.findActiveGuardTokens(SENIOR_ID)).willReturn(List.of("TOKEN_A"));
+
+        service.notifyGuardians(SENIOR_ID, NotificationType.ANOMALY,
+            "결제 차단", "위험 결제가 차단되었습니다.", "TRANSACTION", TRANSACTION_ID);
+        commit();
+
+        ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.forClass(Map.class);
+        then(pushDispatcher).should().dispatch(any(), any(), any(), captor.capture());
+        assertThat(captor.getValue())
+            .containsEntry("type", "ANOMALY")
+            .containsEntry("refType", "TRANSACTION")
+            .containsEntry("refId", String.valueOf(TRANSACTION_ID))
+            .containsEntry("wardId", String.valueOf(SENIOR_ID));
+    }
+
+    @Test
+    @DisplayName("승인 요청은 승인 식별자만 보내고 피보호자 식별자를 중복하지 않는다")
+    void notifyGuardians_keepsApprovalRequestPayloadFocused() {
         TransactionSynchronizationManager.initSynchronization();
         given(notificationMapper.findActiveGuardIds(SENIOR_ID)).willReturn(List.of(1L));
         given(notificationMapper.findActiveGuardTokens(SENIOR_ID)).willReturn(List.of("TOKEN_A"));
 
         service.notifyGuardians(SENIOR_ID, NotificationType.APPROVAL_REQUEST,
-            "승인 요청", "확인이 필요한 송금이 있습니다.", "TRANSACTION", TRANSACTION_ID);
+            "승인 요청", "확인이 필요한 송금이 있습니다.", "APPROVAL", TRANSACTION_ID);
         commit();
 
         ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.forClass(Map.class);
         then(pushDispatcher).should().dispatch(any(), any(), any(), captor.capture());
         assertThat(captor.getValue())
             .containsEntry("type", "APPROVAL_REQUEST")
-            .containsEntry("refType", "TRANSACTION")
-            .containsEntry("refId", String.valueOf(TRANSACTION_ID));
+            .containsEntry("refType", "APPROVAL")
+            .containsEntry("refId", String.valueOf(TRANSACTION_ID))
+            .doesNotContainKey("wardId");
     }
 
     @Test

@@ -17,6 +17,7 @@ import {
 } from '@/schemas/auth.schema'
 import { useCreateUserMutation } from '@/composables/useCreateUserMutation'
 import { useLoginMutation } from '@/composables/useLoginMutation'
+import { getPostSignUpPath } from '@/router/auth-navigation'
 import SignUpAvatarPickerModal from '@/pages/auth/sign-up/details/-components/SignUpAvatarPickerModal.vue'
 import SignUpBasicInfoSection from '@/pages/auth/sign-up/details/-components/SignUpBasicInfoSection.vue'
 import SignUpPasswordSection from '@/pages/auth/sign-up/details/-components/SignUpPasswordSection.vue'
@@ -417,7 +418,7 @@ async function submitSignUp() {
     signUpStore.clearPhoneVerification()
     formError.value = ''
     if (signUpStore.role === 'senior') pairingStore.reset()
-    await router.replace(signUpStore.role === 'guardian' ? '/guard' : '/ward')
+    await router.replace(getPostSignUpPath(signUpStore.role))
   } catch (error) {
     if (isUserCreated) {
       shouldPersistSignUpDraft = false

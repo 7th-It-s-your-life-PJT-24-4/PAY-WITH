@@ -35,6 +35,7 @@ import GuardMyProfileEditPage from '@/pages/guard/my/profile/edit.vue'
 import GuardMyProfilePage from '@/pages/guard/my/profile/page.vue'
 import GuardMySeniorsPage from '@/pages/guard/my/seniors/page.vue'
 import GuardPage from '@/pages/guard/page.vue'
+import GuardPushNotificationOnboardingPage from '@/pages/guard/onboarding/push-notifications/page.vue'
 import GuardPairingCodePage from '@/pages/guard/pairing/code.vue'
 import GuardSafeAccountConfirmPage from '@/pages/guard/safe-account/confirm/page.vue'
 import GuardSafeAccountAddPage from '@/pages/guard/safe-account/add/page.vue'
@@ -133,6 +134,15 @@ const router = createRouter({
           name: 'guard-home',
           component: GuardPage,
           meta: { activeNavigation: 'home' },
+        },
+        {
+          path: 'onboarding/push-notifications',
+          name: 'guard-push-notification-onboarding',
+          component: GuardPushNotificationOnboardingPage,
+          meta: {
+            activeNavigation: 'home',
+            showBottomNavigation: false,
+          },
         },
         {
           path: 'charge',

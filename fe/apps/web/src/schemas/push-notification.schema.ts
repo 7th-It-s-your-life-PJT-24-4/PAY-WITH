@@ -12,6 +12,7 @@ export const pushNotificationDataSchema = z.discriminatedUnion('type', [
     type: z.literal('ANOMALY'),
     refType: z.literal('TRANSACTION'),
     refId: refIdSchema,
+    wardId: refIdSchema,
   }),
   z.object({
     type: z.literal('APPROVAL_RESULT'),

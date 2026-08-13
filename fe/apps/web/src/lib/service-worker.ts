@@ -15,8 +15,10 @@ async function resolveRegistration(
 export function ensureServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (registrationPromise) return registrationPromise
 
+  const isEnabled =
+    import.meta.env.PROD || import.meta.env.VITE_ENABLE_PWA_DEV === 'true'
   if (
-    !import.meta.env.PROD ||
+    !isEnabled ||
     typeof navigator === 'undefined' ||
     !('serviceWorker' in navigator)
   ) {
