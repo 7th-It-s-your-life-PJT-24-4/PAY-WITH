@@ -53,6 +53,9 @@ public class GuardPairingController {
         return ApiResponse.success(guardService.confirmPairingRequest(guardId, requestId));
     }
 
+    @ApiOperation(
+        value = "페어링 해제",
+        notes = "보호자가 피보호자와의 연결을 해제한다. 연결된 시니어가 없으면 404. GUARD가 아니면 403.")
     @DeleteMapping("/{wardId}")
     public ApiResponse<Void> unpairWard(
         @AuthenticationPrincipal Long guardId,
