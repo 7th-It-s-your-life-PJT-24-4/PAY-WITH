@@ -37,6 +37,10 @@ function inputValueFromEvent(event: unknown) {
   const value = Reflect.get(target, 'value')
   return typeof value === 'string' ? value : ''
 }
+
+function handleFullNameInput(value: string) {
+  emit('update:fullName', value.replace(/[^가-힣]/g, '').slice(0, 30))
+}
 </script>
 
 <template>
@@ -46,9 +50,10 @@ function inputValueFromEvent(event: unknown) {
       :model-value="fullName"
       :maxlength="30"
       autocomplete="name"
+      :input-filter="/[^가-힣]/g"
       label="성함 (실명)"
       placeholder="성함을 입력하세요"
-      @update:model-value="emit('update:fullName', $event)"
+      @update:model-value="handleFullNameInput($event)"
     />
 
     <section class="flex flex-col gap-sm">

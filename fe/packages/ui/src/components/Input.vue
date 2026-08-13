@@ -16,6 +16,7 @@ const props = withDefaults(
     disabled?: boolean
     numeric?: boolean
     large?: boolean
+    inputFilter?: RegExp
   }>(),
   {
     modelValue: '',
@@ -30,6 +31,7 @@ const props = withDefaults(
     disabled: false,
     numeric: false,
     large: false,
+    inputFilter: undefined,
   },
 )
 
@@ -42,7 +44,33 @@ const inputId = computed(() => props.id ?? generatedId)
 const messageId = computed(() => `${inputId.value}-message`)
 
 function updateValue(event: Event) {
-  emit('update:modelValue', (event.target as HTMLInputElement).value)
+  const target = event.target as HTMLInputElement
+  const value = props.inputFilter
+    ? target.value.replace(props.inputFilter, '')
+    : target.value
+  target.value = value
+  emit('update:modelValue', value)
+}
+
+function handleBeforeInput(event: InputEvent) {
+  if (!props.inputFilter || event.isComposing || !event.data) return
+  props.inputFilter.lastIndex = 0
+  if (props.inputFilter.test(event.data)) event.preventDefault()
+}
+
+function handlePaste(event: ClipboardEvent) {
+  if (!props.inputFilter) return
+  event.preventDefault()
+  const value = event.clipboardData?.getData('text') ?? ''
+  emit('update:modelValue', value.replace(props.inputFilter, ''))
+}
+
+function handleCompositionEnd(event: CompositionEvent) {
+  if (!props.inputFilter) return
+  const target = event.target as HTMLInputElement
+  const value = target.value.replace(props.inputFilter, '')
+  target.value = value
+  emit('update:modelValue', value)
 }
 </script>
 
@@ -77,6 +105,9 @@ function updateValue(event: Event) {
       :aria-invalid="error ? 'true' : undefined"
       :aria-describedby="description || error ? messageId : undefined"
       @input="updateValue"
+      @beforeinput="handleBeforeInput"
+      @paste="handlePaste"
+      @compositionend="handleCompositionEnd"
     />
     <p
       v-if="description || error"
