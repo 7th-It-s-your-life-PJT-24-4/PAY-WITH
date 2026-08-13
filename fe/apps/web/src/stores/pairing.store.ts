@@ -1,12 +1,17 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { issueGuardianPairingCode, pairWardWithGuardian } from '@/api/pairing'
+import {
+  createWardPairingRequest,
+  getWardPairingRequestStatus,
+  issueGuardianPairingCode,
+} from '@/api/pairing'
 import { getApiErrorCode, getApiErrorMessage } from '@/api/error'
 import type {
   GuardianPairingCode,
   PairingErrorCode,
   PairingStatus,
+  PairingRequestStatus,
   WardPairing,
 } from '@/schemas/pairing.schema'
 import { pairingErrorCodeSchema } from '@/schemas/pairing.schema'
@@ -27,6 +32,8 @@ export const usePairingStore = defineStore('pairing', () => {
   const errorMessage = ref('')
   const isIssuingCode = ref(false)
   const isVerifyingCode = ref(false)
+  const pairingRequestId = ref<string | null>(null)
+  const pairingRequestStatus = ref<PairingRequestStatus | null>(null)
 
   const isPaired = computed(() => status.value === 'PAIRED')
   const code = computed(() => codeResponse.value?.code ?? '')
@@ -71,12 +78,9 @@ export const usePairingStore = defineStore('pairing', () => {
     errorMessage.value = ''
 
     try {
-      pairingResult.value = await pairWardWithGuardian({ pairingCode })
-      codeResponse.value = null
-      status.value = 'PAIRED'
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem(PAIRING_STORAGE_KEY, 'PAIRED')
-      }
+      const request = await createWardPairingRequest({ pairingCode })
+      pairingRequestId.value = request.requestId
+      pairingRequestStatus.value = 'PENDING'
       return true
     } catch (error) {
       const code = pairingErrorCodeSchema.safeParse(getApiErrorCode(error))
@@ -89,6 +93,14 @@ export const usePairingStore = defineStore('pairing', () => {
     } finally {
       isVerifyingCode.value = false
     }
+  }
+
+  async function checkPairingRequestStatus() {
+    if (!pairingRequestId.value) return null
+    const response = await getWardPairingRequestStatus(pairingRequestId.value)
+    pairingRequestStatus.value = response.status
+    if (response.status === 'CONFIRMED') markPaired()
+    return response.status
   }
 
   function markPaired() {
@@ -107,6 +119,8 @@ export const usePairingStore = defineStore('pairing', () => {
     }
     codeResponse.value = null
     pairingResult.value = null
+    pairingRequestId.value = null
+    pairingRequestStatus.value = null
     errorCode.value = null
     errorMessage.value = ''
   }
@@ -122,10 +136,13 @@ export const usePairingStore = defineStore('pairing', () => {
     errorMessage,
     isIssuingCode,
     isVerifyingCode,
+    pairingRequestId,
+    pairingRequestStatus,
     isPaired,
     issueCode,
     markPaired,
     verifyCode,
+    checkPairingRequestStatus,
     reset,
   }
 })

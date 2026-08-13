@@ -1,6 +1,8 @@
 import { apiClient } from '@/api/client'
 import {
   guardianPairingCodeResponseSchema,
+  pairingRequestResponseSchema,
+  pairingStatusResponseSchema,
   unpairWardResponseSchema,
   wardPairingRequestSchema,
   wardPairingResponseSchema,
@@ -29,6 +31,26 @@ export async function pairWardWithGuardian(
     request,
   )
 
+  return response.data
+}
+
+export async function createWardPairingRequest(
+  body: WardPairingRequest,
+): Promise<{ requestId: string }> {
+  const request = wardPairingRequestSchema.parse(body)
+  const response = await apiClient.post(
+    '/ward/pairing/request',
+    pairingRequestResponseSchema,
+    request,
+  )
+  return response.data
+}
+
+export async function getWardPairingRequestStatus(requestId: string) {
+  const response = await apiClient.get(
+    `/ward/pairing/request/${requestId}/status`,
+    pairingStatusResponseSchema,
+  )
   return response.data
 }
 

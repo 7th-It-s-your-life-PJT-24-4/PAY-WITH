@@ -36,6 +36,12 @@ export const guardianPairingCodeResponseSchema = apiResponseSchema(
   guardianPairingCodeSchema,
 )
 export const wardPairingResponseSchema = apiResponseSchema(wardPairingSchema)
+export const pairingRequestResponseSchema = apiResponseSchema(
+  z.object({ requestId: z.string().min(1) }),
+)
+export const pairingStatusResponseSchema = apiResponseSchema(
+  z.object({ status: z.enum(['PENDING', 'CONFIRMED', 'EXPIRED']) }),
+)
 export const unpairWardResponseSchema = apiResponseSchema(z.null())
 
 export type PairingStatus = z.infer<typeof pairingStatusSchema>
@@ -43,3 +49,9 @@ export type PairingErrorCode = z.infer<typeof pairingErrorCodeSchema>
 export type GuardianPairingCode = z.infer<typeof guardianPairingCodeSchema>
 export type WardPairingRequest = z.infer<typeof wardPairingRequestSchema>
 export type WardPairing = z.infer<typeof wardPairingSchema>
+export type PairingRequest = z.infer<
+  typeof pairingRequestResponseSchema
+>['data']
+export type PairingRequestStatus = z.infer<
+  typeof pairingStatusResponseSchema
+>['data']['status']

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ShieldCheck, Smartphone } from '@lucide/vue'
 import { Button } from '@pay-with/ui'
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useEnsureFocusedInputVisible } from '@/composables/useEnsureFocusedInputVisible'
+import { getApiErrorMessage } from '@/api/error'
 import { usePairingStore } from '@/stores/pairing.store'
 
 const router = useRouter()
@@ -12,6 +13,7 @@ const pairingStore = usePairingStore()
 const enteredCode = ref('')
 const errorMessage = ref('')
 const inputRef = ref<HTMLInputElement | null>(null)
+let statusTimer: ReturnType<typeof setInterval> | undefined
 
 useEnsureFocusedInputVisible(inputRef)
 
@@ -41,12 +43,61 @@ async function connectGuardian() {
     return
   }
 
-  router.replace({ name: 'ward-pairing-complete' })
+  startStatusPolling()
 }
+
+function stopStatusPolling() {
+  if (!statusTimer) return
+  clearInterval(statusTimer)
+  statusTimer = undefined
+}
+
+async function pollPairingStatus() {
+  try {
+    const status = await pairingStore.checkPairingRequestStatus()
+    if (status === 'CONFIRMED') {
+      stopStatusPolling()
+      await router.replace({ name: 'ward-pairing-complete' })
+    } else if (status === 'EXPIRED') {
+      stopStatusPolling()
+      errorMessage.value =
+        '연결 시간이 만료되었습니다. 코드를 다시 확인해 주세요.'
+    }
+  } catch (error) {
+    errorMessage.value = await getApiErrorMessage(
+      error,
+      '연결 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    )
+  }
+}
+
+function startStatusPolling() {
+  stopStatusPolling()
+  void pollPairingStatus()
+  statusTimer = setInterval(() => void pollPairingStatus(), 2_000)
+}
+
+onBeforeUnmount(stopStatusPolling)
 </script>
 
 <template>
-  <div class="flex flex-col items-center text-center">
+  <div
+    v-if="pairingStore.pairingRequestStatus === 'PENDING'"
+    class="flex flex-col items-center text-center"
+  >
+    <span
+      class="type-numeric-input flex size-16 items-center justify-center rounded-full bg-primary-500/10 text-primary-500"
+      aria-hidden="true"
+      >…</span
+    >
+    <h1 class="type-h1 mt-lg text-body">보호자 확인을 기다리고 있어요</h1>
+    <p class="type-body mt-md text-body-secondary">
+      보호자가 연결 요청을 확인하면<br />자동으로 연결됩니다.
+    </p>
+    <Button class="mt-xl w-full" label="연결 상태 확인 중" disabled />
+  </div>
+
+  <div v-else class="flex flex-col items-center text-center">
     <span
       class="flex size-[64px] items-center justify-center rounded-full bg-primary-500/10 text-primary-500"
       aria-hidden="true"
