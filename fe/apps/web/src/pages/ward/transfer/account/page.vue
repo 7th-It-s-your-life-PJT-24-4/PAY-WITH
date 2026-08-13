@@ -97,10 +97,24 @@ onBeforeUnmount(() => {
 })
 
 function handleProceedClick() {
-  if (!canValidateAccount.value || !selectedBankCode.value) {
-    toastMessage.value = !canValidateAccount.value
-      ? '계좌번호 8자리 이상을 입력해 주세요'
-      : '은행을 선택해 주세요'
+  if (
+    !canValidateAccount.value ||
+    !selectedBankCode.value ||
+    banksQuery.isPending.value ||
+    banksQuery.isError.value ||
+    recipientMutation.isPending.value
+  ) {
+    if (!canValidateAccount.value) {
+      toastMessage.value = '계좌번호 8자리 이상을 입력해 주세요'
+    } else if (!selectedBankCode.value) {
+      toastMessage.value = '은행을 선택해 주세요'
+    } else if (banksQuery.isPending.value) {
+      toastMessage.value = '은행 정보를 불러오는 중이에요'
+    } else if (banksQuery.isError.value) {
+      toastMessage.value = '은행 정보를 다시 불러와 주세요'
+    } else {
+      toastMessage.value = '계좌를 확인하고 있어요'
+    }
     toastOpen.value = true
     return
   }
@@ -288,19 +302,30 @@ async function proceed() {
         {{ errorMessage }}
       </p>
 
-      <Button
-        class="w-full"
-        size="large"
-        :label="recipientMutation.isPending.value ? '계좌 확인 중' : '다음으로'"
-        :disabled="
-          !canValidateAccount ||
-          !selectedBankCode ||
-          banksQuery.isPending.value ||
-          banksQuery.isError.value ||
-          recipientMutation.isPending.value
-        "
-        @click="handleProceedClick"
-      />
+      <div @click="handleProceedClick">
+        <Button
+          class="w-full"
+          size="large"
+          :label="
+            recipientMutation.isPending.value ? '계좌 확인 중' : '다음으로'
+          "
+          :class="{
+            'cursor-not-allowed opacity-50':
+              !canValidateAccount ||
+              !selectedBankCode ||
+              banksQuery.isPending.value ||
+              banksQuery.isError.value ||
+              recipientMutation.isPending.value,
+          }"
+          :aria-disabled="
+            !canValidateAccount ||
+            !selectedBankCode ||
+            banksQuery.isPending.value ||
+            banksQuery.isError.value ||
+            recipientMutation.isPending.value
+          "
+        />
+      </div>
     </div>
 
     <!-- 전체 은행 바텀시트 -->
