@@ -25,7 +25,7 @@ export const guardTransactionStatusClasses: Record<
   GuardTransaction['status'],
   string
 > = {
-  safe: 'bg-[#d5ffd8] text-success',
-  warning: 'bg-[#fffcc8] text-warning',
-  danger: 'bg-[#fff3f3] text-error',
+  safe: 'bg-[#E6F7EE] text-[#1B8250]',
+  warning: 'bg-[#FFF6DC] text-[#8A6300]',
+  danger: 'bg-[#FFECEC] text-[#C93636]',
 }

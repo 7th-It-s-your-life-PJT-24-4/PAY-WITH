@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import type { GuardTransaction } from '@/mocks/guard-home.mock'
 import { useRouter } from 'vue-router'
-import {
-  guardTransactionCategoryIcons,
-  guardTransactionStatusClasses,
-  guardTransactionStatusLabels,
-} from '@/pages/guard/-utils/guard-transaction-ui'
+import GuardTransactionCard from '@/pages/guard/-components/GuardTransactionCard.vue'
 
 defineProps<{
   transactions: GuardTransaction[]
@@ -60,47 +56,20 @@ const router = useRouter()
           {{ transaction.date }}
         </p>
 
-        <button
-          class="flex h-[60px] w-full items-center bg-white px-sm text-left"
-          type="button"
-          :aria-label="`${transaction.date} 거래 상세 보기`"
-          @click="
+        <GuardTransactionCard
+          :amount="transaction.amount"
+          :accessible-label="`${transaction.date} ${transaction.description} 거래 상세 보기`"
+          :category="transaction.category"
+          :description="transaction.description"
+          :status="transaction.status"
+          @select="
             router.push({
               name: 'guard-transaction-detail',
               params: { id: transaction.id },
               query: { wardId: wardId ?? undefined },
             })
           "
-        >
-          <span
-            class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"
-          >
-            <component
-              :is="guardTransactionCategoryIcons[transaction.category]"
-              class="size-[18px]"
-              weight="fill"
-              aria-hidden="true"
-            />
-          </span>
-          <div class="ml-md min-w-0 flex-1">
-            <p
-              class="text-[14px] font-semibold leading-[1.2] tracking-[-0.28px] text-black"
-            >
-              {{ transaction.amount }}
-            </p>
-            <p
-              class="mt-xxs truncate text-[12px] font-medium leading-[1.2] tracking-[-0.24px] text-gray-700"
-            >
-              {{ transaction.description }}
-            </p>
-          </div>
-          <span
-            class="rounded-small px-[6px] py-xxs text-[10px] font-bold leading-[1.2] tracking-[-0.2px]"
-            :class="guardTransactionStatusClasses[transaction.status]"
-          >
-            {{ guardTransactionStatusLabels[transaction.status] }}
-          </span>
-        </button>
+        />
       </template>
     </div>
   </section>
