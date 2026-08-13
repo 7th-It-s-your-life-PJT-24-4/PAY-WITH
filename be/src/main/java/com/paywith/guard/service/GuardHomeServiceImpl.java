@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 public class GuardHomeServiceImpl implements GuardHomeService {
 
     private static final int RECENT_TRANSACTION_LIMIT = 3;
+    private static final int PENDING_APPROVAL_LIMIT = 3;
 
     private final GuardSeniorMapper guardSeniorMapper;
     private final ApprovalRequestMapper approvalRequestMapper;
@@ -95,10 +96,10 @@ public class GuardHomeServiceImpl implements GuardHomeService {
             .filter(view -> view.getWardId().equals(ward.getWardId()))
             .collect(Collectors.toList());
 
-        PendingApprovalResponse pendingApproval = wardPending.stream()
-            .findFirst()
+        List<PendingApprovalResponse> pendingApprovals = wardPending.stream()
+            .limit(PENDING_APPROVAL_LIMIT)
             .map(this::toPendingApproval)
-            .orElse(null);
+            .collect(Collectors.toList());
 
         List<RecentTransactionResponse> recentTransactions =
             transactionMapper.findRecentByWardId(ward.getWardId(), RECENT_TRANSACTION_LIMIT);
@@ -107,7 +108,7 @@ public class GuardHomeServiceImpl implements GuardHomeService {
             ward.getWardId(),
             ward.getName(),
             balance,
-            pendingApproval,
+            pendingApprovals,
             wardPending.size(),
             recentTransactions
         );

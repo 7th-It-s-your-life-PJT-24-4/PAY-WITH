@@ -21,6 +21,10 @@ export const useGuardStore = defineStore('guard', () => {
     activeWardId.value = wardId
   }
 
+  function clearWardSelection() {
+    activeWardId.value = null
+  }
+
   function setChargeAmount(value: number) {
     chargeAmount.value = Math.max(0, Math.floor(value))
   }
@@ -40,6 +44,7 @@ export const useGuardStore = defineStore('guard', () => {
     selectedChargeAccountId,
     lastChargeResult,
     canSubmitCharge,
+    clearWardSelection,
     selectChargeAccount,
     selectWard,
     saveChargeResult,

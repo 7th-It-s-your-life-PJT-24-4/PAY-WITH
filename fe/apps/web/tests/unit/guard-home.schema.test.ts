@@ -19,15 +19,17 @@ describe('guard home schema', () => {
           wardId: 12,
           name: '김시니어',
           balance: 120_000,
-          pendingApproval: {
-            transactionId: 41,
-            amount: 35_000,
-            holderName: '박수취',
-            accountNo: '110234567890',
-            riskScore: 87,
-            riskReason: '메모에 위험 키워드 포함',
-            createdAt: '2026-08-05T09:10:00',
-          },
+          pendingApprovals: [
+            {
+              transactionId: 41,
+              amount: 35_000,
+              holderName: '박수취',
+              accountNo: '110234567890',
+              riskScore: 87,
+              riskReason: '메모에 위험 키워드 포함',
+              createdAt: '2026-08-05T09:10:00',
+            },
+          ],
           pendingApprovalCount: 3,
           recentTransactions: [],
         },
@@ -36,5 +38,6 @@ describe('guard home schema', () => {
     })
 
     expect(result.data.selectedWard?.pendingApprovalCount).toBe(3)
+    expect(result.data.selectedWard?.pendingApprovals).toHaveLength(1)
   })
 })

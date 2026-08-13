@@ -34,7 +34,7 @@ const selectedWardSchema = z.object({
   wardId: z.number().int().positive(),
   name: z.string().min(1),
   balance: z.number().int().nonnegative(),
-  pendingApproval: pendingApprovalSchema.nullable(),
+  pendingApprovals: z.array(pendingApprovalSchema).max(3),
   pendingApprovalCount: z.number().int().nonnegative(),
   recentTransactions: z.array(recentTransactionSchema),
 })

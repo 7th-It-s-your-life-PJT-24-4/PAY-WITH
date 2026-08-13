@@ -10,11 +10,11 @@ import {
 import type { GuardHome } from '@/schemas/guard-home.schema'
 
 type PendingApproval = NonNullable<
-  NonNullable<GuardHome['selectedWard']>['pendingApproval']
->
+  GuardHome['selectedWard']
+>['pendingApprovals'][number]
 
 const props = defineProps<{
-  pendingApproval: PendingApproval | null
+  pendingApprovals: PendingApproval[]
 }>()
 
 const emit = defineEmits<{
@@ -27,28 +27,31 @@ const dateFormatter = new Intl.DateTimeFormat('ko-KR', {
   day: 'numeric',
 })
 const pendingIcon = guardTransactionCategoryIcons.transfer
+const displayedPendingApprovals = computed(() =>
+  props.pendingApprovals.slice(0, 3),
+)
 
-const pendingDate = computed(() => {
-  if (!props.pendingApproval) return ''
-
-  const createdAt = new Date(props.pendingApproval.createdAt)
+function formatPendingDate(pendingApproval: PendingApproval) {
+  const createdAt = new Date(pendingApproval.createdAt)
   return Number.isNaN(createdAt.getTime())
     ? ''
     : dateFormatter.format(createdAt)
-})
-const pendingAmount = computed(() => {
-  const amount = props.pendingApproval?.amount
+}
+
+function formatPendingAmount(pendingApproval: PendingApproval) {
+  const { amount } = pendingApproval
   return amount == null ? '-' : `-${moneyFormatter.format(amount)}원`
-})
-const pendingDescription = computed(
-  () => props.pendingApproval?.holderName ?? '수취인 정보 없음',
-)
+}
+
+function getPendingDescription(pendingApproval: PendingApproval) {
+  return pendingApproval.holderName ?? '수취인 정보 없음'
+}
 </script>
 
 <template>
   <section
     aria-labelledby="guard-risk-transactions-title"
-    :class="pendingApproval ? 'pb-xl' : 'pb-[48px]'"
+    :class="displayedPendingApprovals.length > 0 ? 'pb-xl' : 'pb-[48px]'"
   >
     <button
       class="flex w-full items-center justify-between text-left"
@@ -66,51 +69,64 @@ const pendingDescription = computed(
     </button>
 
     <p
-      v-if="!pendingApproval"
+      v-if="displayedPendingApprovals.length === 0"
       class="mt-xl text-center text-[16px] font-medium leading-6 tracking-[-0.2px] text-gray-500"
     >
       대기중인 이상거래가 없어요.
     </p>
 
-    <template v-else>
-      <p class="type-body-medium mt-md text-gray-500">
-        {{ pendingDate }}
-      </p>
-      <button
-        class="mt-xxs flex h-[60px] w-full items-center bg-white px-sm text-left"
-        type="button"
-        :aria-label="`${pendingDate} ${pendingAmount} ${pendingDescription} 이상 거래 목록 보기`"
-        @click="emit('more')"
+    <div v-else class="mt-md">
+      <template
+        v-for="(pendingApproval, index) in displayedPendingApprovals"
+        :key="pendingApproval.transactionId"
       >
-        <span
-          class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"
+        <p
+          v-if="
+            index === 0 ||
+            formatPendingDate(displayedPendingApprovals[index - 1]!) !==
+              formatPendingDate(pendingApproval)
+          "
+          class="type-body-medium text-gray-500"
+          :class="index > 0 ? 'mt-md' : ''"
         >
-          <component
-            :is="pendingIcon"
-            class="size-[18px]"
-            weight="fill"
-            aria-hidden="true"
-          />
-        </span>
-        <span class="ml-md min-w-0 flex-1">
+          {{ formatPendingDate(pendingApproval) }}
+        </p>
+        <button
+          class="mt-xxs flex h-[60px] w-full items-center bg-white px-sm text-left"
+          type="button"
+          :aria-label="`${formatPendingDate(pendingApproval)} ${formatPendingAmount(pendingApproval)} ${getPendingDescription(pendingApproval)} 이상 거래 목록 보기`"
+          @click="emit('more')"
+        >
           <span
-            class="block text-[14px] font-semibold leading-[1.2] tracking-[-0.28px] text-black"
+            class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"
           >
-            {{ pendingAmount }}
+            <component
+              :is="pendingIcon"
+              class="size-[18px]"
+              weight="fill"
+              aria-hidden="true"
+            />
+          </span>
+          <span class="ml-md min-w-0 flex-1">
+            <span
+              class="block text-[14px] font-semibold leading-[1.2] tracking-[-0.28px] text-black"
+            >
+              {{ formatPendingAmount(pendingApproval) }}
+            </span>
+            <span
+              class="mt-xxs block truncate text-[12px] font-medium leading-[1.2] tracking-[-0.24px] text-gray-700"
+            >
+              {{ getPendingDescription(pendingApproval) }}
+            </span>
           </span>
           <span
-            class="mt-xxs block truncate text-[12px] font-medium leading-[1.2] tracking-[-0.24px] text-gray-700"
+            class="rounded-small px-[6px] py-xxs text-[10px] font-bold leading-[1.2] tracking-[-0.2px]"
+            :class="guardTransactionStatusClasses.danger"
           >
-            {{ pendingDescription }}
+            {{ guardTransactionStatusLabels.danger }}
           </span>
-        </span>
-        <span
-          class="rounded-small px-[6px] py-xxs text-[10px] font-bold leading-[1.2] tracking-[-0.2px]"
-          :class="guardTransactionStatusClasses.danger"
-        >
-          {{ guardTransactionStatusLabels.danger }}
-        </span>
-      </button>
-    </template>
+        </button>
+      </template>
+    </div>
   </section>
 </template>

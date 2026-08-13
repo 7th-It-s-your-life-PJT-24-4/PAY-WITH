@@ -6,7 +6,6 @@ import {
   createGuardTransactionDetailView,
   defaultTransferFailureReason,
   getGuardTransactionTitlePresentation,
-  maskGuardAccountNumber,
   type GuardTransactionDetailView,
 } from '@/pages/guard/-utils/guard-transaction-detail'
 import type { GuardTransactionDetail } from '@/schemas/transaction.schema'
@@ -32,7 +31,7 @@ const completedDangerDetail: GuardTransactionDetail = {
 }
 
 describe('GuardTransactionDetailContent', () => {
-  it('송금 상세의 은행은 유지하고 마스킹한 계좌번호에만 말줄임을 적용한다', () => {
+  it('송금 상세의 받는 계좌를 은행명과 전체 계좌번호로 표시하고 말줄임을 적용한다', () => {
     const wrapper = mount(GuardTransactionDetailContent, {
       props: {
         detail: createGuardTransactionDetailView(completedDangerDetail),
@@ -43,14 +42,13 @@ describe('GuardTransactionDetailContent', () => {
     expect(wrapper.text()).toContain('받는 분')
     expect(wrapper.text()).toContain('박수취')
     expect(wrapper.text()).toContain('받는 계좌')
-    const bankName = wrapper.get('[data-testid="recipient-bank-name"]')
-    const accountNo = wrapper.get('[data-testid="recipient-account-number"]')
-    const accountDetail = accountNo.element.parentElement
+    const recipientAccount = wrapper.get('[data-testid="recipient-account"]')
+    const accountDetail = recipientAccount.element.parentElement
 
-    expect(bankName.text()).toBe('신한은행')
-    expect(accountNo.text()).toBe('110-***-7890')
-    expect(bankName.classes()).not.toContain('truncate')
-    expect(accountNo.classes()).toContain('truncate')
+    expect(recipientAccount.text()).toBe('신한은행 110234567890')
+    expect(recipientAccount.classes()).toContain('truncate')
+    expect(recipientAccount.classes()).toContain('min-w-0')
+    expect(recipientAccount.classes()).toContain('max-w-full')
     expect(accountDetail?.classList.contains('flex-1')).toBe(true)
     expect(accountDetail?.classList.contains('overflow-hidden')).toBe(true)
     expect(wrapper.text()).not.toContain('출금처')
@@ -118,11 +116,6 @@ describe('GuardTransactionDetailContent', () => {
 })
 
 describe('guard transaction detail presentation', () => {
-  it('계좌번호 앞자리와 끝 4자리를 동일한 정책으로 마스킹한다', () => {
-    expect(maskGuardAccountNumber('110234567890')).toBe('110-***-7890')
-    expect(maskGuardAccountNumber(null)).toBe('-')
-  })
-
   it('URL 상태가 아니라 상세 데이터의 status와 riskLevel로 제목을 결정한다', () => {
     const detail = createGuardTransactionDetailView(completedDangerDetail)
 

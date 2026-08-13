@@ -4,7 +4,6 @@ import { computed } from 'vue'
 import TransactionRiskCard from '@/components/TransactionRiskCard.vue'
 import {
   getGuardTransactionTitlePresentation,
-  maskGuardAccountNumber,
   type GuardTransactionDetailView,
 } from '@/pages/guard/-utils/guard-transaction-detail'
 
@@ -60,6 +59,17 @@ function formatDateTime(value: string) {
 function formatHolderName(value: string | null) {
   if (!value) return '-'
   return value.endsWith('님') ? value : `${value}님`
+}
+
+function formatRecipientAccount(
+  bankName: string | null,
+  accountNo: string | null,
+) {
+  const bank = bankName?.trim() ?? ''
+  const trimmedAccount = accountNo?.trim() ?? ''
+  const account = trimmedAccount.replace(/\D/g, '') || trimmedAccount
+
+  return [bank, account].filter(Boolean).join(' ') || '-'
 }
 
 const detailRows = computed<DetailRow[]>(() => {
@@ -119,9 +129,7 @@ const detailRows = computed<DetailRow[]>(() => {
       testIdPrefix: 'recipient',
       holderName: null,
       bankName: props.detail.bankName,
-      accountNo: props.detail.accountNo
-        ? maskGuardAccountNumber(props.detail.accountNo)
-        : null,
+      accountNo: props.detail.accountNo,
     },
     occurredAtRow,
   ]
@@ -170,32 +178,41 @@ const detailRows = computed<DetailRow[]>(() => {
           class="flex min-w-0 flex-1 items-center justify-end gap-xxs overflow-hidden text-right font-semibold text-black"
         >
           <span
-            v-if="row.holderName"
-            :data-testid="`${row.testIdPrefix}-holder-name`"
-            class="shrink-0 whitespace-nowrap"
+            v-if="row.testIdPrefix === 'recipient'"
+            data-testid="recipient-account"
+            class="min-w-0 max-w-full truncate whitespace-nowrap"
           >
-            {{ row.holderName }}
+            {{ formatRecipientAccount(row.bankName, row.accountNo) }}
           </span>
-          <span
-            v-if="row.bankName"
-            :data-testid="`${row.testIdPrefix}-bank-name`"
-            class="shrink-0 whitespace-nowrap"
-          >
-            {{ row.bankName }}
-          </span>
-          <span
-            v-if="row.accountNo"
-            :data-testid="`${row.testIdPrefix}-account-number`"
-            class="min-w-0 truncate"
-          >
-            {{ row.accountNo }}
-          </span>
-          <span
-            v-if="!row.holderName && !row.bankName && !row.accountNo"
-            class="shrink-0 whitespace-nowrap"
-          >
-            -
-          </span>
+          <template v-else>
+            <span
+              v-if="row.holderName"
+              :data-testid="`${row.testIdPrefix}-holder-name`"
+              class="shrink-0 whitespace-nowrap"
+            >
+              {{ row.holderName }}
+            </span>
+            <span
+              v-if="row.bankName"
+              :data-testid="`${row.testIdPrefix}-bank-name`"
+              class="shrink-0 whitespace-nowrap"
+            >
+              {{ row.bankName }}
+            </span>
+            <span
+              v-if="row.accountNo"
+              :data-testid="`${row.testIdPrefix}-account-number`"
+              class="min-w-0 truncate"
+            >
+              {{ row.accountNo }}
+            </span>
+            <span
+              v-if="!row.holderName && !row.bankName && !row.accountNo"
+              class="shrink-0 whitespace-nowrap"
+            >
+              -
+            </span>
+          </template>
         </dd>
         <dd
           v-else
