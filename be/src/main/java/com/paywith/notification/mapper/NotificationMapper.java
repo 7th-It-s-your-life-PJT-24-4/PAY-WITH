@@ -21,6 +21,9 @@ public interface NotificationMapper {
      */
     List<String> findActiveGuardTokens(@Param("seniorId") Long seniorId);
 
+    /** 보호자에게 보여줄 알림 본문에 피보호자 이름을 포함할 때 쓴다. */
+    String findActiveUserNameById(@Param("userId") Long userId);
+
     /** 피보호자 본인에게 보낼 때 쓴다(승인 결과 등). 토큰이 없으면 null. */
     String findFcmTokenByUserId(@Param("userId") Long userId);
 

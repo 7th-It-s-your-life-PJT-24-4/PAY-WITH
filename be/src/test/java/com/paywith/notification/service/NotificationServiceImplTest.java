@@ -81,6 +81,48 @@ class NotificationServiceImplTest {
     }
 
     @Test
+    @DisplayName("보호자 알림 저장과 푸시 본문에 피보호자 이름을 포함한다")
+    void notifyGuardians_includesSeniorNameInBody() {
+        given(notificationMapper.findActiveGuardIds(SENIOR_ID)).willReturn(List.of(1L));
+        given(notificationMapper.findActiveGuardTokens(SENIOR_ID)).willReturn(List.of("TOKEN_A"));
+        given(notificationMapper.findActiveUserNameById(SENIOR_ID)).willReturn("김시니어");
+
+        service.notifyGuardians(SENIOR_ID, NotificationType.APPROVAL_REQUEST,
+            "송금 승인 요청", "김예호님께 10,000,000원을 송금하려고 합니다. 확인해 주세요.",
+            "APPROVAL", TRANSACTION_ID);
+
+        ArgumentCaptor<Notification> notificationCaptor =
+            ArgumentCaptor.forClass(Notification.class);
+        then(notificationMapper).should().insert(notificationCaptor.capture());
+        assertThat(notificationCaptor.getValue().getBody()).isEqualTo(
+            "김시니어님이 요청한 거래입니다. 김예호님께 10,000,000원을 송금하려고 합니다. 확인해 주세요.");
+        then(pushDispatcher).should().dispatch(
+            eq(List.of("TOKEN_A")),
+            eq("송금 승인 요청"),
+            eq("김시니어님이 요청한 거래입니다. 김예호님께 10,000,000원을 송금하려고 합니다. 확인해 주세요."),
+            any());
+    }
+
+    @Test
+    @DisplayName("피보호자 이름 조회가 실패해도 기존 문구로 알림을 저장하고 발송한다")
+    void notifyGuardians_fallsBackWhenSeniorNameLookupFails() {
+        given(notificationMapper.findActiveGuardIds(SENIOR_ID)).willReturn(List.of(1L));
+        given(notificationMapper.findActiveGuardTokens(SENIOR_ID)).willReturn(List.of("TOKEN_A"));
+        given(notificationMapper.findActiveUserNameById(SENIOR_ID))
+            .willThrow(new RuntimeException("이름 조회 실패"));
+
+        service.notifyGuardians(SENIOR_ID, NotificationType.ANOMALY,
+            "결제 차단", "위험 결제가 차단되었습니다.", "TRANSACTION", TRANSACTION_ID);
+
+        ArgumentCaptor<Notification> notificationCaptor =
+            ArgumentCaptor.forClass(Notification.class);
+        then(notificationMapper).should().insert(notificationCaptor.capture());
+        assertThat(notificationCaptor.getValue().getBody()).isEqualTo("위험 결제가 차단되었습니다.");
+        then(pushDispatcher).should().dispatch(
+            eq(List.of("TOKEN_A")), eq("결제 차단"), eq("위험 결제가 차단되었습니다."), any());
+    }
+
+    @Test
     @DisplayName("ACTIVE 보호자가 없으면 아무 행도 남기지 않는다 — 페어링 전 피보호자")
     void 보호자가_없으면_저장하지_않는다() {
         given(notificationMapper.findActiveGuardIds(SENIOR_ID)).willReturn(Collections.emptyList());

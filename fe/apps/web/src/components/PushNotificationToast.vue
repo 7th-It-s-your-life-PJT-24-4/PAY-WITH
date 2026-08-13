@@ -50,11 +50,11 @@ async function openNotification() {
           <div class="min-w-0 flex-1">
             <h2
               id="foreground-push-title"
-              class="break-keep text-[16px] font-semibold leading-6 text-gray-900"
+              class="break-keep text-[16px] font-semibold leading-6 text-red-500"
             >
               {{ foregroundNotification.title }}
             </h2>
-            <p class="mt-1 break-keep text-[14px] leading-5 text-gray-700">
+            <p class="mt-1 break-keep text-[14px] leading-5 text-gray-900">
               {{ foregroundNotification.body }}
             </p>
             <button

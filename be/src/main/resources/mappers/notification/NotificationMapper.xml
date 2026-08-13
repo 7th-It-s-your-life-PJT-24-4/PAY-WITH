@@ -35,6 +35,13 @@
       AND u.fcm_token IS NOT NULL
   </select>
 
+  <select id="findActiveUserNameById" resultType="string">
+    SELECT name
+    FROM users
+    WHERE user_id = #{userId}
+      AND status != 'WITHDRAWN'
+  </select>
+
   <select id="findFcmTokenByUserId" resultType="string">
     SELECT fcm_token
     FROM users

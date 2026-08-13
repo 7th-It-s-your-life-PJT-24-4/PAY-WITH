@@ -74,9 +74,12 @@ class TransferNotifierTest {
 
         notifier.notifyApprovalRequested(TRANSACTION_ID, APPROVAL_ID);
 
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         then(notificationService).should().notifyGuardians(eq(WARD_ID),
-            eq(NotificationType.APPROVAL_REQUEST), anyString(), anyString(),
+            eq(NotificationType.APPROVAL_REQUEST), eq("송금 승인 요청"), body.capture(),
             eq("APPROVAL"), eq(APPROVAL_ID));
+        assertThat(body.getValue())
+            .isEqualTo("김철수님께 150,000원을 송금하려고 합니다. 확인해 주세요.");
     }
 
     @Test
