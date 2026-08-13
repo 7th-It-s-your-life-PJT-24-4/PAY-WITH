@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ConfirmModal } from '@pay-with/ui'
+import { PhCaretDown } from '@phosphor-icons/vue'
+import { BottomSheet, ConfirmModal } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -17,9 +18,16 @@ import type { TransactionRiskLevel } from '@/schemas/transaction.schema'
 import { useGuardStore } from '@/stores/guard.store'
 import { usePairingStore } from '@/stores/pairing.store'
 
-type HistoryFilter = 'ALL' | TransactionRiskLevel
+type TransactionTypeFilter = 'ALL' | 'CHARGE' | 'PAYMENT' | 'TRANSFER'
+type RiskFilter = 'ALL' | TransactionRiskLevel
 
-const filters: Array<{ label: string; value: HistoryFilter }> = [
+const typeFilters: Array<{ label: string; value: TransactionTypeFilter }> = [
+  { label: '전체', value: 'ALL' },
+  { label: '충전', value: 'CHARGE' },
+  { label: '결제', value: 'PAYMENT' },
+  { label: '송금', value: 'TRANSFER' },
+]
+const riskFilters: Array<{ label: string; value: RiskFilter }> = [
   { label: '전체', value: 'ALL' },
   { label: '위험', value: 'DANGER' },
   { label: '주의', value: 'CAUTION' },
@@ -34,38 +42,81 @@ const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
 const selectedWardId = computed(
   () => routeWardId.value ?? guardStore.activeWardId,
 )
-const validRiskLevels: HistoryFilter[] = ['ALL', 'DANGER', 'CAUTION', 'SAFE']
-const initialRiskLevel = computed<HistoryFilter>(() => {
+const validTransactionTypes: TransactionTypeFilter[] = [
+  'ALL',
+  'CHARGE',
+  'PAYMENT',
+  'TRANSFER',
+]
+const validRiskLevels: RiskFilter[] = ['ALL', 'DANGER', 'CAUTION', 'SAFE']
+const initialTransactionType = computed<TransactionTypeFilter>(() => {
+  const type =
+    typeof route.query.type === 'string' ? route.query.type.toUpperCase() : ''
+  return validTransactionTypes.includes(type as TransactionTypeFilter)
+    ? (type as TransactionTypeFilter)
+    : 'ALL'
+})
+const initialRiskLevel = computed<RiskFilter>(() => {
   const level =
     typeof route.query.riskLevel === 'string'
       ? route.query.riskLevel.toUpperCase()
       : ''
-  return validRiskLevels.includes(level as HistoryFilter)
-    ? (level as HistoryFilter)
+  return validRiskLevels.includes(level as RiskFilter)
+    ? (level as RiskFilter)
     : 'ALL'
 })
 
-const activeFilter = ref<HistoryFilter>(initialRiskLevel.value)
+const activeTransactionType = ref<TransactionTypeFilter>(
+  initialTransactionType.value,
+)
+const activeRiskFilter = ref<RiskFilter>(initialRiskLevel.value)
+const isRiskFilterOpen = ref(false)
 const isPairingConfirmOpen = ref(false)
+const activeRiskLabel = computed(
+  () =>
+    riskFilters.find((filter) => filter.value === activeRiskFilter.value)
+      ?.label ?? '전체',
+)
 
 watch(
-  () => route.query.riskLevel,
+  () => [route.query.type, route.query.riskLevel],
   () => {
-    if (activeFilter.value !== initialRiskLevel.value) {
-      activeFilter.value = initialRiskLevel.value
+    if (activeTransactionType.value !== initialTransactionType.value) {
+      activeTransactionType.value = initialTransactionType.value
+    }
+    if (activeRiskFilter.value !== initialRiskLevel.value) {
+      activeRiskFilter.value = initialRiskLevel.value
     }
   },
 )
 
-function setFilter(filter: HistoryFilter) {
-  activeFilter.value = filter
+function updateFilterQuery() {
   const query = { ...route.query }
-  if (filter !== 'ALL') {
-    query.riskLevel = filter
+
+  if (activeTransactionType.value !== 'ALL') {
+    query.type = activeTransactionType.value
+  } else {
+    delete query.type
+  }
+
+  if (activeRiskFilter.value !== 'ALL') {
+    query.riskLevel = activeRiskFilter.value
   } else {
     delete query.riskLevel
   }
+
   void router.replace({ query })
+}
+
+function setTransactionType(filter: TransactionTypeFilter) {
+  activeTransactionType.value = filter
+  updateFilterQuery()
+}
+
+function setRiskFilter(filter: RiskFilter) {
+  activeRiskFilter.value = filter
+  isRiskFilterOpen.value = false
+  updateFilterQuery()
 }
 
 const guardHomeQuery = useQuery(guardHomeOptions(selectedWardId))
@@ -88,7 +139,12 @@ const activeSeniorId = computed(() =>
   activeWardId.value === null ? '' : String(activeWardId.value),
 )
 const historyParams = computed(() => ({
-  riskLevel: activeFilter.value === 'ALL' ? undefined : activeFilter.value,
+  type:
+    activeTransactionType.value === 'ALL'
+      ? undefined
+      : activeTransactionType.value,
+  riskLevel:
+    activeRiskFilter.value === 'ALL' ? undefined : activeRiskFilter.value,
   page: 0,
   size: 100,
 }))
@@ -185,23 +241,43 @@ function selectSenior(seniorId: string) {
         @select="selectSenior"
       />
 
-      <div class="mt-md flex gap-xs" aria-label="거래 위험도 필터">
+      <div class="mt-md flex gap-xs" role="group" aria-label="거래 종류 필터">
         <button
-          v-for="filter in filters"
+          v-for="filter in typeFilters"
           :key="filter.value"
           class="flex h-8 min-w-14 items-center justify-center rounded-[8px] border-[1.5px] border-primary-500 px-[15px] text-[14px] font-semibold leading-[1.6] tracking-[-0.28px] transition-colors duration-300"
           :class="
-            activeFilter === filter.value
+            activeTransactionType === filter.value
               ? 'bg-primary-500 text-white'
               : 'bg-white text-primary-500'
           "
           type="button"
-          :aria-pressed="activeFilter === filter.value"
-          @click="setFilter(filter.value)"
+          :aria-pressed="activeTransactionType === filter.value"
+          @click="setTransactionType(filter.value)"
         >
           {{ filter.label }}
         </button>
       </div>
+
+      <section
+        class="-mx-mobile-gutter mt-xs flex min-h-12 items-center justify-between border-b border-gray-900 px-mobile-gutter"
+        aria-label="거래 내역 필터"
+      >
+        <button
+          class="flex min-h-11 items-center gap-[5px] text-[14px] font-semibold text-gray-600 outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+          type="button"
+          aria-haspopup="dialog"
+          :aria-expanded="isRiskFilterOpen"
+          :aria-label="`위험도 필터: ${activeRiskLabel}`"
+          @click="isRiskFilterOpen = true"
+        >
+          {{ activeRiskLabel }}
+          <PhCaretDown class="size-4 text-gray-500" aria-hidden="true" />
+        </button>
+        <span class="text-[13px] font-medium text-gray-500">
+          총 {{ transactions.length }}건
+        </span>
+      </section>
 
       <GuardHistoryTransactionList
         v-if="activeWardId !== null && transactions.length > 0"
@@ -241,12 +317,43 @@ function selectSenior(seniorId: string) {
         class="flex min-h-[360px] items-center justify-center text-center text-[16px] font-medium leading-6 text-gray-500"
       >
         {{
-          activeFilter === 'ALL'
+          activeTransactionType === 'ALL' && activeRiskFilter === 'ALL'
             ? '아직 거래 내역이 없어요.'
-            : '해당 위험도의 거래 내역이 없어요.'
+            : '해당 조건의 거래 내역이 없어요.'
         }}
       </p>
     </div>
+
+    <BottomSheet
+      v-model:open="isRiskFilterOpen"
+      title="내역 선택"
+      description="확인할 거래의 위험도를 선택해 주세요."
+      content-class="pb-[calc(28px+env(safe-area-inset-bottom))]"
+    >
+      <fieldset class="mt-sm">
+        <legend class="sr-only">거래 위험도</legend>
+        <label
+          v-for="filter in riskFilters"
+          :key="filter.value"
+          class="flex min-h-[52px] cursor-pointer items-center gap-sm px-xxs text-[16px] text-gray-600"
+          :class="
+            activeRiskFilter === filter.value
+              ? 'font-bold text-black'
+              : 'font-medium'
+          "
+        >
+          <input
+            class="size-[22px] shrink-0 cursor-pointer appearance-none rounded-full border-2 border-gray-300 bg-white outline-none transition-[border] checked:border-[7px] checked:border-primary-500 focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:ring-offset-2"
+            type="radio"
+            name="guard-history-risk-filter"
+            :value="filter.value"
+            :checked="activeRiskFilter === filter.value"
+            @change="setRiskFilter(filter.value)"
+          />
+          {{ filter.label }}
+        </label>
+      </fieldset>
+    </BottomSheet>
 
     <ConfirmModal
       v-model:open="isPairingConfirmOpen"

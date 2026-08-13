@@ -106,12 +106,13 @@ test.beforeEach(async ({ page }) => {
       })
     }
 
+    const type = url.searchParams.get('type')
     const riskLevel = url.searchParams.get('riskLevel')
-    const filtered = riskLevel
-      ? transactions.filter(
-          (transaction) => transaction.riskLevel === riskLevel,
-        )
-      : transactions
+    const filtered = transactions.filter(
+      (transaction) =>
+        (!type || transaction.type === type) &&
+        (!riskLevel || transaction.riskLevel === riskLevel),
+    )
 
     return route.fulfill({
       json: {
@@ -130,7 +131,7 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
-test('보호자가 위험도별 거래 목록을 조회하고 상세를 확인한다', async ({
+test('보호자가 거래 종류와 위험도별 목록을 조회하고 상세를 확인한다', async ({
   page,
 }) => {
   await page.goto('/guard/history?wardId=12')
@@ -138,7 +139,16 @@ test('보호자가 위험도별 거래 목록을 조회하고 상세를 확인�
   await expect(page.getByText('+50,000원')).toBeVisible()
   await expect(page.getByText('KB국민은행 충전')).toBeVisible()
 
-  await page.getByRole('button', { name: '위험', exact: true }).click()
+  const typeFilter = page.getByRole('group', { name: '거래 종류 필터' })
+  await typeFilter.getByRole('button', { name: '충전', exact: true }).click()
+  await expect(page).toHaveURL(/type=CHARGE/)
+  await expect(page.getByText('-35,000원')).toBeHidden()
+  await typeFilter.getByRole('button', { name: '전체', exact: true }).click()
+
+  await page.getByRole('button', { name: '위험도 필터: 전체' }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await page.getByRole('radio', { name: '위험', exact: true }).click()
+  await expect(page).toHaveURL(/riskLevel=DANGER/)
   await expect(page.getByText('+50,000원')).toBeHidden()
   await expect(page.getByText('-35,000원')).toBeVisible()
 

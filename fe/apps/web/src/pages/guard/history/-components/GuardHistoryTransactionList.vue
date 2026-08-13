@@ -3,7 +3,6 @@ import { useRouter } from 'vue-router'
 
 import {
   guardTransactionCategoryIcons,
-  guardTransactionStatusClasses,
   guardTransactionStatusLabels,
 } from '@/pages/guard/-utils/guard-transaction-ui'
 import type { GuardTransactionHistoryItem } from '@/schemas/transaction.schema'
@@ -28,6 +27,12 @@ const categoryByType = {
   TRANSFER: 'transfer',
 } as const
 
+const riskBadgeClasses = {
+  safe: 'bg-[#E6F7EE] text-[#1FA463]',
+  warning: 'bg-[#FFF6DC] text-[#C08A00]',
+  danger: 'bg-[#FFECEC] text-[#E14B4B]',
+} as const
+
 function getTransactionDate(value: string) {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? value : dateFormatter.format(date)
@@ -36,6 +41,10 @@ function getTransactionDate(value: string) {
 function getTransactionAmount(transaction: GuardTransactionHistoryItem) {
   const prefix = transaction.type === 'CHARGE' ? '+' : '-'
   return `${prefix}${moneyFormatter.format(transaction.amount)}원`
+}
+
+function getAmountClass(transaction: GuardTransactionHistoryItem) {
+  return transaction.type === 'CHARGE' ? 'text-[#8FBEF5]' : 'text-[#3D4348]'
 }
 
 function getTransactionDescription(transaction: GuardTransactionHistoryItem) {
@@ -79,40 +88,42 @@ function openTransaction(transactionId: number) {
       </p>
 
       <button
-        class="flex h-[60px] w-full items-center bg-white px-sm text-left"
+        class="flex min-h-[74px] w-full items-center bg-white px-sm text-left"
         type="button"
         :aria-label="`${getTransactionDate(transaction.createdAt)} ${getTransactionDescription(transaction)} 거래 상세 보기`"
         @click="openTransaction(transaction.transactionId)"
       >
         <span
-          class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"
+          class="flex size-11 shrink-0 items-center justify-center rounded-[14px] text-white"
+          :class="
+            transaction.type === 'CHARGE' ? 'bg-[#7ADCE3]' : 'bg-primary-500'
+          "
         >
           <component
             :is="
               guardTransactionCategoryIcons[categoryByType[transaction.type]]
             "
-            class="size-[18px]"
+            class="size-5"
             weight="fill"
             aria-hidden="true"
           />
         </span>
-        <div class="ml-md min-w-0 flex-1">
+        <div class="ml-[13px] min-w-0 flex-1">
           <p
-            class="text-[14px] font-semibold leading-[1.2] tracking-[-0.28px] text-black"
-          >
-            {{ getTransactionAmount(transaction) }}
-          </p>
-          <p
-            class="mt-xxs truncate text-[12px] font-medium leading-[1.2] tracking-[-0.24px] text-gray-700"
+            class="truncate text-[14px] font-medium leading-[1.2] tracking-[-0.28px] text-gray-700"
           >
             {{ getTransactionDescription(transaction) }}
           </p>
+          <p
+            class="mt-xxs text-[17px] font-bold leading-[1.2] tracking-[-0.34px]"
+            :class="getAmountClass(transaction)"
+          >
+            {{ getTransactionAmount(transaction) }}
+          </p>
         </div>
         <span
-          class="rounded-small px-[6px] py-xxs text-[10px] font-bold leading-[1.2] tracking-[-0.2px]"
-          :class="
-            guardTransactionStatusClasses[getTransactionStatus(transaction)]
-          "
+          class="rounded-[8px] px-[11px] py-1 text-[12px] font-semibold leading-[1.2] tracking-[-0.24px]"
+          :class="riskBadgeClasses[getTransactionStatus(transaction)]"
         >
           {{ guardTransactionStatusLabels[getTransactionStatus(transaction)] }}
         </span>
