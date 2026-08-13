@@ -10,7 +10,7 @@
 
 Issue #206 범위인 FCM 공통 기반, 토큰 등록·해제, 포그라운드 수신 상태, 백그라운드 서비스 워커, payload 검증, 역할 검증, 로그인 후 안전한 복구, 빌드·배포 환경 변수 전달까지 구현되어 있다.
 
-Issue #207·#208의 책임인 사용자 노출용 포그라운드 알림 UI, 역할별 화면의 권한 UI 장착, 승인·거래 상세 직접 진입, 알림 유형별 UX는 구현하지 않았다. 클릭 시에는 검증된 대상 역할의 홈까지만 이동하며, 원본 `type`, `refType`, `refId`는 후속 라우팅 구현에서 사용할 수 있도록 공통 계층이 유지한다. 백엔드 payload 계약도 PR #204 상태에서 변경하지 않았다.
+Issue #207 범위인 보호자 포그라운드 알림 UI와 승인·거래 상세 직접 진입은 `fe/feat/guardian-push-notifications`에서 연결했다. `ANOMALY` payload에는 여러 피보호자 중 거래 소유자를 정확히 복원하기 위한 `wardId`가 추가된다. Issue #208의 피보호자 결과 알림 상세 연결은 아직 후속 작업이다.
 
 실제 Firebase 프로젝트 값을 적용한 기기 스모크 테스트는 아직 수행하지 않았다.
 
@@ -59,7 +59,7 @@ flowchart TD
 
 `src/main.ts`가 앱 마운트 후 `startPushNotifications(router)`를 한 번 실행한다.
 
-- 프로덕션에서만 서비스 워커를 등록한다.
+- 프로덕션에서는 서비스 워커를 등록하고, 로컬에서는 `VITE_ENABLE_PWA_DEV=true`일 때만 등록한다.
 - Firebase 환경 변수가 없으면 푸시 기능만 `disabled`가 되고 앱은 정상 기동한다.
 - 브라우저가 Firebase Messaging 또는 Notification API를 지원하지 않으면 `unsupported`로 처리한다.
 - 라우팅 완료 시마다 로그인 사용자와 권한을 확인해 토큰 동기화를 시도한다.
@@ -149,11 +149,11 @@ DELETE 요청에도 토큰 본문이 필요하다. 다른 기기에서 새 토�
 
 백엔드는 `notification`에 제목·본문을, `data`에 클릭 대상 식별자를 보낸다. `refId`는 문자열이며 반드시 `refType`과 함께 해석해야 한다.
 
-| `type`             | `refType`     | `refId` 의미 | 대상 역할 | #206 현재 목적지     | 상세 연동 이슈 |
-| ------------------ | ------------- | ------------ | --------- | -------------------- | -------------- |
-| `APPROVAL_REQUEST` | `APPROVAL`    | 승인 요청 ID | `GUARD`   | `/guard?source=push` | #207           |
-| `ANOMALY`          | `TRANSACTION` | 거래 ID      | `GUARD`   | `/guard?source=push` | #207           |
-| `APPROVAL_RESULT`  | `TRANSACTION` | 거래 ID      | `WARD`    | `/ward?source=push`  | #208           |
+| `type`             | `refType`     | `refId` 의미 | 대상 역할 | #206 현재 목적지                                | 상세 연동 이슈 |
+| ------------------ | ------------- | ------------ | --------- | ----------------------------------------------- | -------------- |
+| `APPROVAL_REQUEST` | `APPROVAL`    | 승인 요청 ID | `GUARD`   | `/guard/approval-requests/:id?source=push`      | 연결됨         |
+| `ANOMALY`          | `TRANSACTION` | 거래 ID      | `GUARD`   | `/guard/history/:id?wardId=:wardId&source=push` | 연결됨         |
+| `APPROVAL_RESULT`  | `TRANSACTION` | 거래 ID      | `WARD`    | `/ward?source=push`                             | #208           |
 
 `src/schemas/push-notification.schema.ts`는 위 세 조합만 허용한다. 다음 payload는 화면 이동 없이 무시한다.
 
@@ -174,7 +174,7 @@ DELETE 요청에도 토큰 본문이 필요하다. 다른 기기에서 새 토�
 2. 유효하면 `foregroundNotification` 상태에 제목·본문·대상 역할 홈을 저장한다.
 3. 공통 composable이 이 상태를 제공한다.
 
-현재 `App.vue`나 역할별 페이지에는 이 상태를 표시하는 UI가 연결되어 있지 않다. #207은 보호자 승인 요청 CTA와 이상거래 UX를, #208은 피보호자 송금 결과 UI를 각각 구현해야 한다.
+`App.vue`의 `PushNotificationToast`가 보호자 승인 요청과 이상거래를 표시한다. CTA를 누르면 포그라운드에서도 백그라운드 알림 클릭과 같은 상세 경로로 이동한다. 피보호자 송금 결과 전용 UX는 #208에서 연결한다.
 
 서버가 보낸 제목·본문이 없을 때만 FE 기본 문구를 사용한다.
 
@@ -213,7 +213,11 @@ Nginx는 `/sw.js`에 `Cache-Control: no-cache`를 붙인다. 서비스 워커를
 
 ## 8. 권한 UI와 브라우저별 처리
 
-`PushNotificationPermissionCard.vue`는 권한 상태별 공통 UI로 준비되어 있지만 보호자·피보호자 페이지에는 배치하지 않았다. 실제 노출 위치와 역할별 문구는 #207·#208에서 결정한다.
+보호자는 회원가입과 자동 로그인에 성공하면 `/guard/onboarding/push-notifications`에서 알림 권한을 선택한다. 회원가입 API와 브라우저 권한은 분리되어 있으므로, 가입 완료 뒤 사용자가 `알림 받고 시작하기` 버튼을 누른 시점에 권한 요청과 FCM 토큰 등록을 순서대로 수행한다. `나중에 하기`로 건너뛸 수 있고 이후에는 마이페이지의 `푸시알림설정`에서 다시 설정한다.
+
+시니어 가입은 기존처럼 홈으로 바로 이동한다. 피보호자 송금 승인 결과 알림의 가입 온보딩 노출 여부는 #208 범위다.
+
+`PushNotificationPermissionCard.vue`는 권한 상태별 공통 카드로 유지한다.
 
 | 상태               | UI 동작                                  |
 | ------------------ | ---------------------------------------- |
@@ -293,13 +297,7 @@ Issue #206의 “로그인 전 알림 클릭을 위한 pending destination 저�
 GET /api/guard/wards/:wardId/transactions/:transactionId
 ```
 
-PR #204의 payload에는 `transactionId`만 있고 `wardId`가 없다. 공통 계층은 이를 임의로 추정하지 않고 보호자 홈으로 이동한다. 후속 #207에서는 다음 중 계약을 확정한 뒤 상세 경로를 연결해야 한다.
-
-1. BE가 소유권을 검사하는 거래 ID 단독 상세 API 제공
-2. `ANOMALY` payload에 `wardId` 추가
-3. 거래 ID로 소속 피보호자를 조회하는 API 제공
-
-계약 확정 전에는 Pinia의 `activeWardId`를 콜드 스타트의 근거로 사용하지 않는다.
+`ANOMALY` payload에 `wardId`를 함께 보내도록 계약을 확장했다. FE는 `transactionId`와 `wardId`를 URL에 함께 담고, 기존 보호자 거래 상세 API의 소유권 검사를 그대로 사용한다. 콜드 스타트에서도 Pinia의 `activeWardId`를 추측 근거로 사용하지 않는다.
 
 ### `APPROVAL_RESULT` → 피보호자 거래 상세
 
@@ -340,7 +338,10 @@ VITE_FIREBASE_PROJECT_ID=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
 VITE_FIREBASE_VAPID_KEY=
+VITE_ENABLE_PWA_DEV=false
 ```
+
+로컬에서 서비스 워커와 FCM 수신까지 검증할 때만 `VITE_ENABLE_PWA_DEV=true`로 바꾼다. Firebase Web 설정과 백엔드 Firebase Admin 서비스 계정이 모두 있어야 피보호자 이상거래 발생부터 보호자 수신까지 실제 발송을 확인할 수 있다.
 
 설정 위치:
 

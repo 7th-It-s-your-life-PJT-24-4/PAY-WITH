@@ -43,7 +43,7 @@ public class NotificationServiceImpl implements NotificationService {
                 insert(guardId, type, title, body, refType, refId);
             }
             sendAfterCommit(notificationMapper.findActiveGuardTokens(seniorId),
-                type, title, body, refType, refId);
+                type, title, body, refType, refId, seniorId);
         } catch (RuntimeException e) {
             log.error("보호자 알림 저장 실패 — 호출 흐름은 유지. seniorId={}, type={}", seniorId, type, e);
         }
@@ -59,7 +59,7 @@ public class NotificationServiceImpl implements NotificationService {
 
             String token = notificationMapper.findFcmTokenByUserId(userId);
             sendAfterCommit(token == null ? List.of() : List.of(token),
-                type, title, body, refType, refId);
+                type, title, body, refType, refId, null);
         } catch (RuntimeException e) {
             log.error("알림 저장 실패 — 호출 흐름은 유지. userId={}, type={}", userId, type, e);
         }
@@ -74,11 +74,11 @@ public class NotificationServiceImpl implements NotificationService {
      * 그대로다.
      */
     private void sendAfterCommit(List<String> tokens, NotificationType type, String title,
-        String body, String refType, Long refId) {
+        String body, String refType, Long refId, Long seniorId) {
         if (tokens.isEmpty()) {
             return;
         }
-        Map<String, String> data = buildData(type, refType, refId);
+        Map<String, String> data = buildData(type, refType, refId, seniorId);
 
         // 트랜잭션 없이 불린 경우(스케줄러 등 호출 경로가 바뀌었을 때) 그대로 보낸다. 되돌릴
         // 트랜잭션이 없으니 커밋을 기다릴 것도 없다.
@@ -96,7 +96,8 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     /** 앱이 알림을 눌렀을 때 어디로 보낼지 정하는 값. 값이 없는 키는 넣지 않는다. */
-    private Map<String, String> buildData(NotificationType type, String refType, Long refId) {
+    private Map<String, String> buildData(NotificationType type, String refType, Long refId,
+        Long seniorId) {
         Map<String, String> data = new HashMap<>();
         data.put("type", type.name());
         if (refType != null) {
@@ -104,6 +105,11 @@ public class NotificationServiceImpl implements NotificationService {
         }
         if (refId != null) {
             data.put("refId", String.valueOf(refId));
+        }
+        // 보호자 거래 상세 API는 거래 ID와 피보호자 ID를 함께 요구한다. 콜드 스타트에서도
+        // 임시 Pinia 선택 상태에 기대지 않고 정확한 거래를 열 수 있도록 이상거래에만 싣는다.
+        if (type == NotificationType.ANOMALY && seniorId != null) {
+            data.put("wardId", String.valueOf(seniorId));
         }
         return data;
     }

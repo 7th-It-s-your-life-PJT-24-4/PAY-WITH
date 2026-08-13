@@ -129,6 +129,7 @@ describe('usePushNotification', () => {
         type: 'ANOMALY',
         refType: 'TRANSACTION',
         refId: '8',
+        wardId: '12',
       },
       notification: { title: '이상 거래', body: '확인이 필요합니다.' },
     })
@@ -136,7 +137,7 @@ describe('usePushNotification', () => {
     expect(usePushNotification().foregroundNotification.value).toMatchObject({
       title: '이상 거래',
       body: '확인이 필요합니다.',
-      path: '/guard?source=push',
+      path: '/guard/history/8?wardId=12&source=push',
     })
   })
 

@@ -1,10 +1,23 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  getPostSignUpPath,
   getRoleHomePath,
   getSafePostLoginPath,
   getUnauthenticatedSignInQuery,
 } from '@/router/auth-navigation'
+
+describe('getPostSignUpPath', () => {
+  it('보호자는 가입 직후 푸시 알림 안내로 이동한다', () => {
+    expect(getPostSignUpPath('guardian')).toBe(
+      '/guard/onboarding/push-notifications',
+    )
+  })
+
+  it('시니어는 기존처럼 홈으로 이동한다', () => {
+    expect(getPostSignUpPath('senior')).toBe('/ward')
+  })
+})
 
 describe('getRoleHomePath', () => {
   it('보호자는 guard 홈으로 이동한다', () => {

@@ -10,16 +10,17 @@ describe('푸시 알림 목적지', () => {
     [
       { type: 'APPROVAL_REQUEST', refType: 'APPROVAL', refId: '7' },
       'GUARD',
-      '/guard?source=push',
+      '/guard/approval-requests/7?source=push',
     ],
     [
       {
         type: 'ANOMALY',
         refType: 'TRANSACTION',
         refId: '8',
+        wardId: '12',
       },
       'GUARD',
-      '/guard?source=push',
+      '/guard/history/8?wardId=12&source=push',
     ],
     [
       { type: 'APPROVAL_RESULT', refType: 'TRANSACTION', refId: '9' },
@@ -39,6 +40,13 @@ describe('푸시 알림 목적지', () => {
     {},
     { type: 'UNKNOWN', refType: 'TRANSACTION', refId: '1' },
     { type: 'APPROVAL_REQUEST', refType: 'TRANSACTION', refId: '1' },
+    { type: 'ANOMALY', refType: 'TRANSACTION', refId: '1' },
+    {
+      type: 'ANOMALY',
+      refType: 'TRANSACTION',
+      refId: '1',
+      wardId: 'not-a-number',
+    },
     { type: 'ANOMALY', refType: 'TRANSACTION', refId: 'not-a-number' },
     { type: 'APPROVAL_RESULT', refType: 'TRANSACTION', refId: '0' },
   ])('알 수 없거나 잘못된 payload %j를 무시한다', (data) => {
