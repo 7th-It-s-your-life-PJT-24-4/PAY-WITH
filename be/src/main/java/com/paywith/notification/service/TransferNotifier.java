@@ -32,7 +32,8 @@ public class TransferNotifier {
     private static final String TITLE_BLOCKED = "송금 차단 알림";
     private static final String BODY_BLOCKED = "위험 거래가 감지되어 %s님께 %,d원 송금을 차단했습니다.";
     private static final String TITLE_APPROVAL_REQUEST = "송금 승인 요청";
-    private static final String BODY_APPROVAL_REQUEST = "%s님께 %,d원 송금에 확인이 필요합니다.";
+    private static final String BODY_APPROVAL_REQUEST =
+        "%s님께 %,d원을 송금하려고 합니다. 확인해 주세요.";
     private static final String TITLE_CAUTION = "송금 주의 알림";
     // 이 알림은 송금이 실행되기 전(FDS 판정 시점)에 나간다. 뒤에서 잔액 부족 등으로 실패할 수
     // 있으므로 "완료됐다"고 단정하지 않는다 — 결제 쪽 문구와 달라 보이는 이유다.

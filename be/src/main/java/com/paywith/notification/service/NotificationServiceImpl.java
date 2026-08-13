@@ -39,11 +39,12 @@ public class NotificationServiceImpl implements NotificationService {
         String refType, Long refId) {
         try {
             List<Long> guardIds = notificationMapper.findActiveGuardIds(seniorId);
+            String guardianBody = withSeniorName(seniorId, body);
             for (Long guardId : guardIds) {
-                insert(guardId, type, title, body, refType, refId);
+                insert(guardId, type, title, guardianBody, refType, refId);
             }
             sendAfterCommit(notificationMapper.findActiveGuardTokens(seniorId),
-                type, title, body, refType, refId, seniorId);
+                type, title, guardianBody, refType, refId, seniorId);
         } catch (RuntimeException e) {
             log.error("보호자 알림 저장 실패 — 호출 흐름은 유지. seniorId={}, type={}", seniorId, type, e);
         }
@@ -112,6 +113,21 @@ public class NotificationServiceImpl implements NotificationService {
             data.put("wardId", String.valueOf(seniorId));
         }
         return data;
+    }
+
+    /** 보호자가 여러 피보호자를 연결해도 알림만 보고 거래 주체를 구분할 수 있게 한다. */
+    private String withSeniorName(Long seniorId, String body) {
+        try {
+            String seniorName = notificationMapper.findActiveUserNameById(seniorId);
+            if (seniorName == null || seniorName.isBlank()) {
+                return body;
+            }
+            return seniorName + "님이 요청한 거래입니다. " + body;
+        } catch (RuntimeException e) {
+            // 이름 조회 하나 때문에 저장·발송까지 모두 빠지면 안 된다. 식별 문구만 포기한다.
+            log.warn("피보호자 이름 조회 실패 — 기존 알림 문구로 발송. seniorId={}", seniorId, e);
+            return body;
+        }
     }
 
     private void insert(Long userId, NotificationType type, String title, String body,

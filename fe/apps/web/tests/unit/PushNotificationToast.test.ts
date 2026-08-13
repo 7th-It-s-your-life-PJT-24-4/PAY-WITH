@@ -28,7 +28,7 @@ describe('PushNotificationToast', () => {
   it('승인 요청을 포그라운드에서 표시하고 상세 화면으로 이동한다', async () => {
     foregroundNotification.value = {
       title: '송금 승인 요청',
-      body: '확인이 필요한 송금이 있어요.',
+      body: '김시니어님이 요청한 거래입니다. 김예호님께 10,000,000원을 송금하려고 합니다. 확인해 주세요.',
       data: {
         type: 'APPROVAL_REQUEST',
         refType: 'APPROVAL',
@@ -42,7 +42,11 @@ describe('PushNotificationToast', () => {
     })
 
     expect(wrapper.text()).toContain('송금 승인 요청')
-    expect(wrapper.text()).toContain('확인이 필요한 송금이 있어요.')
+    expect(wrapper.text()).toContain('김시니어님이 요청한 거래입니다.')
+    expect(wrapper.get('#foreground-push-title').classes()).toContain(
+      'text-red-500',
+    )
+    expect(wrapper.get('p').classes()).toContain('text-gray-900')
 
     await wrapper.get('button:not([aria-label])').trigger('click')
 
