@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { PhCrown } from '@phosphor-icons/vue'
 import { useQuery } from '@tanstack/vue-query'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import {
@@ -14,6 +14,10 @@ import {
   formatApprovalListAmount,
 } from '@/pages/guard/approval-requests/-utils/approval-format'
 import {
+  parseApprovalFilter,
+  type ApprovalFilter,
+} from '@/pages/guard/approval-requests/-utils/approval-route'
+import {
   parsePositiveRouteId,
   withGuardWardId,
 } from '@/pages/guard/-utils/guard-route'
@@ -21,9 +25,6 @@ import type {
   ApprovalHistoryStatus,
   ApprovalRequestSummary,
 } from '@/schemas/approval.schema'
-
-type ApprovalFilter =
-  'pending' | 'approved' | 'rejected' | 'canceled' | 'expired'
 
 const filters: Array<{ label: string; value: ApprovalFilter }> = [
   { label: '대기', value: 'pending' },
@@ -53,10 +54,7 @@ const emptyMessageByFilter: Record<ApprovalFilter, string> = {
 const route = useRoute()
 const router = useRouter()
 const wardId = computed(() => parsePositiveRouteId(route.query.wardId))
-const initialFilter = filters.some(({ value }) => value === route.query.status)
-  ? (route.query.status as ApprovalFilter)
-  : 'pending'
-const activeFilter = ref<ApprovalFilter>(initialFilter)
+const activeFilter = computed(() => parseApprovalFilter(route.query.status))
 const activeHistoryStatus = computed(
   () => historyStatusByFilter[activeFilter.value] ?? null,
 )
@@ -91,8 +89,9 @@ const isError = computed(() =>
 )
 
 function selectFilter(filter: ApprovalFilter) {
-  activeFilter.value = filter
-  router.replace({
+  if (filter === activeFilter.value) return
+
+  router.push({
     query: {
       ...route.query,
       status: filter === 'pending' ? undefined : filter,

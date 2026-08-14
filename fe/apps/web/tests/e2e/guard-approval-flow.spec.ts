@@ -82,6 +82,47 @@ test.beforeEach(async ({ page }) => {
   await mockApprovalApi(page)
 })
 
+test('필터 선택과 브라우저 탐색을 URL 상태에서 복원한다', async ({ page }) => {
+  await page.goto('/guard/approval-requests?wardId=12')
+  await expect(page.getByRole('button', { name: '대기' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+
+  await page.getByRole('button', { name: '승인' }).click()
+  await expect(page).toHaveURL(
+    /\/guard\/approval-requests\?wardId=12&status=approved$/,
+  )
+  await expect(page.getByRole('button', { name: '승인' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+
+  await page.getByRole('button', { name: '거절' }).click()
+  await expect(page).toHaveURL(
+    /\/guard\/approval-requests\?wardId=12&status=rejected$/,
+  )
+
+  await page.goBack()
+  await expect(page.getByRole('button', { name: '승인' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+
+  await page.goBack()
+  await expect(page).toHaveURL(/\/guard\/approval-requests\?wardId=12$/)
+  await expect(page.getByRole('button', { name: '대기' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+
+  await page.goForward()
+  await expect(page.getByRole('button', { name: '승인' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+})
+
 test('대기 거래가 없어도 홈의 이상 거래 내역에서 목록으로 이동한다', async ({
   page,
 }) => {
