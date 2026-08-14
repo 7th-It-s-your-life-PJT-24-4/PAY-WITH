@@ -1,5 +1,6 @@
 package com.paywith.transfer.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.paywith.approval.mapper.ApprovalRequestMapper;
@@ -54,6 +55,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -511,5 +513,125 @@ class TransferServiceImplTest {
             sb.append(String.format("%02x", b));
         }
         return sb.toString();
+    }
+
+    // ===== inquireRecipient 빠진 분기 =====
+
+    @Test
+    void 수취인_조회시_피보호자가_아니면_예외() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.GUARD));
+
+        RecipientInquiryRequest inquiryRequest = new RecipientInquiryRequest("004", "11012300006781");
+
+        assertThatThrownBy(() -> transferService.inquireRecipient(userId, inquiryRequest))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+                .hasMessageContaining("피보호자만 접근할 수 있습니다.");
+
+        verify(recipientMapper, never()).existsActivePairing(any());
+    }
+
+    @Test
+    void 수취인_조회시_활성_페어링이_없으면_예외() {
+        given(userMapper.findById(userId)).willReturn(userWithRole(Role.WARD));
+        given(recipientMapper.existsActivePairing(userId)).willReturn(false);
+
+        RecipientInquiryRequest inquiryRequest = new RecipientInquiryRequest("004", "11012300006781");
+
+        assertThatThrownBy(() -> transferService.inquireRecipient(userId, inquiryRequest))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+                .hasMessageContaining("페어링");
+
+        verify(openBankingClient, never()).inquireRealName(any(), any(), any());
+    }
+
+    // ===== hashRequest 빠진 분기: memo null =====
+
+    @Test
+    void 메모가_없는_요청도_정상적으로_처리된다() {
+        TransferRequest noMemoRequest = new TransferRequest("004", "11012300006781", 50_000L, null, "123456");
+        TransferResponse response = TransferResponse.builder()
+                .transactionId(999L)
+                .status(TransactionStatus.COMPLETED)
+                .build();
+
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.setIfAbsent(eq(key), anyString(), eq(Duration.ofMinutes(5))))
+                .willReturn(true);
+        given(transferPreparationService.prepare(userId, noMemoRequest)).willReturn(preparedTransfer);
+        given(fdsEvaluationService.evaluate(any(FdsEvaluationRequest.class))).willReturn(FdsDecisions.safe());
+        given(transferFinalizationService.finalize(eq(preparedTransfer), any(FdsDecision.class), eq(noMemoRequest)))
+                .willReturn(response);
+
+        TransferResponse result = transferService.transfer(userId, idempotencyKey, noMemoRequest);
+
+        assertThat(result).isEqualTo(response);
+    }
+
+    // ===== markFailed 빠진 분기 =====
+
+    @Test
+    void markFailedIfRequested가_1행_갱신하면_경고없이_상태만_갱신된다() {
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.setIfAbsent(eq(key), anyString(), eq(Duration.ofMinutes(5))))
+                .willReturn(true);
+        given(transferPreparationService.prepare(userId, request)).willReturn(preparedTransfer);
+        given(fdsEvaluationService.evaluate(any(FdsEvaluationRequest.class))).willReturn(FdsDecisions.safe());
+        given(transferFinalizationService.finalize(eq(preparedTransfer), any(FdsDecision.class), eq(request)))
+                .willThrow(new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "송금 가능한 잔액이 부족합니다."));
+        given(transactionMapper.markFailedIfRequested(999L)).willReturn(1);
+
+        assertThatThrownBy(() -> transferService.transfer(userId, idempotencyKey, request))
+                .isInstanceOf(BusinessException.class);
+
+        verify(transactionMapper).markFailedIfRequested(999L);
+        verify(redisTemplate).delete(key);
+    }
+
+    @Test
+    void markFailed_처리_중_매퍼가_예외를_던져도_원본_예외가_그대로_전파된다() {
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.setIfAbsent(eq(key), anyString(), eq(Duration.ofMinutes(5))))
+                .willReturn(true);
+        given(transferPreparationService.prepare(userId, request)).willReturn(preparedTransfer);
+        given(fdsEvaluationService.evaluate(any(FdsEvaluationRequest.class))).willReturn(FdsDecisions.safe());
+        BusinessException original = new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "송금 가능한 잔액이 부족합니다.");
+        given(transferFinalizationService.finalize(eq(preparedTransfer), any(FdsDecision.class), eq(request)))
+                .willThrow(original);
+        given(transactionMapper.markFailedIfRequested(999L))
+                .willThrow(new RuntimeException("DB 커넥션 끊김"));
+
+        assertThatThrownBy(() -> transferService.transfer(userId, idempotencyKey, request))
+                .isSameAs(original);
+
+        verify(redisTemplate).delete(key);
+    }
+
+    // ===== toJson/fromJson 빠진 분기: 직렬화/역직렬화 자체 실패 =====
+
+    @Test
+    void 최초_레코드_직렬화_실패시_IllegalStateException을_던진다() throws JsonProcessingException {
+        doThrow(new JsonProcessingException("boom") {}).when(objectMapper).writeValueAsString(any());
+
+        assertThatThrownBy(() -> transferService.transfer(userId, idempotencyKey, request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("직렬화 실패");
+
+        verify(transferPreparationService, never()).prepare(any(), any());
+    }
+
+    @Test
+    void 기존_레코드_역직렬화_실패시_IllegalStateException을_던진다() throws JsonProcessingException {
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.setIfAbsent(eq(key), anyString(), eq(Duration.ofMinutes(5))))
+                .willReturn(false);
+        given(valueOperations.get(key)).willReturn("깨진-json");
+        doThrow(new JsonProcessingException("boom") {})
+                .when(objectMapper).readValue(anyString(), eq(IdempotencyRecord.class));
+
+        assertThatThrownBy(() -> transferService.transfer(userId, idempotencyKey, request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("역직렬화 실패");
     }
 }
