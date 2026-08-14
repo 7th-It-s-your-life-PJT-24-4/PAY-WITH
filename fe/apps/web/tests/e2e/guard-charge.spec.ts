@@ -23,7 +23,9 @@ test('연결된 시니어가 없으면 상단 시니어 선택 영역을 숨긴�
 
   await page.goto('/guard/charge')
 
-  await expect(page.getByRole('heading', { name: '충전 내역' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: '보호자 충전 내역', exact: true }),
+  ).toBeVisible()
   await expect(page.getByRole('button', { name: '시니어 추가' })).toHaveCount(0)
 })
 

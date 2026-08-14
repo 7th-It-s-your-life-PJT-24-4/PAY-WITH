@@ -2,11 +2,7 @@
 import { ChevronRight } from '@lucide/vue'
 import { computed } from 'vue'
 
-import {
-  guardTransactionCategoryIcons,
-  guardTransactionStatusClasses,
-  guardTransactionStatusLabels,
-} from '@/pages/guard/-utils/guard-transaction-ui'
+import GuardTransactionCard from '@/pages/guard/-components/GuardTransactionCard.vue'
 import type { GuardHome } from '@/schemas/guard-home.schema'
 
 type PendingApproval = NonNullable<
@@ -26,7 +22,6 @@ const dateFormatter = new Intl.DateTimeFormat('ko-KR', {
   month: 'long',
   day: 'numeric',
 })
-const pendingIcon = guardTransactionCategoryIcons.transfer
 const displayedPendingApprovals = computed(() =>
   props.pendingApprovals.slice(0, 3),
 )
@@ -91,41 +86,15 @@ function getPendingDescription(pendingApproval: PendingApproval) {
         >
           {{ formatPendingDate(pendingApproval) }}
         </p>
-        <button
-          class="mt-xxs flex h-[60px] w-full items-center bg-white px-sm text-left"
-          type="button"
-          :aria-label="`${formatPendingDate(pendingApproval)} ${formatPendingAmount(pendingApproval)} ${getPendingDescription(pendingApproval)} 이상 거래 목록 보기`"
-          @click="emit('more')"
-        >
-          <span
-            class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"
-          >
-            <component
-              :is="pendingIcon"
-              class="size-[18px]"
-              weight="fill"
-              aria-hidden="true"
-            />
-          </span>
-          <span class="ml-md min-w-0 flex-1">
-            <span
-              class="block text-[14px] font-semibold leading-[1.2] tracking-[-0.28px] text-black"
-            >
-              {{ formatPendingAmount(pendingApproval) }}
-            </span>
-            <span
-              class="mt-xxs block truncate text-[12px] font-medium leading-[1.2] tracking-[-0.24px] text-gray-700"
-            >
-              {{ getPendingDescription(pendingApproval) }}
-            </span>
-          </span>
-          <span
-            class="rounded-small px-[6px] py-xxs text-[10px] font-bold leading-[1.2] tracking-[-0.2px]"
-            :class="guardTransactionStatusClasses.danger"
-          >
-            {{ guardTransactionStatusLabels.danger }}
-          </span>
-        </button>
+        <GuardTransactionCard
+          class="mt-xxs"
+          :amount="formatPendingAmount(pendingApproval)"
+          :accessible-label="`${formatPendingDate(pendingApproval)} ${formatPendingAmount(pendingApproval)} ${getPendingDescription(pendingApproval)} 이상 거래 목록 보기`"
+          category="transfer"
+          :description="getPendingDescription(pendingApproval)"
+          status="danger"
+          @select="emit('more')"
+        />
       </template>
     </div>
   </section>

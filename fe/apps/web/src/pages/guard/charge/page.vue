@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Landmark } from '@lucide/vue'
 import { PhWallet } from '@phosphor-icons/vue'
 import { ConfirmModal } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
@@ -9,6 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { guardChargeHistoriesOptions } from '@/lib/query/guard/charge'
 import { guardHomeOptions } from '@/lib/query/guard/home'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
+import GuardTransactionCard from '@/pages/guard/-components/GuardTransactionCard.vue'
 import {
   parsePositiveRouteId,
   withGuardWardId,
@@ -108,7 +108,7 @@ async function startPairing() {
           id="guard-charge-history-title"
           class="text-[18px] font-bold leading-[1.2] tracking-[-0.36px] text-black"
         >
-          충전 내역
+          보호자 충전 내역
         </h1>
 
         <div v-if="hasChargeHistory" class="mt-lg">
@@ -126,36 +126,19 @@ async function startPairing() {
               {{ history.date }}
             </p>
 
-            <button
-              class="flex h-[60px] w-full items-center bg-white px-sm text-left"
-              type="button"
-              :aria-label="`${history.date} 충전 상세 보기`"
-              @click="
+            <GuardTransactionCard
+              :amount="`-${formatMoney(history.amount)}원`"
+              :accessible-label="`${history.date} ${history.wardName} 충전 상세 보기`"
+              category="charge"
+              :description="`${history.wardName} 충전`"
+              @select="
                 router.push({
                   name: 'guard-charge-detail',
                   params: { id: history.id },
                   query: withGuardWardId({}, activeWardId),
                 })
               "
-            >
-              <span
-                class="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-500 text-white"
-              >
-                <Landmark class="size-[18px]" aria-hidden="true" />
-              </span>
-              <div class="ml-md min-w-0 flex-1">
-                <p
-                  class="text-[14px] font-semibold leading-[1.2] tracking-[-0.28px] text-black"
-                >
-                  -{{ formatMoney(history.amount) }}원
-                </p>
-                <p
-                  class="mt-xxs truncate text-[12px] font-medium leading-[1.2] tracking-[-0.24px] text-gray-700"
-                >
-                  {{ history.wardName }} 충전
-                </p>
-              </div>
-            </button>
+            />
           </template>
         </div>
 
