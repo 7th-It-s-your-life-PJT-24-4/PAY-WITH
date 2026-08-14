@@ -26,6 +26,25 @@ async function mockChargeApi(
   page: Page,
   options: { insufficientBalance?: boolean } = {},
 ) {
+  await page.route('**/api/banks', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: [
+          { bankCode: '004', bankName: 'KB국민은행' },
+          { bankCode: '011', bankName: 'NH농협은행' },
+          { bankCode: '020', bankName: '우리은행' },
+          { bankCode: '088', bankName: '신한은행' },
+          { bankCode: '090', bankName: '카카오뱅크' },
+          { bankCode: '003', bankName: 'IBK기업은행' },
+          { bankCode: '081', bankName: '하나은행' },
+        ],
+        message: null,
+      },
+    })
+  })
+
   const accounts = [
     {
       accountId: 7,

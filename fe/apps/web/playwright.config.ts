@@ -6,12 +6,17 @@ export default defineConfig({
   reporter: 'html',
   use: {
     baseURL: 'http://127.0.0.1:5173',
+    serviceWorkers: 'block',
     trace: 'on-first-retry',
   },
   webServer: {
     command: 'pnpm dev --host 127.0.0.1',
+    env: {
+      VITE_API_BASE_URL: 'http://127.0.0.1:5173/api',
+      VITE_ENABLE_PWA_DEV: 'false',
+    },
     url: 'http://127.0.0.1:5173',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
   },
   projects: [
     {
