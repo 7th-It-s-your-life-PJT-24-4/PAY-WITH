@@ -27,6 +27,8 @@ class PaymentRiskRuleEvaluatorTest {
     private final PaymentNightDeepRuleEvaluator nightDeep =
         new PaymentNightDeepRuleEvaluator(PaymentFdsTestWiring.DEEP_END_HOUR);
     private final PaymentRiskyCategoryRuleEvaluator risky = new PaymentRiskyCategoryRuleEvaluator();
+    private final PaymentRiskyRepeatedRuleEvaluator riskyRepeated =
+        new PaymentRiskyRepeatedRuleEvaluator(PaymentFdsTestWiring.RISKY_REPEATED_COUNT_THRESHOLD);
     private final PaymentGiftCardAmountRuleEvaluator giftCard =
         new PaymentGiftCardAmountRuleEvaluator(PaymentFdsTestWiring.SPLIT_COUNT_THRESHOLD);
     private final PaymentSplitPaymentRuleEvaluator split =
@@ -183,6 +185,40 @@ class PaymentRiskRuleEvaluatorTest {
         @Test
         void skipsWhenCategoryCodeIsNull() {
             assertThat(risky.evaluate(normal().merchantCategoryCode(null).build())).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("위험 업종 반복")
+    class RiskyRepeated {
+
+        @Test
+        void triggersAtPastCountThreshold() {
+            PaymentRuleContext context = normal()
+                .merchantCategoryCode("JEWELRY").riskyCategoryRecentCount(2).build();
+            assertThat(riskyRepeated.evaluate(context)).isTrue();
+        }
+
+        @Test
+        void doesNotTriggerBelowPastCountThreshold() {
+            PaymentRuleContext context = normal()
+                .merchantCategoryCode("JEWELRY").riskyCategoryRecentCount(1).build();
+            assertThat(riskyRepeated.evaluate(context)).isFalse();
+        }
+
+        /** 현재 결제가 위험 업종이 아니면 과거가 아무리 많아도 반복이 아니다. */
+        @Test
+        void doesNotTriggerWhenCurrentPaymentIsNotRiskyCategory() {
+            PaymentRuleContext context = normal()
+                .merchantCategoryCode("RESTAURANT").riskyCategoryRecentCount(5).build();
+            assertThat(riskyRepeated.evaluate(context)).isFalse();
+        }
+
+        @Test
+        void skipsWhenCategoryCodeIsNull() {
+            PaymentRuleContext context = normal()
+                .merchantCategoryCode(null).riskyCategoryRecentCount(5).build();
+            assertThat(riskyRepeated.evaluate(context)).isFalse();
         }
     }
 

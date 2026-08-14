@@ -33,6 +33,7 @@ public class PaymentRuleContextCollectorImpl implements PaymentRuleContextCollec
     private final PaymentFdsHistoryMapper paymentFdsHistoryMapper;
     private final FdsHistoryMapper fdsHistoryMapper;
     private final int splitWindowMinutes;
+    private final int riskyRepeatedWindowMinutes;
     private final List<String> riskyCategories;
     private final List<String> giftCardCategories;
     private final long giftCardAmountUnit;
@@ -41,6 +42,7 @@ public class PaymentRuleContextCollectorImpl implements PaymentRuleContextCollec
         PaymentFdsHistoryMapper paymentFdsHistoryMapper,
         FdsHistoryMapper fdsHistoryMapper,
         @Value("${fds.payment.split.window-minutes}") int splitWindowMinutes,
+        @Value("${fds.payment.risky-repeated.window-minutes}") int riskyRepeatedWindowMinutes,
         @Value("${fds.payment.risky-categories}") String[] riskyCategories,
         @Value("${fds.payment.gift-card-categories}") String[] giftCardCategories,
         @Value("${fds.payment.gift-card-amount-unit}") long giftCardAmountUnit
@@ -53,6 +55,7 @@ public class PaymentRuleContextCollectorImpl implements PaymentRuleContextCollec
         this.paymentFdsHistoryMapper = paymentFdsHistoryMapper;
         this.fdsHistoryMapper = fdsHistoryMapper;
         this.splitWindowMinutes = splitWindowMinutes;
+        this.riskyRepeatedWindowMinutes = riskyRepeatedWindowMinutes;
         this.riskyCategories = Arrays.asList(riskyCategories);
         this.giftCardCategories = Arrays.asList(giftCardCategories);
         this.giftCardAmountUnit = giftCardAmountUnit;
@@ -71,6 +74,7 @@ public class PaymentRuleContextCollectorImpl implements PaymentRuleContextCollec
             .lastCompletedPayment(paymentFdsHistoryMapper.findLastCompletedPayment(
                 walletId, now.minusHours(LAST_PAYMENT_WINDOW_HOURS)))
             .giftCardSuspectRecentCount(countGiftCardSuspects(walletId, now))
+            .riskyCategoryRecentCount(countRiskyRepeats(walletId, now))
             .pendingApprovalExists(fdsHistoryMapper.existsPendingApproval(walletId))
             .riskyCategories(riskyCategories)
             .giftCardCategories(giftCardCategories)
@@ -85,5 +89,14 @@ public class PaymentRuleContextCollectorImpl implements PaymentRuleContextCollec
         }
         return paymentFdsHistoryMapper.countGiftCardSuspectPayments(
             walletId, now.minusMinutes(splitWindowMinutes), giftCardCategories, giftCardAmountUnit);
+    }
+
+    /** 목록이 비면 IN 절이 성립하지 않으므로 쿼리 없이 0으로 둔다. */
+    private int countRiskyRepeats(Long walletId, LocalDateTime now) {
+        if (riskyCategories.isEmpty()) {
+            return 0;
+        }
+        return paymentFdsHistoryMapper.countRiskyCategoryPayments(
+            walletId, now.minusMinutes(riskyRepeatedWindowMinutes), riskyCategories);
     }
 }

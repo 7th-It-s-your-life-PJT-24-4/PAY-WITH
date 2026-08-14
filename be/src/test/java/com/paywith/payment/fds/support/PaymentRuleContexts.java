@@ -38,6 +38,7 @@ public final class PaymentRuleContexts {
             .merchantLongitude(SEOUL_LNG)
             .lastCompletedPayment(null)
             .giftCardSuspectRecentCount(0)
+            .riskyCategoryRecentCount(0)
             .pendingApprovalExists(false)
             .riskyCategories(RISKY_CATEGORIES)
             .giftCardCategories(GIFT_CARD_CATEGORIES)

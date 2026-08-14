@@ -163,6 +163,26 @@ class PaymentFdsEvaluationServiceImplTest {
             assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.DANGER);
         }
 
+        /** 40만 반복 3건째 — RISKY 50 + L2 36 + REPEATED 40 = 126 → 상한 100 차단(분할 회피 봉쇄 산수). */
+        @Test
+        void riskyRepeatedWithHighAmountL2IsDanger() {
+            FdsDecision decision = service.decide(normal()
+                .merchantCategoryCode("JEWELRY").amount(400_000L).riskyCategoryRecentCount(2).build());
+
+            assertThat(decision.getTotalScore()).isEqualTo(100);
+            assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.DANGER);
+        }
+
+        /** 소액 반복 3건째 — RISKY 50 + REPEATED 40 = 90. 정당한 재방문 과차단 방지 산수로 주의에 머문다. */
+        @Test
+        void riskyRepeatedWithSmallAmountStaysCaution() {
+            FdsDecision decision = service.decide(normal()
+                .merchantCategoryCode("JEWELRY").amount(90_000L).riskyCategoryRecentCount(2).build());
+
+            assertThat(decision.getTotalScore()).isEqualTo(90);
+            assertThat(decision.getRiskLevel()).isEqualTo(RiskLevel.CAUTION);
+        }
+
         @Test
         void giftCardAmountAloneIsSafeRecordOnly() {
             FdsDecision decision = service.decide(

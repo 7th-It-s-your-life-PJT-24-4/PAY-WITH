@@ -39,4 +39,20 @@
       </foreach>
       AND MOD(t.amount, #{amountUnit}) = 0
   </select>
+
+  <!-- 위험 업종 반복 룰: 상품권 의심 집계와 같은 골격이되 금액 단위(MOD) 조건이 없다 —
+       위험 업종은 금액 형태와 무관하게 반복 자체가 신호다. -->
+  <select id="countRiskyCategoryPayments" resultType="int">
+    SELECT COUNT(*)
+    FROM transactions t
+    JOIN merchants m ON m.merchant_id = t.merchant_id
+    WHERE t.wallet_id = #{walletId}
+      AND t.type = 'PAYMENT'
+      AND t.status = 'COMPLETED'
+      AND t.completed_at &gt;= #{since}
+      AND m.category_code IN
+      <foreach collection="categories" item="category" open="(" separator="," close=")">
+        #{category}
+      </foreach>
+  </select>
 </mapper>
