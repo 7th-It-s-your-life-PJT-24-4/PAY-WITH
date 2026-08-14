@@ -8,14 +8,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { guardHomeOptions } from '@/lib/query/guard/home'
 import { guardTransactionHistoryOptions } from '@/lib/query/guard/transaction'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
-import {
-  parsePositiveRouteId,
-  withGuardWardId,
-} from '@/pages/guard/-utils/guard-route'
+import { useGuardWardSelection } from '@/pages/guard/-composables/useGuardWardSelection'
+import { withGuardWardId } from '@/pages/guard/-utils/guard-route'
 import GuardHistoryTransactionList from '@/pages/guard/history/-components/GuardHistoryTransactionList.vue'
 import type { GuardSeniorAvatar } from '@/mocks/guard-home.mock'
 import type { TransactionRiskLevel } from '@/schemas/transaction.schema'
-import { useGuardStore } from '@/stores/guard.store'
 import { usePairingStore } from '@/stores/pairing.store'
 
 type TransactionTypeFilter = 'ALL' | 'CHARGE' | 'PAYMENT' | 'TRANSFER'
@@ -37,11 +34,11 @@ const riskFilters: Array<{ label: string; value: RiskFilter }> = [
 const route = useRoute()
 const router = useRouter()
 const pairingStore = usePairingStore()
-const guardStore = useGuardStore()
-const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
-const selectedWardId = computed(
-  () => routeWardId.value ?? guardStore.activeWardId,
-)
+const {
+  activeWardId: selectedWardId,
+  selectWard,
+  syncSelectedWard,
+} = useGuardWardSelection()
 const validTransactionTypes: TransactionTypeFilter[] = [
   'ALL',
   'CHARGE',
@@ -155,18 +152,7 @@ const transactions = computed(
   () => transactionQuery.data.value?.transactions ?? [],
 )
 
-watch(
-  () => selectedWard.value?.wardId,
-  (wardId) => {
-    if (!wardId) return
-    guardStore.selectWard(wardId)
-    if (routeWardId.value !== wardId)
-      void router.replace({
-        query: withGuardWardId(route.query, wardId),
-      })
-  },
-  { immediate: true },
-)
+syncSelectedWard(() => selectedWard.value?.wardId)
 
 async function startPairing() {
   const issued = await pairingStore.issueCode()
@@ -180,12 +166,7 @@ async function startPairing() {
 }
 
 function selectSenior(seniorId: string) {
-  const wardId = Number(seniorId)
-  if (!Number.isSafeInteger(wardId) || wardId <= 0) return
-  guardStore.selectWard(wardId)
-  void router.replace({
-    query: withGuardWardId(route.query, wardId),
-  })
+  void selectWard(seniorId)
 }
 </script>
 
