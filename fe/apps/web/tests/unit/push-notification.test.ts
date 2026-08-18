@@ -25,7 +25,7 @@ describe('푸시 알림 목적지', () => {
     [
       { type: 'APPROVAL_RESULT', refType: 'TRANSACTION', refId: '9' },
       'WARD',
-      '/ward?source=push',
+      '/ward/history/9?source=push',
     ],
   ])('허용된 payload %j를 역할별 경로로 변환한다', (data, role, path) => {
     expect(resolvePushNotificationDestination(data)).toMatchObject({

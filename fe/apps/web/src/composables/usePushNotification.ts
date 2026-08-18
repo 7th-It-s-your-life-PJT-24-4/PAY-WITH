@@ -69,10 +69,22 @@ function publishNotification(
   const destination = resolvePushNotificationDestination(data)
   if (!destination) return
 
+  const notificationTitle = title || 'PayWith 알림'
+  const notificationBody = body || '새로운 알림을 확인해 주세요.'
+
   foregroundNotification.value = {
     ...destination,
-    title: title || 'PayWith 알림',
-    body: body || '새로운 알림을 확인해 주세요.',
+    title: notificationTitle,
+    body: notificationBody,
+  }
+
+  if (permission.value === 'granted') {
+    new Notification(notificationTitle, {
+      body: notificationBody,
+      icon: '/pwa-192x192.png',
+      tag: `pay-with-${destination.data.type}-${destination.data.refId}`,
+    })
+    console.info('[Push] 브라우저 알림을 표시했습니다.')
   }
 }
 
