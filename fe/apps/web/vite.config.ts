@@ -53,6 +53,9 @@ export default defineConfig(({ mode }) => {
     },
     test: {
       environment: 'jsdom',
+      env: {
+        VITE_API_BASE_URL: 'http://127.0.0.1:5173/api',
+      },
       globals: true,
       include: ['tests/unit/**/*.test.ts'],
     },
