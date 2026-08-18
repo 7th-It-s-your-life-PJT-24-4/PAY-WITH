@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Button, WardToast } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useEnsureFocusedInputVisible } from '@/composables/useEnsureFocusedInputVisible'
@@ -19,6 +19,16 @@ useEnsureFocusedInputVisible(amountInput)
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
+
+const maxAmountDigits = computed(() => {
+  if (transferStore.balance === null) return null
+  return String(Math.max(0, Math.floor(transferStore.balance))).length + 1
+})
+
+const maxInputAmount = computed(() => {
+  if (maxAmountDigits.value === null) return null
+  return 10 ** maxAmountDigits.value - 1
+})
 
 watch(
   () => walletQuery.data.value?.balance,
@@ -47,11 +57,20 @@ function focusAmountInput() {
 
 function handleAmountInput(event: Event) {
   const target = event.target as HTMLInputElement
-  const digits = target.value.replace(/\D/g, '')
+  const normalizedDigits = target.value.replace(/\D/g, '')
+  const digits =
+    maxAmountDigits.value === null
+      ? normalizedDigits
+      : normalizedDigits.slice(0, maxAmountDigits.value)
   const num = digits ? Number(digits) : 0
   transferStore.amount = num
   target.value = num ? String(num) : ''
   setCursorToEnd(target)
+}
+
+function addAmount(value: number) {
+  const next = transferStore.amount + value
+  transferStore.amount = Math.min(next, maxInputAmount.value ?? next)
 }
 
 function handleCursorFix(event: Event) {
@@ -158,21 +177,21 @@ const quickAmountButtonClass =
         label="+5만원"
         size="small"
         variant="secondary"
-        @click="transferStore.addAmount(50_000)"
+        @click="addAmount(50_000)"
       />
       <Button
         :class="quickAmountButtonClass"
         label="+10만원"
         size="small"
         variant="secondary"
-        @click="transferStore.addAmount(100_000)"
+        @click="addAmount(100_000)"
       />
       <Button
         :class="quickAmountButtonClass"
         label="+50만원"
         size="small"
         variant="secondary"
-        @click="transferStore.addAmount(500_000)"
+        @click="addAmount(500_000)"
       />
       <Button
         :class="quickAmountButtonClass"

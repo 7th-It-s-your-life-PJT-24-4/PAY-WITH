@@ -13,6 +13,7 @@ import { useChargeStore } from '@/stores/charge.store'
 
 const router = useRouter()
 const chargeStore = useChargeStore()
+const MAX_CHARGE_AMOUNT_DIGITS = 12
 
 onMounted(() => {
   chargeStore.resetDraft()
@@ -50,8 +51,36 @@ watch(
 )
 
 function updateAmount(value: string) {
-  const digits = value.replace(/\D/g, '')
+  const digits = value.replace(/\D/g, '').slice(0, MAX_CHARGE_AMOUNT_DIGITS)
   chargeStore.setAmount(Number(digits))
+}
+
+function handleAmountInput(event: Event) {
+  const target = event.target as HTMLInputElement
+  updateAmount(target.value)
+  target.value = chargeStore.amount > 0 ? formatMoney(chargeStore.amount) : ''
+}
+
+function addAmount(value: number) {
+  const next = chargeStore.amount + value
+  const maxAmount = 10 ** MAX_CHARGE_AMOUNT_DIGITS - 1
+  chargeStore.setAmount(Math.min(next, maxAmount))
+}
+
+function handleAmountBeforeInput(event: InputEvent) {
+  if (
+    event.inputType.startsWith('delete') ||
+    event.inputType === 'historyUndo' ||
+    event.inputType === 'historyRedo'
+  )
+    return
+
+  if (event.data && /\D/.test(event.data)) event.preventDefault()
+}
+
+function handleAmountPaste(event: ClipboardEvent) {
+  event.preventDefault()
+  updateAmount(event.clipboardData?.getData('text') ?? '')
 }
 
 function handleSubmitChargeClick() {
@@ -145,11 +174,9 @@ async function submitCharge() {
           inputmode="numeric"
           placeholder="0"
           :value="amountText"
-          @input="
-            updateAmount(
-              ($event.target as { value: string } | null)?.value ?? '',
-            )
-          "
+          @beforeinput="handleAmountBeforeInput"
+          @paste="handleAmountPaste"
+          @input="handleAmountInput"
         />
         <span class="type-h2 ml-sm">원</span>
       </label>
@@ -161,21 +188,21 @@ async function submitCharge() {
         label="+1만"
         size="small"
         variant="secondary"
-        @click="chargeStore.addAmount(10_000)"
+        @click="addAmount(10_000)"
       />
       <Button
         :class="quickAmountButtonClass"
         label="+5만"
         size="small"
         variant="secondary"
-        @click="chargeStore.addAmount(50_000)"
+        @click="addAmount(50_000)"
       />
       <Button
         :class="quickAmountButtonClass"
         label="+10만"
         size="small"
         variant="secondary"
-        @click="chargeStore.addAmount(100_000)"
+        @click="addAmount(100_000)"
       />
       <Button
         :class="quickAmountButtonClass"

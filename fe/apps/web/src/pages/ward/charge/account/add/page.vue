@@ -219,9 +219,7 @@ async function registerAccount() {
     >
       <PinKeypad
         ref="keypad"
-        class="[&_[role=group]]:!mt-xl"
         :length="4"
-        variant="minimal"
         randomize
         pseudo-click
         :disabled="registerAccountMutation.isPending.value"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronLeft } from '@lucide/vue'
-import { BottomSheet, Button, PinKeypad } from '@pay-with/ui'
+import { BottomSheet, Button, PinKeypad, Toast } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
 import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -26,6 +26,8 @@ const accountPassword = ref('')
 const keypad = ref<{ reset: () => void } | null>(null)
 const isPasswordSheetOpen = ref(false)
 const errorMessage = ref('')
+const isToastOpen = ref(false)
+const toastMessage = ref('')
 const banks = computed(() => banksQuery.data.value ?? [])
 const selectedBankPresentation = computed(() =>
   selectedBank.value ? getBankPresentation(selectedBank.value) : null,
@@ -71,7 +73,16 @@ function handlePasswordSheetOpenChange(open: boolean) {
 
 async function connectAccount() {
   const bank = selectedBank.value
-  if (!canConnect.value || !bank) return
+  if (!canConnect.value || !bank) {
+    if (!bank) toastMessage.value = '은행을 먼저 선택해 주세요'
+    else if (!/^\d{8,16}$/.test(accountNumber.value))
+      toastMessage.value = '계좌번호 8자리 이상을 입력해 주세요'
+    else if (!/^\d{4}$/.test(accountPassword.value))
+      toastMessage.value = '계좌 비밀번호 4자리를 입력해 주세요'
+    else toastMessage.value = '입력 항목을 모두 확인해 주세요'
+    isToastOpen.value = true
+    return
+  }
   errorMessage.value = ''
 
   try {
@@ -204,18 +215,20 @@ async function connectAccount() {
     <div
       class="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[390px] bg-white px-mobile-gutter pb-[calc(20px+env(safe-area-inset-bottom))] pt-sm"
     >
-      <Button
-        class="w-full"
-        :label="
-          registerAccountMutation.isPending.value
-            ? '충전계좌 연결 중'
-            : '충전계좌 연결하기'
-        "
-        variant="guard-cta"
-        size="guard-cta"
-        :disabled="!canConnect"
-        @click="connectAccount"
-      />
+      <div @click="connectAccount">
+        <Button
+          class="w-full"
+          :label="
+            registerAccountMutation.isPending.value
+              ? '충전계좌 연결 중'
+              : '충전계좌 연결하기'
+          "
+          variant="guard-cta"
+          size="guard-cta"
+          :class="{ 'opacity-50 cursor-not-allowed': !canConnect }"
+          :aria-disabled="!canConnect"
+        />
+      </div>
     </div>
 
     <GuardBankSelectBottomSheet
@@ -243,5 +256,7 @@ async function connectAccount() {
         @cancel="closePasswordSheet"
       />
     </BottomSheet>
+
+    <Toast v-model:open="isToastOpen" :message="toastMessage" />
   </main>
 </template>
