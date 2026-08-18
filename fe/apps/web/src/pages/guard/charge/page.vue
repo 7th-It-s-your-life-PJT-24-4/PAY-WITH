@@ -2,29 +2,21 @@
 import { PhWallet } from '@phosphor-icons/vue'
 import { ConfirmModal } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { guardChargeHistoriesOptions } from '@/lib/query/guard/charge'
 import { guardHomeOptions } from '@/lib/query/guard/home'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
 import GuardTransactionCard from '@/pages/guard/-components/GuardTransactionCard.vue'
-import {
-  parsePositiveRouteId,
-  withGuardWardId,
-} from '@/pages/guard/-utils/guard-route'
-import { useGuardStore } from '@/stores/guard.store'
+import { useGuardWardSelection } from '@/pages/guard/-composables/useGuardWardSelection'
+import { withGuardWardId } from '@/pages/guard/-utils/guard-route'
 import { usePairingStore } from '@/stores/pairing.store'
 
 const router = useRouter()
-const route = useRoute()
-const guardStore = useGuardStore()
 const pairingStore = usePairingStore()
 const isPairingConfirmOpen = ref(false)
-const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
-const activeWardId = computed(
-  () => routeWardId.value ?? guardStore.activeWardId,
-)
+const { activeWardId, selectWard, syncSelectedWard } = useGuardWardSelection()
 const guardHomeQuery = useQuery(guardHomeOptions(activeWardId))
 const chargeHistoriesQuery = useQuery(guardChargeHistoriesOptions())
 
@@ -56,26 +48,10 @@ const hasChargeHistory = computed(() => chargeHistories.value.length > 0)
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('ko-KR').format(value)
 
-watch(
-  () => guardHomeQuery.data.value?.selectedWard?.wardId,
-  (wardId) => {
-    if (!wardId) return
-    guardStore.selectWard(wardId)
-    if (routeWardId.value !== wardId)
-      void router.replace({
-        query: withGuardWardId(route.query, wardId),
-      })
-  },
-  { immediate: true },
-)
+syncSelectedWard(() => guardHomeQuery.data.value?.selectedWard?.wardId)
 
 function selectSenior(wardId: string) {
-  const parsedWardId = Number(wardId)
-  if (!Number.isSafeInteger(parsedWardId) || parsedWardId <= 0) return
-  guardStore.selectWard(parsedWardId)
-  void router.replace({
-    query: withGuardWardId(route.query, parsedWardId),
-  })
+  void selectWard(wardId)
 }
 
 async function startPairing() {

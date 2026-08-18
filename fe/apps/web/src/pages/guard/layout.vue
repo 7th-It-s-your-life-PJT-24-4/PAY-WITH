@@ -10,15 +10,11 @@ import { pairingKeys, pendingPairingRequestOptions } from '@/lib/query/pairing'
 import GuardBottomNavigation, {
   type GuardNavigationValue,
 } from '@/pages/guard/-components/GuardBottomNavigation.vue'
-import {
-  parsePositiveRouteId,
-  withGuardWardId,
-} from '@/pages/guard/-utils/guard-route'
-import { useGuardStore } from '@/stores/guard.store'
+import { useGuardWardSelection } from '@/pages/guard/-composables/useGuardWardSelection'
+import { withGuardWardId } from '@/pages/guard/-utils/guard-route'
 
 const route = useRoute()
 const router = useRouter()
-const guardStore = useGuardStore()
 const queryClient = useQueryClient()
 const pendingPairingRequestQuery = useQuery(pendingPairingRequestOptions())
 const dismissedRequestId = ref<string | null>(null)
@@ -40,10 +36,7 @@ const confirmPairingMutation = useMutation({
   },
 })
 
-const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
-const activeWardId = computed(
-  () => routeWardId.value ?? guardStore.activeWardId,
-)
+const { activeWardId } = useGuardWardSelection()
 
 const showBottomNavigation = computed(
   () => route.meta.showBottomNavigation !== false,
@@ -70,15 +63,6 @@ function handleNavigate(value: GuardNavigationValue) {
   if (value === 'history') router.push({ name: 'guard-history', query })
   if (value === 'my') router.push({ name: 'guard-my' })
 }
-
-watch(
-  routeWardId,
-  (wardId) => {
-    if (wardId !== null) guardStore.selectWard(wardId)
-  },
-  { immediate: true },
-)
-
 watch(pendingPairingRequest, (request) => {
   if (!request || request.requestId !== dismissedRequestId.value) {
     dismissedRequestId.value = null

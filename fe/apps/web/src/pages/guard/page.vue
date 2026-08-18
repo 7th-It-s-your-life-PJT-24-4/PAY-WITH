@@ -3,34 +3,31 @@ import { ConfirmModal } from '@pay-with/ui'
 import { useQuery } from '@tanstack/vue-query'
 import { HTTPError } from 'ky'
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
 import { guardHomeOptions } from '@/lib/query/guard/home'
 import GuardAssetCard from '@/pages/guard/-components/GuardAssetCard.vue'
 import GuardRiskTransactionSection from '@/pages/guard/-components/GuardRiskTransactionSection.vue'
 import GuardSeniorAvatarList from '@/pages/guard/-components/GuardSeniorAvatarList.vue'
 import GuardTransactionList from '@/pages/guard/-components/GuardTransactionList.vue'
-import {
-  parsePositiveRouteId,
-  withGuardWardId,
-} from '@/pages/guard/-utils/guard-route'
+import { useGuardWardSelection } from '@/pages/guard/-composables/useGuardWardSelection'
+import { withGuardWardId } from '@/pages/guard/-utils/guard-route'
 import { usePairingStore } from '@/stores/pairing.store'
-import { useGuardStore } from '@/stores/guard.store'
 import type { GuardRecentTransaction } from '@/schemas/guard-home.schema'
 import type {
   GuardSeniorAvatar,
   GuardTransaction,
 } from '@/mocks/guard-home.mock'
 
-const route = useRoute()
 const router = useRouter()
 const pairingStore = usePairingStore()
-const guardStore = useGuardStore()
 const isPairingConfirmOpen = ref(false)
-const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
-const selectedWardId = computed(
-  () => routeWardId.value ?? guardStore.activeWardId,
-)
+const {
+  activeWardId: selectedWardId,
+  clearWardSelection,
+  selectWard,
+  syncSelectedWard,
+} = useGuardWardSelection()
 
 const {
   data: guardHome,
@@ -72,26 +69,10 @@ watch(guardHomeError, (error) => {
     return
   }
 
-  guardStore.clearWardSelection()
-  if (routeWardId.value !== null) {
-    void router.replace({
-      query: withGuardWardId(route.query, null),
-    })
-  }
+  void clearWardSelection()
 })
 
-watch(
-  () => selectedWard.value?.wardId,
-  (wardId) => {
-    if (!wardId) return
-    guardStore.selectWard(wardId)
-    if (routeWardId.value !== wardId)
-      void router.replace({
-        query: withGuardWardId(route.query, wardId),
-      })
-  },
-  { immediate: true },
-)
+syncSelectedWard(() => selectedWard.value?.wardId)
 
 function toGuardTransaction(
   transaction: GuardRecentTransaction,
@@ -135,12 +116,7 @@ function toGuardTransaction(
 }
 
 function selectSenior(wardId: string) {
-  const parsedWardId = Number(wardId)
-  if (!Number.isSafeInteger(parsedWardId) || parsedWardId <= 0) return
-  guardStore.selectWard(parsedWardId)
-  void router.replace({
-    query: withGuardWardId(route.query, parsedWardId),
-  })
+  void selectWard(wardId)
 }
 
 function goToCharge() {

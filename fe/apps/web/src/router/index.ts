@@ -17,6 +17,7 @@ import SignInPage from '@/pages/auth/sign-in/page.vue'
 import SignUpPage from '@/pages/auth/sign-up/page.vue'
 import SignUpDetailsPage from '@/pages/auth/sign-up/details/page.vue'
 import SignUpTermsPage from '@/pages/auth/sign-up/terms/page.vue'
+import { requireSignUpRole } from '@/pages/auth/sign-up/-utils/sign-up-route-guard'
 import GuardChargePage from '@/pages/guard/charge/page.vue'
 import GuardChargeAccountPage from '@/pages/guard/charge/account/page.vue'
 import GuardChargeBePage from '@/pages/guard/charge/be/page.vue'
@@ -40,6 +41,7 @@ import GuardPairingCodePage from '@/pages/guard/pairing/code.vue'
 import GuardSafeAccountConfirmPage from '@/pages/guard/safe-account/confirm/page.vue'
 import GuardSafeAccountAddPage from '@/pages/guard/safe-account/add/page.vue'
 import GuardSafeAccountPage from '@/pages/guard/safe-account/page.vue'
+import { requireSafeAccountDraft } from '@/pages/guard/safe-account/-utils/safe-account-route-guard'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete/page.vue'
 import WardPairingPendingPage from '@/pages/ward/pairing/pending/page.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
@@ -120,6 +122,7 @@ const router = createRouter({
       path: '/auth/sign-up/details',
       name: 'auth-sign-up-details',
       component: SignUpDetailsPage,
+      beforeEnter: requireSignUpRole,
     },
     {
       path: '/auth/sign-up/terms/:termId',
@@ -239,6 +242,7 @@ const router = createRouter({
           path: 'safe-account/confirm',
           name: 'guard-safe-account-confirm',
           component: GuardSafeAccountConfirmPage,
+          beforeEnter: requireSafeAccountDraft,
           meta: {
             activeNavigation: 'home',
             showBottomNavigation: false,

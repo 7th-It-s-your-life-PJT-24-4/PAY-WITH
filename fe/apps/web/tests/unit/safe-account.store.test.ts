@@ -8,16 +8,29 @@ describe('safe account store', () => {
     setActivePinia(createPinia())
   })
 
-  it('계좌 정보를 숫자로 정리하고 완료 후 초기값으로 되돌린다', () => {
+  it('유효한 은행 코드와 숫자 계좌번호일 때 등록 초안을 만든다', () => {
     const store = useSafeAccountStore()
 
-    store.selectBank('토스뱅크')
+    expect(store.registrationDraft).toBeNull()
+
+    store.selectBank({ code: '092', name: '토스뱅크' })
     store.setAccountNumber('12-34a')
     expect(store.bankName).toBe('토스뱅크')
     expect(store.accountNumber).toBe('1234')
+    expect(store.registrationDraft).toEqual({
+      bankCode: '092',
+      accountNo: '1234',
+    })
+  })
+
+  it('초기화하면 등록 가능한 계좌 초안도 제거한다', () => {
+    const store = useSafeAccountStore()
+    store.selectBank({ code: '092', name: '토스뱅크' })
+    store.setAccountNumber('1234')
 
     store.reset()
     expect(store.bankName).toBe('')
     expect(store.accountNumber).toBe('')
+    expect(store.registrationDraft).toBeNull()
   })
 })

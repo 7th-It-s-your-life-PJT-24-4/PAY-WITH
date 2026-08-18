@@ -1,5 +1,16 @@
 import { expect, test } from './fixtures'
 
+test.use({ pairingStatus: 'UNPAIRED' })
+
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/guard/pairing/pending-request', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: { success: true, data: null, message: null },
+    })
+  })
+})
+
 test('보호자가 직접 접속해 인증 코드를 생성하고 복사한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 820 })
   await page.route('**/api/guard/pairing', async (route) => {
@@ -132,6 +143,39 @@ test('미연결 시니어가 보호자 확인 후 연결을 완료한다', async
       }),
     })
   })
+  await page.route('**/api/users/1', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          id: 1,
+          name: '김시니어',
+          phone: '01012345678',
+          role: 'WARD',
+          avatarId: 1,
+          createdAt: '2026-08-04T14:20:00',
+          updatedAt: '2026-08-04T14:20:00',
+        },
+        message: null,
+      },
+    })
+  })
+  await page.route('**/api/ward/guardian', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          id: 7,
+          name: '김철수',
+          phone: '01087654321',
+          avatarId: 2,
+        },
+        message: null,
+      },
+    })
+  })
   await page.goto('/ward?pairing=unpaired')
 
   await page.getByRole('button', { name: '보호자와 연결하기' }).click()
@@ -146,7 +190,7 @@ test('미연결 시니어가 보호자 확인 후 연결을 완료한다', async
   await expect(page).toHaveURL(/\/ward\/pairing\/complete$/)
   await expect(page.getByRole('heading', { name: '연결 성공!' })).toBeVisible()
   await expect(
-    page.getByText('김철수님과 안전하게 연결되었습니다.'),
+    page.getByLabel('연결된 보호자').getByText('김철수', { exact: true }),
   ).toBeVisible()
 
   await page.getByRole('button', { name: '홈으로' }).click()

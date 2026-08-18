@@ -76,3 +76,31 @@ test('보호자가 안전계좌 정보를 확인하고 추가를 완료한다', 
   await expect(page.getByText('안유진')).toBeVisible()
   await expect(page.getByText('KB국민은행 · •••• 6781')).toBeVisible()
 })
+
+test('계좌 입력 없이 확인 주소로 접근하면 입력 단계로 복구한다', async ({
+  page,
+}) => {
+  let registrationRequestCount = 0
+  await page.route('**/api/banks', (route) =>
+    route.fulfill({
+      json: { success: true, data: [], message: null },
+    }),
+  )
+  await page.route('**/api/guard/wards/1/safe-accounts', async (route) => {
+    if (route.request().method() === 'POST') registrationRequestCount += 1
+    await route.fulfill({
+      json: { success: true, data: { safeAccounts: [] }, message: null },
+    })
+  })
+
+  await page.goto('/guard/safe-account/confirm?wardId=1')
+
+  await expect(page).toHaveURL(/\/guard\/safe-account\/add\?wardId=1$/)
+  await expect(
+    page.getByRole('heading', { name: '안전계좌 추가' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: '안전계좌 추가하기' }),
+  ).toBeDisabled()
+  expect(registrationRequestCount).toBe(0)
+})
