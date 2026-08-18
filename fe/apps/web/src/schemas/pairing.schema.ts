@@ -32,10 +32,38 @@ export const wardPairingSchema = z.object({
   connectedAt: z.string().min(1),
 })
 
+export const pairingRequestSchema = z.object({
+  requestId: z.string().min(1),
+})
+
+export const pairingRequestStatusSchema = z.enum([
+  'PENDING',
+  'CONFIRMED',
+  'EXPIRED',
+])
+
+export const pairingStatusResponseSchema = z.object({
+  status: pairingRequestStatusSchema,
+})
+
+export const pendingPairingRequestSchema = z.object({
+  requestId: z.string().min(1),
+  wardName: z.string().min(1),
+  wardPhoneMasked: z.string().min(1),
+})
+
 export const guardianPairingCodeResponseSchema = apiResponseSchema(
   guardianPairingCodeSchema,
 )
 export const wardPairingResponseSchema = apiResponseSchema(wardPairingSchema)
+export const pairingRequestResponseSchema =
+  apiResponseSchema(pairingRequestSchema)
+export const pairingStatusResponseApiSchema = apiResponseSchema(
+  pairingStatusResponseSchema,
+)
+export const pendingPairingRequestResponseSchema = apiResponseSchema(
+  pendingPairingRequestSchema.nullable(),
+)
 export const unpairWardResponseSchema = apiResponseSchema(z.null())
 
 export type PairingStatus = z.infer<typeof pairingStatusSchema>
@@ -43,3 +71,5 @@ export type PairingErrorCode = z.infer<typeof pairingErrorCodeSchema>
 export type GuardianPairingCode = z.infer<typeof guardianPairingCodeSchema>
 export type WardPairingRequest = z.infer<typeof wardPairingRequestSchema>
 export type WardPairing = z.infer<typeof wardPairingSchema>
+export type PairingRequestStatus = z.infer<typeof pairingRequestStatusSchema>
+export type PendingPairingRequest = z.infer<typeof pendingPairingRequestSchema>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { AppHeader } from '@pay-with/ui'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import WardBottomNavigation from '@/pages/ward/-components/WardBottomNavigation.vue'
@@ -41,6 +41,15 @@ function handleNavigate(value: string) {
   if (value === 'home') router.push({ name: 'ward-home' })
   if (value === 'payment') router.push({ name: 'ward-payment' })
 }
+
+watch(
+  () => pairingStore.pendingRequestId,
+  (requestId) => {
+    if (!requestId || route.name === 'ward-pairing-pending') return
+    void router.replace({ name: 'ward-pairing-pending' })
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
