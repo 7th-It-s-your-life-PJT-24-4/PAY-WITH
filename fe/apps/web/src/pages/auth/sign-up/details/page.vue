@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { AppHeader, Button } from '@pay-with/ui'
-import { useMutation } from '@tanstack/vue-query'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
@@ -10,11 +9,6 @@ import {
   type SignUpDetailsForm,
 } from '@/schemas/sign-up.schema'
 import { getApiErrorMessage } from '@/api/error'
-import { sendPhoneCode, verifyPhoneCode } from '@/api/auth'
-import {
-  phoneCodeRequestSchema,
-  phoneVerifyRequestSchema,
-} from '@/schemas/auth.schema'
 import { useCreateUserMutation } from '@/composables/useCreateUserMutation'
 import { useLoginMutation } from '@/composables/useLoginMutation'
 import { getPostSignUpPath } from '@/router/auth-navigation'
@@ -24,6 +18,8 @@ import SignUpPasswordSection from '@/pages/auth/sign-up/details/-components/Sign
 import SignUpPhoneVerificationSection from '@/pages/auth/sign-up/details/-components/SignUpPhoneVerificationSection.vue'
 import SignUpProfileSection from '@/pages/auth/sign-up/details/-components/SignUpProfileSection.vue'
 import SignUpTermsSection from '@/pages/auth/sign-up/details/-components/SignUpTermsSection.vue'
+import { useSignUpPhoneVerification } from '@/pages/auth/sign-up/details/-composables/useSignUpPhoneVerification'
+import { formatBirthDate } from '@/pages/auth/sign-up/details/-utils/sign-up-details-format'
 import { usePairingStore } from '@/stores/pairing.store'
 import { useSignUpStore } from '@/stores/sign-up.store'
 
@@ -32,18 +28,9 @@ const signUpStore = useSignUpStore()
 const pairingStore = usePairingStore()
 const isAvatarModalOpen = ref(false)
 const formError = ref('')
-const phoneRequestError = ref('')
-const phoneVerificationCode = ref('')
-const phoneVerificationMessage = ref('')
-const phoneCodeRequested = ref(false)
-const phoneCodeExpiresAt = ref<number | null>(null)
-const remainingPhoneCodeSeconds = ref(0)
-let phoneCodeTimer: ReturnType<typeof globalThis.setInterval> | undefined
 let signUpDraftTimer: ReturnType<typeof globalThis.setTimeout> | undefined
 let shouldPersistSignUpDraft = true
 const SIGN_UP_DRAFT_SAVE_DELAY = 300
-const sendPhoneCodeMutation = useMutation({ mutationFn: sendPhoneCode })
-const verifyPhoneCodeMutation = useMutation({ mutationFn: verifyPhoneCode })
 const createUserMutation = useCreateUserMutation()
 const loginMutation = useLoginMutation()
 
@@ -60,13 +47,6 @@ const initialDetails = signUpStore.draft ??
     privacyTerms: false,
     identifierTerms: false,
   }
-const savedPhoneVerification = signUpStore.phoneVerification
-const verificationToken = ref<string | null>(
-  savedPhoneVerification?.phone ===
-    initialDetails.phoneNumber.replace(/\D/g, '')
-    ? savedPhoneVerification.verificationToken
-    : null,
-)
 
 const { defineField, errors, setErrors, setFieldError } =
   useForm<SignUpDetailsForm>({
@@ -86,6 +66,25 @@ const [paymentPassword] = defineField('paymentPassword')
 const [serviceTerms] = defineField('serviceTerms')
 const [privacyTerms] = defineField('privacyTerms')
 const [identifierTerms] = defineField('identifierTerms')
+
+const {
+  codeRequested: phoneCodeRequested,
+  codeTimerLabel: phoneCodeTimerLabel,
+  confirmCode: confirmPhoneCode,
+  phoneRequestError,
+  requestCode: requestPhoneCode,
+  sendCodeMutation: sendPhoneCodeMutation,
+  updatePhoneNumber,
+  updateVerificationCode: updatePhoneVerificationCode,
+  verificationCode: phoneVerificationCode,
+  verificationMessage: phoneVerificationMessage,
+  verificationToken,
+  verifyCodeMutation: verifyPhoneCodeMutation,
+} = useSignUpPhoneVerification({
+  phoneNumber,
+  formError,
+  setPhoneNumberError: (message) => setFieldError('phoneNumber', message),
+})
 
 function saveSignUpDraft() {
   if (!shouldPersistSignUpDraft) return
@@ -189,24 +188,6 @@ async function scrollToFirstError() {
   }
 }
 
-function formatPhoneNumber(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 11)
-
-  if (digits.length <= 3) return digits
-  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
-
-  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
-}
-
-function formatBirthDate(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 8)
-
-  if (digits.length <= 4) return digits
-  if (digits.length <= 6) return `${digits.slice(0, 4)}.${digits.slice(4)}`
-
-  return `${digits.slice(0, 4)}.${digits.slice(4, 6)}.${digits.slice(6)}`
-}
-
 function updateBirthDate(value: string) {
   birthDate.value = formatBirthDate(value)
 }
@@ -215,134 +196,8 @@ function updateGender(value: '남' | '여' | undefined) {
   if (value) gender.value = value
 }
 
-function updatePhoneVerificationCode(value: string) {
-  phoneVerificationCode.value = value.replace(/\D/g, '').slice(0, 6)
-}
-
-function clearPhoneCodeTimer() {
-  if (phoneCodeTimer) globalThis.clearInterval(phoneCodeTimer)
-  phoneCodeTimer = undefined
-  phoneCodeExpiresAt.value = null
-  remainingPhoneCodeSeconds.value = 0
-}
-
-function updatePhoneCodeTimer() {
-  if (!phoneCodeExpiresAt.value) return
-
-  remainingPhoneCodeSeconds.value = Math.max(
-    0,
-    Math.ceil((phoneCodeExpiresAt.value - Date.now()) / 1000),
-  )
-
-  if (remainingPhoneCodeSeconds.value === 0) {
-    clearPhoneCodeTimer()
-    if (!verificationToken.value) {
-      phoneVerificationMessage.value =
-        '인증 시간이 만료되었습니다. 인증번호를 재요청해 주세요.'
-    }
-  }
-}
-
-function startPhoneCodeTimer(expireIn: number) {
-  clearPhoneCodeTimer()
-  phoneCodeExpiresAt.value = Date.now() + expireIn * 1000
-  updatePhoneCodeTimer()
-  phoneCodeTimer = globalThis.setInterval(updatePhoneCodeTimer, 1000)
-}
-
-const phoneCodeTimerLabel = computed(() => {
-  const minutes = Math.floor(remainingPhoneCodeSeconds.value / 60)
-  const seconds = String(remainingPhoneCodeSeconds.value % 60).padStart(2, '0')
-
-  return `${minutes}:${seconds}`
-})
-
-function updatePhoneNumber(value: string) {
-  if (phoneNumber.value !== formatPhoneNumber(value)) {
-    verificationToken.value = null
-    signUpStore.clearPhoneVerification()
-    phoneVerificationCode.value = ''
-    phoneVerificationMessage.value = ''
-    phoneRequestError.value = ''
-    phoneCodeRequested.value = false
-    clearPhoneCodeTimer()
-  }
-  phoneNumber.value = formatPhoneNumber(value)
-}
-
-async function requestPhoneCode() {
-  formError.value = ''
-  phoneRequestError.value = ''
-  phoneVerificationMessage.value = ''
-  verificationToken.value = null
-  signUpStore.clearPhoneVerification()
-
-  const result = phoneCodeRequestSchema.safeParse({
-    phone: phoneNumber.value,
-    purpose: 'SIGNUP',
-  })
-  if (!result.success) {
-    const message =
-      result.error.issues[0]?.message ?? '휴대폰 번호를 확인해 주세요.'
-    setErrors({ phoneNumber: message })
-    phoneRequestError.value = message
-    return
-  }
-
-  try {
-    const response = await sendPhoneCodeMutation.mutateAsync(result.data)
-    phoneCodeRequested.value = true
-    phoneVerificationCode.value = ''
-    startPhoneCodeTimer(response.expireIn)
-    phoneVerificationMessage.value =
-      '인증번호를 발송했어요. 제한 시간 안에 입력해 주세요.'
-  } catch (error) {
-    phoneRequestError.value = await getApiErrorMessage(
-      error,
-      '인증번호 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.',
-    )
-  }
-}
-
-async function confirmPhoneCode() {
-  formError.value = ''
-  const result = phoneVerifyRequestSchema.safeParse({
-    phone: phoneNumber.value,
-    code: phoneVerificationCode.value,
-  })
-  if (!result.success) {
-    formError.value =
-      result.error.issues[0]?.message ?? '인증번호를 확인해 주세요.'
-    return
-  }
-
-  if (remainingPhoneCodeSeconds.value === 0) {
-    formError.value = '인증 시간이 만료되었습니다. 인증번호를 재요청해 주세요.'
-    return
-  }
-
-  try {
-    const response = await verifyPhoneCodeMutation.mutateAsync(result.data)
-    verificationToken.value = response.verificationToken
-    signUpStore.setPhoneVerification({
-      phone: result.data.phone,
-      verificationToken: response.verificationToken,
-    })
-    clearPhoneCodeTimer()
-    phoneVerificationMessage.value = '인증 완료했어요.'
-    phoneRequestError.value = ''
-    setFieldError('phoneNumber', undefined)
-  } catch (error) {
-    formError.value = await getApiErrorMessage(
-      error,
-      '인증번호를 다시 확인해 주세요.',
-    )
-  }
-}
-
 onBeforeUnmount(() => {
   flushSignUpDraftSave()
-  clearPhoneCodeTimer()
 })
 
 async function submitSignUp() {

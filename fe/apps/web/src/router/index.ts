@@ -17,6 +17,7 @@ import SignInPage from '@/pages/auth/sign-in/page.vue'
 import SignUpPage from '@/pages/auth/sign-up/page.vue'
 import SignUpDetailsPage from '@/pages/auth/sign-up/details/page.vue'
 import SignUpTermsPage from '@/pages/auth/sign-up/terms/page.vue'
+import { requireSignUpRole } from '@/pages/auth/sign-up/-utils/sign-up-route-guard'
 import GuardChargePage from '@/pages/guard/charge/page.vue'
 import GuardChargeAccountPage from '@/pages/guard/charge/account/page.vue'
 import GuardChargeBePage from '@/pages/guard/charge/be/page.vue'
@@ -120,6 +121,7 @@ const router = createRouter({
       path: '/auth/sign-up/details',
       name: 'auth-sign-up-details',
       component: SignUpDetailsPage,
+      beforeEnter: requireSignUpRole,
     },
     {
       path: '/auth/sign-up/terms/:termId',
