@@ -40,6 +40,7 @@ import GuardPairingCodePage from '@/pages/guard/pairing/code.vue'
 import GuardSafeAccountConfirmPage from '@/pages/guard/safe-account/confirm/page.vue'
 import GuardSafeAccountAddPage from '@/pages/guard/safe-account/add/page.vue'
 import GuardSafeAccountPage from '@/pages/guard/safe-account/page.vue'
+import { requireSafeAccountDraft } from '@/pages/guard/safe-account/-utils/safe-account-route-guard'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete/page.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
 import WardApprovalRequestDetailPage from '@/pages/ward/approval-requests/[approvalId]/page.vue'
@@ -238,6 +239,7 @@ const router = createRouter({
           path: 'safe-account/confirm',
           name: 'guard-safe-account-confirm',
           component: GuardSafeAccountConfirmPage,
+          beforeEnter: requireSafeAccountDraft,
           meta: {
             activeNavigation: 'home',
             showBottomNavigation: false,

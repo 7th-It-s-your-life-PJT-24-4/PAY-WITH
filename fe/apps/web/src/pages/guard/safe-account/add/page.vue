@@ -7,6 +7,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { banksOptions } from '@/lib/query/bank'
 import GuardBankSelectBottomSheet from '@/pages/guard/charge/-components/GuardBankSelectBottomSheet.vue'
+import { parsePositiveRouteId } from '@/pages/guard/-utils/guard-route'
 import type { Bank } from '@/schemas/bank.schema'
 import { useGuardStore } from '@/stores/guard.store'
 import { useSafeAccountStore } from '@/stores/safe-account.store'
@@ -18,16 +19,9 @@ const safeAccountStore = useSafeAccountStore()
 const isBankSheetOpen = ref(false)
 const banksQuery = useQuery(banksOptions())
 const banks = computed(() => banksQuery.data.value ?? [])
-const routeWardId = computed(() => {
-  const value = Number(route.query.wardId)
-  return Number.isSafeInteger(value) && value > 0 ? value : null
-})
+const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
 const wardId = computed(() => routeWardId.value ?? guardStore.activeWardId)
-const canContinue = computed(
-  () =>
-    /^\d{3}$/.test(safeAccountStore.bankCode) &&
-    /^\d+$/.test(safeAccountStore.accountNumber),
-)
+const canContinue = computed(() => safeAccountStore.registrationDraft !== null)
 
 function selectBank(bank: Bank) {
   safeAccountStore.selectBank({ code: bank.bankCode, name: bank.bankName })

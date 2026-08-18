@@ -8,6 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { registerGuardSafeAccount } from '@/api/guard-safe-accounts'
 import { getApiErrorMessage } from '@/api/error'
 import { guardSafeAccountKeys } from '@/lib/query/guard/safe-account'
+import { parsePositiveRouteId } from '@/pages/guard/-utils/guard-route'
 import { useGuardStore } from '@/stores/guard.store'
 import { useSafeAccountStore } from '@/stores/safe-account.store'
 
@@ -17,10 +18,7 @@ const queryClient = useQueryClient()
 const guardStore = useGuardStore()
 const safeAccountStore = useSafeAccountStore()
 const errorMessage = ref('')
-const routeWardId = computed(() => {
-  const value = Number(route.query.wardId)
-  return Number.isSafeInteger(value) && value > 0 ? value : null
-})
+const routeWardId = computed(() => parsePositiveRouteId(route.query.wardId))
 const wardId = computed(() => routeWardId.value ?? guardStore.activeWardId)
 const registerMutation = useMutation({
   mutationFn: ({
@@ -44,11 +42,21 @@ async function completeSafeAccount() {
     return
   }
 
+  const registrationDraft = safeAccountStore.registrationDraft
+  if (!registrationDraft) {
+    errorMessage.value = '계좌 정보를 다시 입력해주세요.'
+    await router.replace({
+      name: 'guard-safe-account-add',
+      query: { wardId: wardId.value },
+    })
+    return
+  }
+
   try {
     await registerMutation.mutateAsync({
       wardId: wardId.value,
-      bankCode: safeAccountStore.bankCode,
-      accountNo: safeAccountStore.accountNumber,
+      bankCode: registrationDraft.bankCode,
+      accountNo: registrationDraft.accountNo,
     })
     safeAccountStore.reset()
     await router.replace({
@@ -129,7 +137,10 @@ function goToAdd() {
         "
         variant="guard-cta"
         size="guard-cta"
-        :disabled="registerMutation.isPending.value"
+        :disabled="
+          registerMutation.isPending.value ||
+          safeAccountStore.registrationDraft === null
+        "
         @click="completeSafeAccount"
       />
     </div>
