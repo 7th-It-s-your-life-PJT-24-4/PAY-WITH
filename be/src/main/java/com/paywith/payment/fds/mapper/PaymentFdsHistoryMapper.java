@@ -28,4 +28,14 @@ public interface PaymentFdsHistoryMapper {
         @Param("since") LocalDateTime since,
         @Param("categories") List<String> categories,
         @Param("amountUnit") long amountUnit);
+
+    /**
+     * 위험 업종 반복 룰: 윈도 내 위험 업종(카테고리 목록) COMPLETED 결제 수. 상품권 의심
+     * 집계와 달리 금액 단위 조건이 없다 — 위험 업종은 금액 형태와 무관하게 반복 자체가
+     * 신호다. COMPLETED 한정 — 분할 회피는 이전 건들이 통과에 성공했다는 뜻이다.
+     */
+    int countRiskyCategoryPayments(
+        @Param("walletId") Long walletId,
+        @Param("since") LocalDateTime since,
+        @Param("categories") List<String> categories);
 }

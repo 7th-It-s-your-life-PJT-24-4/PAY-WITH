@@ -106,10 +106,14 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
 --            임계값을 공유할 수 없어 fds.payment.threshold.* 를 따로 뒀다(PaymentRiskGrader).
 --      SPLIT 80 은 분할(80+L1=100 차단)이 일괄 구매(L3+GIFT=90 알림)보다 불리하도록 정한 값,
 --      RISKY 50 은 단독 발동이 정확히 주의 문턱이 되도록 정한 값 — 임의 조정 금지(설계서 §4-2).
+--      REPEATED 40 은 위험 업종 반복 3건째가 40만대(RISKY+L2+REPEATED=126→상한 100)부터 차단으로
+--      넘어가되 소액 반복(RISKY+REPEATED=90)은 주의에 머물도록 정한 값 — SPLIT 이 위험 업종을
+--      배제(isGiftCardSuspect)해 생기던 금액 분할 회피 구멍을 막는다. 임의 조정 금지.
 INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
                                                                       ('PAY_SPLIT_PAYMENT',    '짧은 시간에 상품권으로 의심되는 결제를 여러 번 했어요.', 80, TRUE),
                                                                       ('PAY_HIGH_AMOUNT_L3',   '매우 큰 금액을 결제했어요.',                             70, TRUE),
                                                                       ('PAY_RISKY_CATEGORY',   '현금화하기 쉬운 귀금속·전자제품 등을 결제했어요.',       50, TRUE),
+                                                                      ('PAY_RISKY_REPEATED',   '현금화하기 쉬운 업종에서 짧은 시간에 결제를 여러 번 했어요.', 40, TRUE),
                                                                       ('PAY_PENDING_APPROVAL', '승인을 기다리는 송금이 있는데 추가로 결제했어요.',       40, TRUE),
                                                                       ('PAY_HIGH_AMOUNT_L2',   '큰 금액을 결제했어요.',                                  36, TRUE),
                                                                       ('PAY_NIGHT_DEEP',       '자정 이후 새벽 시간에 결제했어요.',                      28, TRUE),

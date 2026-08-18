@@ -12,6 +12,7 @@ import com.paywith.payment.fds.rule.impl.PaymentNightDeepRuleEvaluator;
 import com.paywith.payment.fds.rule.impl.PaymentNightLateRuleEvaluator;
 import com.paywith.payment.fds.rule.impl.PaymentPendingApprovalRuleEvaluator;
 import com.paywith.payment.fds.rule.impl.PaymentRiskyCategoryRuleEvaluator;
+import com.paywith.payment.fds.rule.impl.PaymentRiskyRepeatedRuleEvaluator;
 import com.paywith.payment.fds.rule.impl.PaymentSplitPaymentRuleEvaluator;
 import java.util.List;
 
@@ -32,6 +33,7 @@ public final class PaymentFdsTestWiring {
     public static final int LATE_START_HOUR = 22;
     public static final int DEEP_END_HOUR = 6;
     public static final int SPLIT_COUNT_THRESHOLD = 2;
+    public static final int RISKY_REPEATED_COUNT_THRESHOLD = 2;
     public static final double IMPOSSIBLE_SPEED_KMH = 300.0;
 
     private PaymentFdsTestWiring() {
@@ -58,6 +60,7 @@ public final class PaymentFdsTestWiring {
             new PaymentNightDeepRuleEvaluator(DEEP_END_HOUR),
             new PaymentPendingApprovalRuleEvaluator(),
             new PaymentRiskyCategoryRuleEvaluator(),
+            new PaymentRiskyRepeatedRuleEvaluator(RISKY_REPEATED_COUNT_THRESHOLD),
             new PaymentGiftCardAmountRuleEvaluator(SPLIT_COUNT_THRESHOLD),
             new PaymentSplitPaymentRuleEvaluator(SPLIT_COUNT_THRESHOLD)
         );

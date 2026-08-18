@@ -31,6 +31,9 @@ public class PaymentRuleContext {
     /** 분할 결제 윈도 내 과거 상품권 의심 COMPLETED 결제 건수. 현재 건은 포함되지 않는다. */
     private final int giftCardSuspectRecentCount;
 
+    /** 위험 업종 반복 윈도 내 과거 위험 업종 COMPLETED 결제 건수. 현재 건은 포함되지 않는다. */
+    private final int riskyCategoryRecentCount;
+
     private final boolean pendingApprovalExists;
 
     /** 두 목록은 서로소로 관리한다 — 같은 코드가 겹치면 위험 업종 판정이 우선. */
@@ -48,5 +51,14 @@ public class PaymentRuleContext {
             && giftCardCategories.contains(merchantCategoryCode)
             && !riskyCategories.contains(merchantCategoryCode)
             && amount % giftCardAmountUnit == 0;
+    }
+
+    /**
+     * 위험 업종 결제 — 현금 교환이 쉬운 물품 판매 업종. RISKY_CATEGORY 와 RISKY_REPEATED 가
+     * 같은 전제를 공유하므로 판정식을 한 곳에 둔다. category_code NULL 이면 스킵(데이터 미비).
+     */
+    public boolean isRiskyCategory() {
+        return merchantCategoryCode != null
+            && riskyCategories.contains(merchantCategoryCode);
     }
 }

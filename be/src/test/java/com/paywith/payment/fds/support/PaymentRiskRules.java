@@ -25,6 +25,7 @@ public final class PaymentRiskRules {
         SCORES.put("PAY_SPLIT_PAYMENT", 80);
         SCORES.put("PAY_HIGH_AMOUNT_L3", 70);
         SCORES.put("PAY_RISKY_CATEGORY", 50);
+        SCORES.put("PAY_RISKY_REPEATED", 40);
         SCORES.put("PAY_PENDING_APPROVAL", 40);
         SCORES.put("PAY_HIGH_AMOUNT_L2", 36);
         SCORES.put("PAY_NIGHT_DEEP", 28);
