@@ -67,14 +67,14 @@ describe('usePushNotification', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.clearAllMocks()
-    const notification = {
+    const notification = Object.assign(vi.fn(), {
       permission: 'default' as NotificationPermission,
       requestPermission: vi.fn(async () => {
         notification.permission = 'granted'
         return 'granted' as const
       }),
-    }
-    vi.stubGlobal('Notification', Object.assign(vi.fn(), notification))
+    })
+    vi.stubGlobal('Notification', notification)
     Object.defineProperty(navigator, 'serviceWorker', {
       configurable: true,
       value: { addEventListener: vi.fn() },
