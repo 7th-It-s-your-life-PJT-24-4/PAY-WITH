@@ -4,32 +4,26 @@ import { Button } from '@pay-with/ui'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { parsePositiveRouteId } from '@/pages/guard/-utils/guard-route'
 import GuardApprovalHeader from '@/pages/guard/approval-requests/-components/GuardApprovalHeader.vue'
+import {
+  parseApprovalDecision,
+  parseApprovalTransferStatus,
+  parseOptionalQueryText,
+} from '@/pages/guard/approval-requests/-utils/approval-route'
 
 const route = useRoute()
 const router = useRouter()
-const transactionId = computed(() => {
-  const value = Number(route.query.transactionId)
-  return Number.isSafeInteger(value) && value > 0 ? value : null
-})
-const wardId = computed(() => {
-  const value = Number(route.query.wardId)
-  return Number.isSafeInteger(value) && value > 0 ? value : null
-})
-const decision = computed(() => {
-  if (route.query.decision === 'approved') return 'approved'
-  if (route.query.decision === 'rejected') return 'rejected'
-  return null
-})
-const transferStatus = computed(() => {
-  if (route.query.transferStatus === 'completed') return 'completed'
-  if (route.query.transferStatus === 'failed') return 'failed'
-  return null
-})
+const transactionId = computed(() =>
+  parsePositiveRouteId(route.query.transactionId),
+)
+const wardId = computed(() => parsePositiveRouteId(route.query.wardId))
+const decision = computed(() => parseApprovalDecision(route.query.decision))
+const transferStatus = computed(() =>
+  parseApprovalTransferStatus(route.query.transferStatus),
+)
 const failureReason = computed(() =>
-  typeof route.query.failureReason === 'string'
-    ? route.query.failureReason
-    : null,
+  parseOptionalQueryText(route.query.failureReason),
 )
 const hasResult = computed(
   () =>
