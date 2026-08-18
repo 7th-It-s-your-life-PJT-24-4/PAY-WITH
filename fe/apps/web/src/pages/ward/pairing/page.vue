@@ -32,7 +32,7 @@ function handleInput(event: Event) {
 }
 
 async function connectGuardian() {
-  if (!(await pairingStore.verifyCode(enteredCode.value))) {
+  if (!(await pairingStore.requestPairing(enteredCode.value))) {
     errorMessage.value =
       pairingStore.errorMessage ||
       (pairingStore.errorCode === 'PAIRING_004'
@@ -41,7 +41,7 @@ async function connectGuardian() {
     return
   }
 
-  router.replace({ name: 'ward-pairing-complete' })
+  router.replace({ name: 'ward-pairing-pending' })
 }
 </script>
 

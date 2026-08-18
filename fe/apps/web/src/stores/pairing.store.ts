@@ -1,7 +1,8 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { issueGuardianPairingCode, pairWardWithGuardian } from '@/api/pairing'
+import { issueGuardianPairingCode, requestWardPairing } from '@/api/pairing'
+import { getUserIdFromAccessToken, tokenStorage } from '@/api/token-storage'
 import { getApiErrorCode, getApiErrorMessage } from '@/api/error'
 import type {
   GuardianPairingCode,
@@ -12,6 +13,21 @@ import type {
 import { pairingErrorCodeSchema } from '@/schemas/pairing.schema'
 
 const PAIRING_STORAGE_KEY = 'pay-with:pairing-status'
+const PAIRING_REQUEST_STORAGE_KEY = 'pay-with:pending-pairing-request'
+
+function getPairingRequestStorageKey(): string | null {
+  if (typeof window === 'undefined') return null
+  const accessToken = tokenStorage.getAccessToken()
+  const userId = accessToken ? getUserIdFromAccessToken(accessToken) : null
+  return userId ? `${PAIRING_REQUEST_STORAGE_KEY}:${userId}` : null
+}
+
+function getInitialPendingRequestId(): string | null {
+  const storageKey = getPairingRequestStorageKey()
+  if (!storageKey) return null
+  const requestId = window.localStorage.getItem(storageKey)
+  return requestId && requestId.trim() ? requestId : null
+}
 
 function getInitialStatus(): PairingStatus {
   if (typeof window === 'undefined') return 'UNPAIRED'
@@ -23,6 +39,7 @@ export const usePairingStore = defineStore('pairing', () => {
   const status = ref<PairingStatus>(getInitialStatus())
   const codeResponse = ref<GuardianPairingCode | null>(null)
   const pairingResult = ref<WardPairing | null>(null)
+  const pendingRequestId = ref<string | null>(getInitialPendingRequestId())
   const errorCode = ref<PairingErrorCode | null>(null)
   const errorMessage = ref('')
   const isIssuingCode = ref(false)
@@ -65,17 +82,16 @@ export const usePairingStore = defineStore('pairing', () => {
     }
   }
 
-  async function verifyCode(pairingCode: string) {
+  async function requestPairing(pairingCode: string) {
     isVerifyingCode.value = true
     errorCode.value = null
     errorMessage.value = ''
 
     try {
-      pairingResult.value = await pairWardWithGuardian({ pairingCode })
-      codeResponse.value = null
-      status.value = 'PAIRED'
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem(PAIRING_STORAGE_KEY, 'PAIRED')
+      pendingRequestId.value = await requestWardPairing({ pairingCode })
+      const storageKey = getPairingRequestStorageKey()
+      if (storageKey && pendingRequestId.value) {
+        window.localStorage.setItem(storageKey, pendingRequestId.value)
       }
       return true
     } catch (error) {
@@ -96,6 +112,7 @@ export const usePairingStore = defineStore('pairing', () => {
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(PAIRING_STORAGE_KEY, 'PAIRED')
     }
+    clearPendingRequest()
     errorCode.value = null
     errorMessage.value = ''
   }
@@ -111,6 +128,12 @@ export const usePairingStore = defineStore('pairing', () => {
     errorMessage.value = ''
   }
 
+  function clearPendingRequest() {
+    const storageKey = getPairingRequestStorageKey()
+    if (storageKey) window.localStorage.removeItem(storageKey)
+    pendingRequestId.value = null
+  }
+
   return {
     status,
     code,
@@ -118,6 +141,7 @@ export const usePairingStore = defineStore('pairing', () => {
     expiresAt,
     guardian,
     pairingResult,
+    pendingRequestId,
     errorCode,
     errorMessage,
     isIssuingCode,
@@ -125,7 +149,8 @@ export const usePairingStore = defineStore('pairing', () => {
     isPaired,
     issueCode,
     markPaired,
-    verifyCode,
+    requestPairing,
+    clearPendingRequest,
     reset,
   }
 })

@@ -43,6 +43,7 @@ import GuardSafeAccountAddPage from '@/pages/guard/safe-account/add/page.vue'
 import GuardSafeAccountPage from '@/pages/guard/safe-account/page.vue'
 import { requireSafeAccountDraft } from '@/pages/guard/safe-account/-utils/safe-account-route-guard'
 import WardPairingCompletePage from '@/pages/ward/pairing/complete/page.vue'
+import WardPairingPendingPage from '@/pages/ward/pairing/pending/page.vue'
 import WardPairingPage from '@/pages/ward/pairing/page.vue'
 import WardApprovalRequestDetailPage from '@/pages/ward/approval-requests/[approvalId]/page.vue'
 import WardPendingTransactionsPage from '@/pages/ward/pending-transactions/page.vue'
@@ -351,6 +352,17 @@ const router = createRouter({
           beforeEnter: requireCompletedPairing,
           meta: {
             title: '연결 완료',
+            activeNavigation: 'payment',
+            showBottomNavigation: false,
+            backRouteName: 'ward-home',
+          },
+        },
+        {
+          path: 'pairing/pending',
+          name: 'ward-pairing-pending',
+          component: WardPairingPendingPage,
+          meta: {
+            title: '연결 요청',
             activeNavigation: 'payment',
             showBottomNavigation: false,
             backRouteName: 'ward-home',

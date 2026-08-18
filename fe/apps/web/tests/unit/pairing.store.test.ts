@@ -1,12 +1,12 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { issueGuardianPairingCode, pairWardWithGuardian } from '@/api/pairing'
+import { issueGuardianPairingCode, requestWardPairing } from '@/api/pairing'
 import { usePairingStore } from '@/stores/pairing.store'
 
 vi.mock('@/api/pairing', () => ({
   issueGuardianPairingCode: vi.fn(),
-  pairWardWithGuardian: vi.fn(),
+  requestWardPairing: vi.fn(),
 }))
 vi.mock('@/api/error', () => ({
   getApiErrorCode: vi.fn(() => 'PAIRING_002'),
@@ -37,29 +37,18 @@ describe('pairing store', () => {
     expect(store.expiresAt).toBe('2026-08-04T14:30:00')
   })
 
-  it('올바른 코드로 보호자 연결을 완료한다', async () => {
+  it('올바른 코드로 보호자 확인 요청을 생성한다', async () => {
     const store = usePairingStore()
-    vi.mocked(pairWardWithGuardian).mockRejectedValueOnce(new Error('invalid'))
-    vi.mocked(pairWardWithGuardian).mockResolvedValueOnce({
-      relationId: 21,
-      guardId: 7,
-      guardName: '김철수',
-      status: 'ACTIVE',
-      connectedAt: '2026-08-04T14:26:00',
-    })
+    vi.mocked(requestWardPairing).mockRejectedValueOnce(new Error('invalid'))
+    vi.mocked(requestWardPairing).mockResolvedValueOnce('pairing-request-21')
 
-    expect(await store.verifyCode('00000')).toBe(false)
+    expect(await store.requestPairing('00000')).toBe(false)
     expect(store.errorCode).toBe('PAIRING_002')
     expect(store.isPaired).toBe(false)
 
-    expect(await store.verifyCode('72941')).toBe(true)
-    expect(store.isPaired).toBe(true)
-    expect(store.guardian).toMatchObject({ name: '김철수' })
-    expect(store.pairingResult).toMatchObject({
-      relationId: 21,
-      guardId: 7,
-      status: 'ACTIVE',
-    })
+    expect(await store.requestPairing('72941')).toBe(true)
+    expect(store.isPaired).toBe(false)
+    expect(store.pendingRequestId).toBe('pairing-request-21')
   })
 
   it('보호자 화면의 연결 상태 감지 결과를 반영한다', () => {
