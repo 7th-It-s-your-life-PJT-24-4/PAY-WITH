@@ -6,12 +6,28 @@
   html {
     font-family: var(--font-sans);
     scrollbar-gutter: stable;
+    background: var(--color-background);
   }
 
   body {
+    width: min(100%, 390px);
+    height: min(100dvh, 820px);
     margin: 0;
     background: var(--color-background);
     color: var(--color-body);
+    overflow: hidden;
+  }
+
+  #app {
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  @media (min-width: 391px) {
+    body {
+      margin-inline: auto;
+    }
   }
 
   html[style*='--scrollbar-width'] body {
