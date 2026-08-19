@@ -18,6 +18,7 @@ export function pendingPairingRequestOptions() {
     queryKey: pairingKeys.pendingRequest(),
     queryFn: getPendingPairingRequest,
     refetchInterval: 2_000,
+    refetchIntervalInBackground: true,
     refetchOnWindowFocus: 'always',
     retry: 1,
   })
@@ -34,8 +35,8 @@ export function wardPairingRequestStatusOptions(
     ),
     queryFn: () => getWardPairingRequestStatus(resolvedRequestId.value ?? ''),
     enabled: computed(() => Boolean(resolvedRequestId.value)),
-    refetchInterval: (query) =>
-      query.state.data === 'PENDING' ? 2_000 : false,
+    refetchInterval: 2_000,
+    refetchIntervalInBackground: true,
     refetchOnWindowFocus: 'always',
     retry: 1,
   })
