@@ -44,6 +44,8 @@ const inputId = computed(() => props.id ?? generatedId)
 const messageId = computed(() => `${inputId.value}-message`)
 
 function updateValue(event: Event) {
+  if (props.inputFilter && (event as InputEvent).isComposing) return
+
   const target = event.target as HTMLInputElement
   const value = props.inputFilter
     ? target.value.replace(props.inputFilter, '')
