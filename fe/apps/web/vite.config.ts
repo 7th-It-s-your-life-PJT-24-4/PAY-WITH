@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => {
         },
         injectManifest: {
           globPatterns: ['**/*.{js,css,html,svg,png,webp}'],
+          maximumFileSizeToCacheInBytes: 3_000_000,
           rollupFormat: 'iife',
         },
         devOptions: {
