@@ -149,6 +149,15 @@ const router = createRouter({
           },
         },
         {
+          path: 'pairing/code',
+          name: 'guard-pairing-code',
+          component: GuardPairingCodePage,
+          meta: {
+            activeNavigation: 'home',
+            showBottomNavigation: false,
+          },
+        },
+        {
           path: 'charge',
           name: 'guard-charge',
           component: GuardChargePage,
@@ -303,11 +312,6 @@ const router = createRouter({
           meta: { activeNavigation: 'my', showBottomNavigation: false },
         },
       ],
-    },
-    {
-      path: '/guard/pairing/code',
-      name: 'guard-pairing-code',
-      component: GuardPairingCodePage,
     },
     {
       path: '/ward',

@@ -46,6 +46,61 @@ test('보호자가 직접 접속해 인증 코드를 생성하고 복사한다',
   await expect(page).toHaveURL((url) => url.pathname === '/guard')
 })
 
+test('보호자가 페어링 코드 화면에서 시니어 연결 요청을 즉시 확인한다', async ({
+  page,
+}) => {
+  let hasPendingRequest = false
+
+  await page.unroute('**/api/guard/pairing/pending-request')
+  await page.route('**/api/guard/pairing/pending-request', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: hasPendingRequest
+          ? {
+              requestId: 'pairing-request-21',
+              wardName: '김시니어',
+              wardPhoneMasked: '010-****-5678',
+            }
+          : null,
+        message: null,
+      },
+    })
+  })
+  await page.route('**/api/guard/pairing', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        success: true,
+        data: {
+          code: '72941',
+          inviteUrl: 'http://localhost:5173/ward/pairing?code=72941',
+          expiresAt: new Date(Date.now() + 120_000).toISOString(),
+        },
+        message: null,
+      },
+    })
+  })
+
+  await page.goto('/guard/pairing/code')
+  await expect(
+    page.getByRole('heading', { name: '시니어 연결하기' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('navigation', { name: '보호자 주요 기능' }),
+  ).toBeHidden()
+
+  hasPendingRequest = true
+
+  await expect(
+    page.getByRole('dialog', {
+      name: '김시니어님(010-****-5678)의 연결 요청을 수락할까요?',
+    }),
+  ).toBeVisible()
+  await expect(page).toHaveURL(/\/guard\/pairing\/code$/)
+})
+
 test('미연결 시니어가 보호자 확인 후 연결을 완료한다', async ({ page }) => {
   let paired = false
   let statusChecks = 0
