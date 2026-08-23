@@ -20,7 +20,7 @@ public class TransferRequest {
     @ApiModelProperty(value = "계좌번호", required = true, example = "11012300006781")
     private String accountNo;
 
-    @ApiModelProperty(value = "송금 금액(원)", required = true, example = "50000")
+    @ApiModelProperty(value = "송금 금액(원). 0보다 큰 정수", required = true, example = "50000")
     @NotNull(message = "송금 금액은 필수입니다.")
     @Positive(message = "송금 금액은 0보다 커야 합니다.")
     private Long amount;

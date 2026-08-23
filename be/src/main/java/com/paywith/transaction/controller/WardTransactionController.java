@@ -24,7 +24,9 @@ public class WardTransactionController {
             value = "피보호자 거래내역 목록 조회",
             notes = "로그인한 피보호자 본인의 거래내역을 최신순으로 조회한다. "
                     + "대상을 파라미터로 받지 않고 인증 주체로만 정하므로 다른 사람의 내역은 조회할 수 없다. "
-                    + "category 생략 시 전체 조회, keyword로 상대방 이름·가맹점명·금액을 검색할 수 있다.")
+                    + "category 생략 시 전체 조회, keyword로 상대방 이름·가맹점명·금액을 검색할 수 있다. "
+                    + "category(ALL·CHARGE·TRANSFER·PAYMENT) 허용값 위반, page 음수, size 1~100 이탈은 "
+                    + "400 TRANSACTION_001.")
     @GetMapping
     public ApiResponse<TransactionHistoryListResponse> findMyTransactions(
             @ApiIgnore @AuthenticationPrincipal Long userId,

@@ -9,6 +9,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import springfox.documentation.annotations.ApiIgnore;
 import org.springframework.web.bind.annotation.*;
 
 @Api(tags = "보호자 충전 내역")
@@ -24,7 +25,7 @@ public class GuardChargeHistoryController {
         notes = "로그인한 보호자가 실행한 충전 내역을 최신순으로 반환한다.")
     @GetMapping
     public ApiResponse<ChargeHistoryListResponse> getChargeHistories(
-            @AuthenticationPrincipal Long guardId
+            @ApiIgnore @AuthenticationPrincipal Long guardId
     ){
         ChargeHistoryListResponse response = chargeService.getChargeHistories(guardId);
         return ApiResponse.success(response);
@@ -36,7 +37,7 @@ public class GuardChargeHistoryController {
             + "존재하지 않으면 404.")
     @GetMapping("/{id}")
     public ApiResponse<ChargeDetailResponse> getChargeDetail(
-            @AuthenticationPrincipal Long guardId,
+            @ApiIgnore @AuthenticationPrincipal Long guardId,
             @ApiParam(value = "충전 거래 ID", required = true, example = "999")
             @PathVariable Long id
     ){

@@ -26,7 +26,7 @@ public class GuardChargeController {
     @ApiOperation(
         value = "보호자 충전",
         notes = "보호자가 담당 피보호자의 지갑에 자신의 연동 계좌로 충전한다. 페어링된 보호자가 아니면 "
-            + "404, 보호자 본인 소유 계좌가 아니면 404.")
+            + "404, 보호자 본인 소유 계좌가 아니면 404, 충전 비밀번호(pin)가 없거나 틀리면 400.")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ChargeResponse> chargeByGuard(

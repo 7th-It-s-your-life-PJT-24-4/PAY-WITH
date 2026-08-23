@@ -17,6 +17,7 @@ public class AccountCreateRequest {
     @ApiModelProperty(value = "계좌번호", required = true, example = "11012300006781")
     private String accountNo;
 
-    @ApiModelProperty(value = "계좌 비밀번호(실명조회용)", required = true, example = "1234")
+    @ApiModelProperty(value = "계좌 비밀번호(실서비스 연동 대비 수집 — 데모에서는 미사용, 실명조회는 생년월일로 수행)",
+        required = true, example = "1234")
     private String accountPassword;
 }

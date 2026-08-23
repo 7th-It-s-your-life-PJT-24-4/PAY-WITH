@@ -20,7 +20,7 @@ public class SafeAccountResponse {
     @ApiModelProperty(value = "안전계좌 ID(recipientId와 동일)", example = "10")
     private Long safeAccountId;
 
-    @ApiModelProperty(value = "수취인 ID. 보호자 응답에서는 노출되지 않을 수 있다", example = "10")
+    @ApiModelProperty(value = "수취인 ID. 등록 응답에는 항상 포함되며, 목록 조회의 보호자 응답에서만 null", example = "10")
     private Long recipientId;
 
     @ApiModelProperty(value = "은행 표준코드", example = "004")

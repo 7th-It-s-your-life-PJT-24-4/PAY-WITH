@@ -47,7 +47,7 @@ public class SafeAccountController {
         notes = "피보호자 본인의 안전계좌 목록을 조회한다. 목록에 recipientId 가 함께 노출된다.")
     @GetMapping
     public ApiResponse<SafeAccountListResponse> getList(
-        @AuthenticationPrincipal Long userId
+        @ApiIgnore @AuthenticationPrincipal Long userId
     ){
         SafeAccountListResponse response = safeAccountService.getSafeAccountListByWard(userId);
         return ApiResponse.success(response);

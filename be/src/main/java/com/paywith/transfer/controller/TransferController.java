@@ -8,7 +8,6 @@ import com.paywith.transfer.service.TransferService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ResponseHeader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,12 +40,15 @@ public class TransferController {
 
     @ApiOperation(
         value = "송금",
-        notes = "Idempotency-Key 헤더로 중복 요청을 방지한다. 동일 키로 이미 처리 중인 요청이 있으면 "
-            + "409, 이전에 완료된 요청과 같은 내용이면 저장해둔 응답을 그대로 재반환한다. "
+        notes = "Idempotency-Key 헤더로 중복 요청을 방지한다. 409는 세 가지 — 동일 키가 아직 처리 "
+            + "중이면 IDEMPOTENCY_002, 동일 키에 다른 요청 내용이면 TRANSFER_005, 입금 호출 이후 "
+            + "실패(FAILED)로 확정된 키를 재시도하면 코드 없는 409. 완료된 키에 같은 내용으로 "
+            + "재요청하면 저장해둔 응답을 그대로 재반환한다. "
             + "FDS 평가 결과가 위험(DANGER)이면 송금을 보류하고 202로 응답한다. 블랙리스트에 걸린 "
             + "건은 보호자 승인 없이 차단되며 200으로 응답한다(생성된 것이 없으므로 201이 아니다). "
             + "그 외에는 송금을 완료하고 201로 응답한다. 어느 경우든 확정 상태는 본문 status 로 "
-            + "판단한다.")
+            + "판단한다. 그 밖의 오류: PIN 불일치 400(TRANSFER_002), 수취 계좌 미확인 "
+            + "404(RECIPIENT_001), 잔액 부족 422(WALLET_003).")
     @PostMapping
     public ResponseEntity<ApiResponse<TransferResponse>> transfer(
             @ApiIgnore @AuthenticationPrincipal Long userId,
@@ -80,7 +82,7 @@ public class TransferController {
             + "범위를 벗어나면 400.")
     @GetMapping("recipient")
     public ApiResponse<RecipientHistoryListResponse> getRecipientHistory(
-            @AuthenticationPrincipal Long userId,
+            @ApiIgnore @AuthenticationPrincipal Long userId,
             @ApiParam(value = "수취인 이름 검색어. 생략하면 전체 조회", example = "김")
             @RequestParam(required = false) String keyword,
             @ApiParam(value = "정렬 기준. RECENT(기본값) 또는 NAME", example = "RECENT")

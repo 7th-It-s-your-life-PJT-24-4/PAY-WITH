@@ -73,7 +73,8 @@ public class UserController {
 
     @ApiOperation(
         value = "FCM 토큰 등록",
-        notes = "로그인한 사용자 본인의 토큰만 갱신한다. 기기에서 토큰이 재발급될 때마다 호출한다.")
+        notes = "로그인한 사용자 본인의 토큰만 갱신한다. 기기에서 토큰이 재발급될 때마다 호출한다. "
+            + "탈퇴한 계정이면 403.")
     @PutMapping("/me/fcm-token")
     public ApiResponse<Void> updateFcmToken(
         @Valid @RequestBody FcmTokenUpdateRequest request,

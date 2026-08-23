@@ -48,7 +48,7 @@ public class GuardSafeAccountController {
         notes = "보호자가 담당 피보호자의 안전계좌 목록을 조회한다. 목록에 recipientId 는 노출되지 않는다.")
     @GetMapping
     public ApiResponse<SafeAccountListResponse> getList(
-            @AuthenticationPrincipal Long guardId,
+            @ApiIgnore @AuthenticationPrincipal Long guardId,
             @ApiParam(value = "피보호자 ID", required = true, example = "1")
             @PathVariable Long wardId
     ){
