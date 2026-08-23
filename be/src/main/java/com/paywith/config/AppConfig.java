@@ -3,6 +3,7 @@ package com.paywith.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.sentry.spring.SentryTaskDecorator;
 import org.springframework.context.annotation.*;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -60,6 +61,9 @@ public class AppConfig {
     @Bean
     public ThreadPoolTaskExecutor pushTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        // Sentry 는 요청 문맥을 스레드에 붙여 관리한다. 데코레이터가 없으면 여기서 난 오류가
+        // 어느 요청에서 비롯됐는지(URL·사용자)를 잃고 스택트레이스만 남는다.
+        executor.setTaskDecorator(new SentryTaskDecorator());
         executor.setCorePoolSize(2);
         executor.setMaxPoolSize(4);
         executor.setQueueCapacity(500);

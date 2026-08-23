@@ -61,6 +61,14 @@ services:
       PAIRING_INVITE_BASE_URL: ${PAIRING_INVITE_BASE_URL}
       FCM_ENABLED: ${FCM_ENABLED:-true}
       FCM_CREDENTIALS_PATH: /etc/paywith/firebase-service-account.json
+      # Sentry. SDK 가 이 이름의 환경변수를 직접 읽으므로 앱 프로퍼티로 옮겨 담지 않는다.
+      # DSN 이 비면 SDK 가 비활성 상태로 남는다 — 키를 넣기 전에 배포해도 기동에는 영향이 없다.
+      # DEPLOY_SHA 는 CI 가 SSH 세션 환경변수로 넘기는 배포 커밋이다(be-ci-cd.yml). 수동 배포로
+      # 띄우면 unknown 이 되는데, 그때는 어느 커밋인지 배포자가 알고 있다.
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      SENTRY_RELEASE: ${DEPLOY_SHA:-unknown}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-DEBUG}
     volumes:
       # Firebase 서비스 계정 키. 이미지에 굽지 않는다 — GHCR 은 조직 밖에서도 pull 될 수 있고,
       # 이미지에 한 번 들어가면 레이어에 영구히 남는다. 배포가 덮지 않도록 deploy/.env 와 같이
