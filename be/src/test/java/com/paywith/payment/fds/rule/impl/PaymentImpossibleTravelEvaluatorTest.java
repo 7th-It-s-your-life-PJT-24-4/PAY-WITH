@@ -70,7 +70,7 @@ class PaymentImpossibleTravelEvaluatorTest {
         assertThat(evaluator.evaluate(context)).isTrue();
     }
 
-    /** 3시간 전 부산 결제 — 약 110km/h 는 임계(300) 아래라 정상 이동으로 본다. */
+    /** 3시간 전 부산 결제 — 약 110km/h 는 임계(400) 아래라 정상 이동으로 본다. */
     @Test
     void doesNotTriggerForPlausibleTravel() {
         PaymentRuleContext context = normal()

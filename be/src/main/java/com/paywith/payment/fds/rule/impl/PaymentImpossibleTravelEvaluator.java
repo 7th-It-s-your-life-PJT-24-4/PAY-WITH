@@ -10,8 +10,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * 단축평가 — 직전 결제와의 이동 속도가 임계(기본 300km/h, KTX 최고 속도)를 초과하면 즉시 위험.
- * 상용 교통수단으로 도달 불가능한 영역만 잡는다("확정적 신호만 둔다" 원칙).
+ * 단축평가 — 직전 결제와의 이동 속도가 임계(기본 400km/h)를 초과하면 즉시 위험.
+ * 상용 교통수단으로 도달 불가능한 영역만 잡는다("확정적 신호만 둔다" 원칙) — 국내 최장인
+ * 김포-제주(약 450km)를 항공으로 이동하며 탑승 직전·착륙 직후 결제해도 실효 속도는
+ * 약 320km/h 라 임계 아래다.
  *
  * <p>{@code PaymentRiskRuleEvaluator}를 구현하지 않는 것은 의도다 — 점수 룰 순회에 섞이면
  * score 0 합산으로 무해화되므로, 판정 서비스가 점수 계산 전에 별도로 호출한다(송금의 블랙리스트
