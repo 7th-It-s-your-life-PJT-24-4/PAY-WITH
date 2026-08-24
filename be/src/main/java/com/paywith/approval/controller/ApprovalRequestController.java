@@ -90,7 +90,7 @@ public class ApprovalRequestController {
 
     @ApiOperation(
         value = "거절",
-        notes = "보류된 송금을 취소시킨다. 대기 상태가 아니거나 이미 만료된 건이면 409, "
+        notes = "보류된 송금을 거절 처리한다(거래는 REJECTED로 종결). 대기 상태가 아니거나 이미 만료된 건이면 409, "
             + "담당하지 않는 시니어의 건이면 404.")
     @PostMapping("/{approvalId}/reject")
     public ApiResponse<ApprovalDecisionResponse> reject(

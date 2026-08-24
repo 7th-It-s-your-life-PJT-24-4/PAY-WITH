@@ -28,6 +28,7 @@ public class WardHomeController {
         notes = "로그인한 피보호자의 이름, 지갑 잔액, 승인 대기 중인 송금 목록을 한 번에 반환한다. "
             + "대상을 파라미터로 받지 않고 인증 주체로만 정하므로 다른 사람의 정보는 조회할 수 없다. "
             + "지갑은 피보호자에게만 생성되므로 보호자 계정은 403. "
+            + "페어링이 완료되지 않았으면 403(WARD_001). "
             + "승인 대기 목록은 만료가 임박한 순이며, 결제는 아직 승인 대기가 생기지 않아 송금만 나온다.")
     @GetMapping
     public ApiResponse<WardHomeResponse> findMyHome(

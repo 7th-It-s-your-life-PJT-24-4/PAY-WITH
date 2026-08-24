@@ -60,7 +60,8 @@ public class WardPaymentController {
 
     @ApiOperation(
         value = "결제 상태 조회 (폴링)",
-        notes = "PENDING이면서 만료 시각이 지난 건은 조회 시점에 EXPIRED로 전이된다. "
+        notes = "status는 PENDING·PROCESSING·COMPLETED·FAILED·EXPIRED·CANCELED 6종. "
+            + "PENDING이면서 만료 시각이 지난 건은 조회 시점에 EXPIRED로 전이된다. "
             + "실패 건은 failureCode(INSUFFICIENT_BALANCE·FDS_BLOCKED)를 함께 준다.")
     @ApiResponses({
         @io.swagger.annotations.ApiResponse(code = 400,

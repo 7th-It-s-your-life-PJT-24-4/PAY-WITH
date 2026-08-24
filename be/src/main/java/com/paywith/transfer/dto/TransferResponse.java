@@ -44,7 +44,7 @@ public class TransferResponse {
     @ApiModelProperty(value = "송금 메모", example = "생활비")
     private String memo;
 
-    @ApiModelProperty(value = "송금 완료 시각. HELD 상태에서는 아직 비어 있을 수 있다")
+    @ApiModelProperty(value = "송금 완료 시각. COMPLETED에서만 채워지고 HELD·BLOCKED에서는 null")
     private LocalDateTime completedAt;
 
     @ApiModelProperty(value = "송금 후 지갑 잔액(원)", example = "50000")

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import springfox.documentation.annotations.ApiIgnore;
 import com.paywith.common.ApiResponse;
 
 @Api(tags = "피보호자 은행 필터링")
@@ -30,7 +31,7 @@ public class BankFilterController {
             + "1~20자리를 벗어나면 400, WARD가 아니면 403, 페어링 미완료면 403.")
     @PostMapping
     public ApiResponse<BankFilterResponse> filterBanks(
-        @AuthenticationPrincipal Long wardId,
+        @ApiIgnore @AuthenticationPrincipal Long wardId,
         @RequestBody BankFilterRequest request
     ) {
         return ApiResponse.success(bankFilterService.filterBanks(wardId, request.getAccountNo()));

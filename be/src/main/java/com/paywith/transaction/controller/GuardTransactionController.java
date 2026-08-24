@@ -23,7 +23,10 @@ public class GuardTransactionController {
     @ApiOperation(
             value = "피보호자 거래내역 조회 (보호자)",
             notes = "보호자가 담당 피보호자의 거래내역을 최신순으로 조회한다. "
-                    + "담당이 아니면 404 LINK_001.")
+                    + "담당이 아니면 404 LINK_001. 보호자가 대신 실행한 거래(대리 충전)는 이 목록에서 "
+                    + "제외된다(충전 이력은 보호자 충전 내역 API 사용). type(CHARGE·TRANSFER·PAYMENT)· "
+                    + "riskLevel(SAFE·CAUTION·DANGER) 허용값 위반, page 음수, size 1~100 이탈은 "
+                    + "400 REQUEST_001.")
     @GetMapping
     public ApiResponse<GuardTransactionHistoryListResponse> findWardTransactions(
             @ApiIgnore @AuthenticationPrincipal Long guardId,
