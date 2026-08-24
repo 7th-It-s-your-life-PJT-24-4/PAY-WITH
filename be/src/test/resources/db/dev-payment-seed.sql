@@ -42,7 +42,7 @@ INSERT INTO merchants (merchant_id, name, category_code, region, latitude, longi
 -- FDS 카테고리·이동 속도 룰 검증용 가맹점 (PR#4a, 룰별 최소 1케이스 — 설계서 §7-1-b):
 --   9902 금은방(JEWELRY)      PAY_RISKY_CATEGORY 단독(9만→CAUTION)·조합(50만→25+35=60 DANGER)
 --   9903 전자상가(ELECTRONICS) risky 목록 복수 코드 파싱 확인
---   9904 부산식당(RESTAURANT)  서울 결제 후 수분 내 결제 시 속도>300km/h → PAY_IMPOSSIBLE_TRAVEL.
+--   9904 부산식당(RESTAURANT)  서울 결제 후 수분 내 결제 시 속도>400km/h → PAY_IMPOSSIBLE_TRAVEL.
 --                              중립 카테고리(어느 목록에도 없음)라 속도 룰만 격리 검증
 --   9905 무분류(NULL, 좌표 O)  category_code NULL 이면 카테고리 룰 3종 스킵 확인
 -- 상품권 취급 업종(PAY_GIFT_CARD_AMOUNT/SPLIT) 검증은 공용 시드의 4(CVS)·1(MART)을 그대로 사용.

@@ -34,7 +34,7 @@ public final class PaymentFdsTestWiring {
     public static final int DEEP_END_HOUR = 6;
     public static final int SPLIT_COUNT_THRESHOLD = 2;
     public static final int RISKY_REPEATED_COUNT_THRESHOLD = 2;
-    public static final double IMPOSSIBLE_SPEED_KMH = 300.0;
+    public static final double IMPOSSIBLE_SPEED_KMH = 400.0;
 
     private PaymentFdsTestWiring() {
     }

@@ -137,8 +137,8 @@ INSERT INTO risk_rules (rule_code, description, score, is_active) VALUES
 -- 3) 시연용 더미 가맹점
 --    1~5 는 서울권(종로·중구) — 평상시 생활 반경 결제를 만드는 용도.
 --    9001~ 은 제주권. 서울 결제 직후 여기서 결제하면 PAY_IMPOSSIBLE_TRAVEL 이 발동한다.
---    종로-제주시 대권거리가 약 454km 이고 임계가 300km/h(fds.payment.impossible-speed-kmh)라,
---    직전 COMPLETED 결제와 90분 이내면 걸린다. 기준 결제는 24시간 안에 있어야 한다.
+--    종로-제주시 대권거리가 약 454km 이고 임계가 400km/h(fds.payment.impossible-speed-kmh)라,
+--    직전 COMPLETED 결제와 약 68분 이내면 걸린다. 기준 결제는 24시간 안에 있어야 한다.
 --    번호대를 9001 부터 띄운 것은 서울 더미(1~5)가 뒤에 늘어나도 겹치지 않게 하기 위함이다.
 --    created_at 은 컬럼 DEFAULT(CURRENT_TIMESTAMP)에 맡긴다 — UPDATE 절에 없으므로
 --    이미 들어가 있는 행의 값은 재실행해도 그대로 남는다.
