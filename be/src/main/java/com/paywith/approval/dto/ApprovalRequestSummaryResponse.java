@@ -32,7 +32,8 @@ public class ApprovalRequestSummaryResponse {
     @ApiModelProperty(value = "수취 은행", example = "신한은행")
     private final String bankName;
 
-    @ApiModelProperty(value = "위험 등급", example = "DANGER", allowableValues = "SAFE,CAUTION,DANGER")
+    @ApiModelProperty(value = "위험 등급. 평가 기록이 없으면 null", example = "DANGER",
+        allowableValues = "SAFE,CAUTION,DANGER")
     private final String riskLevel;
 
     @ApiModelProperty(value = "승인요청 생성 시각")
@@ -41,11 +42,13 @@ public class ApprovalRequestSummaryResponse {
     @ApiModelProperty(value = "승인 만료 시각. 대기 목록에서는 이 시각이 지나면 제외된다")
     private final LocalDateTime expiredAt;
 
-    @ApiModelProperty(value = "승인요청 상태", example = "APPROVED",
+    @ApiModelProperty(value = "승인요청 상태. 대기 목록은 항상 PENDING, 이력은 조회한 status 와 같다. "
+        + "CANCELED 는 현재 구현상 응답에 나오지 않는다", example = "APPROVED",
         allowableValues = "PENDING,APPROVED,REJECTED,CANCELED,EXPIRED")
     private final String status;
 
-    @ApiModelProperty(value = "보호자 응답·피보호자 취소·자동 만료 시각. 대기 건이면 null")
+    @ApiModelProperty(value = "보호자 응답 시각 또는 자동 만료 시각(EXPIRED 는 expiredAt 과 같은 값). 대기 건이면 null. "
+        + "피보호자 취소는 현재 기록되지 않는다")
     private final LocalDateTime respondedAt;
 
     public ApprovalRequestSummaryResponse(ApprovalRequestView view) {

@@ -33,13 +33,15 @@ public class ApprovalRequestDetailResponse {
     @ApiModelProperty(value = "수취 은행", example = "신한은행")
     private final String bankName;
 
-    @ApiModelProperty(value = "수취 계좌번호", example = "110234567890")
+    @ApiModelProperty(value = "수취 계좌번호", example = "11012300006781")
     private final String accountNo;
 
-    @ApiModelProperty(value = "위험 등급", example = "DANGER", allowableValues = "SAFE,CAUTION,DANGER")
+    @ApiModelProperty(value = "위험 등급. 승인 대기 건은 룰 합산 DANGER 에서만 생성되므로 실질적으로 DANGER. "
+        + "평가 기록이 없으면 null", example = "DANGER", allowableValues = "SAFE,CAUTION,DANGER")
     private final String riskLevel;
 
-    @ApiModelProperty(value = "룰 합산 점수. 블랙리스트 확정 건은 0", example = "64")
+    @ApiModelProperty(value = "룰 합산 점수(0 하한). 블랙리스트 확정 건은 승인요청 없이 즉시 차단되어 여기에 오지 않는다. "
+        + "평가 기록이 없으면 null", example = "64")
     private final Integer totalScore;
 
     @ApiModelProperty(value = "승인요청 생성 시각")
@@ -48,7 +50,7 @@ public class ApprovalRequestDetailResponse {
     @ApiModelProperty(value = "승인 만료 시각")
     private final LocalDateTime expiredAt;
 
-    @ApiModelProperty(value = "보류 사유. 근거가 큰 순으로 정렬되며 룰별 점수는 내보내지 않는다")
+    @ApiModelProperty(value = "보류 사유. 룰별 점수 큰 순(동점이면 룰 코드순)으로 정렬되며 룰별 점수는 내보내지 않는다")
     private final List<ApprovalRuleHitResponse> ruleHits;
 
     public ApprovalRequestDetailResponse(ApprovalRequestView view, List<ApprovalRuleHitResponse> ruleHits) {

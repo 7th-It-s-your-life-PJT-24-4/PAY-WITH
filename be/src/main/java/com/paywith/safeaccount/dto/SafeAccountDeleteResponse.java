@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SafeAccountDeleteResponse {
-    @ApiModelProperty(value = "안전계좌 ID", example = "10")
+    @ApiModelProperty(value = "안전계좌 ID(recipientId 와 동일)", example = "10")
     private Long safeAccountId;
 
     @ApiModelProperty(value = "안전계좌 상태. 항상 INACTIVE", example = "INACTIVE", allowableValues = "INACTIVE")

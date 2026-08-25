@@ -27,8 +27,9 @@ public class BankFilterController {
     @ApiOperation(
         value = "계좌번호 기반 은행 필터링",
         notes = "계좌번호 형식 규칙(은행별 자릿수 범위·앞자리 prefix)과 일치하는 활성 은행 후보 목록을 반환한다. "
-            + "일치하는 은행이 없으면 400이 아니라 빈 배열로 응답한다. 계좌번호가 숫자가 아니거나 "
-            + "1~20자리를 벗어나면 400, WARD가 아니면 403, 페어링 미완료면 403.")
+            + "일치하는 은행이 없으면 400이 아니라 빈 배열로 응답한다(후보 순서는 DB 반환 순서, 정렬 보장 없음). "
+            + "검사 순서: WARD가 아니면 403 AUTH_004 → ACTIVE 페어링이 없으면 403 WARD_001 → "
+            + "accountNo 가 없거나 숫자가 아니거나 1~20자리를 벗어나면 400 ACCOUNT_001. JSON 파싱 실패는 500.")
     @PostMapping
     public ApiResponse<BankFilterResponse> filterBanks(
         @ApiIgnore @AuthenticationPrincipal Long wardId,

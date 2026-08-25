@@ -32,8 +32,9 @@ public class WardApprovalRequestController {
     @ApiOperation(
         value = "본인 승인 대기 건 상세",
         notes = "홈 화면 목록에서 고른 승인 대기 건의 상세를 반환한다. 대상을 파라미터로 받지 않고 "
-            + "인증 주체로만 정하므로 다른 사람의 건은 조회할 수 없다. 본인 건이 아니거나 이미 "
-            + "처리·만료된 건이면 404. 보류 사유(발동한 FDS 룰)는 보호자용 상세에만 담기며 여기서는 "
+            + "인증 주체로만 정하므로 다른 사람의 건은 조회할 수 없다. 존재하지 않는 ID·본인 건이 아닌 것·이미 "
+            + "처리·만료된 건은 모두 404 \"승인요청을 찾을 수 없습니다.\"(응답에 code 없음)로 합쳐 응답한다. "
+            + "approvalId 가 비숫자면 500(code 없음). 보류 사유(발동한 FDS 룰)는 보호자용 상세에만 담기며 여기서는 "
             + "내보내지 않는다.")
     @GetMapping("/{approvalId}")
     public ApiResponse<WardApprovalDetailResponse> findDetailByWard(

@@ -49,7 +49,7 @@ public class WardApprovalDetailResponse {
     @ApiModelProperty(value = "수취 은행", example = "신한은행")
     private final String bankName;
 
-    @ApiModelProperty(value = "수취 계좌번호", example = "110-234-567890")
+    @ApiModelProperty(value = "수취 계좌번호", example = "11012300006781")
     private final String accountNo;
 
     @ApiModelProperty(value = "위험 등급. 평가 기록이 없으면 null",

@@ -19,13 +19,18 @@ import lombok.Getter;
 @Getter
 public class TransferResultResponse {
 
-    @ApiModelProperty(value = "송금 시도 결과", example = "COMPLETED", allowableValues = "COMPLETED,FAILED")
+    @ApiModelProperty(value = "송금 시도 결과. FAILED 는 잔액 부족 등 입금 전 실패(거래 FAILED 종결)뿐 아니라 "
+        + "입금 호출 이후 실패·원인 불명 오류(거래는 APPROVED 로 남고 성패 미확정)도 포함한다",
+        example = "COMPLETED", allowableValues = "COMPLETED,FAILED")
     private final String status;
 
-    @ApiModelProperty(value = "실패 사유. 성공이면 null", example = "송금 가능한 잔액이 부족합니다.")
+    @ApiModelProperty(value = "실패 사유. 성공이면 null. 성패 미확정 건은 \"… 잔액을 확인 후 고객센터로 문의해주세요. "
+        + "transactionId=N\" 또는 \"송금 처리 중 오류가 발생했습니다. 잠시 후 다시 확인해주세요.\"",
+        example = "송금 가능한 잔액이 부족합니다.")
     private final String failureReason;
 
-    @ApiModelProperty(value = "송금 완료 시각. 실패면 null")
+    @ApiModelProperty(value = "송금 완료 시각. 실패면 null. 서버 시각 기준이라 마이크로초까지 포함될 수 있다",
+        example = "2026-07-31T13:42:26.123456")
     private final LocalDateTime completedAt;
 
     @ApiModelProperty(value = "송금 후 지갑 잔액. 실패면 null", example = "120000")

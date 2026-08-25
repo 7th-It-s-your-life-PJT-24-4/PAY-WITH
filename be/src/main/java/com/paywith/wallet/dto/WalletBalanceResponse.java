@@ -25,7 +25,8 @@ public class WalletBalanceResponse {
     @ApiModelProperty(value = "현재 잔액(원)", example = "50000")
     private final Long balance;
 
-    @ApiModelProperty(value = "잔액이 마지막으로 변한 시각. 화면에서 기준 시점 표시에 쓴다")
+    @ApiModelProperty(value = "잔액이 마지막으로 변한 시각(DB 값, 오프셋·소수초 없음). 화면에서 기준 시점 표시에 쓴다",
+        example = "2026-08-03T16:36:46")
     private final LocalDateTime updatedAt;
 
     public WalletBalanceResponse(Wallet wallet) {

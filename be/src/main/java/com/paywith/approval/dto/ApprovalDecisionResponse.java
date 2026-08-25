@@ -19,10 +19,11 @@ public class ApprovalDecisionResponse {
         allowableValues = "APPROVED,REJECTED")
     private final String status;
 
-    @ApiModelProperty(value = "처리 시각")
+    @ApiModelProperty(value = "처리 시각. 서버 시각(LocalDateTime.now()) 기준이라 마이크로초까지 포함될 수 있다",
+        example = "2026-07-31T13:42:26.123456")
     private final LocalDateTime respondedAt;
 
-    @ApiModelProperty(value = "승인 후 이어서 실행한 송금의 결과. 거절이거나 송금을 실행하지 않았으면 null")
+    @ApiModelProperty(value = "승인 후 이어서 실행한 송금의 결과. 승인이면 실패(FAILED)까지 포함해 항상 담기고, 거절이면 null")
     private final TransferResultResponse transfer;
 
     public ApprovalDecisionResponse(
