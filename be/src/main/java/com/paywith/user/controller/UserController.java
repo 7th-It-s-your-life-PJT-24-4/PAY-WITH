@@ -106,7 +106,7 @@ public class UserController {
     @PutMapping("/me/fcm-token")
     public ApiResponse<Void> updateFcmToken(
         @Valid @RequestBody FcmTokenUpdateRequest request,
-        Authentication authentication
+        @ApiIgnore Authentication authentication
     ) {
         userService.updateFcmToken(currentUserId(authentication), request.getFcmToken());
         return ApiResponse.success(null);
@@ -122,7 +122,7 @@ public class UserController {
     @DeleteMapping("/me/fcm-token")
     public ApiResponse<Void> deleteFcmToken(
         @Valid @RequestBody FcmTokenUpdateRequest request,
-        Authentication authentication
+        @ApiIgnore Authentication authentication
     ) {
         userService.deleteFcmToken(currentUserId(authentication), request.getFcmToken());
         return ApiResponse.success(null);

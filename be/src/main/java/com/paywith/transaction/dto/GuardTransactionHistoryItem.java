@@ -19,14 +19,18 @@ import java.time.LocalDateTime;
 @Builder
 public class GuardTransactionHistoryItem {
 
+    @ApiModelProperty(value = "거래 번호(transactions.transaction_id)", example = "141")
     private Long transactionId;
+    @ApiModelProperty(value = "거래 유형(TRANSFER_OUT 은 TRANSFER 로 변환)", allowableValues = "CHARGE,TRANSFER,PAYMENT", example = "PAYMENT")
     private TransactionCategory type;
+    @ApiModelProperty(value = "거래 상태(transactions.status). 상태 필터 없이 원장 값을 그대로 반환", example = "COMPLETED")
     private TransactionStatus status;
 
     @ApiModelProperty(value = "상대방 표시명. CHARGE=출금 연동계좌 은행명, PAYMENT=가맹점명, TRANSFER=수취인 예금주명",
             example = "박지연")
     private String counterpartyName;
 
+    @ApiModelProperty(value = "거래 금액의 절댓값(원)", example = "45200")
     private Long amount;
 
     @ApiModelProperty(value = "거래 위험 단계. 평가 기록이 없으면 null", allowableValues = "SAFE,CAUTION,DANGER", example = "DANGER")

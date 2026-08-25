@@ -11,6 +11,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponses;
+import springfox.documentation.annotations.ApiIgnore;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -62,7 +63,7 @@ public class WardPaymentController {
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<QrCreateResponse> createQr(
         @Valid @RequestBody QrCreateRequest request,
-        Authentication authentication
+        @ApiIgnore Authentication authentication
     ) {
         return ApiResponse.success(paymentService.createQr(currentUserId(authentication), request.getPin()));
     }
@@ -91,7 +92,7 @@ public class WardPaymentController {
     public ApiResponse<PaymentStatusResponse> getStatus(
         @ApiParam(value = "결제 요청 번호(양의 정수, 비숫자·0 이하는 400 PAYMENT_001)", required = true, example = "42")
         @PathVariable("id") String id,
-        Authentication authentication
+        @ApiIgnore Authentication authentication
     ) {
         return ApiResponse.success(paymentService.getStatus(currentUserId(authentication), parsePaymentId(id)));
     }
@@ -121,7 +122,7 @@ public class WardPaymentController {
     public ApiResponse<PaymentCancelResponse> cancel(
         @ApiParam(value = "취소할 결제 요청 번호(양의 정수, 비숫자·0 이하는 400 PAYMENT_001)", required = true, example = "42")
         @PathVariable("id") String id,
-        Authentication authentication
+        @ApiIgnore Authentication authentication
     ) {
         return ApiResponse.success(paymentService.cancel(currentUserId(authentication), parsePaymentId(id)));
     }
