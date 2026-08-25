@@ -22,7 +22,7 @@ public class TransferResponse {
     @ApiModelProperty(
         value = "거래 상태. 블랙리스트 차단이면 BLOCKED(200), 그 밖의 위험 판정이면 HELD(202), "
             + "정상이면 COMPLETED(201). BLOCKED·HELD 는 이체가 일어나지 않아 이 필드와 "
-            + "transactionId 만 채워지고 나머지는 null 이다.",
+            + "transactionId 만 채워지고 나머지는 null 이다(null 필드도 응답 JSON 에 포함).",
         example = "COMPLETED", allowableValues = "BLOCKED,HELD,COMPLETED")
     private TransactionStatus status;
 
@@ -44,7 +44,8 @@ public class TransferResponse {
     @ApiModelProperty(value = "송금 메모", example = "생활비")
     private String memo;
 
-    @ApiModelProperty(value = "송금 완료 시각. COMPLETED에서만 채워지고 HELD·BLOCKED에서는 null")
+    @ApiModelProperty(value = "송금 완료 시각. COMPLETED에서만 채워지고 HELD·BLOCKED에서는 null. "
+        + "오프셋 없는 ISO-8601(LocalDateTime, 마이크로초 포함 가능)", example = "2026-08-25T10:05:01.123456")
     private LocalDateTime completedAt;
 
     @ApiModelProperty(value = "송금 후 지갑 잔액(원)", example = "50000")

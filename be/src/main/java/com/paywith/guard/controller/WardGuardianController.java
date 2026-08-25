@@ -24,8 +24,8 @@ public class WardGuardianController {
 
     @ApiOperation(
         value = "보호자 정보 조회",
-        notes = "시니어가 자신과 연동된 보호자의 이름·전화번호·아바타를 조회한다. 연동된 보호자가 없으면 "
-            + "403 WARD_001. WARD가 아니면 403 AUTH_004.")
+        notes = "시니어가 자신과 연동된 보호자의 이름·전화번호·아바타를 조회한다. ACTIVE 보호자가 여럿이면 "
+            + "가장 먼저 연동된 1명만 반환한다. 연동된 보호자가 없으면 403 WARD_001. WARD가 아니면 403 AUTH_004.")
     @GetMapping
     public ApiResponse<GuardInfoResponse> getMyGuardian(@ApiIgnore @AuthenticationPrincipal Long wardId) {
         return ApiResponse.success(guardService.findMyGuardian(wardId));

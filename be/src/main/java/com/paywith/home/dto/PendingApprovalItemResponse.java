@@ -43,10 +43,11 @@ public class PendingApprovalItemResponse {
         example = "DANGER", allowableValues = "SAFE,CAUTION,DANGER")
     private final String riskLevel;
 
-    @ApiModelProperty(value = "승인요청 생성 시각")
+    @ApiModelProperty(value = "승인요청 생성 시각. 오프셋 없는 ISO-8601", example = "2026-07-16T15:22:07")
     private final LocalDateTime requestedAt;
 
-    @ApiModelProperty(value = "승인 만료 시각. 지나면 목록에서 빠지고 거래는 취소된다")
+    @ApiModelProperty(value = "승인 만료 시각(생성 시각 + fds.approval.expire-minutes, 기본 180분). "
+        + "지나면 목록에서 빠지고 거래는 취소된다. 오프셋 없는 ISO-8601", example = "2026-07-16T18:22:07")
     private final LocalDateTime expiredAt;
 
     public PendingApprovalItemResponse(ApprovalRequestView view) {

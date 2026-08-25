@@ -16,6 +16,6 @@ import java.util.List;
 @Builder
 
 public class RecipientHistoryListResponse {
-    @ApiModelProperty(value = "송금한 적 있는 수취인 목록")
+    @ApiModelProperty(value = "송금한 적 있는 수취인 목록. 해당 없으면 빈 배열")
     private List<RecipientHistoryItem> recipients;
 }

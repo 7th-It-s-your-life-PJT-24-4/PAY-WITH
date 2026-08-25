@@ -47,7 +47,21 @@ public class SwaggerConfig {
             .title("PayWith API")
             .description("시니어 안심 전자지갑 API. 역할은 WARD(피보호자)/GUARD(보호자)로 나뉜다. "
                 + "모든 응답은 {success, data, message(, code)} 래퍼로 감싸진다. "
-                + "인증이 필요한 API는 우측 상단 Authorize 에 \"Bearer {accessToken}\" 형식으로 입력한다.")
+                + "인증이 필요한 API는 우측 상단 Authorize 에 \"Bearer {accessToken}\" 형식으로 입력한다.\n\n"
+                + "공통 규칙 (개별 API 설명에 반복된 내용의 근거)\n"
+                + "1. 인증: /api/auth/**, POST /api/users, GET /api/merchants, POST /api/payments/execute, "
+                + "GET /api/health 를 제외한 모든 API 는 Bearer 토큰이 필요하다. 토큰이 없거나 무효하면 "
+                + "401 AUTH_001 \"인증이 필요합니다.\", 만료됐으면 401 AUTH_002 \"인증이 만료되었습니다.\". "
+                + "역할(WARD/GUARD)·소유권 검사는 시큐리티가 아니라 각 API 가 수행하므로 403 코드는 API 별 설명을 따른다.\n"
+                + "2. 검증 오류: 요청 본문의 필수값·형식 검증(@Valid)에 실패하면 400 REQUEST_001 이고, "
+                + "message 는 \"<필드명>: <검증 메시지>\" 형식으로 첫 번째 오류 하나만 담는다.\n"
+                + "3. 500: JSON 타입 불일치·파싱 실패, 숫자가 아닌 경로/쿼리 값, 필수 헤더 누락, 그 밖의 "
+                + "처리되지 않은 예외는 모두 500 이며 code 없이 message \"서버 오류가 발생했습니다.\" 만 온다.\n"
+                + "4. code 없는 오류: 일부 오류 응답은 code 키 자체가 생략된다(래퍼가 null 필드를 생략). "
+                + "이 경우 message 로 구분한다.\n"
+                + "5. 시각 형식: LocalDateTime 필드는 오프셋 없는 ISO-8601(예: 2026-07-16T15:30:00)이며, "
+                + "서버 처리 시각을 그대로 담는 필드는 마이크로초가 붙을 수 있다(예: 2026-07-16T15:30:00.123456). "
+                + "결제 API 의 시각 필드만 +09:00 오프셋 문자열이다.")
             .version("1.0")
             .build();
     }

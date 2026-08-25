@@ -27,6 +27,6 @@ public class ChargeHistoryItem {
     @ApiModelProperty(value = "충전 금액(원)", example = "30000")
     private Long amount;
 
-    @ApiModelProperty(value = "충전 처리 시각")
+    @ApiModelProperty(value = "충전 처리 시각(DB 값, 오프셋·소수초 없음)", example = "2026-07-16T15:32:00")
     private LocalDateTime createdAt;
 }

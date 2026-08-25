@@ -14,20 +14,25 @@ import javax.validation.constraints.Positive;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransferRequest {
-    @ApiModelProperty(value = "은행 표준코드", required = true, example = "004")
+    @ApiModelProperty(value = "은행 표준코드 (서버 검증 없음 — 누락 시 실명조회 목은 통과하지만 수취인 저장 DB 제약으로 500)",
+        required = true, example = "004")
     private String bankCode;
 
-    @ApiModelProperty(value = "계좌번호", required = true, example = "11012300006781")
+    @ApiModelProperty(value = "계좌번호 (서버 검증 없음 — 숫자만·길이 규칙 미검사)", required = true, example = "11012300006781")
     private String accountNo;
 
-    @ApiModelProperty(value = "송금 금액(원). 0보다 큰 정수", required = true, example = "50000")
+    @ApiModelProperty(value = "송금 금액(원). 0보다 큰 정수. 누락이면 400 REQUEST_001 \"amount: 송금 금액은 필수입니다.\", "
+        + "0 이하면 400 REQUEST_001 \"amount: 송금 금액은 0보다 커야 합니다.\", 숫자가 아니면 500",
+        required = true, example = "50000")
     @NotNull(message = "송금 금액은 필수입니다.")
     @Positive(message = "송금 금액은 0보다 커야 합니다.")
     private Long amount;
 
-    @ApiModelProperty(value = "송금 메모", example = "생활비")
+    @ApiModelProperty(value = "송금 메모 (서버 길이 검증 없음)", example = "생활비")
     private String memo;
 
-    @ApiModelProperty(value = "송금 비밀번호", required = true, example = "123456")
+    @ApiModelProperty(value = "송금 비밀번호. 불일치 시 400 TRANSFER_002, 누락(null)·키 이름 오기 시 500 (서버 형식 검증 없음). "
+        + "멱등 요청 동일성 해시에서는 제외된다",
+        required = true, example = "123456")
     private String transferPin;
 }

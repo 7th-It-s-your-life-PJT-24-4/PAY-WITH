@@ -13,9 +13,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class SafeAccountRegisterRequest {
-    @ApiModelProperty(value = "완료된 송금 이력이 있는 수취인 ID", required = true, example = "10")
+    @ApiModelProperty(value = "완료된 송금 이력이 있는 본인 수취인 ID. 서버 검증 없음: 누락(null)이면 404 RECIPIENT_003, 비숫자면 500", required = true, example = "10")
     private Long recipientId;
 
-    @ApiModelProperty(value = "안전계좌 별칭. 50자를 초과하면 400", example = "용돈용")
+    @ApiModelProperty(value = "안전계좌 별칭(최대 50자). 50자를 초과하면 400 SAFE_ACCOUNT_004, null·공백만이면 null 로 저장. 재등록 시 요청값으로 덮어씀", example = "용돈용")
     private String accountAlias;
 }

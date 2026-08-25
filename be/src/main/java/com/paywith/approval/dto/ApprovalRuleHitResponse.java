@@ -22,6 +22,7 @@ public class ApprovalRuleHitResponse {
     @ApiModelProperty(value = "룰 코드", example = "SUSPICIOUS_MEMO")
     private String ruleCode;
 
-    @ApiModelProperty(value = "룰 설명", example = "메모에 위험 키워드 포함")
+    @ApiModelProperty(value = "룰 설명(risk_rules.description 그대로)",
+        example = "송금 메모에 검찰·수사·대출 등 주의가 필요한 표현이 있어요.")
     private String description;
 }

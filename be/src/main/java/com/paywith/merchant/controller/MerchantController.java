@@ -26,7 +26,10 @@ public class MerchantController {
 
     @ApiOperation(
         value = "결제 가능 가맹점 목록",
-        notes = "좌표가 등록된 가맹점만 반환한다(결제 가능 = 좌표 등록). 좌표 자체는 응답에 없다.")
+        notes = "좌표가 등록된 가맹점만 merchant_id 오름차순으로 반환한다(결제 가능 = 좌표 등록). 좌표 자체는 응답에 없다. "
+            + "인증 불필요(permitAll). 해당 가맹점이 없으면 merchants는 빈 배열. "
+            + "categoryCode·region은 nullable 자유 문자열이며 현재 시드 categoryCode는 "
+            + "MART·PHARMACY·RESTAURANT·CVS·HOSPITAL·JEWELRY·ELECTRONICS.")
     @GetMapping
     public ApiResponse<MerchantListResponse> findAllPayable() {
         return ApiResponse.success(merchantService.findAllPayable());

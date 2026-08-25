@@ -22,7 +22,8 @@ public class GuardChargeHistoryController {
 
     @ApiOperation(
         value = "보호자 충전 내역 목록",
-        notes = "로그인한 보호자가 실행한 충전 내역을 최신순으로 반환한다.")
+        notes = "로그인한 보호자가 실행한 충전 내역을 최신순으로 반환한다. 역할 검사가 없어 WARD 가 호출하거나 "
+            + "실행한 충전이 없으면 빈 배열. 상태 필터가 없어 확정 실패로 REQUESTED·FAILED 로 남은 건도 포함된다.")
     @GetMapping
     public ApiResponse<ChargeHistoryListResponse> getChargeHistories(
             @ApiIgnore @AuthenticationPrincipal Long guardId
@@ -34,11 +35,11 @@ public class GuardChargeHistoryController {
     @ApiOperation(
         value = "보호자 충전 내역 상세",
         notes = "충전 내역 한 건의 상세 정보를 조회한다. 로그인한 보호자가 실행한 충전 건이 아니거나 "
-            + "존재하지 않으면 404.")
+            + "존재하지 않으면(WARD 호출 포함) 404 CHARGE_002. id 가 비숫자면 500.")
     @GetMapping("/{id}")
     public ApiResponse<ChargeDetailResponse> getChargeDetail(
             @ApiIgnore @AuthenticationPrincipal Long guardId,
-            @ApiParam(value = "충전 거래 ID", required = true, example = "999")
+            @ApiParam(value = "충전 거래 ID(비숫자면 500)", required = true, example = "999")
             @PathVariable Long id
     ){
         ChargeDetailResponse response = chargeService.getChargeDetail(guardId, id);
